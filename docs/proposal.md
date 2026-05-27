@@ -195,9 +195,9 @@ Time commitment for Phase-0: **~5-12 hours over 2-4 weeks** depending on scope p
 
 ### 9.3 Zihao Li — proposed Phase-0 DoL (econ + formal-math foundation track)
 
-Zihao's economics + formal-mathematics background is the natural fit for the **load-bearing methodology work**: the Layer 1 axiom protocols, the Layer 2 identification framework, and the OracleDecomposable formalization that generalizes TERMS-Bench Eq. 4. This is the heaviest of the three Phase-0 tracks because it's the §3 methodology-paper core — without it, the benchmark has no rigorous claim.
+Zihao's economics + formal-mathematics background is the natural fit for the **load-bearing methodology work**: the Layer 1 axiom protocols, the Layer 2 identification framework, and the OracleDecomposable formalization that generalizes TERMS-Bench Eq. 4. This is the §3 methodology-paper core — without it, the benchmark has no rigorous claim.
 
-Phase-0 options (pick 1-2 for ~15-25 hours total — biggest contribution surface of the three collaborators):
+Phase-0 options (pick 1-2 for ~15-25 hours total):
 
 - **(A) OracleDecomposable formalization.** Formalize the OracleDecomposable interface mathematically — what are the precise conditions (hidden state, controllable simulator, oracle policy, belief substitution, state reveal, scalar utility) that admit the Δ_inf + Δ_unc + Δ_ctrl decomposition? Identify which of the v0 use cases (C1 persona-fit, C2 price-aware product selection) satisfy each condition, where the abstraction breaks down, and what the v2 extensions (D2 bargaining, D3 agentic vendor selection) need. Anchor on Zhang et al. 2026 TERMS-Bench §4 (their Eq. 4 derivation); the methodology paper §3 takes this verbatim. **~10-15 hours.** This is the highest-leverage single item in the trial.
 
@@ -205,7 +205,7 @@ Phase-0 options (pick 1-2 for ~15-25 hours total — biggest contribution surfac
 
 - **(C) Layer 2 identification framework.** Formalize the within-class identification claim per §1.5.6.5: given a functional class (KT '79 prospect theory, CRRA, CARA, cumulative prospect theory TK '92, Kelly-Markowitz), what does identification mean operationally? When does the framework recover unique parameters vs admit non-uniqueness (Andrews's critique)? Draft the §3 methodology-paper subsection that handles this. **~10-15 hours.**
 
-You're effectively the §3 co-lead of the methodology paper if this trial converts. If you want to pick all three, that's the maximum-contribution path and would set up co-lead authorship discussion at the checkpoint; one item alone is sufficient signal for the trial.
+You're effectively the §3 co-lead of the methodology paper if this trial converts. One item alone is sufficient signal for the trial; picking more is welcome but not expected.
 
 Time commitment for Phase-0: **~10-25 hours over 2-4 weeks** depending on scope picked.
 
@@ -217,14 +217,75 @@ Candidate identification continues via lm-evaluation-harness contributor graph +
 
 Framing: potential coauthor specializing on the ops side, not a paid contractor.
 
-### 9.5 What gets decided at the 4-week checkpoint (2026-06-30)
+### 9.5 Proposed post-exploration ownership map
+
+A first-pass DoL for the full v0 scope, mapping workstreams to proposed primary owner + supporting collaborators. This is a *proposal* for the checkpoint discussion, not a commitment — Phase-0 contribution patterns drive the actual ownership decisions.
+
+**Methodology paper workstreams**:
+
+| Workstream | Proposed primary | Supporting |
+|---|---|---|
+| §1 Introduction | Cheney | Zihao (framing review) |
+| §2 Related work | Cheney | Zihao (econ-lit anchors), Yuecheng (LLM-bench anchors) |
+| §3 Methods — 5-axis taxonomy + OracleDecomposable formalization | Zihao | Cheney (writing pass) |
+| §3 Methods — measurement-model pluralism + statistical reproducibility | Zihao | Yuecheng (implementation notes) |
+| §6 Statistical reproducibility — cross-validation + held-out test design | Yuecheng | Zihao (formal justification) |
+| §7 Category C implementation (C1 persona-fit, C2 product selection) | Cheney | Zihao (utility-class identification) |
+| §8 Experiments — cross-model eval runs | Yuecheng | Cheney (analysis), Zihao (interpretation) |
+| §10 Discussion — mechanism design + agent-market thesis | Zihao | Cheney |
+
+**Methodology workstreams (Layer × Axis)**:
+
+| Workstream | Proposed primary | Supporting |
+|---|---|---|
+| Layer 1 axiom protocol specs (CCEI / GARP / WARP / transitivity / monotonicity / Houtman-Maks) | Zihao | Yuecheng (scorer impl) |
+| Layer 2 within-class identification framework | Zihao | Yuecheng (fit-procedure impl) |
+| Layer 3 OracleDecomposable formalization | Zihao | Cheney (C1 instantiation) |
+| Layer 3 predict-then-validate train/test split design | Cheney | Yuecheng (cache extension) |
+| Axis 1 Information — OracleDecomposable Δ_inf / Δ_unc / Δ_ctrl mechanics | Zihao | Cheney |
+| Axis 2 Consistency — counterfactual axiom interventions | Zihao | Yuecheng |
+| Axis 3 Calibration — Mazeika utility-fit + Brier/CRPS scoring | Yuecheng | Zihao (proper-scoring-rule theory) |
+| Axis 4 Computational floor — quantity-substitution probes | Yuecheng | Cheney |
+| Axis 5 Meta-cognitive — Brier on held-out + Dutch-book / probabilistic-identity probes | Yuecheng | Zihao (Gneiting-Raftery foundations) |
+
+**Engineering workstreams**:
+
+| Workstream | Proposed primary | Supporting |
+|---|---|---|
+| lm-evaluation-harness integration + entry-point structure | Yuecheng | — |
+| Standard scorer library (Bradley-Terry, WST/MST/SST, KT-MLE, isotonic, etc.) | Yuecheng | Zihao (mathematical correctness review) |
+| Generator library + YAML schema | Yuecheng | — |
+| Cache layer (responses / stimuli / scores / splits / fits / predictions / diagnostics) | Yuecheng | Cheney (Cat C-specific extensions) |
+| CLI (`aeread evaluate / diagnose / check / init`) | Yuecheng | — |
+| Composite-score aggregator | Yuecheng | Zihao (rubric design) |
+| C1 13F-IRL pipeline (persona-fit, existing infrastructure) | Cheney | — |
+| C2 price-aware product selection task design | Cheney | Zihao (oracle policy formalization) |
+| Three submission paths (web form / Colab / PR) | Yuecheng | — |
+| Leaderboard frontend + reliability-diagram visualization | Open (ops slot) | Yuecheng (design review) |
+| Diagnostic drill-down page (5-axis radar + cross-decomposition matrix) | Open (ops slot) | Cheney (UX review) |
+| HuggingFace integration + model-card adoption pipeline | Open (ops slot) | — |
+| Reproducibility hardening (signed ScoreRecords, external-submission flow) | Open (ops slot) | Yuecheng (schema design) |
+
+**External outreach + coordination**:
+
+| Workstream | Proposed primary | Supporting |
+|---|---|---|
+| Isaiah Andrews (MIT) — §3 methodology review | Cheney drafts; Zihao reviews | — |
+| Yannai Gonczarowski (Harvard) — parameter-layer comparison | Cheney drafts; Zihao reviews | — |
+| Erica Zhang (Stanford) — TERMS-Bench coordination | Cheney (existing relationship) | — |
+| Frontier-lab partner pre-commit | Cheney + Yuecheng (Sky Computing channel if it opens) | — |
+| Open Phil grant application | Cheney | — |
+
+This map is the input to the 4-week checkpoint discussion — adjust based on what Phase-0 actually reveals about fit.
+
+### 9.6 What gets decided at the 4-week checkpoint (2026-06-30)
 
 After 4 weeks of trial collaboration, with each contributor's Phase-0 output in hand, we discuss:
 
 - **Whether the collaboration is generating contributions all parties find valuable**
 - **Authorship** (informed by actual Phase-0 work, not pre-committed)
 - **Time-commitment budgets** for Phase 1 (paper draft, weeks 5-8)
-- **Role specialization** within the methodology paper
+- **Ownership map adjustments** to §9.5 based on Phase-0 fit signal
 
 If 4 weeks doesn't generate sufficient signal (Phase-0 didn't land, scheduling was rough, etc.), we extend the trial by 2 more weeks rather than locking in authorship under uncertainty.
 
