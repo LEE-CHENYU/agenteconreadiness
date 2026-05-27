@@ -13,7 +13,20 @@ Generated: 2026-05-26 (refreshed 2026-05-26 with cross-doc clarification).
 
 Each doc serves a different question. Use this file when you want 5-6 paragraphs of analysis + AERead-relevance discussion for one of the 12 papers below; use `reading_list.txt` when you want "what should I read first?"
 
-Anchor abbreviations used below reference the master plan (in the source repo): **§1.5.X** = methodology subsections; **§7.AX/BX/CX** = dimension implementations; **§15.6** = oracle-gap decomposition; **§17** = commercial-tier model; **D2/D3** = v2 dimension candidates currently in scope (bargaining, agentic vendor selection — see proposal §2 and [`../layer3_candidates.md`](../layer3_candidates.md) for the full open pool).
+**Master-plan §X.Y reference glossary (for sister-repo readers)**:
+
+Per-paper synopses below cite master-plan sections from the source repo (`rationale`) — accessible via [`../proposal.md`](../proposal.md) §15 "Available on request." Sister-repo readers can resolve any §X.Y ref via this glossary (concepts also covered in [`../methodology.md`](../methodology.md)):
+
+- **§1.5.1** = descriptive-not-normative commitment (methodology.md commitment #1)
+- **§1.5.2** = 3-layer pipeline (methodology.md §The 3-layer pipeline)
+- **§1.5.5** = context-conditional axiomatization (methodology.md commitment #4)
+- **§1.5.6** = measurement-model pluralism (methodology.md commitment #2)
+- **§1.5.7** = judge-free by construction (methodology.md commitment #3)
+- **§1.5.9** = cross-layer attribution (methodology.md §The 5-axis failure taxonomy)
+- **§7.A1-A5 / §7.B1-B3 / §7.C1** = Cat A / B / C sub-test implementations (proposal.md §2 Layer rows)
+- **§15.6** = OracleDecomposable oracle-gap mechanics (methodology.md §OracleDecomposable)
+- **§17** = Tier 4 commercial framing (proposal.md §8)
+- **D1 / D2 / D3** = v2 dimension candidates (D1 = context-conditional axiomatization extension; D2 = bargaining wrap; D3 = agentic vendor selection — see proposal §2 + [`../layer3_candidates.md`](../layer3_candidates.md) for the full open pool)
 
 ---
 

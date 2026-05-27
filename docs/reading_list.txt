@@ -22,6 +22,34 @@ This is the priority list with axis tags. Companion docs:
              Chadwick et al. 2025 Dutch books / money pumps)
 ==============================================================================
 
+MASTER-PLAN §X.Y REFERENCE GLOSSARY (for sister-repo readers):
+Per-paper why-to-read notes below cite master-plan sections. The master plan
+lives in the source repo (`rationale`) — accessible per proposal §15
+"Available on request." Sister-repo readers can resolve any §X.Y ref via
+this glossary (concepts also covered in methodology.md):
+
+  §1.5.1   = descriptive-not-normative commitment (methodology.md commitment #1)
+  §1.5.2   = 3-layer pipeline (methodology.md §The 3-layer pipeline)
+  §1.5.2.1 = predict-then-validate design (methodology.md §Layer 3 design discipline)
+  §1.5.5   = context-conditional axiomatization (methodology.md commitment #4)
+  §1.5.6   = measurement-model pluralism (methodology.md commitment #2)
+  §1.5.6.5 = within-class identification (methodology.md §Layer 3 design discipline,
+             multi-class robustness paragraph)
+  §1.5.7   = judge-free by construction (methodology.md commitment #3)
+  §1.5.9   = cross-layer attribution (methodology.md §The 5-axis failure taxonomy)
+  §1.5.9.4 = 5-axis failure taxonomy (methodology.md §The 5-axis failure taxonomy)
+  §7.A1-A5 = Cat A axiom sub-tests (proposal.md §2 Layer 1 row)
+  §7.B1-B3 = Cat B parameter sub-tests (proposal.md §2 Layer 2 row)
+  §7.C1    = Cat C persona-fit IRL on 13F (proposal.md §2 Layer 3 row)
+  §13.1    = v2 adversarial-rationality extension (out of v0 scope)
+  §14      = diagnostic decomposition architecture (runtime spec)
+  §14.7    = cache layer extension (runtime spec; relevant for Yuecheng (B)/(D))
+  §15.6    = OracleDecomposable oracle-gap mechanics
+             (methodology.md §OracleDecomposable)
+  §17      = Tier 4 commercial framing (proposal.md §8)
+  §22.8    = internal forcing-function discussion (out of scope)
+==============================================================================
+
 
 TIER 1 — CORE READING (14 papers)
 ------------------------------------------------------------------------------
