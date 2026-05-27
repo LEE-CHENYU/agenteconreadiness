@@ -1,0 +1,1255 @@
+# Master reference list extracted from the 3 core AgentEcon Readiness papers
+# Source papers:
+#   T = TERMS-Bench (Zhang et al. 2026, arxiv 2605.13909)
+#   E = EconEvals (Fish et al. 2026, arxiv 2503.18825)
+#   R = Revealed Rationality (Andrews 2026, MIT/NBER)
+# Each entry tracks which source(s) cite it.
+#
+# Filter rules applied:
+#   - Skip model-release blog posts (Anthropic Claude release notes, OpenAI ChatGPT pages, etc.)
+#   - Skip company product pages (Doubao, Qwen, ZAI, Gemma model cards)
+#   - Skip news articles (Bloomberg, HBR, etc.)
+#   - Keep all peer-reviewed + arxiv + working papers
+#   - Keep classic foundational papers (Nash, Savage, Knight, Afriat) for completeness
+#     (these may not have downloadable PDFs but are essential context)
+
+# ============================================================================
+# CATEGORY 1: LLM RATIONALITY / ECONOMIC BEHAVIOR (Tier 1 — most relevant)
+# ============================================================================
+
+llm_rationality_core:
+  - title: "Sparks of rationality: Do reasoning LLMs align with human judgment and choice?"
+    authors: [Tak, Banayeeanzade, Bolourani, Bahrani, Chaubey, Karimireddy, Schwarz, Gratch]
+    year: 2026
+    arxiv: "2601.22329"
+    cited_by: [R]
+    relevance: T1
+    note: "Tested vNM axioms across LLMs; reasoning tokens improve compliance. Foundational empirical anchor for §1.5.6"
+
+  - title: "Dutch books and money pumps: Rectifying vulnerabilities in LLMs through rationality"
+    authors: [Chadwick, Kahng, Kipper]
+    year: 2025
+    venue: "Human and Artificial Rationality (HAR) 2025"
+    arxiv: null
+    cited_by: [R]
+    relevance: T1
+    note: "Explicit money-pump + Dutch-book exploitation construction against incoherent LLMs"
+
+  - title: "The emergence of economic rationality of GPT"
+    authors: [Chen, Liu, Shan, Zhong]
+    year: 2023
+    venue: "PNAS"
+    doi: "10.1073/pnas.2316205120"
+    cited_by: [R, E]
+    relevance: T1
+    note: "GPT-3.5 CCEI > 0.997 ceiling-effect warning for our A1-A3 dimensions"
+
+  - title: "Utility engineering: Analyzing and controlling emergent value systems in AIs"
+    authors: [Mazeika, Yin, Tamirisa, Lim, Lee, Ren, Phan, Mu, Khoja, Zhang, Hendrycks]
+    year: 2025
+    arxiv: "2502.08640"
+    cited_by: [R, E]
+    relevance: T1
+    note: "Larger models satisfy EU axioms but emergent goals may be misaligned"
+
+  - title: "Economic rationality under specialization: Evidence of decision bias in AI agents"
+    authors: [Wen]
+    year: 2025
+    arxiv: "2501.18190"
+    cited_by: [R]
+    relevance: T1
+    note: "Prompt-persona reduces GARP compliance — smoking gun for §1.5.5 context-conditional axiomatization"
+
+  - title: "Do LLMs act like rational agents? Measuring belief coherence in probabilistic decision making"
+    authors: [Yamin, Tang, Cortes-Gomez, Sharma, Horvitz, Wilder]
+    year: 2026
+    arxiv: "2602.06286"
+    cited_by: [R]
+    relevance: T1
+
+  - title: "Probabilistic coherence, logical consistency, and Bayesian learning: Neural language models as epistemic agents"
+    authors: [Betz, Richardson]
+    year: 2023
+    venue: "PLOS ONE"
+    doi: "10.1371/journal.pone.0281372"
+    cited_by: [R]
+    relevance: T1
+
+  - title: "Recovering event probabilities from large language model embeddings via axiomatic constraints"
+    authors: [Zhu, Yan, Griffiths]
+    year: 2025
+    arxiv: "2505.07883"
+    cited_by: [R]
+    relevance: T1
+
+  - title: "Incoherent probability judgments in large language models"
+    authors: [Zhu, Griffiths]
+    year: 2024
+    venue: "CogSci 2024"
+    arxiv: null
+    cited_by: [R]
+    relevance: T1
+
+  - title: "Bayesian teaching enables probabilistic reasoning in large language models"
+    authors: [Qiu, Sha, Allen, Kim, Linzen, van Steenkiste]
+    year: 2026
+    venue: "Nature Communications"
+    arxiv: null
+    cited_by: [R]
+    relevance: T1
+
+  - title: "Human-like intuitive behavior and reasoning biases emerged in large language models but disappeared in ChatGPT"
+    authors: [Hagendorff, Fabi, Kosinski]
+    year: 2023
+    venue: "Nature Computational Science"
+    arxiv: null
+    cited_by: [R]
+    relevance: T1
+
+  - title: "STEER: Assessing the economic rationality of large language models"
+    authors: [Raman, Lundy, Amouyal, Levine, Leyton-Brown, Tennenholtz]
+    year: 2024
+    venue: "ICML 2024"
+    arxiv: "2402.09552"
+    cited_by: [E]
+    relevance: T1
+
+  - title: "STEER-ME: Assessing the microeconomic reasoning of large language models"
+    authors: [Raman, Lundy, Amin, Leyton-Brown, Perla]
+    year: 2025
+    venue: "NeurIPS 2025"
+    arxiv: null
+    cited_by: [E]
+    relevance: T1
+
+  - title: "EconLogicQA: A Question-Answering Benchmark for Evaluating Large Language Models in Economic Sequential Reasoning"
+    authors: [Quan, Liu]
+    year: 2024
+    venue: "EMNLP Findings 2024"
+    arxiv: null
+    cited_by: [E]
+    relevance: T1
+
+  - title: "Algorithmic Collusion by Large Language Models"
+    authors: [Fish, Gonczarowski, Shorrer]
+    year: 2024
+    arxiv: "2404.00806"
+    cited_by: [E]
+    relevance: T1
+
+  - title: "Beyond preferences in AI alignment"
+    authors: [Zhi-Xuan, Carroll, Franklin, Ashton]
+    year: 2025
+    venue: "Philosophical Studies 182:1813-1863"
+    cited_by: [R]
+    relevance: T1
+    note: "Disputes whether rational-choice frameworks are appropriate foundation for LLM behavior at all"
+
+# ============================================================================
+# CATEGORY 2: NEGOTIATION / BARGAINING (TERMS-Bench-adjacent)
+# ============================================================================
+
+negotiation_bargaining:
+  - title: "How well can LLMs negotiate? NegotiationArena platform and analysis"
+    authors: [Bianchi, Chia, Yuksekgonul, Tagliabue, Jurafsky, Zou]
+    year: 2024
+    arxiv: "2402.05863"
+    cited_by: [T]
+    relevance: T1
+
+  - title: "Measuring bargaining abilities of LLMs: A benchmark and a buyer-enhancement method"
+    authors: [Xia, He, Ren, Miao, Zhang, Yang, Wang]
+    year: 2024
+    arxiv: "2402.15813"
+    cited_by: [T]
+    relevance: T1
+    note: "The Stanford bargaining benchmark referenced in 580 Ohlone call"
+
+  - title: "AgreeMate: Teaching LLMs to haggle"
+    authors: [Chatterjee, Miller, Parepally]
+    year: 2024
+    arxiv: "2412.18690"
+    cited_by: [T]
+    relevance: T1
+
+  - title: "Game-theoretic LLM: Agent workflow for negotiation games"
+    authors: [Hua, Liu, Li, Amayuelas, Chen, Jiang, Jin, Fan, Sun, Wang, Wang, Zhang]
+    year: 2024
+    arxiv: "2411.05990"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "GTBench: Uncovering the strategic reasoning limitations of LLMs via game-theoretic evaluations"
+    authors: [Duan, Zhang, Diffenderfer, Kailkhura, Sun, Stengel-Eskin, Bansal, Chen, Xu]
+    year: 2024
+    venue: "NeurIPS 2024"
+    arxiv: "2402.12348"
+    cited_by: [T, E]
+    relevance: T2
+
+  - title: "Cooperation, competition, and maliciousness: LLM-stakeholders interactive negotiation"
+    authors: [Abdelnabi, Gomaa, Sivaprasad, Schönherr, Fritz]
+    year: 2024
+    venue: "NeurIPS 2024"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "Are LLMs effective negotiators? Systematic evaluation of the multifaceted capabilities of LLMs in negotiation dialogues"
+    authors: [Kwon, Weiss, Kulshrestha, Chawla, Lucas, Gratch]
+    year: 2024
+    venue: "EMNLP Findings 2024"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "Exploring big five personality and AI capability effects in LLM-simulated negotiation dialogues"
+    authors: [Cohen, Su, Kao, Nguyen, Lynch, Sap, Volkova]
+    year: 2025
+    arxiv: "2506.15928"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "Merit feedback elicits better bargaining in LLM negotiators"
+    authors: [Oh, Aghazada, Shin, Yun, Kim]
+    year: 2026
+    arxiv: "2602.10467"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "AgenticPay: A multi-agent LLM negotiation system for buyer-seller transactions"
+    authors: [Liu, Gu, Song]
+    year: 2026
+    arxiv: "2602.06008"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "Negotiating with LLMs: Prompt hacks, skill gaps, and reasoning deficits"
+    authors: [Schneider, Haag, Kruse]
+    year: 2024
+    arxiv: "2312.03720"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "Decoupling strategy and generation in negotiation dialogues"
+    authors: [He, Chen, Balakrishnan, Liang]
+    year: 2018
+    venue: "EMNLP 2018"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Deal or no deal? End-to-end learning for negotiation dialogues"
+    authors: [Lewis, Yarats, Dauphin, Parikh, Batra]
+    year: 2017
+    venue: "EMNLP 2017"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "CaSiNo: A corpus of campsite negotiation dialogues for automatic negotiation systems"
+    authors: [Chawla, Ramirez, Clever, Lucas, May, Gratch]
+    year: 2021
+    venue: "NAACL 2021"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Hierarchical text generation and planning for strategic dialogue"
+    authors: [Yarats, Lewis]
+    year: 2018
+    arxiv: "1712.05846"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "How personality traits influence negotiation outcomes? A simulation based on large language models"
+    authors: [Huang, Hadfi]
+    year: 2024
+    arxiv: "2407.11549"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "LLMs at the bargaining table"
+    authors: [Deng, Mirrokni, Paes Leme, Zhang, Zuo]
+    year: 2024
+    venue: "ICML 2024 Agentic Markets Workshop"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Brave new procurement deals: An experimental study of how generative AI reshapes buyer-supplier negotiations"
+    authors: [Herold, Heller, Rozemeijer, Mahr]
+    year: 2025
+    venue: "Journal of Purchasing and Supply Management"
+    cited_by: [T]
+    relevance: T3
+
+# ============================================================================
+# CATEGORY 3: CLASSIC BARGAINING / DECISION THEORY (foundational; often paywalled)
+# ============================================================================
+
+classic_decision_theory:
+  - title: "Bargaining with incomplete information"
+    authors: [Ausubel, Cramton, Deneckere]
+    year: 2002
+    venue: "Handbook of Game Theory with Economic Applications, vol 3"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "Bargaining under incomplete information"
+    authors: [Chatterjee, Samuelson]
+    year: 1983
+    venue: "Operations Research 31(5):835-851"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "The bargaining problem"
+    authors: [Nash]
+    year: 1950
+    venue: "Econometrica 18(2):155-162"
+    cited_by: [T]
+    relevance: T1
+
+  - title: "Two-person bargaining problems with incomplete information"
+    authors: [Myerson]
+    year: 1984
+    venue: "Econometrica 52(2):461-487"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "Efficient mechanisms for bilateral trading"
+    authors: [Myerson, Satterthwaite]
+    year: 1983
+    venue: "Journal of Economic Theory 29(2):265-281"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "Individual rationality and Nash's solution to the bargaining problem"
+    authors: [Roth]
+    year: 1977
+    venue: "Mathematics of Operations Research 2(1):64-65"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "Axiomatic Models of Bargaining"
+    authors: [Roth]
+    year: 1979
+    venue: "Springer (Lecture Notes 170)"
+    cited_by: [T]
+    relevance: T1
+    note: "Alvin Roth foundational text; explicitly cited in TERMS-Bench acknowledgments"
+
+  - title: "Bargaining and the theory of cooperative games: John Nash and beyond"
+    authors: [Thomson]
+    year: 2009
+    venue: "University of Rochester WP 554"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "On the axiomatic theory of bargaining: A survey of recent results"
+    authors: [Thomson]
+    year: 2022
+    venue: "Review of Economic Design 26(4):491-542"
+    doi: "10.1007/s10058-022-00319-1"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "The Strategy of Conflict"
+    authors: [Schelling]
+    year: 1960
+    venue: "Harvard University Press"
+    cited_by: [T]
+    relevance: T3
+    not_downloadable: true
+
+  - title: "The Art and Science of Negotiation"
+    authors: [Raiffa]
+    year: 1982
+    venue: "Harvard University Press"
+    cited_by: [T]
+    relevance: T3
+    not_downloadable: true
+
+  - title: "Negotiation Analysis: The Science and Art of Collaborative Decision Making"
+    authors: [Raiffa, Richardson, Metcalfe]
+    year: 2002
+    venue: "Harvard University Press"
+    cited_by: [T]
+    relevance: T3
+    not_downloadable: true
+
+  - title: "Negotiating Rationally"
+    authors: [Bazerman, Neale]
+    year: 1992
+    venue: "Free Press"
+    cited_by: [T]
+    relevance: T3
+    not_downloadable: true
+
+  - title: "Risk, Uncertainty and Profit"
+    authors: [Knight]
+    year: 1921
+    venue: "Houghton Mifflin"
+    cited_by: [R]
+    relevance: T3
+    not_downloadable: true
+
+  - title: "The Foundations of Statistics"
+    authors: [Savage]
+    year: 1954
+    venue: "John Wiley"
+    cited_by: [R]
+    relevance: T3
+    not_downloadable: true
+
+# ============================================================================
+# CATEGORY 4: REVEALED PREFERENCE / GARP / RATIONALITY THEORY
+# ============================================================================
+
+revealed_preference:
+  - title: "The construction of utility functions from expenditure data"
+    authors: [Afriat]
+    year: 1967
+    venue: "International Economic Review 8(1):67-77"
+    cited_by: [R]
+    relevance: T1
+
+  - title: "On a system of inequalities in demand analysis: An extension of the classical method"
+    authors: [Afriat]
+    year: 1973
+    venue: "International Economic Review 14(2):460-472"
+    cited_by: [R]
+    relevance: T2
+
+  - title: "The nonparametric approach to demand analysis"
+    authors: [Varian]
+    year: 1982
+    venue: "Econometrica 50(4):945-973"
+    cited_by: [R]
+    relevance: T1
+
+  - title: "Savage in the market"
+    authors: [Echenique, Saito]
+    year: 2015
+    venue: "Econometrica 83(4):1467-1495"
+    cited_by: [R]
+    relevance: T1
+
+  - title: "On the meaning of the critical cost efficiency index"
+    authors: [Echenique]
+    year: 2021
+    arxiv: "2109.06354"
+    cited_by: [R]
+    relevance: T2
+
+  - title: "The money pump as a measure of revealed preference violations"
+    authors: [Echenique, Lee, Shum]
+    year: 2011
+    venue: "Journal of Political Economy 119(6):1201-1223"
+    cited_by: [R]
+    relevance: T2
+
+  - title: "The money pump as a measure of revealed preference violations: A comment"
+    authors: [Smeulders, Cherchye, De Rock, Spieksma]
+    year: 2013
+    venue: "Journal of Political Economy 121(6):1248-1258"
+    cited_by: [R]
+    relevance: T2
+
+  - title: "Revealed preferences over risk and uncertainty"
+    authors: [Polisson, Quah, Renou]
+    year: 2020
+    venue: "American Economic Review 110(6):1782-1820"
+    cited_by: [R]
+    relevance: T2
+
+# ============================================================================
+# CATEGORY 5: PROBABILITY / DUTCH BOOK / DE FINETTI
+# ============================================================================
+
+probability_coherence:
+  - title: "La prévision: ses lois logiques, ses sources subjectives"
+    authors: [de Finetti]
+    year: 1937
+    venue: "Annales de l'Institut Henri Poincaré 7(1):1-68"
+    cited_by: [R]
+    relevance: T2
+    not_downloadable: true
+
+  - title: "Theory of Probability, Vol 1"
+    authors: [de Finetti]
+    year: 1974
+    venue: "John Wiley"
+    cited_by: [R]
+    relevance: T3
+    not_downloadable: true
+
+  - title: "A definition of subjective probability"
+    authors: [Anscombe, Aumann]
+    year: 1963
+    venue: "Annals of Mathematical Statistics 34(1):199-205"
+    cited_by: [R]
+    relevance: T2
+
+  - title: "Strictly proper scoring rules, prediction, and estimation"
+    authors: [Gneiting, Raftery]
+    year: 2007
+    venue: "Journal of the American Statistical Association 102(477):359-378"
+    cited_by: [R]
+    relevance: T3
+
+  - title: "Logical induction"
+    authors: [Garrabrant, Benson-Tilsen, Critch, Soares, Taylor]
+    year: 2016
+    arxiv: "1609.03543"
+    cited_by: [R]
+    relevance: T2
+
+  - title: "On calibration of modern neural networks"
+    authors: [Guo, Pleiss, Sun, Weinberger]
+    year: 2017
+    venue: "ICML 2017"
+    cited_by: [R]
+    relevance: T3
+
+# ============================================================================
+# CATEGORY 6: NON-VNM AXIOMATIZATION (ambiguity, regret, etc.)
+# ============================================================================
+
+non_vnm_axiomatization:
+  - title: "Maxmin expected utility with non-unique prior"
+    authors: [Gilboa, Schmeidler]
+    year: 1989
+    venue: "Journal of Mathematical Economics 18(2):141-153"
+    cited_by: [R]
+    relevance: T1
+
+  - title: "Ambiguity aversion, robustness, and the variational representation of preferences"
+    authors: [Maccheroni, Marinacci, Rustichini]
+    year: 2006
+    venue: "Econometrica 74(6):1447-1498"
+    cited_by: [R]
+    relevance: T2
+
+# ============================================================================
+# CATEGORY 7: LLM EVALUATION / BENCHMARKS (non-rationality)
+# ============================================================================
+
+llm_evaluation:
+  - title: "LLM Economicus? Mapping the behavioral biases of LLMs via utility theory"
+    authors: [Ross, Kim, Lo]
+    year: 2024
+    arxiv: "2408.02784"
+    cited_by: [E]
+    relevance: T1
+    already_have: "docs/papers/cited/already-in-orig-set"
+    note: "Already in our 12-Desktop set as 02_LLMEconomicus"
+
+  - title: "The moral mind(s) of large language models"
+    authors: [Seror]
+    year: 2024
+    arxiv: "2412.04476"
+    cited_by: [R]
+    relevance: T1
+    already_have: true
+    note: "Already in our 12-Desktop set as 11_MoralMindLLMs"
+
+  - title: "Judging LLM-as-a-judge with MT-Bench and Chatbot Arena"
+    authors: [Zheng, Chiang, Sheng, Zhuang, Wu, Zhuang, Lin, Li, Li, Xing, Zhang, Gonzalez, Stoica]
+    year: 2023
+    venue: "NeurIPS 2023"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "GAIA: A benchmark for General AI Assistants"
+    authors: [Mialon, Fourrier, Wolf, LeCun, Scialom]
+    year: 2023
+    venue: "ICLR 2024"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Voyager: An open-ended embodied agent with large language models"
+    authors: [Xie, Jiang, Mandlekar, Xiao, Zhu, Fan, Anandkumar]
+    year: 2023
+    arxiv: "2305.16291"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "AgentBench: Evaluating LLMs as agents"
+    authors: [Liu, Yu, Zhang, Xu, Lei, Lai, Gu, Ding, Men, Yang, Zhang, Deng, Zeng, Du, Zhang, Shen, Zhang, Su, Sun, Huang, Dong, Tang]
+    year: 2024
+    venue: "ICLR 2024"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "WebArena: A realistic web environment for building autonomous agents"
+    authors: [Zhou, Xu, Zhu, Zhou, Lo, Sridhar, Cheng, Ou, Bisk, Fried, Alon, Neubig]
+    year: 2023
+    venue: "ICLR 2024"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "SWE-bench: Can language models resolve real-world GitHub issues?"
+    authors: [Jimenez, Yang, Wettig, Yao, Pei, Press, Narasimhan]
+    year: 2024
+    arxiv: "2310.06770"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Humanity's Last Exam"
+    authors: [Phan, Gatti, Han, Li, Hu, Zhang, Shi, Choi, Agrawal, Chopra, Khoja, Ren, Hausenloy, Zhang, Mazeika, Yue, Wang, Hendrycks]
+    year: 2025
+    arxiv: "2501.14249"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "FrontierMath: A benchmark for evaluating advanced mathematical reasoning in AI"
+    authors: [Glazer, Erdil, Besiroglu, Chicharro, Chen, Gunning, Olsson, Denain, Ho, Santos, Järviniemi, Barnett, Sandler, Vrzala, Sevilla, Ren, Pratt, Levine, Barkley, Stewart, Grechuk, Grechuk, Enugandla, Wildon]
+    year: 2024
+    arxiv: "2411.04872"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "GDPval: Evaluating AI Model Performance on Real-World Economically Valuable Tasks"
+    authors: [Patwardhan, Dias, Proehl, Kim, Wang, Watkins, Posada Fishman, Aljubeh, Thacker, Fauconnet, Kim, Chao, Miserendino, Chabot, Li, Sharman, Barr, Glaese, Tworek]
+    year: 2025
+    arxiv: "2510.04374"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "ARC Prize 2024: Technical Report"
+    authors: [Chollet, Knoop, Kamradt, Landers]
+    year: 2025
+    arxiv: "2412.04604"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "PlanBench: An extensible benchmark for evaluating large language models on planning and reasoning about change"
+    authors: [Valmeekam, Marquez, Olmo, Sreedharan, Kambhampati]
+    year: 2023
+    venue: "NeurIPS 2023"
+    arxiv: "2206.10498"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "GPQA: A graduate-level google-proof Q&A benchmark"
+    authors: [Rein, Hou, Stickland, Petty, Pang, Dirani, Michael, Bowman]
+    year: 2024
+    venue: "COLM 2024"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Vending-Bench: A benchmark for long-term coherence of autonomous agents"
+    authors: [Backlund, Petersson]
+    year: 2025
+    arxiv: "2502.15840"
+    cited_by: [E]
+    relevance: T2
+
+  - title: "TheAgentCompany: Benchmarking LLM agents on consequential real world tasks"
+    authors: [Xu, Song, Li, Tang, Jain, Bao, Wang, Zhou, Guo, Cao, Yang, Lu, Martin, Chi, Jang, Xie, Zhou, Neubig]
+    year: 2024
+    arxiv: "2412.14161"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "AgentBoard: An analytical evaluation board of multi-turn LLM agents"
+    authors: [Ma, Zhang, Zhu, Yang, Yang, Jin, Lan, Kong, He]
+    year: 2024
+    venue: "NeurIPS 2024"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "EconWebArena: Benchmarking autonomous agents on economic tasks in realistic web environments"
+    authors: [Liu, Quan]
+    year: 2025
+    venue: "NeurIPS 2025 LAW Workshop"
+    cited_by: [E]
+    relevance: T2
+
+  - title: "FinanceBench: A new benchmark for financial question answering"
+    authors: [Islam, Kannappan, Kiela, Qian, Scherrer, Vidgen]
+    year: 2023
+    arxiv: "2311.11944"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "OSWorld: Benchmarking multimodal agents for open-ended tasks in real computer environments"
+    authors: [Xie, Zhang, Chen, Li, Zhao, Cao, Hua, Cheng, Shin, Lei, Liu, Xu, Zhou, Savarese, Xiong, Zhong, Yu]
+    year: 2024
+    venue: "NeurIPS 2024"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "WebVoyager: Building an end-to-end web agent with large multimodal models"
+    authors: [He, Yao, Ma, Yu, Dai, Zhang, Lan, Yu]
+    year: 2024
+    venue: "ACL 2024"
+    cited_by: [E]
+    relevance: T3
+
+# ============================================================================
+# CATEGORY 8: LLM CAPABILITIES / LANGUAGE MODELS (training, base models)
+# ============================================================================
+
+llm_training:
+  - title: "Direct preference optimization: Your language model is secretly a reward model"
+    authors: [Rafailov, Sharma, Mitchell, Ermon, Manning, Finn]
+    year: 2023
+    venue: "NeurIPS 2023"
+    cited_by: [R]
+    relevance: T2
+
+  - title: "Training language models to follow instructions with human feedback"
+    authors: [Ouyang, Wu, Jiang, et al.]
+    year: 2022
+    venue: "NeurIPS 2022"
+    cited_by: [R]
+    relevance: T2
+
+  - title: "DeepSeek-R1: Incentivizing reasoning capability in LLMs via reinforcement learning"
+    authors: [DeepSeek-AI]
+    year: 2025
+    arxiv: "2501.12948"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Tülu 3: Pushing frontiers in open language model post-training"
+    authors: [Lambert, Morrison, Pyatkin, Huang, Ivison, Brahman, James, Miranda, Liu, Dziri, Lyu, Gu, Malik, Graf, Hwang, Yang, Le Bras, Tafjord, Wilhelm, Soldaini, Smith, Wang, Dasigi, Hajishirzi]
+    year: 2024
+    arxiv: "2411.15124"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "GEPA: Reflective prompt evolution can outperform reinforcement learning"
+    authors: [Agrawal, Tan, Soylu, Ziems, Khare, Opsahl-Ong, Singhvi, Shandilya, Ryan, Potts, Sen, Dimakis, Stoica, Klein, Zaharia, Khattab]
+    year: 2026
+    arxiv: "2507.19457"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "ReAct: Synergizing reasoning and acting in language models"
+    authors: [Yao, Zhao, Yu, Du, Shafran, Narasimhan, Cao]
+    year: 2023
+    arxiv: "2210.03629"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Toolformer: Language models can teach themselves to use tools"
+    authors: [Schick, Dwivedi-Yu, Dessi, Raileanu, Lomeli, Hambro, Zettlemoyer, Cancedda, Scialom]
+    year: 2023
+    venue: "NeurIPS 2023"
+    arxiv: "2302.04761"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Evaluating large language models trained on code"
+    authors: [Chen, Tworek, Jun, Yuan, Pinto, Kaplan, Edwards, Burda, Joseph, Brockman, Ray, Puri, Krueger, Petrov, Khlaaf, Sastry, Mishkin, Chan, Gray, Ryder, Pavlov, Power, Kaiser, Bavarian, Winter, Tillet, Such, Cummings, Plappert, Chantzis, Barnes, Herbert-Voss, Guss, Nichol, Paino, Tezak, Babuschkin, Balaji, Jain, Saunders, Hesse, Carr, Leike, Achiam, Misra, Morikawa, Knight, Brundage, Murati, Mayer, Welinder, McGrew, Amodei, McCandless, Sutskever, Zaremba]
+    year: 2021
+    arxiv: "2107.03374"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Measuring mathematical problem solving with the MATH dataset"
+    authors: [Hendrycks, Burns, Kadavath, Arora, Basart, Tang, Song, Steinhardt]
+    year: 2021
+    venue: "NeurIPS 2021"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Bridge the gap between non-verifiable tasks and verifiable rewards (Writing-Zero)"
+    authors: [Jia, Yang, Gai, Luo, Huang, Lin, Jiang, Jiang]
+    year: 2025
+    arxiv: "2506.00103"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "AlpacaFarm: A simulation framework for methods that learn from human feedback"
+    authors: [Dubois, Li, Taori, Zhang, Gulrajani, Ba, Guestrin, Liang, Hashimoto]
+    year: 2024
+    venue: "NeurIPS 2024"
+    cited_by: [T]
+    relevance: T3
+
+# ============================================================================
+# CATEGORY 9: LLM AS ECONOMIC AGENT / SIMULATION
+# ============================================================================
+
+llm_as_economic_agent:
+  - title: "Using large language models to simulate multiple humans and replicate human subject studies"
+    authors: [Aher, Arriaga, Kalai]
+    year: 2023
+    venue: "ICML 2023"
+    arxiv: "2208.10264"
+    cited_by: [E]
+    relevance: T2
+
+  - title: "Large language models as simulated economic agents: What can we learn from Homo Silicus?"
+    authors: [Horton]
+    year: 2023
+    venue: "NBER WP w31122"
+    cited_by: [E]
+    relevance: T2
+
+  - title: "Frontiers: Can large language models capture human preferences?"
+    authors: [Goli, Singh]
+    year: 2024
+    venue: "Marketing Science 43(4):709-722"
+    cited_by: [E]
+    relevance: T2
+
+  - title: "Automated social science: Language models as scientist and subjects"
+    authors: [Manning, Zhu, Horton]
+    year: 2024
+    arxiv: "2404.11794"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Cooperate or collapse: Emergence of sustainable cooperation in a society of LLM agents"
+    authors: [Piatti, Jin, Kleiman-Weiner, Schölkopf, Sachan, Mihalcea]
+    year: 2024
+    venue: "NeurIPS 2024"
+    arxiv: "2404.16698"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Playing repeated games with large language models"
+    authors: [Akata, Schulz, Coda-Forno, Oh, Bethge, Schulz]
+    year: 2025
+    venue: "Nature Human Behaviour 9(7)"
+    cited_by: [E]
+    relevance: T2
+
+  - title: "How far are we on the decision-making of LLMs? Evaluating LLMs' gaming ability in multi-agent environments"
+    authors: [Huang, Li, Lam, Liang, Wang, Yuan, Jiao, Wang, Tu, Lyu]
+    year: 2025
+    venue: "ICLR 2025"
+    arxiv: "2403.11807"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "LLM-Coordination: Evaluating and analyzing multi-agent coordination abilities in large language models"
+    authors: [Agashe, Fan, Reyna, Wang]
+    year: 2025
+    venue: "NAACL Findings 2025"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Put your money where your mouth is: Evaluating strategic planning and execution of LLM agents in an auction arena"
+    authors: [Chen, Yuan, Ye, Majumder, Richardson]
+    year: 2023
+    arxiv: "2310.05746"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Economics Arena for Large Language Models"
+    authors: [Guo, Wang, Bu, Ren, Sui, Shang, Lu]
+    year: 2024
+    venue: "NeurIPS 2024 Language Gamification Workshop"
+    cited_by: [E]
+    relevance: T2
+
+  - title: "Olympics: LLM agents meet game theory — exploring strategic decision-making with AI agents"
+    authors: [Mao, Cai, Xia, Wu, Wang, Ge, Wei]
+    year: 2024
+    arxiv: "2311.03220"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Inverse selection"
+    authors: [Brunnermeier, Lamba, Segura-Rodriguez]
+    year: 2023
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Which economic tasks are performed with AI? Evidence from millions of Claude conversations"
+    authors: [Handa, Tamkin, McCain, Huang, Durmus, Heck, Mueller, Hong, Ritchie, Belonax, Troy, Amodei, Kaplan, Clark, Ganguli]
+    year: 2025
+    arxiv: "2503.04761"
+    cited_by: [E]
+    relevance: T2
+
+# ============================================================================
+# CATEGORY 10: ALGORITHMIC PRICING / COLLUSION
+# ============================================================================
+
+algorithmic_collusion:
+  - title: "Artificial intelligence, algorithmic pricing, and collusion"
+    authors: [Calvano, Calzolari, Denicolò, Pastorello]
+    year: 2020
+    venue: "American Economic Review 110(10):3267-3297"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Protecting consumers from collusive prices due to AI"
+    authors: [Calvano, Calzolari, Denicolò, Harrington, Pastorello]
+    year: 2020
+    venue: "Science 370(6520):1040-1042"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Artificial intelligence and auction design"
+    authors: [Banchio, Skrzypacz]
+    year: 2022
+    venue: "EC 2022"
+    arxiv: "2202.05947"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Adaptive algorithms and collusion via coupling"
+    authors: [Banchio, Mantegazza]
+    year: 2023
+    venue: "EC 2023"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Adversarial competition and collusion in algorithmic markets"
+    authors: [Rocher, Tournier, de Montjoye]
+    year: 2023
+    venue: "Nature Machine Intelligence 5(5):497-504"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Algorithmic collusion: Where are we and where should we be going?"
+    authors: [Abada, Harrington, Lambin, Meylahn]
+    year: 2024
+    venue: "SSRN 4891033"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Regulation of algorithmic collusion"
+    authors: [Hartline, Long, Zhang]
+    year: 2024
+    venue: "CSLAW 2024"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Developing competition law for collusion by autonomous artificial agents"
+    authors: [Harrington]
+    year: 2018
+    venue: "Journal of Competition Law & Economics 14(3):331-363"
+    cited_by: [E]
+    relevance: T3
+
+# ============================================================================
+# CATEGORY 11: HUMAN BARGAINING / NEGOTIATION (background)
+# ============================================================================
+
+human_negotiation:
+  - title: "Negotiation decision functions for autonomous agents"
+    authors: [Faratin, Sierra, Jennings]
+    year: 1998
+    venue: "Robotics and Autonomous Systems 24(3-4):159-182"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Measuring the performance of online opponent models in automated bilateral negotiation"
+    authors: [Baarslag, Hendrikx, Hindriks, Jonker]
+    year: 2012
+    venue: "AI 2012"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Evaluating practical negotiating agents: Results and analysis of the 2011 international competition"
+    authors: [Baarslag, Fujita, Gerding, Hindriks, Ito, Jennings, Jonker, Kraus, Lin, Robu, Williams]
+    year: 2013
+    venue: "Artificial Intelligence 198:73-103"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Effective acceptance conditions in real-time automated negotiation"
+    authors: [Baarslag, Hindriks, Jonker]
+    year: 2014
+    venue: "Decision Support Systems 60:68-77"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Learning about the opponent in automated bilateral negotiation: A comprehensive survey of opponent modeling techniques"
+    authors: [Baarslag, Hendrikx, Hindriks, Jonker]
+    year: 2016
+    venue: "Autonomous Agents and Multi-Agent Systems 30(5):849-898"
+    cited_by: [T]
+    relevance: T2
+
+  - title: "Explaining bargaining impasse: The role of self-serving biases"
+    authors: [Babcock, Loewenstein]
+    year: 1997
+    venue: "Journal of Economic Perspectives 11(1):109-126"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "An empirical study of sequential offer bargaining during the festival of sacrifice"
+    authors: [Dindaroglu, Ertac]
+    year: 2024
+    venue: "Journal of Economic Psychology 101:102707"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Negotiation impasses: Types, causes, and resolutions"
+    authors: [Schweinsberg, Thau, Pillutla]
+    year: 2022
+    venue: "Journal of Management 48(1):49-76"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Bargaining under time pressure from deadlines"
+    authors: [Karagözoğlu, Kocher]
+    year: 2019
+    venue: "Experimental Economics 22(2):419-440"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "The impact of time pressure in negotiation: A meta-analysis"
+    authors: [Stuhlmacher, Gillespie, Champagne]
+    year: 1998
+    venue: "International Journal of Conflict Management 9(2):97-116"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "The impact of concession patterns on negotiations: When and why decreasing concessions lead to a distributive disadvantage"
+    authors: [Tey, Schaerer, Madan, Swaab]
+    year: 2021
+    venue: "Organizational Behavior and Human Decision Processes 165:153-166"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "The power and peril of first offers in negotiations: A conceptual, meta-analytic, and experimental synthesis"
+    authors: [Petrowsky, Boecker, Escher, Frech, Friese, Galinsky, Gunia, Lee, Schaerer, Schweinsberg, Troll, Weber, Loschelder]
+    year: 2025
+    venue: "OBHDP 191:104448"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Bargaining ability and competitive advantage: Empirical evidence from medical devices"
+    authors: [Grennan]
+    year: 2014
+    venue: "Management Science 60(12):3011-3025"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Price discrimination and bargaining: Empirical evidence from medical devices"
+    authors: [Grennan]
+    year: 2013
+    venue: "American Economic Review 103(1):145-177"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Axiomatic approaches to coalitional bargaining"
+    authors: [Hart]
+    year: 1992
+    venue: "Rational Interaction (Springer)"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Exploring the relationships between the big five personality factors, conflict styles, and bargaining behaviors"
+    authors: [Ma]
+    year: 2005
+    venue: "SSRN 735063"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Buyer and seller differences in business-to-business negotiations"
+    authors: [Sigurðardóttir, Hotait, Eichstädt]
+    year: 2019
+    venue: "Negotiation Journal 35(2):297-331"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Predicting transaction outcomes under customized pricing with discretion: A structural estimation approach"
+    authors: [Kadiyala, Phillips, Şimşek, van Ryzin]
+    year: 2023
+    venue: "Production and Operations Management 32(6):1654-1673"
+    cited_by: [T]
+    relevance: T3
+
+  - title: "Promptable behaviors: Personalizing multi-objective rewards from human preferences"
+    authors: [Hwang, Weihs, Park, Lee, Kembhavi, Ehsani]
+    year: 2023
+    arxiv: "2312.09337"
+    cited_by: [T]
+    relevance: T3
+
+# ============================================================================
+# CATEGORY 12: MATCHING / MARKET DESIGN (EconEvals-specific)
+# ============================================================================
+
+matching_market_design:
+  - title: "College admissions and the stability of marriage"
+    authors: [Gale, Shapley]
+    year: 1962
+    venue: "American Mathematical Monthly 69(1):9-15"
+    cited_by: [E]
+    relevance: T2
+
+  - title: "Marriages stables"
+    authors: [Knuth]
+    year: 1976
+    venue: "Université de Montréal TR 10"
+    cited_by: [E]
+    relevance: T3
+    not_downloadable: true
+
+  - title: "On the complexity of trial and error"
+    authors: [Bei, Chen, Zhang]
+    year: 2013
+    venue: "STOC 2013"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "The complexity of interactively learning a stable matching by trial and error"
+    authors: [Emamjomeh-Zadeh, Gonczarowski, Kempe]
+    year: 2020
+    venue: "EC 2020"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Welfare distribution in two-sided random matching markets"
+    authors: [Ashlagi, Braverman, Zhao]
+    year: 2023
+    venue: "EC 2023"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Estimating discrete-choice models of product differentiation"
+    authors: [Berry]
+    year: 1994
+    venue: "RAND Journal of Economics 25(2):242-262"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Algorithmic design: Fairness versus accuracy"
+    authors: [Liang, Lu, Mu]
+    year: 2022
+    venue: "EC 2022"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "On the fairness of machine-assisted human decisions"
+    authors: [Gillis, McLaughlin, Spiess]
+    year: 2021
+    arxiv: "2110.15310"
+    cited_by: [E]
+    relevance: T3
+
+# ============================================================================
+# CATEGORY 13: EXPLORATION / IN-CONTEXT LEARNING / AI AGENTS
+# ============================================================================
+
+ai_agents_exploration:
+  - title: "Can large language models explore in-context?"
+    authors: [Krishnamurthy, Harris, Foster, Zhang, Slivkins]
+    year: 2024
+    venue: "NeurIPS 2024"
+    arxiv: "2403.15371"
+    cited_by: [E]
+    relevance: T2
+
+  - title: "Infrastructure for AI agents"
+    authors: [Chan, Wei, Huang, Rajkumar, Perrier, Lazar, Hadfield, Anderljung]
+    year: 2025
+    arxiv: "2501.10114"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Generative AI at Work"
+    authors: [Brynjolfsson, Li, Raymond]
+    year: 2023
+    venue: "NBER WP w31161"
+    cited_by: [E]
+    relevance: T3
+
+# ============================================================================
+# CATEGORY 14: ALIGNMENT / VALUES / MORAL (background)
+# ============================================================================
+
+alignment_values:
+  - title: "Axioms for AI alignment from human feedback"
+    authors: [Ge, Halpern, Micha, Procaccia, Shapira, Vorobeychik, Wu]
+    year: 2024
+    venue: "NeurIPS 2024"
+    cited_by: [R]
+    relevance: T2
+
+  - title: "Do the rewards justify the means? Measuring trade-offs between rewards and ethical behavior in the Machiavelli benchmark"
+    authors: [Pan, Chan, Zou, Li, Basart, Woodside, Zhang, Emmons, Hendrycks]
+    year: 2023
+    venue: "ICML 2023"
+    arxiv: "2304.03279"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "CyberSecEval 2: A wide-ranging cybersecurity evaluation suite for large language models"
+    authors: [Bhatt, Chennabasappa, Li, Nikolaidis, Song, Wan, Ahmad, Aschermann, Chen, Kapil, Molnar, Whitman, Saxe]
+    year: 2024
+    arxiv: "2404.13161"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "The Greatest Good Benchmark: Measuring LLMs' alignment with utilitarian moral dilemmas"
+    authors: [Marraffini, Cotton, Hsueh, Fridman, Wisznia, Del Corro]
+    year: 2024
+    venue: "EMNLP 2024"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "How do large language models navigate conflicts between honesty and helpfulness?"
+    authors: [Liu, Sumers, Dasgupta, Griffiths]
+    year: 2024
+    venue: "ICML 2024"
+    arxiv: "2402.07282"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Using cognitive models to reveal value trade-offs in language models"
+    authors: [Murthy, Zhao, Hu, Kakade, Wulfmeier, Qian, Ullman]
+    year: 2025
+    arxiv: "2506.20666"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Human misperception of generative-AI alignment: A laboratory experiment"
+    authors: [He, Shorrer, Xia]
+    year: 2025
+    venue: "EC 2025"
+    cited_by: [E]
+    relevance: T2
+
+# ============================================================================
+# CATEGORY 15: PROMPT SENSITIVITY / EVALUATION ROBUSTNESS
+# ============================================================================
+
+prompt_sensitivity:
+  - title: "Quantifying language models' sensitivity to spurious features in prompt design"
+    authors: [Sclar, Choi, Tsvetkov, Suhr]
+    year: 2024
+    venue: "ICLR 2024"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "ProSA: Assessing and understanding the prompt sensitivity of LLMs"
+    authors: [Zhuo, Zhang, Fang, Duan, Lin, Chen]
+    year: 2024
+    venue: "EMNLP Findings 2024"
+    cited_by: [E]
+    relevance: T3
+
+# ============================================================================
+# CATEGORY 16: ECONOMIC PREFERENCES / EXPERIMENTAL ECONOMICS
+# ============================================================================
+
+experimental_economics:
+  - title: "Global evidence on economic preferences"
+    authors: [Falk, Becker, Dohmen, Enke, Huffman, Sunde]
+    year: 2018
+    venue: "Quarterly Journal of Economics 133(4):1645-1692"
+    doi: "10.1093/qje/qjy013"
+    cited_by: [E]
+    relevance: T2
+
+  - title: "Testing the waters: Behavior across participant pools"
+    authors: [Snowberg, Yariv]
+    year: 2021
+    venue: "American Economic Review 111(2):687-719"
+    cited_by: [E]
+    relevance: T3
+
+  - title: "Are Emily and Greg more employable than Lakisha and Jamal? A field experiment on labor market discrimination"
+    authors: [Bertrand, Mullainathan]
+    year: 2004
+    venue: "American Economic Review 94(4):991-1013"
+    cited_by: [E]
+    relevance: T3

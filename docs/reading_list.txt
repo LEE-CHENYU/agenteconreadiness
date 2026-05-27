@@ -1,0 +1,512 @@
+==============================================================================
+RATIONALITY BENCHMARK & LLM-PREFERENCE READING LIST
+==============================================================================
+Curated 2026-05-21 (initial); refreshed 2026-05-26 for AgentEcon Readiness
+project with 5-axis failure-taxonomy axis-anchor flags.
+Organized by tier (must-read for Erica conversation vs depth vs background).
+Format: [tier] paper title — arxiv link — one-line why-to-read.
+
+5-AXIS FAILURE TAXONOMY ANCHORS (per §1.5.9.4 of master plan):
+  [AXIS-1] = Information (TERMS-Bench Eq. 4 — generalized via OracleDecomposable)
+  [AXIS-2] = Consistency (Andrews 2026 rep-theorem penalties)
+  [AXIS-3] = Calibration (Mazeika 2025 utility engineering)
+  [AXIS-4] = Computational floor (novel in v0)
+  [AXIS-5] = Meta-cognitive (Yamin et al. 2026 belief coherence)
+==============================================================================
+
+
+TIER 1 — MUST READ BEFORE ERICA CALL (6 papers)
+------------------------------------------------------------------------------
+Direct competitors / foundational framing. Skip these and you'll either
+re-derive their findings or look like you missed the field.
+
+[T1] Rationality Check! Benchmarking the Rationality of Large Language Models
+     arxiv 2509.14546  (Sept 2025)
+     → Most direct competitor for the rationality-benchmark framing. Frames
+       rationality as foundational AGI infrastructure. Use their "theoretical
+       vs practical rationality" vocabulary; it maps onto our ordinal vs
+       cardinal split.
+
+[T1] Benchmarking the Rationality of AI Decision Making via Transitivity  [AXIS-2]
+     arxiv 2502.10554  (Feb 2025)
+     → Bayesian model selection on transitivity for 10 Llama 2/3 variants.
+       Key finding: base models pass; chat/instruct variants violate.
+       This is the empirical anchor for "instruction-tuning hurts rationality"
+       — the pattern our Sonnet/Haiku results fit into.
+
+[T1] Alignment Revisited: Are Large Language Models Consistent in Stated and
+     Revealed Preferences?
+     arxiv 2506.00751  (June 2025)
+     → Direct framing match for our work. Across Claude/GPT/Llama families,
+       LLMs systematically contradict stated preferences when faced with
+       actual choices. Predicts a gap will exist in our setting too.
+
+[T1] LLM Economicus? Mapping the Behavioral Biases of LLMs via Utility Theory  [AXIS-3]
+     arxiv 2408.02784  (Aug 2024)
+     → Methodologically closest published precedent. Uses utility theory
+       directly as evaluation framework, same lens as ours. Findings:
+       GPT-4 shows loss aversion ≈ humans; "most LLMs struggle to maintain
+       consistent economic behavior across settings" (= our Sonnet/Haiku result).
+
+[T1] GuruAgents: Emulating Wise Investors with Prompt-Guided LLM Agents
+     arxiv 2510.01664  (Oct 2025)
+     → CLOSEST PARALLEL WORK that we should not be ignorant of. They built
+       a Warren-Buffett-prompted LLM agent + 4 others, evaluated by backtest
+       (42.2% CAGR on NASDAQ-100 Q4 2023 – Q2 2025). Our work is complementary:
+       they measure returns; we measure revealed-preference fit.
+
+[T1] PTCBENCH: Benchmarking Contextual Stability of Personality Traits in
+     LLM Systems
+     arxiv 2602.00016
+     → 39,240 personality records × 12 situational contexts. Key finding:
+       "Unemployment" scenario triggers significant personality changes.
+       Sets the rigor bar for our §13.1 adversarial-rationality extension.
+       Same shape as our proposed pressure-stability test, different evaluation
+       primitive (personality dims vs rationality axioms).
+
+[T1] QEDBENCH: Quantifying the Alignment Gap in Automated Evaluation of
+     University-Level Mathematical Proofs
+     Gonzalez et al. (Yale-led 51-author benchmark) — arxiv 2602.20629
+     (Feb 2026)
+     → Direct empirical anchor for our §1.5.7 judge-free-by-design claim and
+       §22.8 forcing function. Measures LLM-as-judge alignment gap on math
+       proofs (verifiable ground-truth domain) and finds +0.18 to +0.36 mean
+       score inflation across 4 of 7 frontier judge models (Claude Opus 4.5,
+       DeepSeek-V3, Qwen 2.5 Max, Llama 4 Maverick). Methodologically novel:
+       7-judge × 5-solver matrix over 1000+ proofs with 1000+ hours of expert
+       human evaluation as ground truth + dual-rubric design (course-specific
+       vs expert-common-knowledge). Adopt: the N×M matrix evaluation pattern
+       (for us: measurement models × LLMs under test, with held-out human
+       reference set as sanity check). Reject: their "closer-to-human = better"
+       normative framing, which §1.5.1 explicitly rejects. Their finding that
+       reasoning-specialized models degrade in specific domains (discrete math,
+       graph theory) is also worth replicating: do reasoning-specialized models
+       show analogous axiom-satisfaction degradation in specific decision
+       domains? Could become a AgentEcon Readiness headline finding. Yale-QEDBench
+       GitHub repo open.
+
+[T1] TERMS-BENCH: Diagnosing LLM Negotiation Agents Beyond Deal Rate  [AXIS-1]
+     Zhang, Zhang, Pappu, El, Blanchet, Athey, Liu, Zou — arxiv 2605.13909
+     (May 2026, Stanford School of Engineering + Dept of Economics + GSB)
+     PDF copy: docs/papers/10_TermsBench_2605.13909.pdf
+     → Bayesian-game framework for bilateral price negotiation with
+       environment-as-verifier (direct §1.5.7 external validation; quoted in
+       §1.5.7 plan). 4-axis 6-metric design: surplus efficiency (SE+),
+       agreement calibration (AGR+/CSE+/FAGR-), opponent modeling (BEtype),
+       protocol compliance (CritViol%). Six counterpart families (CANDID /
+       TACITURN / EXPRESSIVE / STRATEGIC + STOCHASTIC / ADVERSARIAL stress)
+       for capability isolation. Three regimes (Overlap / Urgency-shift /
+       No-deal). Oracle is *simulator-relative* Bayes-optimal — explicitly
+       NOT normative. Key methodological contribution we adopt in §15.6:
+       intervention-based oracle-gap decomposition (Δ_inf + Δ_unc + Δ_ctrl
+       via base / oracle-posterior / revealed-type interventions) substitutes
+       for choice-rationality pre-checks. 13 LLM agents evaluated; Claude
+       Opus 4.6 leads SE+=0.694, GLM-5.1 leads BEtype=0.218 (lowest belief
+       error), GPT-4o-mini bottom at 0.189. Finding 2: αcue < 0 for every
+       LLM (cue-revealing prompts REDUCE surplus extraction — agents are
+       cue-fooled). Data-grounded extension on Amazon catalog (831 products,
+       14 categories). Bankroll mode chaining T sessions surfaces solvency
+       failures invisible to single-episode metrics. Senior advising:
+       Susan Athey + Jose Blanchet + James Zou; Alvin Roth thanked for
+       early feedback citing Axiomatic Models of Bargaining. Direct
+       coordination target — Erica Zhang (Stanford School of Engineering)
+       + James Zou Lab. v2 D2 implementation path: wrap, don't rebuild.
+       Repo: github.com/zou-group/terms-bench. Leaderboard:
+       terms-bench.github.io.
+
+[T1] Revealed Rationality: Label-Free Regularization from Representation
+     Theorems  [AXIS-2]
+     Isaiah Andrews (MIT Dept of Economics + NBER, sole author) — Feb 2026
+     PDF copy: docs/papers/revealed_rationality_mit_2026-02.pdf
+     Published: economics.mit.edu/sites/default/files/2026-02/Revealed%20Rationality_1.pdf
+     → THE academic foundation for our Tier-4 commercial path (§17,
+       training-signal API). Proves that classical decision-theory
+       representation theorems can be turned into LABEL-FREE, polynomial-
+       time-computable continuous penalties for LLM training. Three
+       instantiations: (1) de Finetti probabilistic coherence via Dutch-
+       book LP — L(p) = max_b min_ωj Π(ωj), zero iff probabilities are
+       coherent; (2) Afriat preference rationality via CCEI (Critical
+       Cost Efficiency Index) — penalty 1 − CCEI ∈ [0,1], zero iff data
+       satisfy GARP; (3) Echenique-Saito SARSEU joint beliefs+preferences
+       via LP feasibility. The "if and only if" structure of representation
+       theorems lets you penalize axiom violations without specifying what
+       the model should value. Key citations *within Andrews* directly
+       feeding our plan: Tak et al. 2026 — LLMs violate vNM but reasoning
+       tokens improve compliance (anchors §1.5.6 reasoning-helps thesis);
+       Chadwick et al. 2025 — explicit money-pump + Dutch-book construction
+       against incoherent LLMs (commercial-pitch anchor for Tier 2/3);
+       Chen et al. 2023 — GPT-3.5 CCEI > 0.997 on budget allocation
+       (CEILING-EFFECT WARNING for our A1-A3 axiom dimensions: GARP may
+       not differentiate at v1 frontier-model level — extend dimensions /
+       more observations needed per Andrews's own note); Wen 2025 — prompt-
+       based role specialization (e.g. "biotechnology expert" persona)
+       SUBSTANTIALLY REDUCES GARP compliance (smoking-gun empirical
+       support for §1.5.5 context-conditional axiomatization); Mazeika et
+       al. 2025 — larger models satisfy EU axioms but with misaligned
+       goals (validates Andrews's "coherence ≠ good" caveat which we adopt
+       in §1.5.1 descriptive-vs-normative framing); Qiu et al. 2026 —
+       Bayes-rule failures improvable via supervised FT on Bayesian model
+       predictions. Andrews's caveat (verbatim): "coherence is not
+       sufficient for good behavior... so other training signals remain
+       essential." This is our exact §1.5.1 framing. Citation density
+       to MIT/NBER + sole-author + early-2026 means this paper will be
+       widely circulated in the LLM-economics community — cite extensively
+       in our methodology paper and especially in any Tier 4 commercial
+       pitch.
+
+[T1] EconEvals: Benchmarks and Litmus Tests for Economic Decision-Making
+     by LLM Agents  [AXIS-3 partial; reliability score adjacent to AXIS-2]
+     Fish, Shephard, Li, Shorrer, Gonczarowski — arxiv 2503.18825
+     (Feb 2026, Harvard + Penn State)
+     PDF copy: docs/papers/econevals_2503.18825.pdf
+     Repo: github.com/sara-fish/econ-evals-paper (open source)
+     → Closest direct competitor at the Cat B-C parameter+outcome layer.
+       Three economic environments (procurement / scheduling / pricing)
+       via tool-use API; agent learns environment in context across 100
+       periods at 3 difficulty levels (Basic / Medium / Hard). Three
+       litmus tests for tradeoff revelation: Patience vs Impatience
+       (intertemporal — direct overlap with our B2), Efficiency vs Equality
+       (task allocation), Collusiveness vs Competitiveness (multi-agent
+       pricing). Each litmus emits three scores: LITMUS (tradeoff response),
+       RELIABILITY (coherence of choice behavior — test-retest, NOT GARP),
+       COMPETENCY (capability under single objective — operationalized as a
+       PRE-CHECK following Ross et al. 2024 / Fish et al. 2024; if
+       competency fails, litmus score is uninterpretable). Direct §1.5.7
+       validation quote: "These evaluations measure LLM tradeoff responses
+       using human labels—which can be resource-intensive—or LLM-as-a-judge
+       labels—which can be unreliable. By contrast, our litmus tests
+       utilize stylized environments, which means the metrics that measure
+       tradeoff responses are directly grounded in an underlying
+       theoretical model." Models tested: Claude-3.5 Sonnet, Gemini 1.5
+       Pro, GPT-4o, GPT-4.1, o4-mini, Gemini 2.5 Pro, GPT-5, Gemini 3 Pro
+       Preview. Key findings: capability improving over time
+       (procurement +41 pp/yr, scheduling +50 pp/yr, pricing +18 pp/yr);
+       reasoning-model o4-mini scores 3rd-best in procurement (calculation-
+       heavy) but 5th-6th elsewhere; high reliability + competency across
+       frontier models. v2 implication: if we expand beyond investment
+       into procurement / scheduling / pricing, consider wrapping
+       EconEvals rather than rebuilding — same pattern as TERMS-Bench
+       for negotiation. Distinguishes from us by NOT testing axiom layer
+       (Cat A); EconEvals's reliability is measurement-test-retest, not
+       choice-theoretic GARP.
+
+[T1] The Emergence of Economic Rationality of GPT  [AXIS-2; §7.A1 ceiling + §1.5.5 framing-sensitivity]
+     Chen, Liu, Shan, Zhong — PNAS 2023, arxiv 2305.12763
+     (Lingnan + Tsinghua + HKUST + NUS)
+     PDF copy: docs/papers/cited/llm_rationality_core/chen_liu_shan_zhong_2023_emergence_economic_rationality_GPT_arxiv2305.12763.pdf
+     → GPT-3.5-Turbo tested on 25-task budget allocation × 4 domains
+       (risk, time, social, food) × 100 repetitions = 10,000 tasks.
+       Rationality measured via GARP compliance. GPT outperforms 347-
+       person human sample (US representative). CCEI > 0.997 mean across
+       domains — the source of our §7.A1 ceiling-effect warning. KEY
+       NUANCE often missed: rationality is robust to demographic settings
+       (age, gender) but BREAKS SIGNIFICANTLY under different price
+       framing OR discrete choice setting — direct empirical anchor for
+       §1.5.5 context-conditional axiomatization. GPT preference
+       parameters are substantially more homogeneous than humans.
+       Dual-purpose anchor: ceiling-effect warning AND framing-sensitivity
+       evidence. Cite both ways in methodology paper §2 (related work).
+
+[T1] Thinking Fast and Slow in Large Language Models  [AXIS-2; §1.5.6 scaling narrative]
+     Hagendorff, Fabi, Kosinski — arxiv 2212.05206
+     (published Nature Computational Science 2023, 10.1038/s43588-023-00527-x;
+     Stuttgart + UCSD + Stanford)
+     PDF copy: docs/papers/cited/llm_rationality_core/hagendorff_fabi_kosinski_2023_thinking_fast_slow_arxiv2212.05206.pdf
+     → Tested CRT (Cognitive Reflection Test) + semantic illusions on
+       GPT-1 → ChatGPT-4 family. 50 bespoke task versions to prevent
+       training-data contamination (200 tasks total). 500 human Prolific
+       participants (38% CRT correct vs 41% original literature). Two
+       findings: (1) GPT-1 → GPT-3 scaling → MORE human-like intuitive
+       errors emerge (System 1 thinking with scale); (2) ChatGPT-3.5/4
+       transition → models avoid the traps EVEN WHEN PREVENTED FROM
+       CHAIN-OF-THOUGHT REASONING (System-1-like next-word generation
+       becomes more accurate without explicit System-2 deliberation).
+       Precursor to Tak et al. 2026's reasoning-helps story. Together
+       Hagendorff + Tak tell the 4-stage scaling narrative for §1.5.6
+       measurement-model pluralism: scaling makes worse → ChatGPT fixes
+       → reasoning helps → emotion steering reverses. Cite as the
+       "context matters" empirical foundation.
+
+[T1] Bayesian Teaching Enables Probabilistic Reasoning in LLMs  [AXIS-5; §17 Tier 4 third academic foundation]
+     Qiu, Sha, Allen, Kim, Linzen, van Steenkiste — arxiv 2503.17523
+     (Nature Communications 2026, 10.1038/s41467-025-67998-6;
+     MIT + Meta + DeepMind + UBC + Vector + Google Research + NYU)
+     PDF copy: docs/papers/cited/llm_rationality_core/qiu_2026_bayesian_teaching_probabilistic_reasoning_arxiv2503.17523.pdf
+     → LLMs tested on multi-round flight-recommendation requiring
+       Bayesian belief updating. 5 LLMs (Gemma 2 9B/27B, Llama 3 8B/70B,
+       Qwen 2.5 7B/32B, GPT-4.1 Mini, Gemini 1.5 Pro) + Bayesian
+       Assistant normative oracle. LLMs plateau after 1 round of feedback
+       (~37-40% accuracy); Bayesian Assistant reaches 81% after 5 rounds;
+       humans 39% → 47% (slight improvement but well below normative).
+       KEY CONTRIBUTION: "Bayesian teaching" — fine-tune LLM on Bayesian
+       Assistant TRACES (showing reasoning under uncertainty), not on
+       correct-answer traces. Bayesian model is better teacher than
+       oracle because it shows reasoning, not just answers. Method
+       generalizes to NEW tasks (hotel + web shopping). Relevance to
+       AERead: THIRD academic foundation for §17 Tier 4 alongside
+       Andrews 2026 (training-time penalty) and Chadwick 2025 (inference-
+       time remediation). Three complementary mechanisms become three
+       Tier 4 product variants. Also Axis 5 metacog remediation precedent:
+       belief-updating failures fix via supervised mimicry of Bayesian
+       traces.
+
+[T1] Dutch Books and Money Pumps: Rectifying Vulnerabilities in LLMs Through Rationality  [AXIS-2 + remediation; §17 Tier 4 second academic foundation]
+     Chadwick, Kahng, Kipper — HAR 2025 workshop, Paris
+     (University of Rochester)
+     PDF copy: docs/papers/cited/llm_rationality_core/chadwick_kahng_kipper_2025_dutch_books_money_pumps.pdf
+     URL: https://ansonkahng.com/docs/papers/llmrationality.pdf
+     → CRITICAL update from my prior framing: this paper does MORE than
+       Dutch-book / money-pump exploitation — it proposes a CONSTRUCTIVE
+       RATIONALITY LAYER that rectifies both vulnerabilities. Two
+       technical contributions: (1) Probabilistic coherence via linear
+       pooling over N=100 sampled distributions + quadratic-programming
+       to minimally distort probabilities to satisfy axioms; (2)
+       Preference transitivity via Iterative Max Directed Cut (IMDC) —
+       hierarchical voting rule approximating Kemeny ranking in
+       polynomial time. Three IMDC variants (x-IMDC-o, x-IMDC-u, x ∈
+       {Kemeny, Copeland, Borda, Plurality, Veto}) with theorems
+       comparing acyclic vs cyclic tournament graphs. Explicitly rebuts
+       Goldstein's "LLMs cannot in principle be coherent" architectural
+       argument. Relevance: SECOND academic foundation for §17 Tier 4
+       (inference-time remediation layer); paired with Andrews 2026
+       (training-time penalty) and Qiu 2026 (supervised fine-tuning on
+       normative traces) for the 3-mechanism product framing. Also our
+       diagnostic page §6 "Counterfactual scenarios" can use Chadwick
+       IMDC as the concrete "if transitivity were fixed" implementation.
+
+
+TIER 2 — READ FOR DEPTH (6 papers)
+------------------------------------------------------------------------------
+For when you want to engage substantively beyond the surface.
+
+[T2] Insights from the Inverse: Reconstructing LLM Training Goals Through
+     Inverse Reinforcement Learning
+     arxiv 2410.12491  (Oct 2024)
+     → IRL on RLHF-trained LLMs. 85% accuracy recovering training reward
+       function (toxicity domain). Validates IRL methodology on LLM
+       outputs. Their non-identifiability handling = analog of our parameter
+       stability story.
+
+[T2] Inverse Reinforcement Learning Meets Large Language Model Post-Training:
+     Basics, Advances, and Opportunities
+     arxiv 2507.13158  (July 2025)
+     → Survey paper. Foundational reading for situating our work in the
+       broader IRL/LLM landscape. Read selectively (it's long).
+
+[T2] TRAIT: Do LLMs Have Distinct and Consistent Personality? A Personality
+     Testset Designed for LLMs with Psychometrics
+     ACL Anthology / NAACL Findings 2025
+     → Psychometrically-validated personality testset. Highest scores across
+       content validity, internal validity, refusal rate, reliability.
+       Methodologically rigorous. Useful pattern for designing our axiom tests.
+
+[T2] The Moral Mind(s) of Large Language Models
+     arxiv 2412.04476  (Dec 2024)
+     → Tested ~40 models across providers on ethical scenarios. "At least
+       one model per provider exhibits behavior consistent with approximately
+       stable moral principles, effectively acting as if nearly optimizing
+       a utility function." Direct empirical support for our framing.
+
+[T2] Can an LLM Learn Preferences from Choice Data?
+     arxiv 2401.07345  (2024)
+     → Structurally IDENTICAL setup to ours. Simulate-Recommend-Evaluate
+       framework tests LLM preference recovery from synthetic choice data
+       (disappointment-aversion theory). Different application (their theory
+       vs our portfolio utility), same methodological shape.
+
+[T2] Do Large Language Models Learn Human-Like Strategic Preferences?
+     arxiv 2404.08710  (2024)
+     → Tests whether open-source LLMs exhibit stable human-like strategic
+       preferences using game theory as a comparison. Foundational for
+       the "is LLM rationality stable across contexts?" question.
+
+
+TIER 3 — BACKGROUND / SPECIFIC CONTEXT (8 papers)
+------------------------------------------------------------------------------
+Read when a specific topic comes up; not necessary for the first call.
+
+== Econometric / Athey lineage (for the structural-estimation framing) ==
+
+[T3] SHOPPER: A Probabilistic Model of Consumer Choice with Substitutes and
+     Complements
+     Ruiz, Athey, Blei (paper at semanticscholar; PDF widely linked)
+     → Susan Athey's closest work to our setup. Probabilistic model inferring
+       consumer preferences from observed shopping baskets. 13F is structurally
+       a multi-category consumer-choice problem. Use this paper to bridge to
+       Erica via her co-author.
+
+[T3] Counterfactual Inference for Consumer Choice Across Many Product
+     Categories
+     Athey et al. — arxiv 1906.02635
+     → Counterfactual reasoning over consumer choices. The implied-conviction
+       inversion in our pipeline is structurally a counterfactual question.
+
+[T3] Inverse Reinforcement Learning using Revealed Preferences and Passive
+     Stochastic Optimization
+     Vikram Krishnamurthy — arxiv 2507.04396
+     → Title is dead-on for our methodology though not by a TERMS-Bench
+       co-author. The explicit IRL-from-revealed-preferences crossover
+       paper. Reference if Erica probes "is this IRL or revealed preferences?"
+
+
+== Parallel track: LLM-as-investor benchmarks (performance-focused) ==
+
+[T3] INVESTORBENCH: A Benchmark for Financial Decision-Making with LLM Agents
+     ACL 2025
+     → Performance-focused benchmark for financial decisions. Position ours
+       as the revealed-preference-fit complement.
+
+[T3] STOCKBENCH: Can LLM Agents Trade Stocks Profitably in Real-World Markets?
+     arxiv 2510.02209
+     → Multi-month realistic stock-trading environment for LLM agents.
+       Same as above — performance vs preference-fit complementarity.
+
+
+== Multi-agent LLM market simulation (broader vision context) ==
+
+[T3] Magentic Marketplace: An Open-Source Environment for Studying Agentic
+     Markets
+     Microsoft Research (Oct 2025)
+     → Infrastructure for the broader persona-simulator vision. Worth knowing
+       when the conversation turns to "what would the full simulator look
+       like?"
+
+[T3] LLM-Based Multi-Agent System for Simulating Strategic and Goal-Oriented
+     Data Marketplaces
+     arxiv 2511.13233
+     → Agents with explicit objectives. Closer to our utility-driven agent
+       framing.
+
+
+== Distributionally robust RL (for regime-shift discussion with Erica) ==
+
+[T3] On the Foundation of Distributionally Robust Reinforcement Learning
+     Wang, Blanchet, Si, Zhou — arxiv 2311.09018  (2023)
+     → Jose Blanchet (TERMS-Bench co-author) is a major figure in DRO-RL.
+       Our regime-shift finding (IRL train 2016-23 vs test 2024-26
+       distributions differ) is naturally a DRO-RL problem if conversation
+       goes there.
+
+
+== Behavioral economics / cognitive bias in LLMs (adjacent context) ==
+
+[T3] Folk Economics in the Machine: LLMs and the Emergence of Mental
+     Accounting
+     Yan Leng — SSRN 4705130
+     → Mental accounting biases in LLMs. Adjacent to our cardinal-sizing
+       finding (the LLM doesn't carry magnitudes the way humans do).
+
+
+== Context-conditional axiomatization (for v2 dimension D1 + paper #2) ==
+
+Foundational reading for the §1.5.5 product corollary: "agents should be
+context-conditional about which axiomatization to honor, not globally
+optimized for one." No single paper covers this for LLMs (the gap is the
+research opportunity). The entries below establish the building blocks.
+
+-- Decision-theory foundations (multiple coherent axiomatizations exist) --
+
+[T3] Knightian Decision Theory, Part I
+     Truman F. Bewley (2002) — Decisions in Economics and Finance 25
+     → Foundational paper for relaxing the COMPLETENESS axiom. Agents may
+       reasonably refuse to rank some pairs. Used in §1.5.3 table; cite when
+       the methodology paper discusses non-vNM axiomatizations.
+
+[T3] Maxmin Expected Utility with Non-Unique Prior
+     Gilboa, Schmeidler (1989) — Journal of Mathematical Economics 18
+     → Foundational paper for ambiguity-averse decision-making. Drops
+       INDEPENDENCE in a specific way. Relevant when the agent's context is
+       Ellsberg-like uncertainty (genuine ambiguity, not just risk).
+
+[T3] Regret Theory: An Alternative Theory of Rational Choice Under Uncertainty
+     Loomes, Sugden (1982) — Economic Journal 92
+     → Foundational paper for TRANSITIVITY-violating but coherent preferences.
+       Cycling can be rational if outcomes are evaluated relative to
+       counterfactual regret. Key reference for §1.5.5 risk discussion: a
+       model violating transitivity may be reasoning regret-theoretically.
+
+[T3] Prospect Theory: An Analysis of Decision under Risk
+     Kahneman, Tversky (1979) — Econometrica 47
+     → The empirically-grounded relaxation of INDEPENDENCE that anchors
+       Category B of our benchmark. Already implicitly cited via §7.B1; add
+       to reading list explicitly as the foundational reference.
+
+[T3] A Theory of Anticipated Utility
+     Quiggin (1982) — Journal of Economic Behavior & Organization 3
+     → Rank-dependent utility theory; alternative to KT prospect theory for
+       relaxing independence. Useful when comparing axiomatization families.
+
+-- Empirical LLM context-sensitivity (the substrate this would build on) --
+
+[T3] PTCBENCH (already T1 above)
+     → 12 situational contexts modulate personality-trait expression in LLMs.
+       Methodologically the closest empirical pattern to "do LLMs adapt
+       axiomatic behavior to context?" The v2 D1 dimension is structurally
+       PTCBench-for-axioms.
+
+[T3] Alignment Revisited (already T1 above)
+     → Stated-vs-revealed gap is itself a form of context-conditional
+       behavior. If the model behaves differently when "framed as stating
+       preferences" vs "framed as making choices," that is already evidence
+       of context-conditional axiomatization (just unintentional).
+
+-- Mechanisms for axiom-set switching --
+
+[T3] Constitutional AI: Harmlessness from AI Feedback
+     Bai et al. (Anthropic, 2022) — arxiv 2212.08073
+     → Constitutional AI / RLAIF as the training-level mechanism for
+       conditioning model behavior on declared principles. Closest existing
+       template for "training-level axiomatization equipment" (Tier 4 in our
+       §17, training-level row in the §1.5.5 table).
+
+[T3] Switch Transformer / Mixtral / generic MoE survey
+     Fedus, Zoph, Shazeer (2021) — arxiv 2101.03961 (Switch Transformer)
+     Jiang et al. (2024) — arxiv 2401.04088 (Mixtral)
+     → Architectural template for the "router / MoE" row in §1.5.5: meta-
+       agent dispatching to axiomatization-specialized sub-agents. Both
+       references useful when the v2 paper discusses architectural options.
+
+[T3] Tree of Thoughts / Self-Consistency reasoning scaffolds
+     Yao et al. (2023) — arxiv 2305.10601 (ToT)
+     Wang et al. (2022) — arxiv 2203.11171 (Self-Consistency)
+     → Inference-time scaffolding row in the §1.5.5 table. Demonstrates the
+       cheaper end of the cost/reliability spectrum: enforce axiomatic
+       reasoning via CoT structure rather than training.
+
+-- Adversarial robustness (the §1.5.5 manipulation-vector risk) --
+
+[T3] Many-shot Jailbreaking
+     Anil et al. (Anthropic, 2024)
+     → Long-context jailbreaks bypass safety alignment. Same mechanism would
+       apply to bypassing a declared axiomatization. The §1.5.5 risk
+       ("selector is a manipulation vector") needs this reference for the v2
+       paper's threat model.
+
+[T3] Universal and Transferable Adversarial Attacks on Aligned LLMs
+     Zou et al. (2023) — arxiv 2307.15043
+     → Adversarial-suffix attacks. Together with many-shot jailbreaking,
+       establishes that prompt-level axiomatization declarations
+       (§1.5.5 row 1) are brittle even before considering deliberate attacks.
+
+
+==============================================================================
+READING ORDER FOR LIMITED TIME (in 60 min before Erica call)
+==============================================================================
+1. Rationality Check! abstract + intro (10 min)
+2. Transitivity Bench abstract + headline finding (5 min)
+3. LLM Economicus? abstract + methodology section (10 min)
+4. GuruAgents abstract + their persona-prompt design (10 min)
+5. PTCBench abstract + their adversarial-context methodology (10 min)
+6. Alignment Revisited abstract + their stated-vs-revealed protocol (10 min)
+Then skim §12 of findings_2026-05-18 doc for the synthesis (5 min).
+
+
+==============================================================================
+NOTES ON SOURCES
+==============================================================================
+- All arxiv links: https://arxiv.org/abs/<id>  or  https://arxiv.org/pdf/<id>
+- SSRN: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=<id>
+- ACL Anthology: search by title
+- Magentic Marketplace PDF:
+    microsoft.com/en-us/research/wp-content/uploads/2025/10/multi-agent-marketplace.pdf
+==============================================================================
