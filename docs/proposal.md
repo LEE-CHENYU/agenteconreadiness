@@ -205,7 +205,7 @@ Time commitment for Phase-0: **~8-30 hours over 2-4 weeks** depending on scope p
 
 ### 9.3 Yuecheng Fang — proposed Phase-0 DoL (benchmark implementation + stats-methodology track)
 
-Yuecheng's prior benchmark-building experience is the natural fit for two adjacent surfaces: (1) **statistics-specific methodology leadership** — predict-then-validate experimental design, cross-validation, held-out test design, statistical reproducibility framework — and (2) **benchmark implementation** — runtime infrastructure, scorer library, leaderboard ops that turn the methodology into a tool researchers can actually use. Phase-0 options (pick 1-2 for ~10-20 hours total):
+Yuecheng's prior benchmark-building experience is the natural fit for two adjacent surfaces: (1) **statistics-specific methodology leadership** — predict-then-validate experimental design, cross-validation, held-out test design, statistical reproducibility framework — and (2) **benchmark implementation (math/stats-heavy side)** — standard scorer library (the Bradley-Terry / WST/MST/SST / KT-MLE / isotonic implementations), Layer 3 cache extensions (splits / fits / predictions for predict-then-validate), validation runs + statistical analysis. The complementary researcher-facing surface (generator library, CLI design, submission paths, leaderboard frontend) is Cheney's — see §9.5 split note. Phase-0 options (pick 1-2 for ~10-20 hours total):
 
 - **(A) Standard scorer library scoping memo + first scorer implemented.** Review the runtime spec §5 scorer / generator menu (request access from Cheney per §15 below); propose which 3-5 scorers ship in v0 and which defer to v1.5; **then implement one of the v0 scorers end-to-end** (e.g., Bradley-Terry transitivity scorer with measurement-model-pluralism plumbing). The scoring layer is the load-bearing primitive for Layer 1 + Layer 2 outputs — picking the right v0 set determines what dimensions can actually be measured at launch. ~8-12 hours.
 
@@ -221,7 +221,7 @@ Time commitment for Phase-0: **~10-25 hours over 2-4 weeks** depending on scope 
 
 ### 9.4 Open slot: infrastructure-ops collaborator
 
-Yuecheng covers the benchmark *implementation* side (§9.3) — scorer library, lm-eval-harness integration, leaderboard schema, contributor-facing infrastructure. The runtime *operations* side — reproducibility-cache hardening, leaderboard CI/CD, HuggingFace / model-card integration, eval-harness ops at scale — is a distinct workstream and remains an open slot. If we find someone whose ops contribution is substantive enough to be a coauthor (not a paid contractor), we want them on the team.
+Benchmark implementation is split between Cheney (researcher-facing surface — generator library, CLI design, submission paths, leaderboard frontend) and Yuecheng (math/stats-heavy infrastructure — scorer library, Layer 3 cache extensions, validation runs); see §9.5 for the per-row split. The runtime *operations* side — reproducibility-cache hardening, leaderboard CI/CD, HuggingFace / model-card integration, eval-harness ops at scale — is a distinct workstream and remains an open slot. If we find someone whose ops contribution is substantive enough to be a coauthor (not a paid contractor), we want them on the team.
 
 Candidate identification continues via lm-evaluation-harness contributor graph + HuggingFace Datasets maintainers + existing network search. Same Phase-0 / 4-week-checkpoint discipline applies; if a candidate emerges, they get a Phase-0 DoL item (likely: ship one specific eval-harness adapter or leaderboard-infrastructure piece). Authorship decided at the checkpoint.
 
@@ -230,6 +230,8 @@ Framing: potential coauthor specializing on the ops side, not a paid contractor.
 ### 9.5 Proposed post-exploration ownership map
 
 A first-pass DoL for the full v0 scope, mapping workstreams to proposed primary owner + supporting collaborators. This is a *proposal* for the checkpoint discussion, not a commitment — Phase-0 contribution patterns drive the actual ownership decisions.
+
+**Note on engineering ownership**: Cheney ships the v0 runtime scaffold during Phase-0 (per §7 — "mostly Cheney-time + API spend"); the engineering primary roles below reflect the **ongoing post-conversion split**. Benchmark implementation is intentionally shared between Cheney and Yuecheng — Cheney leads the researcher-facing surface (generator library, CLI, submission paths, documentation, leaderboard/diagnostic frontend) where ergonomic design dominates; Yuecheng leads the math/stats-heavy infrastructure (scorer library, cache extensions for Layer 3 splits, validation runs, statistical reproducibility framework). The split tracks expertise (Cheney = product/UX + Cat C domain; Yuecheng = stats/math implementation) rather than carving by abstraction layer.
 
 **Methodology paper workstreams**:
 
@@ -263,19 +265,19 @@ A first-pass DoL for the full v0 scope, mapping workstreams to proposed primary 
 
 | Workstream | Proposed primary | Supporting |
 |---|---|---|
-| lm-evaluation-harness integration + entry-point structure | Yuecheng | — |
-| Standard scorer library (Bradley-Terry, WST/MST/SST, KT-MLE, isotonic, etc.) | Yuecheng | Zihao (mathematical correctness review) |
-| Generator library + YAML schema | Yuecheng | Cheney (ergonomic-design spec for what researchers see) |
-| Cache layer (responses / stimuli / scores / splits / fits / predictions / diagnostics) | Yuecheng | Cheney (Cat C-specific extensions) |
-| CLI (`aeread evaluate / diagnose / check / init`) | Yuecheng | Cheney (command-surface ergonomic design) |
-| Composite-score aggregator | Yuecheng | Cheney (rubric design), Zihao (statistical rubric review) |
+| lm-evaluation-harness integration + entry-point structure | Cheney (v0 scaffold) + Yuecheng (post-v0 maintenance + scorer integration) | — |
+| Standard scorer library (Bradley-Terry, WST/MST/SST, KT-MLE, isotonic, etc.) | Yuecheng | Zihao (mathematical correctness review), Cheney (v0 scaffold for simpler scorers) |
+| Generator library + YAML schema | Cheney (ergonomic design + v0 build) | Yuecheng (implementation refinement + new generators) |
+| Cache layer (responses / stimuli / scores / splits / fits / predictions / diagnostics) | Cheney (v0 scaffold) + Yuecheng (Layer 3 splits/fits/predictions extensions) | — |
+| CLI (`aeread evaluate / diagnose / check / init`) | Cheney (command-surface design + v0 build) | Yuecheng (subcommand implementation + extension) |
+| Composite-score aggregator | Cheney (rubric design + v0 build) + Yuecheng (aggregator math + extension) | Zihao (statistical rubric review) |
 | **Category A test design (A1 / A2 / A3 / A5)** — A4 covered by Cheney's Phase-0 | Cheney | Zihao (axiom-spec review), Yuecheng (scorer wiring) |
 | **Category B test design (B1 risk / B2 inter-temporal / B3 social)** — protocol picking + prompt engineering | Cheney | Zihao (utility-class anchors), Yuecheng (scorer wiring) |
 | C1 13F-IRL pipeline (persona-fit, existing infrastructure) | Cheney | — |
 | C2 price-aware product selection task design | Cheney | Zihao (oracle policy formalization) |
 | Three submission paths (web form / Colab / PR) — ergonomic design + flow | Cheney | Yuecheng (implementation) |
 | **Documentation** (README, new-task-guide, Colab template, contributor onboarding) | Cheney | Yuecheng (technical content + maintenance) |
-| **Benchmark validation runs** (execute AERead on 8+ models pre-launch, generate v1 leaderboard) | Yuecheng | Cheney (API spend + analysis) |
+| **Benchmark validation runs** (execute AERead on 8+ models pre-launch, generate v1 leaderboard) | Cheney (API spend + run orchestration) + Yuecheng (result-table generation + statistical analysis) | — |
 | Leaderboard frontend + reliability-diagram visualization | Cheney (design lead) + open ops slot (implementation) — Cheney implements solo if no ops candidate | Yuecheng (implementation review) |
 | Diagnostic drill-down page (5-axis radar + cross-decomposition matrix) | Cheney (design lead) + open ops slot (implementation) — Cheney implements solo if no ops candidate | Yuecheng (implementation review) |
 | HuggingFace integration + model-card adoption pipeline | Open (ops slot) — defers to v1.5 if no candidate | — |
