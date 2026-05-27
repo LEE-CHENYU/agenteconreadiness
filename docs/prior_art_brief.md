@@ -2,7 +2,7 @@
 
 A ~3-page synopsis of the three Q1-2026 papers AERead builds on. Each section: what the paper does + key methodology contribution + what AERead inherits + what AERead extends + the specific §Future Work question AERead addresses. Use this as a primer before drilling into the full papers; see [`reading_list.txt`](reading_list.txt) for tiered priority + per-axis tagging and [`methodology.md`](methodology.md) for the AERead framework.
 
-> **Section-reference convention**: §X.Y refs below (e.g., §1.5.7, §1.5.6.5) point to the AERead master plan in the source repo (`rationale`) — see [`proposal.md`](proposal.md) §15 "Available on request" for access. All §X.Y concepts are also covered in [`methodology.md`](methodology.md) under different headings (§1.5.1 → "Five methodological commitments" #1; §1.5.6/§1.5.6.5 → "Layer 3 design discipline" + commitment #2; §1.5.7 → commitment #3; §1.5.5 → commitment #4). Use methodology.md for the framework; this brief for the prior-art map.
+> **Reference convention**: anchor-paper §X.Y refs (e.g., Andrews's §3) point to those papers' own sections — accessible via the [PDF in this repo](papers/pdfs/andrews_2026_revealed_rationality.pdf) for Andrews and via [`papers/links.md`](papers/links.md) for the rest. AERead framework references use concept names with parenthetical pointers to [`methodology.md`](methodology.md) section headings (e.g., "judge-free by construction (methodology.md §Five methodological commitments #3)"). No source-repo access needed to follow this brief.
 
 ---
 
@@ -32,8 +32,8 @@ A second contribution: their oracle policy is **simulator-relative Bayes-optimal
 ### What AERead inherits
 
 - **The Eq. 4 oracle-gap decomposition** — abstracted into the `OracleDecomposable` interface that is AERead's Axis 1 (Information) primary anchor
-- **Environment-as-verifier** + **simulator-relative oracle** — AERead's §1.5.7 judge-free-by-construction commitment cites TERMS-Bench as one of three concurrent Q1-2026 benchmarks (alongside EconEvals + Revealed Rationality) that independently rejected LLM-as-judge
-- **The 7-axis sortable-table leaderboard layout** ([terms-bench.github.io](https://terms-bench.github.io)) — closest UX precedent for AERead's 5-axis radar + sortable composite. AERead's §9.3 (C) Yuecheng Phase-0 frontend prototype explicitly studies this layout.
+- **Environment-as-verifier** + **simulator-relative oracle** — AERead's judge-free-by-construction commitment (methodology.md §Five methodological commitments #3) cites TERMS-Bench as one of three concurrent Q1-2026 benchmarks (alongside EconEvals + Revealed Rationality) that independently rejected LLM-as-judge
+- **The 7-axis sortable-table leaderboard layout** ([terms-bench.github.io](https://terms-bench.github.io)) — closest UX precedent for AERead's 5-axis radar + sortable composite. AERead's [`proposal.md`](proposal.md) §9.3 (C) Yuecheng Phase-0 frontend prototype explicitly studies this layout.
 - **Bankroll mode pattern** — surfacing failures that single-episode metrics miss is the inspiration for AERead's long-horizon Vending-Bench wrap consideration in [`layer3_candidates.md`](layer3_candidates.md) F12.
 
 ### What AERead extends
@@ -74,13 +74,13 @@ A second contribution that AERead operationalizes: the **§3 non-identification 
 
 - **Tier 4 commercial mechanism #1** (training-time penalty regularization): Andrews's three rep-theorem penalties become the academic foundation for AERead Tier 4 Variant 1 — a training-signal API that scores (prompt, response) pairs on rationality dimensions for use as auxiliary RLHF/DPO losses.
 - **Axis 2 (Consistency) mathematical anchor**: AERead's 5-axis taxonomy cites Andrews as the prior-art anchor for Axis 2; the consistency intervention mechanism (counterfactual axiom probes) operationalizes Andrews's de Finetti / Afriat penalties as runtime tests.
-- **§3 non-identification framing for within-class identification**: AERead's Layer 2 (identification) explicitly commits to *within-class* identification per AERead's §1.5.6.5 — meaning we fit parameters within a chosen functional class and **explicitly acknowledge** that another class would yield different parameters that also rationalize the same data. Multi-class robustness (fit all 5 candidate classes; report posterior over them) is the predict-then-validate response to Andrews's critique.
-- **§7 caveat as §1.5.1 anchor**: AERead's first methodological commitment — "descriptive measurement, not normative ranking" — is Andrews's §7 caveat verbatim. Higher AERead scores ≠ better-aligned; AERead reports a fingerprint, not a verdict.
+- **§3 non-identification framing for within-class identification**: AERead's Layer 2 (identification) explicitly commits to *within-class* identification (methodology.md §Layer 3 design discipline: predict-then-validate, multi-class robustness paragraph) — meaning we fit parameters within a chosen functional class and **explicitly acknowledge** that another class would yield different parameters that also rationalize the same data. Multi-class robustness (fit all 5 candidate classes; report posterior over them) is the predict-then-validate response to Andrews's critique.
+- **§7 caveat as descriptive-not-normative anchor**: AERead's first methodological commitment — "descriptive measurement, not normative ranking" (methodology.md §Five methodological commitments #1) — is Andrews's §7 caveat verbatim. Higher AERead scores ≠ better-aligned; AERead reports a fingerprint, not a verdict.
 
 ### What AERead extends
 
 - **Beyond training-signal to deployment-eval**: Andrews's penalties are designed as training signals. AERead operationalizes them as **runtime diagnostic probes** for deployed models — every per-(model, task) Layer 3 result gets a per-axis Axis 2 score derived from counterfactual axiom probes.
-- **§4 lit review integrated, not just surveyed**: Andrews's §4 names 8 papers documenting rationality violations but treats them as separate findings. AERead's 5-axis taxonomy **organizes** Andrews's §4 papers into a single attribution framework — Betz + Chadwick anchor Axis 5 + Tier 4 Variants 2 + 4; Chen + Wen anchor §1.5.5 context-conditional; Zhu-Griffiths anchors Axis 5 coherence probes; Mazeika anchors Axis 3 calibration; Qiu anchors Tier 4 Variant 3. The methodology paper §3 frames this as "reading these papers in sequence is reading a request for AERead."
+- **§4 lit review integrated, not just surveyed**: Andrews's §4 names 8 papers documenting rationality violations but treats them as separate findings. AERead's 5-axis taxonomy **organizes** Andrews's §4 papers into a single attribution framework — Betz + Chadwick anchor Axis 5 (Meta-cognitive) + Tier 4 Variants 2 + 4; Chen + Wen anchor the context-conditional axiomatization commitment (methodology.md §Five methodological commitments #4); Zhu-Griffiths anchors Axis 5 coherence probes; Mazeika anchors Axis 3 (Calibration); Qiu anchors Tier 4 Variant 3. The methodology paper §3 frames this as "reading these papers in sequence is reading a request for AERead."
 
 ### What AERead addresses from their §Future Work
 
@@ -103,11 +103,11 @@ Three economic environments — **procurement / scheduling / pricing** — expos
 
 The **competency-pre-check + litmus pattern**: rather than asking "is the agent rational on this task?", EconEvals asks two questions sequentially: (1) can the agent execute the task at all (competency ≥ threshold)?; (2) given competency, what is the agent's tradeoff response (litmus score)? This separates **capability** from **preference**, which is essential when frontier models have such high baseline capability that simple rationality probes hit ceiling effects (per Chen 2023 finding CCEI > 0.997 for GPT-3.5 on budget allocation). The competency pre-check pattern is operationalized via Ross et al. 2024 + Fish et al. 2024's prior work on capability isolation.
 
-A second contribution is the **judge-free environment-as-verifier framing**, stated directly in their abstract: *"These evaluations measure LLM tradeoff responses using human labels—which can be resource-intensive—or LLM-as-a-judge labels—which can be unreliable. By contrast, our litmus tests utilize stylized environments, which means the metrics that measure tradeoff responses are directly grounded in an underlying theoretical model."* This is exactly the §1.5.7 commitment AERead inherits.
+A second contribution is the **judge-free environment-as-verifier framing**, stated directly in their abstract: *"These evaluations measure LLM tradeoff responses using human labels—which can be resource-intensive—or LLM-as-a-judge labels—which can be unreliable. By contrast, our litmus tests utilize stylized environments, which means the metrics that measure tradeoff responses are directly grounded in an underlying theoretical model."* This is exactly the judge-free-by-construction commitment (methodology.md §Five methodological commitments #3) AERead inherits.
 
 ### What AERead inherits
 
-- **Judge-free environment-as-verifier**: AERead's §1.5.7 commitment cites EconEvals alongside TERMS-Bench and Revealed Rationality as the three concurrent Q1-2026 benchmarks that independently adopted this design choice.
+- **Judge-free environment-as-verifier**: AERead's judge-free-by-construction commitment cites EconEvals alongside TERMS-Bench and Revealed Rationality as the three concurrent Q1-2026 benchmarks that independently adopted this design choice.
 - **Competency pre-check pattern**: AERead's Axis 4 (Computational floor) is essentially a competency pre-check — if the agent can't execute the math the choice requires (e.g., compute expected value of a lottery), the higher-axis scores are uninterpretable. AERead operationalizes Axis 4 via quantity-substitution probes (substitute the computational answer in the prompt; rerun; measure delta).
 - **Multi-environment Layer 3 structure**: AERead plans to **wrap EconEvals** as v0.5 Layer 3 D-dimensions (D4 procurement / D5 pricing / D6 scheduling per [`layer3_candidates.md`](layer3_candidates.md) A1/A2/A3) — using EconEvals's environments as Cat D candidates in AERead's collection-of-use-cases framing.
 
@@ -133,9 +133,10 @@ EconEvals's adoption ceiling is the question their §Future Work doesn't ask but
 | **Axis 3 (Calibration)** | — | Adjacent (calibration vs coherence per §7) | Adjacent (competency pre-check + litmus separation) |
 | **Axis 4 (Computational floor)** | — | — | Primary anchor — competency-as-pre-check pattern |
 | **Axis 5 (Meta-cognitive)** | — | §4 lit-review names Yamin / Zhu-Griffiths / Chadwick as Axis 5 supporters | — |
-| **§1.5.1 descriptive-not-normative** | "Simulator-relative oracle, not normatively-rational" framing | §7 caveat ("coherence not sufficient for good behavior") | — |
-| **§1.5.6 measurement-model pluralism** | — | §3 non-identification critique motivates within-class identification | — |
-| **§1.5.7 judge-free by construction** | Environment-as-verifier | LP-checkable penalties (no judge) | "Directly grounded in theoretical model" |
+| **Descriptive-not-normative** (commitment #1) | "Simulator-relative oracle, not normatively-rational" framing | §7 caveat ("coherence not sufficient for good behavior") | — |
+| **Measurement-model pluralism** (commitment #2) | — | §3 non-identification critique motivates within-class identification | — |
+| **Judge-free by construction** (commitment #3) | Environment-as-verifier | LP-checkable penalties (no judge) | "Directly grounded in theoretical model" |
+| **Context-conditional axiomatization** (commitment #4) | — | §4 lit-review names Wen 2025 as anchor | — |
 | **Tier 4 commercial Variant 1** (training-time penalty) | — | Primary anchor | — |
 | **Tier 4 Variant 2** (inference-time remediation) | — | — | — (Chadwick 2025 anchors this) |
 | **Tier 4 Variant 3** (supervised trace mimicry) | — | — | — (Qiu 2026 anchors this) |
