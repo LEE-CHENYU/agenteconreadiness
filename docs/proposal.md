@@ -379,6 +379,7 @@ What it IS asking: enter a 4-week trial collaboration with one bounded Phase-0 i
 ### In this repo
 
 - **[Methodology summary](methodology.md)** — 3-layer pipeline + 5-axis taxonomy condensed
+- **[Prior art brief](prior_art_brief.md)** — ~3-page primer on the anchor benchmarks AERead integrates (TERMS-Bench / Andrews 2026 / EconEvals) — what each contributes + what AERead inherits + extends + synthesis map. Read this before drilling into the full papers.
 - **[Layer 3 candidate pool](layer3_candidates.md)** — open list of ~25 real-world economic decision use cases on a value × testability matrix; per-case pros/cons + Tier S/A/B/C/D priority for v0.5 / v1 / v1.5 / v2 expansion
 - **[Citation links](papers/links.md)** — one-stop lookup mapping every cited paper to a public URL or repo-hosted PDF
 - **[Reading list](reading_list.txt)** — T1 / T2 / T3 papers with [AXIS-N] anchor flags

@@ -18,6 +18,7 @@ Pre-launch. v0 runtime in development; methodology paper targeting NeurIPS / COL
 |---|---|
 | [`docs/proposal.md`](docs/proposal.md) | Research-collaboration proposal (the document this repo was created to host) |
 | [`docs/methodology.md`](docs/methodology.md) | Condensed methodology: 3-layer pipeline + 5-axis failure taxonomy + OracleDecomposable abstraction |
+| [`docs/prior_art_brief.md`](docs/prior_art_brief.md) | 3-page primer on the anchor benchmarks AERead integrates (TERMS-Bench / Andrews 2026 / EconEvals) — what each contributes + what AERead inherits + extends |
 | [`docs/layer3_candidates.md`](docs/layer3_candidates.md) | Open candidate pool of ~25 Layer 3 real-world economic decision use cases on a value × testability matrix (v0 + expansion roadmap) |
 | [`docs/reading_list.txt`](docs/reading_list.txt) | T1 / T2 / T3 prior-art reading list with [AXIS-N] anchor flags |
 | [`docs/papers/links.md`](docs/papers/links.md) | One-stop citation links — every cited paper mapped to a public URL or repo-hosted PDF |
