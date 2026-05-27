@@ -385,9 +385,9 @@ What it IS asking: enter a 4-week trial collaboration with one bounded Phase-0 i
 
 The master plan + runtime spec live in the internal source repo (`rationale`) — they're the implementation-side documents this proposal summarizes. Request access from Cheney if your Phase-0 item needs drill-down:
 
-- **Master plan** (~3,000 lines) — full §1.5.* methodology development, §2.5 dimension scoping, §6 implementation phases, §7 per-dimension notes, §14 diagnostic decomposition architecture, §17 commercial framing. Useful for Yuecheng's Phase-0 (A) scorer scoping and Zihao's Phase-0 (B)/(C) protocol specs.
+- **Master plan** (~3,000 lines) — full §1.5.* methodology development, §2.5 dimension scoping, §6 implementation phases, §7 per-dimension notes, §14 diagnostic decomposition architecture, §17 commercial framing. Useful for Zihao's Phase-0 (B)/(C) protocol specs and Yuecheng's Phase-0 (A) scorer scoping.
 - **Runtime spec** (~1,200 lines) — §2 architecture, §5 scorer menu, §10 leaderboard rendering, §14.7 cache layer extension. Useful for Yuecheng's Phase-0 (B) integration prototype.
-- **Diagnostic-page mock** (~500 lines) — UX wireframes for the 5-axis radar drill-down page. Useful for Yuecheng's Phase-0 (C) leaderboard schema design.
+- **Diagnostic-page mock** (~500 lines) — UX wireframes for the 5-axis radar drill-down page that Cheney will design against. Useful for Yuecheng's Phase-0 (C) composite-score schema implementation + thin frontend prototype.
 
 These will be folded into the sister repo (made public alongside the methodology paper preprint) once they stabilize.
 
