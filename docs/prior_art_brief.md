@@ -1,6 +1,6 @@
 # Prior Art Brief — the 3 anchor benchmarks AERead integrates
 
-A ~3-page synopsis of the three Q1-2026 papers AERead builds on. Each section: what the paper does + key methodology contribution + what AERead inherits + what AERead extends + the specific §Future Work question AERead addresses. Use this as a primer before drilling into the full papers; see [`reading_list.txt`](reading_list.txt) for tiered priority + per-axis tagging and [`methodology.md`](methodology.md) for the AERead framework.
+A ~3-page synopsis of the three recent anchor benchmarks AERead builds on, spanning **March 2025 (EconEvals) → February 2026 (Andrews) → May 2026 (TERMS-Bench)**. Each section: what the paper does + key methodology contribution + what AERead inherits + what AERead extends + the specific §Future Work question AERead addresses. Use this as a primer before drilling into the full papers; see [`reading_list.txt`](reading_list.txt) for tiered priority + per-axis tagging and [`methodology.md`](methodology.md) for the AERead framework.
 
 > **Reference convention**: anchor-paper §X.Y refs (e.g., Andrews's §3) point to those papers' own sections — accessible via the [PDF in this repo](papers/pdfs/andrews_2026_revealed_rationality.pdf) for Andrews and via [`papers/links.md`](papers/links.md) for the rest. AERead framework references use concept names with parenthetical pointers to [`methodology.md`](methodology.md) section headings (e.g., "judge-free by construction (methodology.md §Five methodological commitments #3)"). No source-repo access needed to follow this brief.
 
@@ -32,14 +32,14 @@ A second contribution: their oracle policy is **simulator-relative Bayes-optimal
 ### What AERead inherits
 
 - **The Eq. 4 oracle-gap decomposition** — abstracted into the `OracleDecomposable` interface that is AERead's Axis 1 (Information) primary anchor
-- **Environment-as-verifier** + **simulator-relative oracle** — AERead's judge-free-by-construction commitment (methodology.md §Five methodological commitments #3) cites TERMS-Bench as one of three concurrent Q1-2026 benchmarks (alongside EconEvals + Revealed Rationality) that independently rejected LLM-as-judge
+- **Environment-as-verifier** + **simulator-relative oracle** — AERead's judge-free-by-construction commitment (methodology.md §Five methodological commitments #3) cites TERMS-Bench as one of three concurrent 2025-2026 benchmarks (alongside EconEvals + Revealed Rationality) that independently rejected LLM-as-judge
 - **The 7-axis sortable-table leaderboard layout** ([terms-bench.github.io](https://terms-bench.github.io)) — closest UX precedent for AERead's 5-axis radar + sortable composite. AERead's [`proposal.md`](proposal.md) §9.3 (C) Yuecheng Phase-0 frontend prototype explicitly studies this layout.
 - **Bankroll mode pattern** — surfacing failures that single-episode metrics miss is the inspiration for AERead's long-horizon Vending-Bench wrap consideration in [`layer3_candidates.md`](layer3_candidates.md) F12.
 
 ### What AERead extends
 
 - **OracleDecomposable as a generalizing abstraction**: AERead applies Eq. 4 mechanics across a **collection of use cases** (C1 persona-fit on 13F + C2 price-aware product selection + v2 D2 bargaining wrap + v2 D3 agentic vendor selection + ~25 candidate-pool extensions). Demonstrating the same decomposition on non-bargaining domains is the "generalization" claim TERMS-Bench by itself does not stake.
-- **Cross-axis integration**: TERMS-Bench's intervention-decomposition is single-axis (information). AERead's 5-axis taxonomy (information × consistency × calibration × computational × meta-cognitive) integrates Δ_inf with 4 other axes; cross-decomposition produces a per-(model, task) attribution matrix explaining > 85% of variance.
+- **Cross-axis integration**: TERMS-Bench's intervention-decomposition is single-axis (information). AERead's 5-axis taxonomy (information × consistency × calibration × computational × meta-cognitive) integrates Δ_inf with 4 other axes via a pre-registered factorial intervention design; cross-decomposition produces a per-(model, task) attribution matrix with main-effect cells + pairwise interaction cells + residual. **Whether main effects explain a high fraction of variance (target: > 80%) is an empirical hypothesis to be validated, not assumed.**
 - **Layer 3 wrap path**: AERead plans to wrap TERMS-Bench's runtime as D2 once their code releases — using their bargaining environment for the bargaining axis of AERead's Layer 3 collection.
 
 ### What AERead addresses from their §Future Work
@@ -88,7 +88,7 @@ Andrews's penalties are derived but not yet deployed at scale. The open question
 
 ---
 
-## 3. Harvard EconEvals (Fish, Shephard, Li, Shorrer, Gonczarowski, February 2026)
+## 3. Harvard EconEvals (Fish, Shephard, Li, Shorrer, Gonczarowski, March 2025)
 
 **Authors**: Fish, Shephard, Li, Shorrer, Gonczarowski (Harvard + Penn State)
 **Paper**: [arxiv 2503.18825](https://arxiv.org/abs/2503.18825)
@@ -107,7 +107,7 @@ A second contribution is the **judge-free environment-as-verifier framing**, sta
 
 ### What AERead inherits
 
-- **Judge-free environment-as-verifier**: AERead's judge-free-by-construction commitment cites EconEvals alongside TERMS-Bench and Revealed Rationality as the three concurrent Q1-2026 benchmarks that independently adopted this design choice.
+- **Judge-free environment-as-verifier**: AERead's judge-free-by-construction commitment cites EconEvals alongside TERMS-Bench and Revealed Rationality as the three concurrent 2025-2026 benchmarks that independently adopted this design choice.
 - **Competency pre-check pattern**: AERead's Axis 4 (Computational floor) is essentially a competency pre-check — if the agent can't execute the math the choice requires (e.g., compute expected value of a lottery), the higher-axis scores are uninterpretable. AERead operationalizes Axis 4 via quantity-substitution probes (substitute the computational answer in the prompt; rerun; measure delta).
 - **Multi-environment Layer 3 structure**: AERead plans to **wrap EconEvals** as v0.5 Layer 3 D-dimensions (D4 procurement / D5 pricing / D6 scheduling per [`layer3_candidates.md`](layer3_candidates.md) A1/A2/A3) — using EconEvals's environments as Cat D candidates in AERead's collection-of-use-cases framing.
 

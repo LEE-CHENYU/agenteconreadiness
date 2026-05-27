@@ -104,6 +104,9 @@ Organized by structural cluster. Each row: case, source, OracleDecomposable hint
 | F12 | **Vending machine management** (long-horizon task coherence) | Vending-Bench (Backlund & Petersson 2025) | Hidden = customer demand patterns + supply costs; oracle = revenue-maximizing restock + price policy | Tests 20M+ token coherence (rare in benchmarks); autonomous-retail deployment | Long-horizon evals are expensive (API spend); coherence axis (#11) overlaps existing AERead Axis 5 metacog | **Tier B (v1)** |
 | F13 | **Web browsing under budget** | BrowseComp / WebArena + budget constraint | Hidden = page-content distribution; oracle = optimal information acquisition under budget | Tests tool-use under economic constraint; deployment-relevant (research-assistant agents) | Web evaluation is messy (web changes, breakage); not finance-pure | **Tier C (v1.5)** |
 | F14 | **Customer-service triage / escalation** | Standard CS lit | Hidden = customer urgency/value; oracle = expected-value-maximizing escalation policy | Massive deployment surface (every enterprise has this) | Hard to ground in objective outcomes without proprietary data | **Tier C (v1.5)** |
+| F15 | **Market-Bench wrap** (procurement + retail competition + supply-chain balance-sheet trajectories) | Market-Bench 2026 ([arxiv 2604.05523](https://arxiv.org/abs/2604.05523)) | Hidden = competitor strategies + market state; oracle = profit-maximizing policy per environment | Direct overlap with AERead's economic-agent framing; published benchmark to wrap (similar pattern to TERMS-Bench / EconEvals wraps) | Multi-agent + multi-period; expensive simulator | **Tier A (v0.5)** — high-fit wrap candidate |
+| F16 | **PolyBench live prediction-market forecasting + trading** | PolyBench 2026 ([arxiv 2604.14199](https://arxiv.org/abs/2604.14199)) | Hidden = true outcome distribution; oracle = Bayes-optimal forecast + Kelly-optimal trading | Contamination-resistant (live data); pairs naturally with Axis 5 calibration + Brier/CRPS scoring; pairs with C1 financial-decision framing | Requires live prediction-market data access; long-horizon validation | **Tier A (v0.5)** — high diagnostic value + clean ground truth |
+| F17 | **AI-mediated commerce (role coherence + willingness-to-pay leakage)** | "When Agents Shop for You" 2026 ([arxiv 2604.26220](https://arxiv.org/abs/2604.26220)) | Hidden = principal's true preferences; oracle = principal-faithful purchase | Directly relevant to C2 product selection + agentic commerce deployment (Visa AI-agent platform, Anthropic Economic Index) | Methodologically harder to formalize the "role coherence" notion | **Tier B (v1)** — natural extension of C2 |
 
 ### G. Behavioral game ports
 
@@ -130,11 +133,13 @@ If we add cases after shipping v0 (C1 + C2 + D2 + D3), this is the recommended p
 | 8 | F12 | Vending-Bench (long-horizon coherence) | Tests something no other AERead case tests (20M+ token coherence) |
 | 9 | A4 | Sealed-bid auction | Mechanism-design hook for §10; first/second-price comparison is instructive |
 | 10 | B2 | Dynamic pricing under competition | If A2 + B1 land successfully, this is the natural v1.5 extension |
+| 11 | F15 | Market-Bench wrap (procurement + retail + supply-chain) | Published competitor benchmark; direct overlap with AERead economic-agent framing — same wrap pattern as TERMS-Bench / EconEvals |
+| 12 | F16 | PolyBench live prediction-market forecasting + trading | Contamination-resistant; clean Bayes-optimal oracle; pairs with Axis 5 calibration + C1 financial-decision framing |
 
 **Tier S → A → B → C → D mapping**:
 - **S (v0, shipping)**: C1, C2 + v2 D2/D3 already proposed
-- **A (v0.5, ~3-4 months post-launch)**: A1, A2, B1 — the EconEvals + collusion cluster
-- **B (v1, ~6 months post-launch)**: A3, A4, A6, C7, D8, F12
+- **A (v0.5, ~3-4 months post-launch)**: A1, A2, B1, F15, F16 — the EconEvals + Market-Bench + PolyBench + collusion cluster (all are published-benchmark wraps + financial-decision)
+- **B (v1, ~6 months post-launch)**: A3, A4, A6, C7, D8, F12, F17
 - **C (v1.5, ~9-12 months post-launch)**: A5, B2, B3, C3, C4, C5, D9, D10, F13, F14, G15, G18
 - **D (parked, may never ship)**: A7, C6, E11, G16, G17
 

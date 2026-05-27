@@ -98,7 +98,7 @@ suggestions for collaborators at the bottom of this file.
 [T1] EconEvals: Benchmarks and Litmus Tests for Economic Decision-Making
      by LLM Agents  [AXIS-3 partial; reliability score adjacent to AXIS-2]
      Fish, Shephard, Li, Shorrer, Gonczarowski
-     arxiv 2503.18825 (https://arxiv.org/abs/2503.18825) (Feb 2026, Harvard + Penn State)
+     arxiv 2503.18825 (https://arxiv.org/abs/2503.18825) (March 2025, Harvard + Penn State)
      Repo: github.com/sara-fish/econ-evals-paper (open source)
      → Closest direct competitor at the Cat B-C parameter+outcome layer.
        Three economic environments (procurement / scheduling / pricing) via

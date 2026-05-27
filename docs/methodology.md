@@ -74,7 +74,7 @@ Each axis has a distinct intervention mechanism:
 - **Axis 4**: substitute the computational quantity with a closed-form answer
 - **Axis 5**: elicit confidence + compare to realized accuracy for calibration (Brier score on held-out events; ECE + reliability diagrams for diagnostic visualization); run Dutch-book + money-pump constructions (Chadwick 2025) and probabilistic-identity probes (Zhu & Griffiths 2024) for coherence (no ground truth needed)
 
-Cross-decomposition (Axis 1 × Axis 2, etc.) produces an attribution matrix that explains > 85% of the per-(model, task) gap.
+Cross-decomposition (Axis 1 × Axis 2, etc.) produces an attribution matrix with main-effect cells + pairwise interaction cells + residual. **Whether main effects explain a high fraction of the per-(model, task) gap (target: > 80% across v0 Layer 3 use cases) is an empirical hypothesis to be validated, not an assumption.** Interactions between axes are expected (e.g., calibration depends on whether the agent has the relevant information; computational-floor failures can masquerade as inconsistent preference) — the factorial design measures these rather than assuming them away.
 
 ### Relation to the diagnostic-and-correction literature
 
@@ -123,7 +123,7 @@ Each citation-anchored:
 
 1. **Descriptive measurement, not normative ranking.** Higher composite scores ≠ better-aligned. *Andrews 2026 §7.*
 2. **Measurement-model pluralism.** 4-6 competing models per axiom; report Bayesian posterior. *Echenique 2021 / Davis-Stober.*
-3. **Judge-free by construction.** No LLM evaluates another LLM. All three Q1-2026 anchor papers independently adopted this. *TERMS-Bench / EconEvals / QEDBench.*
+3. **Judge-free by construction.** No LLM evaluates another LLM. All three anchor papers (TERMS-Bench May 2026; Revealed Rationality Feb 2026; EconEvals March 2025) independently adopted this. *TERMS-Bench / EconEvals / QEDBench.*
 4. **Context-conditional axiomatization.** Personas degrade axiom compliance; this is a measurable dimension, not an assumption to control. *Wen 2025.*
 5. **Cross-layer attribution + oracle-gap decomposition.** What turns scores into actionable signals.
 

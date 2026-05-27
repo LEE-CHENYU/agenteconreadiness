@@ -2,7 +2,7 @@
 
 One-stop lookup for every paper cited in this repo's docs. Every entry has either a public URL (arxiv / DOI / publisher) or a local PDF reference. **Never reference a paper without one of these.**
 
-## Anchor papers (the three Q1-2026 benchmarks AERead integrates)
+## Anchor papers (the three 2025–2026 benchmarks AERead integrates)
 
 | Paper | Public link | Local PDF |
 |---|---|---|
@@ -55,6 +55,15 @@ One-stop lookup for every paper cited in this repo's docs. Every entry has eithe
 | Alignment Revisited 2025 | https://arxiv.org/abs/2506.00751 | — |
 | GuruAgents 2025 | https://arxiv.org/abs/2510.01664 | — |
 | PTCBench | https://arxiv.org/abs/2602.00016 | — |
+
+## Layer 3 wrap candidates (additional published benchmarks)
+
+| Paper | Public link | Layer 3 candidate |
+|---|---|---|
+| Market-Bench 2026 — procurement / retail / supply-chain | https://arxiv.org/abs/2604.05523 | F15 in layer3_candidates.md |
+| PolyBench 2026 — live prediction-market forecasting + trading | https://arxiv.org/abs/2604.14199 | F16 |
+| "When Agents Shop for You" 2026 — role coherence + willingness-to-pay leakage | https://arxiv.org/abs/2604.26220 | F17 |
+| Vending-Bench 2025 — long-horizon coherence | https://arxiv.org/abs/2502.15840 | F12 |
 
 ## Convention
 

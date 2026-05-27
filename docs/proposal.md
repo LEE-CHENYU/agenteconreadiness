@@ -13,7 +13,7 @@ Owner: Cheney Li | Date: 2026-05-26 | Read time: ~12 minutes (skim the §9.5 own
 
 **The adoption strategy**: optimize the entire toolchain for **plug-and-play usability** by researchers who are NOT sophisticated engineers. Zero-code contribution via YAML; one-line evaluation via `pip install`; web form / Colab / PR submission paths; 5-minute clone-to-first-output SLO; integrate AS lm-evaluation-harness task family so frontier labs already have us installed.
 
-Three Q1-2026 benchmark papers (Stanford TERMS-Bench, Harvard EconEvals, MIT Revealed Rationality) each address one layer; none integrate all three with cross-layer decomposition; none ship with the plug-and-play UX needed to compete with the field's adoption gatekeepers.
+Three recent benchmark papers (Harvard EconEvals March 2025, MIT Revealed Rationality Feb 2026, Stanford TERMS-Bench May 2026) each address one layer; none we know of integrate all three with cross-layer decomposition; none ship with the plug-and-play UX needed to compete with the field's adoption gatekeepers.
 
 This proposal asks: enter a 4-week trial collaboration on a bounded Phase-0 item; we revisit authorship + commitment at the 2026-06-30 checkpoint based on what actually gets contributed.
 
@@ -23,10 +23,10 @@ This proposal asks: enter a 4-week trial collaboration on a bounded Phase-0 item
 
 A 2025 Anthropic publication reports that **5.9% of Claude API conversations are economic decisions**. JPMorgan announced LLM-agent shareholder voting; Visa announced AI shopping agents. The deployments are happening; the rationality validation is not.
 
-Three Q1-2026 papers from elite teams stake claims in three corners of this problem:
+Three recent benchmark papers from elite teams (spanning March 2025 to May 2026) stake claims in three corners of this problem:
+- **Harvard EconEvals** (Fish/Gonczarowski, March 2025) — [arxiv 2503.18825](https://arxiv.org/abs/2503.18825): procurement/scheduling/pricing parameter+outcome layer
+- **MIT Revealed Rationality** (Andrews, February 2026) — [PDF in repo](papers/pdfs/andrews_2026_revealed_rationality.pdf): label-free representation-theorem penalties at the axiom layer
 - **Stanford TERMS-Bench** (Zhang/Athey/Roth-advising, May 2026) — [arxiv 2605.13909](https://arxiv.org/abs/2605.13909): bilateral negotiation outcome layer
-- **Harvard EconEvals** (Fish/Gonczarowski, Feb 2026) — [arxiv 2503.18825](https://arxiv.org/abs/2503.18825): procurement/scheduling/pricing parameter+outcome layer
-- **MIT Revealed Rationality** (Andrews, Feb 2026) — [PDF in repo](papers/pdfs/andrews_2026_revealed_rationality.pdf): label-free representation-theorem penalties at the axiom layer
 
 > **Citation links.** All paper references in this proposal map to public URLs or repo-hosted PDFs via [`papers/links.md`](papers/links.md). Inline links below are first-occurrence only.
 
@@ -44,7 +44,7 @@ The three layers map to the canonical revealed-preference pipeline: **existence*
 
 **The novel contribution is the Layer 3 collection-of-use-cases framing**, not any single use case. Each Cat C / Cat D use case is `OracleDecomposable` (hidden state + simulator + oracle + scalar utility), so the same Eq. 4 decomposition applies across all of them. This is what makes the methodology paper §3 contribution rigorous: we don't just apply TERMS-Bench's Eq. 4 to one new task; we apply it to a *family*, demonstrating portability beyond their single bargaining domain.
 
-- **C1 Persona-fit (IRL on 13F)**: hidden state = principal utility coefficients; oracle = closed-form Kelly-Markowitz. Novel — no prior LLM benchmark grounds in dollar-equivalent decisions of named human principals at scale.
+- **C1 Persona-fit (IRL on 13F)**: hidden state = principal utility coefficients; oracle = closed-form Kelly-Markowitz. Novel — no prior LLM benchmark grounds in dollar-equivalent decisions of named human principals at scale. **Caveat**: 13F filings are an **approximate** revealed-preference proxy — institutional managers over an AUM threshold disclose long positions quarterly with reporting delay; short positions and derivatives are not required. v0 treats C1 as an approximate-RP case study with assumption sensitivity tests on opportunity set / return expectations / risk model / turnover costs / true objective, not clean ground truth.
 - **C2 Price-aware product selection**: hidden state = vendor true cost/quality; oracle = cheapest dominating choice. Novel + massive untested deployment surface.
 - **D2 Bargaining (v2)**: native TERMS-Bench instantiation; wrap their runtime when code releases.
 - **D3 Agentic vendor selection (v2)**: extends C2 to full marketplace with agentic tool-use; EconEvals provides protocol precedent.
@@ -53,7 +53,7 @@ The three layers map to the canonical revealed-preference pipeline: **existence*
 
 ## 3. Novel methodology contribution: 5-axis failure taxonomy + `OracleDecomposable` generalization
 
-This is the methodologically defensible contribution that distinguishes AERead from STEER, EconEvals, Rationality Check!, TERMS-Bench, and every other Q1-2026 LLM-economics benchmark.
+This is the methodologically defensible contribution that distinguishes AERead from STEER, EconEvals, Rationality Check!, TERMS-Bench, and every other 2025-2026 LLM-economics benchmark.
 
 **The diagnostic question every benchmark fails to answer**: when a model scores low on a Cat C/D outcome task, *which mechanism failed?* Existing benchmarks decompose along at most one axis: TERMS-Bench by information condition (Δ_inf + Δ_unc + Δ_ctrl) within bargaining; Andrews 2026 by representation theorem; Mazeika 2025 by emergent utility; STEER/EconEvals/Rationality Check! report one number. **None integrate multiple axes.**
 
@@ -71,7 +71,7 @@ Reading these papers in sequence is reading a request for AERead. The 5-axis tax
 | 4 | **Computational floor** | Agent can't execute the math the choice requires | Novel for v0; partial precedent in code-eval lit |
 | 5 | **Meta-cognitive calibration** | Agent's confidence is uncalibrated (stated ≠ realized accuracy); separately, agent's probability judgments are internally incoherent | Yamin et al. 2026 ([arxiv 2602.06286](https://arxiv.org/abs/2602.06286)) (belief coherence); Zhu & Griffiths 2024 (incoherent probability judgments); Chadwick 2025 (Dutch books / money pumps) |
 
-Each axis has a distinct intervention mechanism and decomposes the per-(model, task) gap independently. Cross-decomposition (information × consistency, etc.) produces the full attribution matrix.
+Each axis has a distinct intervention mechanism and **approximately** decomposes the per-(model, task) gap; interaction effects between axes are explicitly measured (pairwise factorial design) rather than assumed away. Cross-decomposition (information × consistency, etc.) produces an attribution matrix with main-effect + interaction-effect cells + residual.
 
 **Generalizing TERMS-Bench Eq. 4 (the load-bearing claim for Axis 1)**: Zhang et al. 2026 introduced the oracle-gap intervention decomposition U(π★) − U(π_base) = Δ_inf + Δ_unc + Δ_ctrl, but presented it as bargaining-specific. We abstract the construction into an **`OracleDecomposable` interface** — any task with (hidden state, controllable simulator, oracle policy, belief substitution, state reveal, scalar utility) admits the same decomposition. The **generalization is the multi-use-case application**:
 
@@ -80,11 +80,11 @@ Each axis has a distinct intervention mechanism and decomposes the per-(model, t
 - **Cat D v2 — D2 bargaining**: native TERMS-Bench instantiation; wrap their runtime when code releases (their `github.com/zou-group/terms-bench` repo is 404 as of 2026-05-26; expect release within 1-3 months). Eq. 4 in its native form.
 - **Cat D v2 — D3 agentic vendor selection**: extends C2 to full marketplace simulator with realistic agentic tool-use; EconEvals provides protocol precedent.
 
-Demonstrating the same Eq. 4 mechanics across **4 use cases (persona-fit, product selection, bargaining, agentic vendor selection)** is what makes this a generalization — not just an application to one new task.
+Demonstrating the same Eq. 4 mechanics across non-bargaining domains is what makes this a generalization — not just an application to one new task. **v0 implements two use cases (C1 + C2); v2 wraps add D2 (bargaining via TERMS-Bench) + D3 (agentic vendor selection)** — the full 4-use-case generalization claim is staged across v0 → v2, not v0 alone.
 
 The methodology paper's §3 contribution is precisely:
 
-> *"Existing benchmarks decompose failures along at most one axis. We propose a 5-axis failure taxonomy — information (extending Zhang et al. 2026 via `OracleDecomposable`), consistency (extending Andrews 2026), calibration (extending Mazeika 2025), computational floor (novel), and meta-cognitive (extending Yamin et al. 2026). Cross-decomposition along multiple axes produces high-resolution attribution. We demonstrate residual unexplained variance < 15% **across a collection of Layer 3 use cases** (C1 persona-fit + C2 price-aware product selection; with v2 extension to bargaining + agentic vendor selection) — methodologically complete attribution at a precision no prior benchmark achieves, *and* demonstrating the OracleDecomposable Eq. 4 generalization across non-bargaining domains."*
+> *"Existing benchmarks decompose failures along at most one axis. We propose a 5-axis failure taxonomy — information (extending Zhang et al. 2026 via `OracleDecomposable`), consistency (extending Andrews 2026), calibration (extending Mazeika 2025), computational floor (novel), and meta-cognitive (extending Yamin et al. 2026). We estimate the per-(model, task) gap using a pre-registered factorial intervention design: each axis admits a distinct intervention; we report main effects, pairwise interactions, and residual unexplained gap. Whether the per-axis main effects explain a high fraction of variance (target: > 80% across v0 Layer 3 use cases) is an **empirical hypothesis to be validated**, not an assumption. We demonstrate the OracleDecomposable Eq. 4 generalization across non-bargaining domains via C1 persona-fit + C2 price-aware product selection (v0), with planned v2 extension to bargaining + agentic vendor selection."*
 
 This respects all prior art (we're extending, not claiming to invent) while staking the integrative claim.
 
@@ -96,7 +96,7 @@ This respects all prior art (we're extending, not claiming to invent) while stak
 
 2. **Measurement-model pluralism.** Each axiom-style sub-test fits 4-6 competing measurement models on the same data; reports Bayesian posterior. *Anchored: Echenique 2021 on CCEI; Davis-Stober mixture-of-orderings finding.*
 
-3. **Judge-free by construction.** No LLM evaluates another LLM's output. Three concurrent Q1-2026 benchmarks (TERMS-Bench, EconEvals, Revealed Rationality) independently rejected LLM-as-judge; AERead is the integrated artifact exploiting this property across all three layers. *Anchored: TERMS-Bench environment-as-verifier; EconEvals "directly grounded in theoretical model"; QEDBench documented LLM-judge alignment gap.*
+3. **Judge-free by construction.** No LLM evaluates another LLM's output. Three concurrent 2025-2026 benchmarks (TERMS-Bench, EconEvals, Revealed Rationality) independently rejected LLM-as-judge; AERead is the integrated artifact exploiting this property across all three layers. *Anchored: TERMS-Bench environment-as-verifier; EconEvals "directly grounded in theoretical model"; QEDBench documented LLM-judge alignment gap.*
 
 4. **Context-conditional axiomatization** is a measurable dimension, not an assumption. Personas, system prompts, and domain framing already degrade axiom compliance. *Anchored: Wen 2025 — biotechnology-expert and economist personas substantially reduce GARP compliance vs baseline.*
 
@@ -118,7 +118,7 @@ A traction analysis of 25 benchmarks (in the master plan) identified the cross-p
 
 ## 6. Why now (the timing window)
 
-- Three Q1-2026 papers establish the field is forming
+- Three recent benchmark papers (March 2025 – May 2026) establish the field is forming
 - TERMS-Bench code is not yet released (their repo is 404); first-mover on the integrated benchmark is open for the next 3-6 months
 - LLM frontier labs are deploying agents in economic tasks faster than evaluation infrastructure can characterize them
 - Open Philanthropy is funding AI evaluation infrastructure in 2026

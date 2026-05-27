@@ -30,13 +30,13 @@ Pre-launch. v0 runtime in development; methodology paper targeting NeurIPS / COL
 
 LLM agents are being deployed for economic decisions — a 2025 Anthropic publication reports **5.9% of Claude API conversations are economic decisions**; JPMorgan announced LLM-agent shareholder voting; Visa announced AI shopping agents. Whether these deployments satisfy the rationality assumptions the use cases presuppose has not been validated at scale.
 
-Three Q1-2026 benchmark papers from elite teams stake claims in three separate corners of this problem:
+Three recent benchmark papers from elite teams (spanning March 2025 to May 2026) stake claims in three separate corners of this problem:
 
+- **Harvard EconEvals** (Fish/Gonczarowski, March 2025) — procurement/scheduling/pricing parameter + outcome layer
+- **MIT Revealed Rationality** (Andrews, February 2026) — label-free representation-theorem penalties at the axiom layer
 - **Stanford TERMS-Bench** (Zhang/Athey/Roth-advising, May 2026) — bilateral negotiation outcome layer
-- **Harvard EconEvals** (Fish/Gonczarowski, Feb 2026) — procurement/scheduling/pricing parameter + outcome layer
-- **MIT Revealed Rationality** (Andrews, Feb 2026) — label-free representation-theorem penalties at the axiom layer
 
-None integrate the three. **AERead is the integrated benchmark.**
+None we know of integrate the three. **AERead is the integrated benchmark.**
 
 ## Core methodology
 
