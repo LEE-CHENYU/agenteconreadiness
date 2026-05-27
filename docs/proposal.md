@@ -53,6 +53,10 @@ This is the methodologically defensible contribution that distinguishes AERead f
 
 **The diagnostic question every benchmark fails to answer**: when a model scores low on a Cat C/D outcome task, *which mechanism failed?* Existing benchmarks decompose along at most one axis: TERMS-Bench by information condition (Δ_inf + Δ_unc + Δ_ctrl) within bargaining; Andrews 2026 by representation theorem; Mazeika 2025 by emergent utility; STEER/EconEvals/Rationality Check! report one number. **None integrate multiple axes.**
 
+**What the diagnostic literature itself says about this gap.** Four 2023–2026 diagnostic papers each *explicitly* discuss whether their single-axis approach is sufficient — and each admits it is not. Chadwick et al. 2025 (§Future Work): "(approximate) probabilistic coherence and transitivity of preferences are necessary conditions for rationality, they are arguably **not sufficient**…it has yet to be determined how useful our system is in real-world scenarios"; and they pose precisely AERead's stack-design question: *"does a two-step refinement (first ordinal, then cardinal) outperform a single probability-based approach?"* Betz & Richardson 2023 (§Future Research) calls for "improved diagnostic tools" with "high-resolution representations of an agent's probabilistic belief system" relating inferential structure of training data to current behavior. Zhu & Griffiths 2024 flags the truthful-reporting assumption underlying any single-axis probability probe. Andrews 2026 §7 separates calibration from coherence as complementary properties.
+
+Reading these papers in sequence is reading a request for AERead. The 5-axis taxonomy + cross-decomposition matrix is the integration they each pointed to; the 3-layer pipeline (existence → identification → predictive validity) is the empirical answer to Chadwick's ordinal-then-cardinal question; the collection-of-use-cases Layer 3 design is the cross-domain generalization their single-domain studies could not deliver.
+
 **Our proposal: a 5-axis failure taxonomy**, each axis prior-art-anchored:
 
 | # | Axis | Causal hypothesis | Prior-art anchor |
