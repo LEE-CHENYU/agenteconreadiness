@@ -203,9 +203,9 @@ You're effectively the §3 co-lead of the methodology paper if this trial conver
 
 Time commitment for Phase-0: **~8-30 hours over 2-4 weeks** depending on scope picked (option D alone is ~8-12h; pairing (A)+(B) or (A)+(C) is ~25-30h on the upper end).
 
-### 9.3 Yuecheng Fang — proposed Phase-0 DoL (benchmark implementation track)
+### 9.3 Yuecheng Fang — proposed Phase-0 DoL (benchmark implementation + stats-methodology track)
 
-Yuecheng's prior benchmark-building experience is the natural fit for the implementation side — the runtime infrastructure, scorer library, leaderboard ops that turn the methodology into a tool researchers can actually use. Phase-0 options (pick 1-2 for ~10-20 hours total):
+Yuecheng's prior benchmark-building experience is the natural fit for two adjacent surfaces: (1) **statistics-specific methodology leadership** — predict-then-validate experimental design, cross-validation, held-out test design, statistical reproducibility framework — and (2) **benchmark implementation** — runtime infrastructure, scorer library, leaderboard ops that turn the methodology into a tool researchers can actually use. Phase-0 options (pick 1-2 for ~10-20 hours total):
 
 - **(A) Standard scorer library scoping memo + first scorer implemented.** Review the runtime spec §5 scorer / generator menu (request access from Cheney per §15 below); propose which 3-5 scorers ship in v0 and which defer to v1.5; **then implement one of the v0 scorers end-to-end** (e.g., Bradley-Terry transitivity scorer with measurement-model-pluralism plumbing). The scoring layer is the load-bearing primitive for Layer 1 + Layer 2 outputs — picking the right v0 set determines what dimensions can actually be measured at launch. ~8-12 hours.
 
@@ -213,9 +213,11 @@ Yuecheng's prior benchmark-building experience is the natural fit for the implem
 
 - **(C) Composite-score schema implementation + thin frontend prototype.** Cheney owns the leaderboard design spec (what's the right user-facing single number, how does the 5-axis radar map to a sortable column, what's on the drill-down page); your task is to **ship a static-HTML leaderboard prototype** with 1-2 mock results that validates Cheney's design spec works in practice + propose any implementation tradeoffs the spec didn't anticipate. ~8-12 hours.
 
-These are the implementation primitives that turn the methodology paper into a benchmark. Cheney owns the ergonomic-design layer (UX, contributor onboarding, leaderboard layout, plug-and-play flow); your role is to make those design decisions executable. Whichever you pick informs the §7 engineering plan directly and seeds the Phase 1+ workstreams in §9.5. The scope is intentionally larger than "review and propose" — Phase-0 should signal whether you can ship a contributor-extensible workstream end-to-end, since the §9.5 ownership map asks you to primary-own multiple such workstreams in Phase 1.
+- **(D) Predict-then-validate experimental design memo.** Stake out the statistics-specific methodology that becomes §6 of the methodology paper: train/test split protocol (stratified by what?), seed + immutable-manifest discipline, cross-validation scheme for the multi-class robustness check (per-persona K-fold? leave-one-out?), the held-out-set reporting convention (point estimate + bootstrap CI? full posterior?), reproducibility requirements (cache manifest hash + scorer-version + measurement-model-set version). Pair with Zihao's §9.2 (C) Layer 2 identification work for the formal justification. **~10-15 hours.** This is the highest-leverage Phase-0 signal for the stats-methodology-lead workstream in §9.5.
 
-Time commitment for Phase-0: **~10-20 hours over 2-4 weeks** depending on scope picked.
+These are the implementation primitives + stats-methodology design that turn the methodology paper into a benchmark. Cheney owns the ergonomic-design layer (UX, contributor onboarding, leaderboard layout, plug-and-play flow); your role is to (a) own the stats methodology and (b) make Cheney's ergonomic-design decisions executable. Whichever you pick informs the §7 engineering plan directly and seeds the Phase 1+ workstreams in §9.5. The scope is intentionally larger than "review and propose" — Phase-0 should signal whether you can ship a contributor-extensible workstream end-to-end, since the §9.5 ownership map asks you to primary-own multiple such workstreams in Phase 1.
+
+Time commitment for Phase-0: **~10-25 hours over 2-4 weeks** depending on scope picked (any single item is ~8-15h; pairing two — e.g., (D) + (B) — is ~20-25h on the upper end).
 
 ### 9.4 Open slot: infrastructure-ops collaborator
 
@@ -250,7 +252,7 @@ A first-pass DoL for the full v0 scope, mapping workstreams to proposed primary 
 | Layer 2 within-class identification framework | Zihao | Yuecheng (fit-procedure impl) |
 | Layer 3 OracleDecomposable formalization | Zihao | Cheney (C1 instantiation) |
 | Layer 3 candidate-pool curation (mechanism-design lens) | Zihao | Cheney (deployment-relevance scoring) |
-| Layer 3 predict-then-validate train/test split design | Cheney | Yuecheng (cache extension) |
+| Layer 3 predict-then-validate train/test split design (stats-methodology lead) | Yuecheng | Cheney (Cat C-specific extensions), Zihao (formal justification of identification claims) |
 | Axis 1 Information — OracleDecomposable Δ_inf / Δ_unc / Δ_ctrl mechanics | Zihao | Cheney |
 | Axis 2 Consistency — counterfactual axiom interventions | Zihao | Yuecheng |
 | Axis 3 Calibration — Mazeika utility-fit + Brier/CRPS scoring | Yuecheng | Zihao (proper-scoring-rule theory) |
@@ -331,7 +333,7 @@ If the proposed sync slot doesn't work, propose alternates. Cadence matters more
 **Why the trial-first framing**:
 - Neither of us has signal yet on whether this collaboration generates good work for you
 - Locking in authorship before any actual contributions is premature
-- Phase-0 items are bounded (8-30 hours over 2-4 weeks per §9.2 / §9.3, depending on which item picked) so the trial cost is low relative to a 6-month paper commitment
+- Phase-0 items are bounded (8-30 hours over 2-4 weeks per §9.2 / §9.3, depending on which item picked; lighter-end items are ~8-12h) so the trial cost is low relative to a 6-month paper commitment
 - If the trial generates strong contributions, authorship is a natural follow-up conversation; if not, both sides save the expected-but-unrealized commitment
 
 ## 12. Risk acknowledgments + off-ramps
