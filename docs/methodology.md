@@ -27,7 +27,7 @@ Every Layer 3 use case follows the same protocol:
 3. **Predict held-out** — deterministic prediction from fitted parameters + observable context.
 4. **Predictive accuracy** — choice-agreement rate (for discrete choices) or MAE (for continuous emissions) on held-out decisions.
 
-Multi-class robustness check: fit all 5 candidate functional classes (KT prospect, CRRA, CARA, full prospect, Kelly-Markowitz) on the training set; report a posterior over classes as a secondary score. This is the response to Andrews 2026's non-identification critique: within-class identification is honest about which functional class assumption is doing the work.
+Multi-class robustness check: fit all 5 candidate functional classes (prospect theory KT '79, CRRA, CARA, cumulative prospect theory TK '92, Kelly-Markowitz) on the training set; report a posterior over classes as a secondary score. This is the response to Andrews 2026's non-identification critique: within-class identification is honest about which functional class assumption is doing the work.
 
 ## OracleDecomposable: the load-bearing abstraction
 
