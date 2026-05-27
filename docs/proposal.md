@@ -141,7 +141,7 @@ With Claude Code drafting from the runtime spec, the v0 runtime build cycle is *
   - Axis 3 (calibration): parameter-fit attribution
   - Axis 4 (computational floor): quantity substitution
   - Axis 5 (meta-cognitive): confidence elicitation + calibration metrics
-- **Live leaderboard** at agenteconreadiness.org accepting external PRs, with diagnostic drill-down pages (5-axis radar + cross-decomposition matrix)
+- **Live leaderboard** at agenteconreadiness.org accepting external PRs, with diagnostic drill-down pages (5-axis radar + cross-decomposition matrix). Closest design precedent: [TERMS-Bench leaderboard](https://terms-bench.github.io) — 7 orthogonal diagnostic axes (SE⁺, AGR⁺, CSE⁺, FAGR⁻, BEtype, CritViol%, Ū) on a sortable table. AERead extends this pattern to the 5-axis taxonomy + drill-down diagnostic page.
 - **Three submission paths** (web form / Colab / PR) — plug-and-play onboarding
 
 Total bootstrap cost: under $10K in API spend + author time.
@@ -211,7 +211,7 @@ Yuecheng's prior benchmark-building experience is the natural fit for two adjace
 
 - **(B) lm-evaluation-harness integration prototype.** Sketch the entry-point structure that makes AERead install as an `lm_eval/tasks/aeread_*` task family — a single end-to-end smoke test on a toy task (e.g., a 5-option transitivity probe on Haiku) showing the integration works. Include cache layer for response replay (per §14.7). This is the §5 plug-and-play adoption gate. ~10-15 hours.
 
-- **(C) Composite-score schema implementation + thin frontend prototype.** Cheney owns the leaderboard design spec (what's the right user-facing single number, how does the 5-axis radar map to a sortable column, what's on the drill-down page); your task is to **ship a static-HTML leaderboard prototype** with 1-2 mock results that validates Cheney's design spec works in practice + propose any implementation tradeoffs the spec didn't anticipate. ~8-12 hours.
+- **(C) Composite-score schema implementation + thin frontend prototype.** Cheney owns the leaderboard design spec (what's the right user-facing single number, how does the 5-axis radar map to a sortable column, what's on the drill-down page); your task is to **ship a static-HTML leaderboard prototype** with 1-2 mock results that validates Cheney's design spec works in practice + propose any implementation tradeoffs the spec didn't anticipate. Closest design precedent: [TERMS-Bench leaderboard](https://terms-bench.github.io) — study their 7-column orthogonal-axis layout (SE⁺, AGR⁺, CSE⁺, FAGR⁻, BEtype, CritViol%, Ū); AERead extends this pattern with the 5-axis radar + drill-down. ~8-12 hours.
 
 - **(D) Predict-then-validate experimental design memo.** Stake out the statistics-specific methodology that becomes §6 of the methodology paper: train/test split protocol (stratified by what?), seed + immutable-manifest discipline, cross-validation scheme for the multi-class robustness check (per-persona K-fold? leave-one-out?), the held-out-set reporting convention (point estimate + bootstrap CI? full posterior?), reproducibility requirements (cache manifest hash + scorer-version + measurement-model-set version). Pair with Zihao's §9.2 (C) Layer 2 identification work for the formal justification. **~10-15 hours.** This is the highest-leverage Phase-0 signal for the stats-methodology-lead workstream in §9.5.
 

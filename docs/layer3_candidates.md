@@ -46,7 +46,7 @@ The **top-right quadrant** (high value × high testability) is where AERead's le
 |---|---|---|---|
 | C1 | Persona-fit (IRL on 13F investor decisions) | **v0** | Novel; this repo's primary infrastructure |
 | C2 | Price-aware product selection | **v0** | Novel; procurement-adjacent |
-| D2 | Bilateral bargaining | **v2 (wrap)** | Zhang et al. 2026 TERMS-Bench |
+| D2 | Bilateral bargaining | **v2 (wrap)** | Zhang et al. 2026 TERMS-Bench ([paper](https://arxiv.org/abs/2605.13909) + [live leaderboard](https://terms-bench.github.io)) |
 | D3 | Agentic vendor selection | **v2 (extends C2)** | EconEvals precedent |
 
 ## Candidate pool (open)

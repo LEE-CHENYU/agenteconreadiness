@@ -6,7 +6,8 @@ One-stop lookup for every paper cited in this repo's docs. Every entry has eithe
 
 | Paper | Public link | Local PDF |
 |---|---|---|
-| Zhang et al. 2026 — TERMS-Bench | https://arxiv.org/abs/2605.13909 | — |
+| Zhang et al. 2026 — TERMS-Bench (paper) | https://arxiv.org/abs/2605.13909 | — |
+| Zhang et al. 2026 — TERMS-Bench (live leaderboard) | https://terms-bench.github.io | — |
 | Fish, Gonczarowski et al. 2026 — EconEvals | https://arxiv.org/abs/2503.18825 | — |
 | Andrews 2026 — Revealed Rationality | (MIT/NBER; no arxiv) | [`pdfs/andrews_2026_revealed_rationality.pdf`](pdfs/andrews_2026_revealed_rationality.pdf) |
 
