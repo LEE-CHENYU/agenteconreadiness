@@ -63,12 +63,14 @@ When a model scores low on a Layer 3 task, *which mechanism failed?* The 5-axis 
 
 **Axis 5 footnote — calibration vs. coherence as complementary, not redundant.** Following Andrews 2026's framing, we treat *calibration* (Guo et al. 2017; Gneiting & Raftery 2007's proper scoring rules) and *coherence* (de Finetti / Dutch-book diagnostics) as **complementary** properties. Calibration asks whether predicted probabilities match empirical frequencies — it requires ground-truth outcomes and operates event-by-event. Coherence asks whether stated probabilities are internally consistent — it requires no ground truth and operates across multiple related assessments. A model can be well-calibrated on many events yet incoherent across them, or coherent yet poorly calibrated. AERead's Axis 5 reports both signals separately: calibration error against the held-out validation set (Layer 3 outcomes), and coherence violations under Dutch-book / proper-scoring-rule probes (no ground truth needed).
 
+**Methodological gotcha — strict propriety for the leaderboard score.** Gneiting & Raftery 2007 establishes that a leaderboard score (which models are incentivized to maximize) must use a **strictly proper** scoring rule, otherwise it can be gamed by deliberate miscalibration. Expected Calibration Error (Guo et al. 2017) is the field-standard *diagnostic* metric but is **not strictly proper** — it can be lowered by shifting probability mass away from extreme bins without improving the underlying forecast. AERead therefore uses **Brier score (discrete events) and Continuous Ranked Probability Score / CRPS (continuous emissions)** for the leaderboard headline, both of which are strictly proper per Gneiting & Raftery's §3-§4. ECE + reliability diagrams remain on the diagnostic page for interpretability, but they do not enter the ranking.
+
 Each axis has a distinct intervention mechanism:
 - **Axis 1**: substitute beliefs / reveal state and rerun
 - **Axis 2**: present counterfactual choice triplets and check axiom violations
 - **Axis 3**: hold out test decisions, refit, compare predictive accuracy
 - **Axis 4**: substitute the computational quantity with a closed-form answer
-- **Axis 5**: elicit confidence + compare to realized accuracy (calibration); run Dutch-book / proper-scoring-rule probes (coherence)
+- **Axis 5**: elicit confidence + compare to realized accuracy for calibration (Brier score on held-out events; ECE + reliability diagrams for diagnostic visualization); run Dutch-book + money-pump constructions (Chadwick 2025) and probabilistic-identity probes (Zhu & Griffiths 2024) for coherence (no ground truth needed)
 
 Cross-decomposition (Axis 1 × Axis 2, etc.) produces an attribution matrix that explains > 85% of the per-(model, task) gap.
 
