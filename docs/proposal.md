@@ -1,7 +1,7 @@
 # AgentEcon Readiness (AERead): a unified benchmark for LLM rational economic decision-making
 
-**Proposal v0.2 — for Yuecheng Fang and Zihao Li**
-Owner: Cheney Li | Date: 2026-05-26 | Read time: 8 minutes
+**Proposal v0.3 — for Yuecheng Fang and Zihao Li**
+Owner: Cheney Li | Date: 2026-05-26 | Read time: 7 minutes
 
 ---
 
@@ -124,13 +124,14 @@ A traction analysis of 25 benchmarks (in the master plan) identified the cross-p
 
 Without consolidated infrastructure landing in this window, the field fragments permanently around three competing benchmarks.
 
-## 7. Engineering plan — what we ship
+## 7. Engineering plan — AI-accelerated MVP
 
-### v0 runtime (14 weeks, $40-55K contract engineering)
+### v0 runtime (2-3 weeks of focused build)
 
-- **Engine A** (lm-evaluation-harness integration) for Cat A + Cat B + Cat C v1
-- **Standard scorer + generator library** (~9 scorers, ~11 generators) — researchers configure via pure YAML
-- **Three submission paths** (web form / Colab / PR) — researcher-first, plug-and-play priorities
+With Claude Code drafting from the runtime spec, the v0 runtime build cycle is **2-3 weeks of focused execution**, mostly Cheney-time + API spend:
+
+- **Adapter framework** (lm-evaluation-harness integration) for Cat A + Cat B + Cat C v1
+- **Scorer + generator library** (~9 scorers, ~11 generators) — researchers configure via pure YAML
 - **Cache layer never invalidates** — reproducibility hard guarantee
 - **5-axis diagnostic decomposition** module (`aeread/diagnostic/`) covering all axes:
   - Axis 1 (information): `OracleDecomposable` interface — TERMS-Bench Eq. 4 generalized
@@ -138,25 +139,21 @@ Without consolidated infrastructure landing in this window, the field fragments 
   - Axis 3 (calibration): parameter-fit attribution
   - Axis 4 (computational floor): quantity substitution
   - Axis 5 (meta-cognitive): confidence elicitation + calibration metrics
-- **Live leaderboard** at agenteconreadiness.org accepting external PRs by week 20, with diagnostic drill-down pages (5-axis radar + cross-decomposition matrix)
+- **Live leaderboard** at agenteconreadiness.org accepting external PRs, with diagnostic drill-down pages (5-axis radar + cross-decomposition matrix)
+- **Three submission paths** (web form / Colab / PR) — plug-and-play onboarding
 
-### Active OSS engineer recruit
+Total bootstrap cost: under $10K in API spend + author time.
 
-In progress (as of 2026-05-26): external-network search (lm-evaluation-harness contributor graph, HuggingFace Datasets maintainers) running. Decision point: 2026-06-15.
+### Methodology-paper timeline (where the human-collaboration weeks actually live)
 
-### Full v0 (24-week timeline)
+The methodology paper, not the runtime, is the timeline's critical path. The intellectual contribution (5-axis taxonomy formalization, OracleDecomposable identification conditions, predict-then-validate validation across 4-5 use cases) is where collaborator hours matter most:
 
-| Week | Deliverable |
-|---|---|
-| 3-4 | A4 stability dimension + adapter / scorer infrastructure |
-| 4-6 | A2 monotonicity + A5 prompt invariance |
-| 7-8 | A1 transitivity with multi-measurement-model Bayesian posterior |
-| 9-12 | Category B (B1 risk, B2 inter-temporal, B3 social preferences) |
-| 11-15 | Category C — persona-fit IRL on 5 named investors |
-| 13-16 | Diagnostic decomposition implementation + `OracleDecomposable` for C1 |
-| 16-18 | Methodology paper draft → arxiv → submission to NeurIPS or COLM 2026 |
-| 18-20 | Leaderboard at agenteconreadiness.org with 8+ models tested |
-| 21-24 | Tier 2 audit pilot with 1-2 design-partner financial firms |
+| Phase | Calendar | Activity |
+|---|---|---|
+| Phase 0 — trial collaboration | Weeks 1-4 | Each contributor takes one Phase-0 DoL item from §9; output drives the §9 collaboration-fit discussion |
+| Phase 1 — paper draft | Weeks 5-8 | Methodology paper §3 (5-axis + OracleDecomposable) drafted; §1, §2, §10 first drafts; arxiv preprint target |
+| Phase 2 — preprint + reviews | Weeks 9-12 | External methodology reviews (Andrews, Gonczarowski); leaderboard launch with 8+ models; frontier-lab pre-commit conversations |
+| Phase 3 — submission + pilot | Weeks 13-16 | NeurIPS / COLM submission; Tier 2 audit pilot conversations with 1-2 design-partner financial firms |
 
 ## 8. Commercial framing (separate from research collaboration)
 
@@ -170,119 +167,94 @@ Combined realistic 5-year ARR ceiling: $50-350M.
 
 **This proposal does NOT ask you to commit to the commercial layers.** The v0 methodology paper is a research collaboration; commercial structure is decided separately and revisited at month 6 post-launch.
 
-## 9. Initial team composition
+## 9. Initial division of labor — trial collaboration
 
-### 9.1 Cheney Li (lead, full-time)
+The principle: **contribution patterns drive authorship, not vice versa.** A negotiated authorship order before any work happens is premature — none of us has signal on collaboration fit yet. So §9 proposes an initial **division of labor (DoL)** for a 4-week trial; authorship + time-commitment budgets are revisited at the 4-week checkpoint (§11) based on actual contribution patterns.
+
+### 9.1 Cheney Li (lead)
 
 Methodology + IRL infrastructure + Category C implementation. Has working 13F-extraction pipeline (~309 named investor network mapped); has Phase-0 baseline transitivity test results on Claude / GPT / DeepSeek.
 
-**Owns**: §1 (introduction), §2 (related work), §7 (Category C implementation), §8 (experiments), §10 (discussion) of methodology paper. Repo maintenance + leaderboard ops + Open Philanthropy grant application.
+**Phase-0 commitment** (independent of any collaborator decision):
+- Ship A4 stability dimension end-to-end by 2026-06-09
+- Draft methodology paper §1 + §2 by 2026-06-23 for collaborator review
 
-### 9.2 Yuecheng Fang — methodology + statistical framework
+### 9.2 Yuecheng Fang — proposed Phase-0 DoL
 
-**Why this team needs you**:
-- Berkeley applied-math / statistics background fills the measurement-model-pluralism formalization (Bayesian model selection over 4-6 competing transitivity / monotonicity / dominance models — the statistical-rigor anchor)
-- The `OracleDecomposable` generalization (Section 3 above) needs a statistical co-author to formalize the identification conditions across non-bargaining domains
-- Sky Computing Lab access is the highest-leverage path for the frontier-lab model-card pre-commitment (the §5 hard launch gate)
+If you want to evaluate fit, pick one of these as your Phase-0 contribution:
 
-**Contribution surface**:
-- Methodology paper §3 (methods): measurement-model fitting framework + `OracleDecomposable` identification conditions
-- Methodology paper §6 (statistical reproducibility): cross-validation across measurement-model sets; held-out test design
-- Co-coordination with Sky Computing Lab / RadixArc on inference-backend determinism guarantees
-- Optional: extending the measurement-model framework to a follow-on methods paper on "measurement-model pluralism in LLM evaluation"
+- **(A) Measurement-model framework review.** Read the §1.5.6 measurement-model-pluralism framework (link in master plan); flag the 3 highest-leverage statistical-rigor improvements. ~3-4 hours.
+- **(B) OracleDecomposable identification conditions.** Write a 1-2 page sketch of the identification conditions for OracleDecomposable across the two v0 Cat C use cases (C1 persona-fit, C2 price-aware product selection). ~5-8 hours.
+- **(C) Sky Computing Lab feasibility.** Explore with your senior advisor whether the cc'd-email introduction pattern is viable for AERead launch; report back on what would unlock it. ~1-2 conversations.
 
-**Estimated time commitment**: 8-10 hours/week through paper submission (months 1-6), then 2-4 hours/week for revisions
+Why these: the §1.5.6 + OracleDecomposable workstreams are the natural Berkeley applied-math / statistics fit; (C) is the highest-leverage non-paper contribution if the advisor channel opens.
 
-### 9.3 Zihao Li — game theory + mechanism design
+Time commitment for Phase-0: **~4-8 hours over 2-4 weeks.** No deeper commitment until the 4-week checkpoint.
 
-**Why this team needs you**:
-- Game-theory background is the natural co-author for the v2 D-dimension expansion (the agent-economy / agent-market thesis you proposed during initial conversation)
-- The methodology paper's §10 (discussion) connects AERead to mechanism design — "once humans are replaced by agents, game theory's idealized rational actor assumptions can hold; mechanism design becomes implementable" — that thesis is yours to develop
-- US-based, no military-funding restriction, so you can be a US-named co-author on any frontier-lab partnership outcome
-- Columbia game-theory standing provides senior credibility for any v2 paper on agentic mechanism design
+### 9.3 Zihao Li — proposed Phase-0 DoL
 
-**Contribution surface**:
-- Methodology paper §10 (discussion + future work): mechanism-design extension; agent-market thesis
-- v2 paper (separate publication, ~12-18 months out): "Context-conditional rationality + agentic mechanism design" — likely lead authorship
-- Methodology paper §3 (methods): game-theoretic foundations for Cat C/D outcome dimensions (TERMS-Bench-style Bayesian games + extensions)
-- Connection to Columbia game-theory community for senior-reviewer feedback
+If you want to evaluate fit, pick one of these:
 
-**Estimated time commitment**: 4-6 hours/week through paper submission (months 1-6), heavier for v2 paper (months 12-18)
+- **(A) §10 discussion framing review.** Read the methodology paper §10 (discussion + future work) outline; flag mechanism-design framings that should be sharpened or are missing. ~3-4 hours.
+- **(B) v2 D-dimension priority memo.** Draft a 1-page memo on which v2 D-dimension expansion is highest-leverage from a game-theory perspective: D1 context-conditional axiomatization vs D2 bargaining vs D3 agentic vendor selection. ~5-8 hours.
+- **(C) Columbia game-theory advisor channel.** Discuss with your advisor whether AERead is the right artifact to anchor a future agent-mechanism-design paper. ~1 conversation.
 
-### 9.4 Proposed authorship order (negotiable)
+Why these: §10 + v2 framing are the natural Columbia mechanism-design fit; (C) tests whether senior-advisor support exists before we commit to that channel.
 
-**Methodology paper (v0)**:
-- First + corresponding: Cheney Li
-- Equal-second authors: Yuecheng Fang, Zihao Li (alphabetical order on title page)
-- Acknowledgments: senior advisors, Erica Zhang (via her Athey/Blanchet/Zou connections), Isaiah Andrews (MIT, for §3 review)
+Time commitment for Phase-0: **~4-8 hours over 2-4 weeks.** No deeper commitment until the 4-week checkpoint.
 
-**v2 paper (~12-18 months out)**:
-- First + corresponding: TBD by topic — likely Zihao Li if mechanism-design-focused, Yuecheng Fang if statistical-methodology-focused
-- Cheney + remaining are co-authors
+### 9.4 Open slot: engineering-side collaborator
 
-If you'd prefer a different ordering or want to negotiate equal-first on the v0 paper, raise this at the first sync — fully open.
+The 2-3 week AI-accelerated runtime (§7) reduces the need for a long-term contract engineer, but the **engineering side of the methodology paper** (reproducibility infrastructure, leaderboard polish, evaluation-harness integration) is still a real workstream. If we find someone whose technical contribution is substantive enough to be a coauthor — not a paid contractor — we want them on the team.
 
-### 9.5 Open recruit: OSS engineer (contract engagement)
+Candidate identification continues via lm-evaluation-harness contributor graph + HuggingFace Datasets maintainers + the existing network search. Same Phase-0 / 4-week-checkpoint discipline applies: if a candidate emerges, they get a Phase-0 DoL item (likely: ship a specific evaluator-harness adapter or leaderboard-infrastructure piece) and authorship is decided at the checkpoint based on what they actually contribute.
 
-Per §7 above. Target: identified by 2026-06-15. Not a methodology coauthor — focused on shipping the runtime per the launch gates. Likely listed in acknowledgments, not author list (depending on contribution scope).
+Framing: potential coauthor specializing on the infrastructure side, not a paid contractor.
 
-## 10. What's in it for each of you (honest framing)
+### 9.5 What gets decided at the 4-week checkpoint (2026-06-30)
 
-### For Yuecheng:
+After 4 weeks of trial collaboration, with each contributor's Phase-0 output in hand, we discuss:
 
-- **Co-authorship on a v0 methodology paper targeting NeurIPS / COLM 2026** in a topic the field will be citing for years
-- **Possible v2 lead authorship** on the statistical-methodology follow-up
-- **Senior-network access**: working closely with the Stanford TERMS-Bench team (via Erica Zhang) + MIT Isaiah Andrews + Harvard Yannai Gonczarowski
-- **Sky Computing Lab institutional visibility** via senior advisor introduction
-- **No equity commitment**, no commercial-tier obligation
-- **Time budget**: 8-10 hr/week × 6 months ~ 200-250 hours total. If that becomes unworkable, you can downshift to "consulting contributor" — credited but not coauthor
+- **Whether the collaboration is generating contributions all parties find valuable**
+- **Authorship** (informed by actual Phase-0 work, not pre-committed)
+- **Time-commitment budgets** for Phase 1 (paper draft, weeks 5-8)
+- **Role specialization** within the methodology paper
 
-### For Zihao:
+If 4 weeks doesn't generate sufficient signal (Phase-0 didn't land, scheduling was rough, etc.), we extend the trial by 2 more weeks rather than locking in authorship under uncertainty.
 
-- **Co-authorship on a v0 methodology paper targeting NeurIPS / COLM 2026**
-- **v2 lead authorship** on the mechanism-design / agent-market follow-up (this is the bigger long-term contribution from your skill set)
-- **Methodological collaboration with game-theory-adjacent researchers** at Stanford (Athey/Blanchet) and Harvard (Gonczarowski) for review feedback
-- **Career visibility**: a benchmark on which frontier labs report their models is the kind of artifact that opens senior-faculty-attention in your application cycle
-- **No equity commitment**, no commercial-tier obligation
-- **Time budget**: 4-6 hr/week × 6 months ~ 100-150 hours total for v0; heavier for v2
-
-### For Cheney:
-
-- Honest: methodology cohesion + senior-advisor introductions + paper-quality reviewers are the value-adds I can't generate alone. The trade is real: I'm asking for your time + intellectual contribution, you're getting paper authorship + network access + first dibs on the v2 paper.
-
-## 11. Timeline + sync cadence proposal
+## 10. Timeline + sync cadence
 
 **First sync**: **Monday 2026-06-02 at 4pm Pacific** (30 min, async-first: written agenda + responses 24h before, live discussion only for things that need it).
 
-**Recurring**: weekly 30-min sync, same slot, through paper submission (months 1-6). Reduce to bi-weekly post-submission unless something is on fire.
+**Recurring**: weekly 30-min syncs through the 4-week checkpoint.
+
+**4-week checkpoint**: **2026-06-30** — decision: continue collaboration with authorship discussion / extend Phase-0 trial / part ways.
 
 **Async channel**: GitHub repo issues + Slack workspace. Slack invite at first sync.
 
-**First-month milestones** (concrete deliverables before first sync):
-- Cheney: ship A4 stability dimension end-to-end (target: 2026-06-09)
-- Yuecheng: review the measurement-model-pluralism framework + send feedback (target: 2026-06-02)
-- Zihao: review §1 (introduction) + §10 (discussion); flag any framings to challenge (target: 2026-06-02)
+**Phase-0 deliverables before the checkpoint**:
+- Cheney: A4 stability dimension end-to-end (2026-06-09) + methodology paper §1+§2 draft (2026-06-23)
+- Yuecheng: one Phase-0 task from §9.2 (target: 2026-06-23)
+- Zihao: one Phase-0 task from §9.3 (target: 2026-06-23)
 
-If you're not available for the proposed slot, propose alternates. The cadence matters more than the specific slot.
+If the proposed sync slot doesn't work, propose alternates. Cadence matters more than the specific slot.
 
-## 12. Explicit ask + decision deadline
+## 11. Explicit ask + 4-week checkpoint
 
-**Ask**: co-author the v0 methodology paper. Specifically:
-- Yuecheng: at the time commitment described in §9.2 + §10
-- Zihao: at the time commitment described in §9.3 + §10
+**Ask**: enter a 4-week trial collaboration. Pick one Phase-0 item from §9.2 / §9.3 and deliver it before 2026-06-23.
 
-**Decision deadline**: **2026-06-15** (3 weeks from now). This gives you time to:
-- Review this proposal and the methodology / reading-list artifacts in this repo
-- Attend the 2026-06-02 first sync (which is exploratory; not binding)
-- Have a follow-up sync 2026-06-09 (week 2)
-- Make a final decision before our 2026-06-16 sync
+**Decision at the checkpoint (2026-06-30)**:
+- **Continue** → discuss authorship + Phase 1 commitment
+- **Extend trial** → 2 more weeks of Phase-0 if signal is inconclusive
+- **Part ways** → no acrimony; Cheney cites your work in the paper as planned anyway
 
-**Off-ramps** (no obligation):
-- If you say no, we stay collegial, no hard feelings; I cite your relevant work in the methodology paper as I'd planned to anyway
-- If you say yes-but-different-scope (e.g., "I want to be on v2 only" or "I want to be acknowledged but not coauthor"), let's adjust
-- If you say yes-but-different-authorship (equal-first, different name order), let's discuss — this is negotiable
+**Why this framing instead of "commit to coauthor by 2026-06-15"**:
+- Neither of us has signal yet on whether this collaboration generates good work for you
+- Locking in authorship before any actual contributions is premature
+- The Phase-0 items are bounded (4-8 hours) so the trial cost is low for you
+- If the trial generates strong contributions, authorship is a natural follow-up conversation; if not, both sides save 6 months of expected-but-unrealized commitment
 
-## 13. Risk acknowledgments + off-ramps
+## 12. Risk acknowledgments + off-ramps
 
 This proposal is not risk-free. Honest list:
 
@@ -293,33 +265,32 @@ This proposal is not risk-free. Honest list:
 | **TERMS-Bench releases code with different methodology** | Low-Medium | We generalize their Eq. 4 via `OracleDecomposable` interface, which is independent of their specific implementation. We cite extensively + frame as extension. |
 | **OracleDecomposable generalization contested by reviewers** | Medium | Frame conservatively: "we apply their Eq. 4 to non-bargaining domains via abstraction X; we do not claim to invent the decomposition; we name TERMS-Bench in the title." If still contested, drop the "generalization" claim and present as "AERead applies their Eq. 4 to C1 persona-fit." |
 | **5-axis taxonomy contested by reviewers** ("too many axes") | Medium | Per-axis prior-art anchors (Zhang/Andrews/Mazeika/Yamin/novel) make the taxonomy defensible. If still contested, fallback ordering: drop Axis 5 (metacog), then Axis 4 (computational floor) — gracefully degrades from 5-axis to 4-axis to 3-axis. Each fallback still beats every existing competitor. |
-| **Time commitment mismatch with your day jobs** | Medium-High | Explicit hour budgets in §9.2 + §9.3. If 8-10 / 4-6 hr/week become unworkable, downshift to "consulting contributor"; no acrimony. |
-| **Authorship order disputes** | Low | Explicit proposal in §9.4 + negotiable. Lock at first sync 2026-06-02 to avoid mid-paper drama. |
-| **OSS engineer recruit falls through** | Medium | Cheney ships solo at ~16-20 wk timeline (vs 12-16 with engineer). Total v0 delivery slips by 4-8 weeks; this is the largest concrete risk to the launch-gate calendar. |
+| **Time commitment mismatch with your day jobs** | Medium | Phase-0 is intentionally bounded (4-8 hours over 2-4 weeks). If even that becomes unworkable, we part ways at the checkpoint with no acrimony. Time-commitment budgets for Phase 1+ are negotiated only at the 4-week checkpoint based on actual Phase-0 fit. |
+| **Authorship order disputes** | Low | Deferred to 4-week checkpoint; informed by actual Phase-0 contributions, not pre-committed. Both sides have an off-ramp at the checkpoint if expectations diverge. |
+| **Engineering collaborator slot stays open** | Medium | The 2-3 week runtime build (§7) is doable solo at this scope; an engineering coauthor is upside, not blocker. |
 | **Open Philanthropy grant rejection** | Medium-Low | Bootstrap-fund v0 at lower-resolution (smaller model coverage, slower API spend). Still ships, just slower. |
 
-## 14. Concrete next steps
+## 13. Concrete next steps
 
-1. **You read this proposal + the [methodology summary](methodology.md) + [reading list](reading_list.txt)**. Time: ~30 min for proposal, optional 1-2 hours for the rest.
+1. **Read this proposal + the [methodology summary](methodology.md) + [reading list](reading_list.txt)**. Time: ~30 min for proposal, optional 1-2 hours for the rest.
 2. **First sync 2026-06-02 at 4pm Pacific** (30 min) — async agenda + responses 24h prior.
-3. **Yuecheng: review the measurement-model-pluralism framework + send feedback** by 2026-06-02.
-4. **Zihao: review the §1 + §10 framing of the methodology paper draft outline + flag any framings to challenge** by 2026-06-02.
-5. **Cheney: ship A4 stability dimension end-to-end** by 2026-06-09.
-6. **All three: outreach to Isaiah Andrews (MIT) and Yannai Gonczarowski (Harvard)** during June — Cheney drafts the DMs; both review before send.
-7. **Second sync 2026-06-09 (week 2)** — refine v0.3 of this proposal based on feedback.
-8. **Decision by 2026-06-15** — formal commit (or off-ramp) on co-authorship.
-9. **Third sync 2026-06-16** — assuming yes-yes outcome, lock authorship order + paper outline + role split through paper submission.
+3. **Pick one Phase-0 item each** from §9.2 (Yuecheng) and §9.3 (Zihao); flag your pick at the first sync.
+4. **Cheney**: ship A4 stability dimension end-to-end by 2026-06-09; draft methodology paper §1+§2 by 2026-06-23.
+5. **Weekly 30-min sync** through the checkpoint.
+6. **Phase-0 delivery target**: 2026-06-23.
+7. **4-week checkpoint**: 2026-06-30 — decision on continuation + authorship discussion.
 
-## 15. What this proposal is NOT asking for
+## 14. What this proposal is NOT asking for
 
 - It is NOT asking either of you to commit to founding a company. We can write the paper as a research collaboration and revisit commercial structure independently.
 - It is NOT asking for capital or introductions to investors. v0 is bootstrap-funded through Open Phil grant application + Cheney's personal time.
 - It is NOT asking for equity / IP commitments. The OSS layer is MIT-licensed forever; commercial layers are deferred and independently funded.
 - It is NOT asking for endorsement letters or "we vouch for AERead" public statements. Those come later, and only after v0 results justify them.
+- It is NOT asking for pre-committed authorship before any Phase-0 contributions exist. That gets decided at the checkpoint based on what actually happens.
 
-What it IS asking: do you both want to co-author the v0 methodology paper at the time commitment in §9. Decision by **2026-06-15**.
+What it IS asking: enter a 4-week trial collaboration with one bounded Phase-0 item. Decision on continuation at **2026-06-30**.
 
-## 16. Linked artifacts (in this repo)
+## 15. Linked artifacts (in this repo)
 
 - **[Methodology summary](methodology.md)** — 3-layer pipeline + 5-axis taxonomy condensed
 - **[Reading list](reading_list.txt)** — T1 / T2 / T3 papers with [AXIS-N] anchor flags
