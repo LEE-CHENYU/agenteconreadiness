@@ -8,14 +8,18 @@ Format: [tier] paper title — arxiv link — one-line why-to-read.
 
 5-AXIS FAILURE TAXONOMY ANCHORS (per §1.5.9.4 of master plan):
   [AXIS-1] = Information (TERMS-Bench Eq. 4 — generalized via OracleDecomposable)
-  [AXIS-2] = Consistency (Andrews 2026 rep-theorem penalties)
-  [AXIS-3] = Calibration (Mazeika 2025 utility engineering)
+  [AXIS-2] = Consistency (Andrews 2026 rep-theorem penalties;
+             Betz & Richardson 2023 self-supervised consistency training)
+  [AXIS-3] = Calibration (Mazeika 2025 utility engineering;
+             Guo 2017 ECE diagnostic; Gneiting-Raftery 2007 proper scoring rules)
   [AXIS-4] = Computational floor (novel in v0)
-  [AXIS-5] = Meta-cognitive (Yamin et al. 2026 belief coherence)
+  [AXIS-5] = Meta-cognitive (Yamin et al. 2026 belief coherence;
+             Zhu & Griffiths 2024 incoherent probability judgments;
+             Chadwick et al. 2025 Dutch books / money pumps)
 ==============================================================================
 
 
-TIER 1 — MUST READ BEFORE ERICA CALL (6 papers)
+TIER 1 — MUST READ BEFORE ERICA CALL (8 papers)
 ------------------------------------------------------------------------------
 Direct competitors / foundational framing. Skip these and you'll either
 re-derive their findings or look like you missed the field.
@@ -275,6 +279,29 @@ re-derive their findings or look like you missed the field.
        IMDC as the concrete "if transitivity were fixed" implementation.
 
 
+[T1] Probabilistic Coherence, Logical Consistency, and Bayesian Learning:
+     Neural Language Models as Epistemic Agents       [AXIS-2 / AXIS-5]
+     Betz & Richardson (PLOS ONE 2023) — doi 10.1371/journal.pone.0281372
+     → Tier 4 Variant 4 academic foundation: self-supervised consistency
+       training on synthetic structured corpora. The orthogonal-to-Qiu
+       mechanism: no oracle teacher needed; the model self-trains toward
+       a probabilistically coherent + logically consistent belief system.
+       Coined the "Rationality Hypothesis" framing AERead operationalizes.
+       Caveat: experiments on small T5 + synthetic corpora; frontier-scale
+       not yet demonstrated.
+
+[T1] Incoherent Probability Judgments in Large Language Models    [AXIS-5]
+     Zhu & Griffiths (CogSci 2024) — arxiv 2401.16646
+     → Direct Axis 5 probe set: 24 probability-pair questions (12 weather,
+       12 politics) + probabilistic-identity battery (P(A) + P(¬A) − 1,
+       P(A∧B) + P(A∧¬B) − P(A), etc.) that any coherent agent must zero.
+       Finding: 4 SOTA LLMs exhibit human-like incoherence (inverted-U
+       mean-variance matches Bayesian Sampler model). Theoretical claim:
+       incoherence may stem from autoregressive training as implicit
+       Bayesian inference. Pairs with Chadwick 2025 as the diagnostic-
+       and-exploitation thread for Axis 5.
+
+
 TIER 2 — READ FOR DEPTH (6 papers)
 ------------------------------------------------------------------------------
 For when you want to engage substantively beyond the surface.
@@ -321,7 +348,7 @@ For when you want to engage substantively beyond the surface.
        the "is LLM rationality stable across contexts?" question.
 
 
-TIER 3 — BACKGROUND / SPECIFIC CONTEXT (8 papers)
+TIER 3 — BACKGROUND / SPECIFIC CONTEXT (10 papers)
 ------------------------------------------------------------------------------
 Read when a specific topic comes up; not necessary for the first call.
 
@@ -386,6 +413,33 @@ Read when a specific topic comes up; not necessary for the first call.
        Our regime-shift finding (IRL train 2016-23 vs test 2024-26
        distributions differ) is naturally a DRO-RL problem if conversation
        goes there.
+
+
+== Calibration + scoring-rule foundations (for §1.5.9.4 Axis 5) ==
+
+[T3] On Calibration of Modern Neural Networks                     [AXIS-5]
+     Guo, Pleiss, Sun, Weinberger (ICML 2017) — arxiv 1706.04599
+     → Field-standard for the "predicted confidence vs. realized accuracy"
+       gap. Introduces Expected Calibration Error (ECE) as the standard
+       metric + reliability diagrams as the standard visualization.
+       Temperature scaling as a 1-parameter post-processing fix.
+       AERead adopts ECE + reliability diagrams for the diagnostic
+       page; NOT for the leaderboard score (ECE is not strictly
+       proper — see Gneiting-Raftery 2007 below). Caveat: original
+       setting is one-hot classification labels; LLM token-level vs
+       structured-output calibration needs adaptation.
+
+[T3] Strictly Proper Scoring Rules, Prediction, and Estimation    [AXIS-5]
+     Gneiting & Raftery (JASA 2007) — author preprint at
+     sites.stat.washington.edu/raftery/Research/PDF/Gneiting2007jasa.pdf
+     → Foundational theory of proper scoring rules. Brier, logarithmic,
+       spherical, quadratic scores; CRPS for continuous predictive
+       distributions; calibration-vs-sharpness joint decomposition.
+       The methodological hook for AERead: a leaderboard score that
+       models are incentivized to maximize MUST be strictly proper or
+       it can be gamed by deliberate miscalibration. AERead's headline
+       Axis 5 score uses Brier (discrete) / CRPS (continuous) per this
+       paper; ECE is reported only for diagnostic visualization.
 
 
 == Behavioral economics / cognitive bias in LLMs (adjacent context) ==
