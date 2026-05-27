@@ -68,7 +68,7 @@ Each axis has a distinct intervention mechanism:
 - **Axis 2**: present counterfactual choice triplets and check axiom violations
 - **Axis 3**: hold out test decisions, refit, compare predictive accuracy
 - **Axis 4**: substitute the computational quantity with a closed-form answer
-- **Axis 5**: elicit confidence + compare to realized accuracy
+- **Axis 5**: elicit confidence + compare to realized accuracy (calibration); run Dutch-book / proper-scoring-rule probes (coherence)
 
 Cross-decomposition (Axis 1 × Axis 2, etc.) produces an attribution matrix that explains > 85% of the per-(model, task) gap.
 
