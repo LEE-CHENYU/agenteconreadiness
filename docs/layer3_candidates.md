@@ -35,7 +35,10 @@ The **top-right quadrant** (high value × high testability) is where AERead's le
 - **The bottom-right is the academic-credibility cluster** — weather forecasting, iterated ultimatum, Allais paradox. These don't drive Tier 2 audits but they're clean, citable, and good for methodology-paper §3 validation.
 - **The top-right of the top-right is empty** — the highest-economic-value cases (pricing, matching) currently have medium testability because the oracle policies require domain calibration. This is where Zihao's mechanism-design background can contribute (per §9.3 Phase-0 option D below): theoretically formalize the oracle for these cases so they move to the high-testability column.
 
-**Open ask for Zihao**: the top row right column ("high value, low testability") is currently empty because we haven't yet identified mechanism-design cases where strong theory exists but our simulator/oracle infrastructure doesn't. Zihao's mechanism-design background is the natural fit — see §9.3 (D) in the proposal for the curation Phase-0 option that surfaces these candidates.
+**Open ask for Zihao** (per §9.3 (D) in the proposal): two complementary mechanism-design contributions, either of which closes the matrix gap:
+
+1. **Propose new candidates** that aren't yet in this doc — strong theoretical formalization + deployment relevance (spectrum auctions, prediction markets, generalized second-price / AdWords, market-maker bid-ask spread, etc. are likely missing). Land them in the high-value rows wherever the testability allows.
+2. **Formalize the oracle policy for existing high-value cases** that currently sit in medium testability (A2 EconEvals pricing or B1 Calvano collusion are highest-leverage). Deriving the closed-form oracle moves them into the high-testability column — and that's where AERead's commercial leaderboard story most needs them.
 
 ## Status quo (v0 / v2 in proposal)
 

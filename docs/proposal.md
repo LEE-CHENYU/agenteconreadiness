@@ -49,7 +49,7 @@ The three layers map to the canonical revealed-preference pipeline: **existence*
 - **D2 Bargaining (v2)**: native TERMS-Bench instantiation; wrap their runtime when code releases.
 - **D3 Agentic vendor selection (v2)**: extends C2 to full marketplace with agentic tool-use; EconEvals provides protocol precedent.
 
-> **The v0 list is intentionally short.** The full open candidate pool — EconEvals procurement/pricing/scheduling wraps, Calvano-style algorithmic-collusion detection, Gale-Shapley matching, multi-issue negotiation, Vending-Bench long-horizon coherence, Zhu-Griffiths weather/event forecasting, ~18 candidates total — is enumerated in [`layer3_candidates.md`](layer3_candidates.md) with per-case pros/cons + Tier S/A/B/C/D priority. Adding cases later strengthens the §3 generalization claim (more domains → broader OracleDecomposable demonstration); the candidate doc is the input to that prioritization conversation.
+> **The v0 list is intentionally short.** The full open candidate pool — EconEvals procurement/pricing/scheduling wraps, Calvano-style algorithmic-collusion detection, Gale-Shapley matching, multi-issue negotiation, Vending-Bench long-horizon coherence, Zhu-Griffiths weather/event forecasting, ~25 candidates total across 7 structural clusters — is enumerated in [`layer3_candidates.md`](layer3_candidates.md) on a value × testability matrix, with per-case pros/cons + Tier S/A/B/C/D priority. Adding cases later strengthens the §3 generalization claim (more domains → broader OracleDecomposable demonstration); the candidate doc is the input to that prioritization conversation.
 
 ## 3. Novel methodology contribution: 5-axis failure taxonomy + `OracleDecomposable` generalization
 
@@ -185,7 +185,7 @@ Methodology + IRL infrastructure + Category C implementation. Has working 13F-ex
 
 Yuecheng's prior benchmark-building experience is the natural fit for the implementation side — the runtime infrastructure, scorer library, leaderboard ops that turn the methodology into a tool researchers can actually use. Phase-0 options (pick 1-2 for ~10-20 hours total):
 
-- **(A) Standard scorer library scoping memo + first scorer implemented.** Review the runtime spec §5 scorer / generator menu (the [methodology summary](methodology.md) points to the master plan §14); propose which 3-5 scorers ship in v0 and which defer to v1.5; **then implement one of the v0 scorers end-to-end** (e.g., Bradley-Terry transitivity scorer with measurement-model-pluralism plumbing). The scoring layer is the load-bearing primitive for Layer 1 + Layer 2 outputs — picking the right v0 set determines what dimensions can actually be measured at launch. ~8-12 hours.
+- **(A) Standard scorer library scoping memo + first scorer implemented.** Review the runtime spec §5 scorer / generator menu (request access from Cheney per §15 below); propose which 3-5 scorers ship in v0 and which defer to v1.5; **then implement one of the v0 scorers end-to-end** (e.g., Bradley-Terry transitivity scorer with measurement-model-pluralism plumbing). The scoring layer is the load-bearing primitive for Layer 1 + Layer 2 outputs — picking the right v0 set determines what dimensions can actually be measured at launch. ~8-12 hours.
 
 - **(B) lm-evaluation-harness integration prototype.** Sketch the entry-point structure that makes AERead install as an `lm_eval/tasks/aeread_*` task family — a single end-to-end smoke test on a toy task (e.g., a 5-option transitivity probe on Haiku) showing the integration works. Include cache layer for response replay (per §14.7). This is the §5 plug-and-play adoption gate. ~10-15 hours.
 
@@ -199,7 +199,7 @@ Time commitment for Phase-0: **~10-20 hours over 2-4 weeks** depending on scope 
 
 Zihao's economics + formal-mathematics background is the natural fit for the **load-bearing methodology work**: the Layer 1 axiom protocols, the Layer 2 identification framework, and the OracleDecomposable formalization that generalizes TERMS-Bench Eq. 4. This is the §3 methodology-paper core — without it, the benchmark has no rigorous claim.
 
-Phase-0 options (pick 1-2 for ~15-25 hours total):
+Phase-0 options (pick 1-2 for ~8-30 hours total, depending on which):
 
 - **(A) OracleDecomposable formalization.** Formalize the OracleDecomposable interface mathematically — what are the precise conditions (hidden state, controllable simulator, oracle policy, belief substitution, state reveal, scalar utility) that admit the Δ_inf + Δ_unc + Δ_ctrl decomposition? Identify which of the v0 use cases (C1 persona-fit, C2 price-aware product selection) satisfy each condition, where the abstraction breaks down, and what the v2 extensions (D2 bargaining, D3 agentic vendor selection) need. Anchor on Zhang et al. 2026 TERMS-Bench §4 (their Eq. 4 derivation); the methodology paper §3 takes this verbatim. **~10-15 hours.** This is the highest-leverage single item in the trial.
 
@@ -207,11 +207,15 @@ Phase-0 options (pick 1-2 for ~15-25 hours total):
 
 - **(C) Layer 2 identification framework.** Formalize the within-class identification claim: given a functional class (KT '79 prospect theory, CRRA, CARA, cumulative prospect theory TK '92, Kelly-Markowitz), what does identification mean operationally? When does the framework recover unique parameters vs admit non-uniqueness (Andrews 2026's critique that representation theorems guarantee existence, not identification)? Draft the §3 methodology-paper subsection that handles this. **~10-15 hours.**
 
-- **(D) Layer 3 candidate curation — mechanism-design lens.** Read [`layer3_candidates.md`](layer3_candidates.md) (open pool of ~22 cases on a value × testability matrix); from your mechanism-design background, propose 2-3 **additional** high-leverage Layer 3 candidates that satisfy: (i) strong theoretical formalization (clean oracle policy derivable from existing mechanism-design literature), (ii) real-world deployment relevance (agents actually do this or will within 12 months), (iii) the case sits in the top-row of the value × testability matrix (high or medium value). Candidates we know are missing: spectrum auctions, prediction markets, generalized second-price auctions (the AdWords mechanism), revenue-equivalence stress tests, market-maker bid-ask spread setting, etc. — but you'll surface ones we haven't named. For each: source paper(s), OracleDecomposable mapping sketch, and matrix-position justification. **~8-12 hours.** This is the highest-leverage Phase-0 item for closing the "top-right of top-right" gap in the candidate matrix.
+- **(D) Layer 3 candidate curation — mechanism-design lens.** Read [`layer3_candidates.md`](layer3_candidates.md) (open pool of ~25 cases on a value × testability matrix); from your mechanism-design background, do either or both:
+  1. **Propose 2-3 additional candidates** not yet in the pool (examples we suspect are missing: spectrum auctions, prediction markets, generalized second-price / AdWords mechanism, market-maker bid-ask spread, revenue-equivalence stress tests). For each: source paper(s), OracleDecomposable mapping sketch, matrix-position justification.
+  2. **Formalize the oracle policy for 1-2 existing high-value cases** that currently sit in medium testability (A2 EconEvals pricing or B1 Calvano collusion are the highest-leverage targets) — move them into the high-testability column by deriving the closed-form oracle their mechanism-design lit supports.
+  
+  Either path closes the same matrix gap: "high economic value × high testability" is the quadrant where AERead's commercial leaderboard story sits, and it's currently sparse because the oracle-derivation work hasn't been done. **~8-12 hours** for either path; ~15-20h if you do both. This is the highest-leverage Phase-0 item for the candidate-pool curation workstream in §9.5.
 
 You're effectively the §3 co-lead of the methodology paper if this trial converts. One item alone is sufficient signal for the trial; picking more is welcome but not expected.
 
-Time commitment for Phase-0: **~10-25 hours over 2-4 weeks** depending on scope picked.
+Time commitment for Phase-0: **~8-30 hours over 2-4 weeks** depending on scope picked (option D alone is ~8-12h; pairing (A)+(B) or (A)+(C) is ~25-30h on the upper end).
 
 ### 9.4 Open slot: infrastructure-ops collaborator
 
@@ -327,7 +331,7 @@ If the proposed sync slot doesn't work, propose alternates. Cadence matters more
 **Why the trial-first framing**:
 - Neither of us has signal yet on whether this collaboration generates good work for you
 - Locking in authorship before any actual contributions is premature
-- Phase-0 items are bounded (10-25 hours over 2-4 weeks per §9.2 / §9.3) so the trial cost is low relative to a 6-month paper commitment
+- Phase-0 items are bounded (8-30 hours over 2-4 weeks per §9.2 / §9.3, depending on which item picked) so the trial cost is low relative to a 6-month paper commitment
 - If the trial generates strong contributions, authorship is a natural follow-up conversation; if not, both sides save the expected-but-unrealized commitment
 
 ## 12. Risk acknowledgments + off-ramps
@@ -341,7 +345,7 @@ This proposal is not risk-free. Honest list:
 | **TERMS-Bench releases code with different methodology** | Low-Medium | We generalize their Eq. 4 via `OracleDecomposable` interface, which is independent of their specific implementation. We cite extensively + frame as extension. |
 | **OracleDecomposable generalization contested by reviewers** | Medium | Frame conservatively: "we apply their Eq. 4 to non-bargaining domains via abstraction X; we do not claim to invent the decomposition; we name TERMS-Bench in the title." If still contested, drop the "generalization" claim and present as "AERead applies their Eq. 4 to C1 persona-fit." |
 | **5-axis taxonomy contested by reviewers** ("too many axes") | Medium | Per-axis prior-art anchors (Zhang/Andrews/Mazeika/Yamin/novel) make the taxonomy defensible. If still contested, fallback ordering: drop Axis 5 (metacog), then Axis 4 (computational floor) — gracefully degrades from 5-axis to 4-axis to 3-axis. Each fallback still beats every existing competitor. |
-| **Time commitment mismatch with your day jobs** | Medium | Phase-0 is intentionally bounded (10-20 hours over 2-4 weeks per §9.2 / §9.3 — picking the lower-end item is fine signal). If even that becomes unworkable, we part ways at the checkpoint with no acrimony. Time-commitment budgets for Phase 1+ are negotiated only at the 4-week checkpoint based on actual Phase-0 fit. |
+| **Time commitment mismatch with your day jobs** | Medium | Phase-0 is intentionally bounded (8-30 hours over 2-4 weeks per §9.2 / §9.3 — picking a lower-end item like §9.3 (D) at ~8-12h is fine signal). If even that becomes unworkable, we part ways at the checkpoint with no acrimony. Time-commitment budgets for Phase 1+ are negotiated only at the 4-week checkpoint based on actual Phase-0 fit. |
 | **Authorship order disputes** | Low | Deferred to 4-week checkpoint; informed by actual Phase-0 contributions, not pre-committed. Both sides have an off-ramp at the checkpoint if expectations diverge. |
 | **Open ops-collaborator slot stays unfilled** | Medium | §9.5 lists 4 ops-side workstreams (leaderboard frontend, diagnostic page, HuggingFace integration, reproducibility hardening). If no ops collaborator emerges from the trial, Cheney inherits leaderboard + diagnostic page (the launch-critical ones; extends his timeline by ~1-2 weeks); HuggingFace integration defers to v1.5. The 2-3 week runtime build (§7) is doable solo at this scope; ops slot stays open as upside, not blocker. |
 | **Open Philanthropy grant rejection** | Medium-Low | Bootstrap-fund v0 at lower-resolution (smaller model coverage, slower API spend). Still ships, just slower. |
@@ -371,7 +375,7 @@ What it IS asking: enter a 4-week trial collaboration with one bounded Phase-0 i
 ### In this repo
 
 - **[Methodology summary](methodology.md)** — 3-layer pipeline + 5-axis taxonomy condensed
-- **[Layer 3 candidate pool](layer3_candidates.md)** — open list of ~22 real-world economic decision use cases for v0.5 / v1 / v1.5 / v2 expansion, with per-case pros/cons + priority tiers
+- **[Layer 3 candidate pool](layer3_candidates.md)** — open list of ~25 real-world economic decision use cases on a value × testability matrix; per-case pros/cons + Tier S/A/B/C/D priority for v0.5 / v1 / v1.5 / v2 expansion
 - **[Citation links](papers/links.md)** — one-stop lookup mapping every cited paper to a public URL or repo-hosted PDF
 - **[Reading list](reading_list.txt)** — T1 / T2 / T3 papers with [AXIS-N] anchor flags
 - **[Bibliography](papers/references_master.yaml)** — 160-entry machine-readable references
