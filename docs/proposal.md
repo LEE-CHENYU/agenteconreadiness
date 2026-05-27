@@ -15,7 +15,7 @@ Owner: Cheney Li | Date: 2026-05-26 | Read time: 7 minutes
 
 Three Q1-2026 benchmark papers (Stanford TERMS-Bench, Harvard EconEvals, MIT Revealed Rationality) each address one layer; none integrate all three with cross-layer decomposition; none ship with the plug-and-play UX needed to compete with the field's adoption gatekeepers.
 
-This proposal asks: do you want to co-author the v0 methodology paper, with a decision by 2026-06-15.
+This proposal asks: enter a 4-week trial collaboration on a bounded Phase-0 item; we revisit authorship + commitment at the 2026-06-30 checkpoint based on what actually gets contributed.
 
 ---
 
@@ -248,7 +248,7 @@ If the proposed sync slot doesn't work, propose alternates. Cadence matters more
 - **Extend trial** → 2 more weeks of Phase-0 if signal is inconclusive
 - **Part ways** → no acrimony; Cheney cites your work in the paper as planned anyway
 
-**Why this framing instead of "commit to coauthor by 2026-06-15"**:
+**Why the trial-first framing**:
 - Neither of us has signal yet on whether this collaboration generates good work for you
 - Locking in authorship before any actual contributions is premature
 - The Phase-0 items are bounded (4-8 hours) so the trial cost is low for you
