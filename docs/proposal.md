@@ -207,6 +207,8 @@ Phase-0 options (pick 1-2 for ~15-25 hours total):
 
 - **(C) Layer 2 identification framework.** Formalize the within-class identification claim: given a functional class (KT '79 prospect theory, CRRA, CARA, cumulative prospect theory TK '92, Kelly-Markowitz), what does identification mean operationally? When does the framework recover unique parameters vs admit non-uniqueness (Andrews 2026's critique that representation theorems guarantee existence, not identification)? Draft the §3 methodology-paper subsection that handles this. **~10-15 hours.**
 
+- **(D) Layer 3 candidate curation — mechanism-design lens.** Read [`layer3_candidates.md`](layer3_candidates.md) (open pool of ~22 cases on a value × testability matrix); from your mechanism-design background, propose 2-3 **additional** high-leverage Layer 3 candidates that satisfy: (i) strong theoretical formalization (clean oracle policy derivable from existing mechanism-design literature), (ii) real-world deployment relevance (agents actually do this or will within 12 months), (iii) the case sits in the top-row of the value × testability matrix (high or medium value). Candidates we know are missing: spectrum auctions, prediction markets, generalized second-price auctions (the AdWords mechanism), revenue-equivalence stress tests, market-maker bid-ask spread setting, etc. — but you'll surface ones we haven't named. For each: source paper(s), OracleDecomposable mapping sketch, and matrix-position justification. **~8-12 hours.** This is the highest-leverage Phase-0 item for closing the "top-right of top-right" gap in the candidate matrix.
+
 You're effectively the §3 co-lead of the methodology paper if this trial converts. One item alone is sufficient signal for the trial; picking more is welcome but not expected.
 
 Time commitment for Phase-0: **~10-25 hours over 2-4 weeks** depending on scope picked.
@@ -243,6 +245,7 @@ A first-pass DoL for the full v0 scope, mapping workstreams to proposed primary 
 | Layer 1 axiom protocol specs (CCEI / GARP / WARP / transitivity / monotonicity / Houtman-Maks) | Zihao | Yuecheng (scorer impl) |
 | Layer 2 within-class identification framework | Zihao | Yuecheng (fit-procedure impl) |
 | Layer 3 OracleDecomposable formalization | Zihao | Cheney (C1 instantiation) |
+| Layer 3 candidate-pool curation (mechanism-design lens) | Zihao | Cheney (deployment-relevance scoring) |
 | Layer 3 predict-then-validate train/test split design | Cheney | Yuecheng (cache extension) |
 | Axis 1 Information — OracleDecomposable Δ_inf / Δ_unc / Δ_ctrl mechanics | Zihao | Cheney |
 | Axis 2 Consistency — counterfactual axiom interventions | Zihao | Yuecheng |
