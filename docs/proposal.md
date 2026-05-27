@@ -383,7 +383,7 @@ What it IS asking: enter a 4-week trial collaboration with one bounded Phase-0 i
 - **[Citation links](papers/links.md)** — one-stop lookup mapping every cited paper to a public URL or repo-hosted PDF
 - **[Reading list](reading_list.txt)** — T1 / T2 / T3 papers with [AXIS-N] anchor flags
 - **[Bibliography](papers/references_master.yaml)** — 160-entry machine-readable references
-- **[Curated paper index](papers/_INDEX.md)** — annotated reading guide
+- **[Curated paper index](papers/_INDEX.md)** — deep-dive synopses (~5-6 paragraphs each) for 12 supporting-literature papers; the 3 anchor benchmarks (TERMS-Bench / Andrews / EconEvals) are covered in §1-§3 above + reading_list T1
 
 ### Available on request (source-repo artifacts)
 

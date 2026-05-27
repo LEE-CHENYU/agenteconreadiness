@@ -21,7 +21,7 @@ Pre-launch. v0 runtime in development; methodology paper targeting NeurIPS / COL
 | [`docs/layer3_candidates.md`](docs/layer3_candidates.md) | Open candidate pool of ~25 Layer 3 real-world economic decision use cases on a value × testability matrix (v0 + expansion roadmap) |
 | [`docs/reading_list.txt`](docs/reading_list.txt) | T1 / T2 / T3 prior-art reading list with [AXIS-N] anchor flags |
 | [`docs/papers/links.md`](docs/papers/links.md) | One-stop citation links — every cited paper mapped to a public URL or repo-hosted PDF |
-| [`docs/papers/_INDEX.md`](docs/papers/_INDEX.md) | Annotated index of cited papers (curated reading guide) |
+| [`docs/papers/_INDEX.md`](docs/papers/_INDEX.md) | Deep-dive synopses (~5-6 paragraphs each) for 12 supporting-literature papers — complements `reading_list.txt` (the priority guide) |
 | [`docs/papers/references_master.yaml`](docs/papers/references_master.yaml) | Machine-readable bibliography (~160 entries, deduped from 3 anchor papers) |
 | [`docs/papers/pdfs/`](docs/papers/pdfs/) | PDFs of cited papers without public URLs (Andrews 2026, Chadwick 2025, Gneiting & Raftery 2007) |
 
