@@ -181,17 +181,17 @@ Methodology + IRL infrastructure + Category C implementation. Has working 13F-ex
 
 ### 9.2 Yuecheng Fang — proposed Phase-0 DoL (benchmark implementation track)
 
-Yuecheng's prior benchmark-building experience is the natural fit for the implementation side — the runtime infrastructure, scorer library, leaderboard ops that turn the methodology into a tool researchers can actually use. Phase-0 options (pick one or pair two for ~10 hours total):
+Yuecheng's prior benchmark-building experience is the natural fit for the implementation side — the runtime infrastructure, scorer library, leaderboard ops that turn the methodology into a tool researchers can actually use. Phase-0 options (pick 1-2 for ~10-20 hours total):
 
-- **(A) Standard scorer library scoping memo.** Review the runtime spec §5 scorer / generator menu (the [methodology summary](methodology.md) points to the master plan §14); propose which 3-5 scorers ship in v0 and which defer to v1.5. The scoring layer is the load-bearing primitive for Layer 1 + Layer 2 outputs — picking the right v0 set determines what dimensions can actually be measured at launch. ~5-8 hours.
+- **(A) Standard scorer library scoping memo + first scorer implemented.** Review the runtime spec §5 scorer / generator menu (the [methodology summary](methodology.md) points to the master plan §14); propose which 3-5 scorers ship in v0 and which defer to v1.5; **then implement one of the v0 scorers end-to-end** (e.g., Bradley-Terry transitivity scorer with measurement-model-pluralism plumbing). The scoring layer is the load-bearing primitive for Layer 1 + Layer 2 outputs — picking the right v0 set determines what dimensions can actually be measured at launch. ~8-12 hours.
 
-- **(B) lm-evaluation-harness integration prototype.** Sketch the entry-point structure that makes AERead install as an `lm_eval/tasks/aeread_*` task family — a single end-to-end smoke test on a toy task (e.g., a 5-option transitivity probe on Haiku) showing the integration works. This is the §5 plug-and-play adoption gate. ~8-12 hours.
+- **(B) lm-evaluation-harness integration prototype.** Sketch the entry-point structure that makes AERead install as an `lm_eval/tasks/aeread_*` task family — a single end-to-end smoke test on a toy task (e.g., a 5-option transitivity probe on Haiku) showing the integration works. Include cache layer for response replay (per §14.7). This is the §5 plug-and-play adoption gate. ~10-15 hours.
 
-- **(C) Leaderboard schema + composite-score design.** Propose how per-task scores aggregate into the AERead composite (per the runtime spec §10 leaderboard rendering): what's the right user-facing single number, what's reported alongside in the diagnostic page, how does the 5-axis radar map to a sortable column? ~5-8 hours.
+- **(C) Leaderboard schema + composite-score design + thin frontend prototype.** Propose how per-task scores aggregate into the AERead composite (per the runtime spec §10 leaderboard rendering): what's the right user-facing single number, what's reported alongside in the diagnostic page, how does the 5-axis radar map to a sortable column? **Ship a static-HTML leaderboard prototype** with 1-2 mock results showing the design works. ~8-12 hours.
 
-These three are the implementation primitives that turn the methodology paper into a benchmark. Whichever you pick informs the §7 engineering plan directly.
+These are the implementation primitives that turn the methodology paper into a benchmark. Whichever you pick informs the §7 engineering plan directly and seeds the Phase 1+ workstreams in §9.5. The scope is intentionally larger than "review and propose" — Phase-0 should signal whether you can ship a contributor-extensible workstream end-to-end, since the §9.5 ownership map asks you to primary-own multiple such workstreams in Phase 1.
 
-Time commitment for Phase-0: **~5-12 hours over 2-4 weeks** depending on scope picked.
+Time commitment for Phase-0: **~10-20 hours over 2-4 weeks** depending on scope picked.
 
 ### 9.3 Zihao Li — proposed Phase-0 DoL (econ + formal-math foundation track)
 
@@ -228,10 +228,10 @@ A first-pass DoL for the full v0 scope, mapping workstreams to proposed primary 
 | §1 Introduction | Cheney | Zihao (framing review) |
 | §2 Related work | Cheney | Zihao (econ-lit anchors), Yuecheng (LLM-bench anchors) |
 | §3 Methods — 5-axis taxonomy + OracleDecomposable formalization | Zihao | Cheney (writing pass) |
-| §3 Methods — measurement-model pluralism + statistical reproducibility | Zihao | Yuecheng (implementation notes) |
-| §6 Statistical reproducibility — cross-validation + held-out test design | Yuecheng | Zihao (formal justification) |
+| §3 Methods — measurement-model pluralism formalization | Zihao | Yuecheng (scorer-library implementation notes) |
+| §6 Methods — statistical reproducibility (cross-validation + held-out test design) | Yuecheng | Zihao (formal justification) |
 | §7 Category C implementation (C1 persona-fit, C2 product selection) | Cheney | Zihao (utility-class identification) |
-| §8 Experiments — cross-model eval runs | Yuecheng | Cheney (analysis), Zihao (interpretation) |
+| §8 Experiments — cross-model eval runs + result tables | Yuecheng | Cheney (analysis), Zihao (interpretation) |
 | §10 Discussion — mechanism design + agent-market thesis | Zihao | Cheney |
 
 **Methodology workstreams (Layer × Axis)**:
@@ -258,23 +258,27 @@ A first-pass DoL for the full v0 scope, mapping workstreams to proposed primary 
 | Cache layer (responses / stimuli / scores / splits / fits / predictions / diagnostics) | Yuecheng | Cheney (Cat C-specific extensions) |
 | CLI (`aeread evaluate / diagnose / check / init`) | Yuecheng | — |
 | Composite-score aggregator | Yuecheng | Zihao (rubric design) |
+| **Category A test design (A1 / A2 / A3 / A5)** — A4 covered by Cheney's Phase-0 | Cheney | Zihao (axiom-spec review), Yuecheng (scorer wiring) |
+| **Category B test design (B1 risk / B2 inter-temporal / B3 social)** — protocol picking + prompt engineering | Cheney | Zihao (utility-class anchors), Yuecheng (scorer wiring) |
 | C1 13F-IRL pipeline (persona-fit, existing infrastructure) | Cheney | — |
 | C2 price-aware product selection task design | Cheney | Zihao (oracle policy formalization) |
 | Three submission paths (web form / Colab / PR) | Yuecheng | — |
-| Leaderboard frontend + reliability-diagram visualization | Open (ops slot) | Yuecheng (design review) |
-| Diagnostic drill-down page (5-axis radar + cross-decomposition matrix) | Open (ops slot) | Cheney (UX review) |
-| HuggingFace integration + model-card adoption pipeline | Open (ops slot) | — |
-| Reproducibility hardening (signed ScoreRecords, external-submission flow) | Open (ops slot) | Yuecheng (schema design) |
+| **Documentation** (README, new-task-guide, Colab template, contributor onboarding) | Yuecheng | Cheney (intro framing) |
+| **Benchmark validation runs** (execute AERead on 8+ models pre-launch, generate v1 leaderboard) | Yuecheng | Cheney (API spend + analysis) |
+| Leaderboard frontend + reliability-diagram visualization | Open (ops slot) — Cheney inherits if no candidate | Yuecheng (design review) |
+| Diagnostic drill-down page (5-axis radar + cross-decomposition matrix) | Open (ops slot) — Cheney inherits if no candidate | Cheney (UX review) |
+| HuggingFace integration + model-card adoption pipeline | Open (ops slot) — defers to v1.5 if no candidate | — |
+| Reproducibility hardening (signed ScoreRecords, external-submission flow) | Open (ops slot) — Cheney inherits if no candidate | Yuecheng (schema design) |
 
 **External outreach + coordination**:
 
 | Workstream | Proposed primary | Supporting |
 |---|---|---|
-| Isaiah Andrews (MIT) — §3 methodology review | Cheney drafts; Zihao reviews | — |
-| Yannai Gonczarowski (Harvard) — parameter-layer comparison | Cheney drafts; Zihao reviews | — |
+| Isaiah Andrews (MIT) — §3 methodology review | Cheney drafts; Zihao reviews before send | — |
+| Yannai Gonczarowski (Harvard) — parameter-layer comparison | Cheney drafts; Zihao reviews before send | — |
 | Erica Zhang (Stanford) — TERMS-Bench coordination | Cheney (existing relationship) | — |
-| Frontier-lab partner pre-commit | Cheney + Yuecheng (Sky Computing channel if it opens) | — |
-| Open Phil grant application | Cheney | — |
+| Frontier-lab partner pre-commit | Cheney | — |
+| Open Phil grant application + ongoing reporting | Cheney | — |
 
 This map is the input to the 4-week checkpoint discussion — adjust based on what Phase-0 actually reveals about fit.
 
@@ -301,8 +305,8 @@ If 4 weeks doesn't generate sufficient signal (Phase-0 didn't land, scheduling w
 
 **Phase-0 deliverables before the checkpoint**:
 - Cheney: A4 stability dimension end-to-end (2026-06-09) + methodology paper §1+§2 draft (2026-06-23)
-- Yuecheng: one Phase-0 task from §9.2 (target: 2026-06-23)
-- Zihao: one Phase-0 task from §9.3 (target: 2026-06-23)
+- Yuecheng: 1-2 Phase-0 tasks from §9.2 (target: 2026-06-23)
+- Zihao: 1-2 Phase-0 tasks from §9.3 (target: 2026-06-23)
 
 If the proposed sync slot doesn't work, propose alternates. Cadence matters more than the specific slot.
 
@@ -318,8 +322,8 @@ If the proposed sync slot doesn't work, propose alternates. Cadence matters more
 **Why the trial-first framing**:
 - Neither of us has signal yet on whether this collaboration generates good work for you
 - Locking in authorship before any actual contributions is premature
-- The Phase-0 items are bounded (4-8 hours) so the trial cost is low for you
-- If the trial generates strong contributions, authorship is a natural follow-up conversation; if not, both sides save 6 months of expected-but-unrealized commitment
+- Phase-0 items are bounded (10-25 hours over 2-4 weeks per §9.2 / §9.3) so the trial cost is low relative to a 6-month paper commitment
+- If the trial generates strong contributions, authorship is a natural follow-up conversation; if not, both sides save the expected-but-unrealized commitment
 
 ## 12. Risk acknowledgments + off-ramps
 
@@ -332,16 +336,16 @@ This proposal is not risk-free. Honest list:
 | **TERMS-Bench releases code with different methodology** | Low-Medium | We generalize their Eq. 4 via `OracleDecomposable` interface, which is independent of their specific implementation. We cite extensively + frame as extension. |
 | **OracleDecomposable generalization contested by reviewers** | Medium | Frame conservatively: "we apply their Eq. 4 to non-bargaining domains via abstraction X; we do not claim to invent the decomposition; we name TERMS-Bench in the title." If still contested, drop the "generalization" claim and present as "AERead applies their Eq. 4 to C1 persona-fit." |
 | **5-axis taxonomy contested by reviewers** ("too many axes") | Medium | Per-axis prior-art anchors (Zhang/Andrews/Mazeika/Yamin/novel) make the taxonomy defensible. If still contested, fallback ordering: drop Axis 5 (metacog), then Axis 4 (computational floor) — gracefully degrades from 5-axis to 4-axis to 3-axis. Each fallback still beats every existing competitor. |
-| **Time commitment mismatch with your day jobs** | Medium | Phase-0 is intentionally bounded (4-8 hours over 2-4 weeks). If even that becomes unworkable, we part ways at the checkpoint with no acrimony. Time-commitment budgets for Phase 1+ are negotiated only at the 4-week checkpoint based on actual Phase-0 fit. |
+| **Time commitment mismatch with your day jobs** | Medium | Phase-0 is intentionally bounded (10-20 hours over 2-4 weeks per §9.2 / §9.3 — picking the lower-end item is fine signal). If even that becomes unworkable, we part ways at the checkpoint with no acrimony. Time-commitment budgets for Phase 1+ are negotiated only at the 4-week checkpoint based on actual Phase-0 fit. |
 | **Authorship order disputes** | Low | Deferred to 4-week checkpoint; informed by actual Phase-0 contributions, not pre-committed. Both sides have an off-ramp at the checkpoint if expectations diverge. |
-| **Engineering collaborator slot stays open** | Medium | The 2-3 week runtime build (§7) is doable solo at this scope; an engineering coauthor is upside, not blocker. |
+| **Open ops-collaborator slot stays unfilled** | Medium | §9.5 lists 4 ops-side workstreams (leaderboard frontend, diagnostic page, HuggingFace integration, reproducibility hardening). If no ops collaborator emerges from the trial, Cheney inherits leaderboard + diagnostic page (the launch-critical ones; extends his timeline by ~1-2 weeks); HuggingFace integration defers to v1.5. The 2-3 week runtime build (§7) is doable solo at this scope; ops slot stays open as upside, not blocker. |
 | **Open Philanthropy grant rejection** | Medium-Low | Bootstrap-fund v0 at lower-resolution (smaller model coverage, slower API spend). Still ships, just slower. |
 
 ## 13. Concrete next steps
 
 1. **Read this proposal + the [methodology summary](methodology.md) + [reading list](reading_list.txt)**. Time: ~30 min for proposal, optional 1-2 hours for the rest.
 2. **First sync 2026-06-02 at 4pm Pacific** (30 min) — async agenda + responses 24h prior.
-3. **Pick one Phase-0 item each** from §9.2 (Yuecheng) and §9.3 (Zihao); flag your pick at the first sync.
+3. **Pick one or two Phase-0 items each** from §9.2 (Yuecheng) and §9.3 (Zihao); flag your picks at the first sync.
 4. **Cheney**: ship A4 stability dimension end-to-end by 2026-06-09; draft methodology paper §1+§2 by 2026-06-23.
 5. **Weekly 30-min sync** through the checkpoint.
 6. **Phase-0 delivery target**: 2026-06-23.
