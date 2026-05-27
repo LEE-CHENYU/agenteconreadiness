@@ -128,9 +128,14 @@ Without consolidated infrastructure landing in this window, the field fragments 
 
 ## 7. Engineering plan — AI-accelerated MVP
 
-### v0 runtime (2-3 weeks of focused build)
+### v0 runtime: ~2-3 weeks internal MVP; ~8-12 weeks public research-grade artifact
 
-With Claude Code drafting from the runtime spec, the v0 runtime build cycle is **2-3 weeks of focused execution**, mostly Cheney-time + API spend:
+Two distinct milestones, both Cheney-time + API spend:
+
+- **Internal MVP (~2-3 weeks of focused build)**: Claude Code drafts from the runtime spec; scorer + adapter + cache scaffolding works end-to-end on a toy task; one model evaluated end-to-end; enough to validate the architecture but not yet reproducible by external researchers.
+- **Public research-grade artifact (~8-12 weeks total)**: signed ScoreRecord protocol, contamination controls, locked held-out test set, bootstrap confidence intervals, model/prompt-version hashes, contributor docs, web-form submission backend, cross-model validation runs (8+ models), reliability-diagram visualization, reproducible cache manifest. This is the artifact the methodology paper points at.
+
+The 2-3 week timeline alone is not credible for a research-grade reproducible benchmark; the 8-12 week timeline matches the Phase 0 → Phase 2 trajectory in the methodology-paper plan (§7 below) where Phase 0 ships the scaffold and Phase 1-2 harden the reproducibility surface. v0 content:
 
 - **Adapter framework** (lm-evaluation-harness integration) for Cat A + Cat B + Cat C v1
 - **Scorer + generator library** (~9 scorers, ~11 generators) — researchers configure via pure YAML
@@ -187,7 +192,7 @@ Zihao's economics + formal-mathematics background is the natural fit for the **l
 
 Phase-0 options (pick 1-2 for ~8-30 hours total, depending on which):
 
-- **(A) OracleDecomposable formalization.** Formalize the OracleDecomposable interface mathematically — what are the precise conditions (hidden state, controllable simulator, oracle policy, belief substitution, state reveal, scalar utility) that admit the Δ_inf + Δ_unc + Δ_ctrl decomposition? Identify which of the v0 use cases (C1 persona-fit, C2 price-aware product selection) satisfy each condition, where the abstraction breaks down, and what the v2 extensions (D2 bargaining, D3 agentic vendor selection) need. Anchor on Zhang et al. 2026 TERMS-Bench §4 (their Eq. 4 derivation); the methodology paper §3 takes this verbatim. **~10-15 hours.** This is the highest-leverage single item in the trial.
+- **(A) OracleDecomposable formalization.** Formalize the OracleDecomposable interface mathematically — what are the precise conditions that admit the Δ_inf + Δ_unc + Δ_ctrl decomposition? Anchor on Zhang et al. 2026 TERMS-Bench §4 (their Eq. 4 derivation); the methodology paper §3 takes this verbatim. **Scope (10 formalization items)**: (1) task distribution — what is random (hidden state / context / prompt / model sampling / counterpart behavior)?; (2) action space — discrete / continuous / sequential / tool-mediated?; (3) utility functional — scalar over terminal outcomes, trajectories, or both?; (4) oracle policy — Bayes-optimal relative to which prior + simulator specification?; (5) information intervention — what does "reveal state" mean without changing task semantics?; (6) uncertainty intervention — how are beliefs elicited or substituted without confounding the policy?; (7) control intervention — what residual remains after state + belief interventions?; (8) stochastic policy handling — score over one sample, repeated samples, or an estimated policy distribution?; (9) non-commutativity — do interventions commute, or do we need a Shapley/Sobol-style attribution?; (10) failure conditions — which candidate tasks fail the abstraction and why? Identify which of v0 use cases (C1 persona-fit, C2 price-aware product selection) satisfy each condition + where the abstraction breaks, and what v2 wraps (D2 bargaining, D3 agentic vendor selection) need. **~10-15 hours.** This is the highest-leverage single item in the trial.
 
 - **(B) Layer 1 axiom protocol specs.** Draft the formal specifications for the Layer 1 axiom-test family: CCEI, GARP, WARP, transitivity, monotonicity, Houtman-Maks. For each: test definition + what passing means + the Bayesian-model-selection posterior structure under measurement-model pluralism (4-6 competing measurement models fit on the same data; reported posterior over them). Pair with [Andrews 2026](papers/pdfs/andrews_2026_revealed_rationality.pdf) representation-theorem penalties as the Axis 2 (consistency) mathematical anchor. **~10-15 hours.**
 

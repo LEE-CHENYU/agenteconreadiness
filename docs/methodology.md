@@ -44,7 +44,7 @@ Any such use case admits the [TERMS-Bench](https://arxiv.org/abs/2605.13909) Eq.
 
 Zhang et al. 2026 introduced this decomposition for bilateral bargaining. We abstract the construction and demonstrate it on a *collection* of use cases. The v0 collection:
 
-- **C1 Persona-fit**: hidden state = principal's IRL-fit utility coefficients (α_kelly, δ_turnover); oracle = closed-form Kelly-Markowitz
+- **C1 Persona-fit**: hidden state = principal's IRL-fit utility coefficients (α_kelly, δ_turnover); oracle = closed-form Kelly-Markowitz. **Caveat**: 13F filings are an approximate revealed-preference proxy (long positions only, quarterly delay; shorts + derivatives not required) — v0 treats C1 as an approximate-RP case study with assumption sensitivity tests, not clean ground truth.
 - **C2 Price-aware product selection**: hidden state = vendor true cost/quality; oracle = cheapest dominating choice
 - **D2 Bargaining (v2)**: native TERMS-Bench instantiation
 - **D3 Agentic vendor selection (v2)**: extends C2 to full marketplace with agentic tool-use
