@@ -2,6 +2,8 @@
 
 A ~3-page synopsis of the three Q1-2026 papers AERead builds on. Each section: what the paper does + key methodology contribution + what AERead inherits + what AERead extends + the specific §Future Work question AERead addresses. Use this as a primer before drilling into the full papers; see [`reading_list.txt`](reading_list.txt) for tiered priority + per-axis tagging and [`methodology.md`](methodology.md) for the AERead framework.
 
+> **Section-reference convention**: §X.Y refs below (e.g., §1.5.7, §1.5.6.5) point to the AERead master plan in the source repo (`rationale`) — see [`proposal.md`](proposal.md) §15 "Available on request" for access. All §X.Y concepts are also covered in [`methodology.md`](methodology.md) under different headings (§1.5.1 → "Five methodological commitments" #1; §1.5.6/§1.5.6.5 → "Layer 3 design discipline" + commitment #2; §1.5.7 → commitment #3; §1.5.5 → commitment #4). Use methodology.md for the framework; this brief for the prior-art map.
+
 ---
 
 ## 1. Stanford TERMS-Bench (Zhang et al., May 2026)
