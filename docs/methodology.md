@@ -29,7 +29,7 @@ Every Layer 3 use case follows the same protocol:
 3. **Predict held-out** — deterministic prediction from fitted parameters + observable context.
 4. **Predictive accuracy** — choice-agreement rate (for discrete choices) or MAE (for continuous emissions) on held-out decisions.
 
-Multi-class robustness check: fit all 5 candidate functional classes (prospect theory KT '79, CRRA, CARA, cumulative prospect theory TK '92, Kelly-Markowitz) on the training set; report a posterior over classes as a secondary score. This is the response to Andrews 2026's non-identification critique: within-class identification is honest about which functional class assumption is doing the work.
+Multi-class robustness check: fit all 5 candidate functional classes (prospect theory KT '79, CRRA, CARA, cumulative prospect theory TK '92, Kelly-Markowitz) on the training set; report a posterior over classes as a secondary score. This is the response to [Andrews 2026](papers/pdfs/andrews_2026_revealed_rationality.pdf)'s non-identification critique: within-class identification is honest about which functional class assumption is doing the work.
 
 ## OracleDecomposable: the load-bearing abstraction
 
@@ -40,16 +40,16 @@ A Layer 3 use case is `OracleDecomposable` if it admits:
 - An **oracle policy** (the Bayes-optimal action given perfect knowledge of the hidden state)
 - A **scalar utility function** over (action, hidden state)
 
-Any such use case admits the TERMS-Bench Eq. 4 decomposition: U(π★) − U(π_base) = Δ_inf + Δ_unc + Δ_ctrl (information gap + uncertainty gap + control gap).
+Any such use case admits the [TERMS-Bench](https://arxiv.org/abs/2605.13909) Eq. 4 decomposition: U(π★) − U(π_base) = Δ_inf + Δ_unc + Δ_ctrl (information gap + uncertainty gap + control gap).
 
-Zhang et al. 2026 introduced this decomposition for bilateral bargaining. We abstract the construction and demonstrate it on a *collection* of use cases:
+Zhang et al. 2026 introduced this decomposition for bilateral bargaining. We abstract the construction and demonstrate it on a *collection* of use cases. The v0 collection:
 
 - **C1 Persona-fit**: hidden state = principal's IRL-fit utility coefficients (α_kelly, δ_turnover); oracle = closed-form Kelly-Markowitz
 - **C2 Price-aware product selection**: hidden state = vendor true cost/quality; oracle = cheapest dominating choice
 - **D2 Bargaining (v2)**: native TERMS-Bench instantiation
 - **D3 Agentic vendor selection (v2)**: extends C2 to full marketplace with agentic tool-use
 
-The generalization is the multi-domain application — not just one new task wrapped in the same Eq. 4.
+The full open candidate pool — ~25 cases including EconEvals procurement/pricing/scheduling wraps, Calvano collusion detection, Gale-Shapley two-sided matching, Vending-Bench long-horizon coherence, weather/event forecasting — is enumerated in [`layer3_candidates.md`](layer3_candidates.md) on a value × testability matrix with per-case pros/cons. The generalization claim is the multi-domain application — not just one new task wrapped in the same Eq. 4. v0 ships with 4; v0.5+ expansion ranks against the candidate pool.
 
 ## The 5-axis failure taxonomy
 
@@ -57,9 +57,9 @@ When a model scores low on a Layer 3 task, *which mechanism failed?* The 5-axis 
 
 | # | Axis | Causal hypothesis | Prior-art anchor |
 |---|---|---|---|
-| 1 | **Information** | Agent lacks knowledge of hidden state | [TERMS-Bench (Zhang et al. 2026)](https://arxiv.org/abs/2605.13909) — generalized via OracleDecomposable |
-| 2 | **Consistency** | Agent's preference / belief structure violates axioms | [Andrews 2026](papers/pdfs/andrews_2026_revealed_rationality.pdf) (representation theorem penalties) |
-| 3 | **Calibration** | Agent's economic parameters are misfit (Layer 2 identification fails) | [Mazeika 2025](https://arxiv.org/abs/2502.08640) (utility engineering) |
+| 1 | **Information** | Agent lacks knowledge of hidden state | TERMS-Bench (Zhang et al. 2026) — generalized via OracleDecomposable |
+| 2 | **Consistency** | Agent's preference / belief structure violates axioms | Andrews 2026 (representation theorem penalties) |
+| 3 | **Calibration** | Agent's economic parameters are misfit (Layer 2 identification fails) | [Mazeika 2025](https://arxiv.org/abs/2502.08640) (utility engineering); [Guo et al. 2017](https://arxiv.org/abs/1706.04599) (ECE diagnostic); [Gneiting & Raftery 2007](papers/pdfs/gneiting_raftery_2007_strictly_proper_scoring_rules.pdf) (proper scoring rules) |
 | 4 | **Computational floor** | Agent can't execute the math the choice requires | Novel for v0; partial precedent in code-eval literature |
 | 5 | **Meta-cognitive** | Agent's confidence is uncalibrated (stated ≠ realized accuracy) | [Yamin et al. 2026](https://arxiv.org/abs/2602.06286) (belief coherence); [Chadwick 2025](papers/pdfs/chadwick_kahng_kipper_2025_dutch_books.pdf) (Dutch books); [Zhu & Griffiths 2024](https://arxiv.org/abs/2401.16646) (incoherent probability judgments) |
 
@@ -91,7 +91,7 @@ These papers each *explicitly* discuss whether their diagnostic / correction app
 | **Scaling unverified** — small models / narrow domains | Betz (T5 only; BART / GPT-3 not tested); Zhu-Griffiths (4 SOTA but only on probability judgments, not deployed decisions) | AERead targets frontier LLMs on deployment-relevant tasks (13F decisions, procurement, negotiation) — the scaling gap *is* our headline contribution |
 | **Stack-design question: which combination order?** | Chadwick explicit: "does a two-step refinement (first ordinal, then cardinal) outperform a single probability-based approach?" | The 3-layer pipeline IS our answer: existence → identification → predictive validity. The cross-layer attribution matrix measures whether the layers compose. |
 | **Choice of measurement model matters** | Chadwick (Kemeny may not be the right benchmark); Betz (multiple normative frameworks beyond Bayesian) | Measurement-model pluralism (4-6 competing models per axiom; Bayesian posterior reported over them) is a methodological commitment, not an assumption |
-| **Real-world deployment gap** | Chadwick: "it has yet to be determined how useful our system is in real-world scenarios"; all four implicit | Predict-then-validate Layer 3 (§1.5.2.1 of master plan) — the headline score IS held-out predictive accuracy on deployed-style decisions |
+| **Real-world deployment gap** | Chadwick: "it has yet to be determined how useful our system is in real-world scenarios"; all four implicit | Predict-then-validate Layer 3 design (see "Layer 3 design discipline" section above) — the headline score IS held-out predictive accuracy on deployed-style decisions |
 | **Cross-axis integration is missing** | All four papers test ≤ 1 axis | The 5-axis taxonomy + cross-decomposition matrix is the integrative claim — none of the prior diagnostic papers attempt this |
 | **Existential-statement falsification problem** | Betz (Rationality Hypothesis can be confirmed by example, never falsified by absence) | AERead reports per-(model, task) fingerprints, not a "this model is rational" verdict — sidesteps the falsification problem |
 | **Truthful-reporting assumption** | Zhu-Griffiths footnote: "LLMs were assumed to demonstrate truthful reporting of latent event probabilities" | Stated-vs-revealed cross-checks (compare elicited probability vs deployed choice) are part of Axis 5; we don't take stated confidence at face value |
@@ -127,9 +127,9 @@ Each citation-anchored:
 4. **Context-conditional axiomatization.** Personas degrade axiom compliance; this is a measurable dimension, not an assumption to control. *Wen 2025.*
 5. **Cross-layer attribution + oracle-gap decomposition.** What turns scores into actionable signals.
 
-## Plug-and-play as a methodology commitment
+## Adoption commitment: plug-and-play usability
 
-Adoption traction analysis (25 benchmarks studied) found that no benchmark > 200 cites lacks (a) a live submission leaderboard with auto-scoring, (b) a frontier-lab model-card commitment, and (c) ≤ 5-minute clone-to-first-output. Therefore AERead is designed for:
+Plug-and-play is an **adoption** commitment, not a methodology commitment — separate from the five above. Adoption traction analysis (25 benchmarks studied) found that no benchmark > 200 cites lacks (a) a live submission leaderboard with auto-scoring, (b) a frontier-lab model-card commitment, and (c) ≤ 5-minute clone-to-first-output. Therefore AERead is designed for:
 
 - Zero-code task contribution via YAML
 - One-line evaluation: `pip install aeread && aeread evaluate --model claude-opus-4-7 --task all`
