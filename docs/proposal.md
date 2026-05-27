@@ -49,6 +49,8 @@ The three layers map to the canonical revealed-preference pipeline: **existence*
 - **D2 Bargaining (v2)**: native TERMS-Bench instantiation; wrap their runtime when code releases.
 - **D3 Agentic vendor selection (v2)**: extends C2 to full marketplace with agentic tool-use; EconEvals provides protocol precedent.
 
+> **The v0 list is intentionally short.** The full open candidate pool — EconEvals procurement/pricing/scheduling wraps, Calvano-style algorithmic-collusion detection, Gale-Shapley matching, multi-issue negotiation, Vending-Bench long-horizon coherence, Zhu-Griffiths weather/event forecasting, ~18 candidates total — is enumerated in [`layer3_candidates.md`](layer3_candidates.md) with per-case pros/cons + Tier S/A/B/C/D priority. Adding cases later strengthens the §3 generalization claim (more domains → broader OracleDecomposable demonstration); the candidate doc is the input to that prioritization conversation.
+
 ## 3. Novel methodology contribution: 5-axis failure taxonomy + `OracleDecomposable` generalization
 
 This is the methodologically defensible contribution that distinguishes AERead from STEER, EconEvals, Rationality Check!, TERMS-Bench, and every other Q1-2026 LLM-economics benchmark.
@@ -366,6 +368,7 @@ What it IS asking: enter a 4-week trial collaboration with one bounded Phase-0 i
 ### In this repo
 
 - **[Methodology summary](methodology.md)** — 3-layer pipeline + 5-axis taxonomy condensed
+- **[Layer 3 candidate pool](layer3_candidates.md)** — open list of ~22 real-world economic decision use cases for v0.5 / v1 / v1.5 / v2 expansion, with per-case pros/cons + priority tiers
 - **[Citation links](papers/links.md)** — one-stop lookup mapping every cited paper to a public URL or repo-hosted PDF
 - **[Reading list](reading_list.txt)** — T1 / T2 / T3 papers with [AXIS-N] anchor flags
 - **[Bibliography](papers/references_master.yaml)** — 160-entry machine-readable references
