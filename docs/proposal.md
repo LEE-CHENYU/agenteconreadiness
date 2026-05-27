@@ -179,37 +179,43 @@ Methodology + IRL infrastructure + Category C implementation. Has working 13F-ex
 - Ship A4 stability dimension end-to-end by 2026-06-09
 - Draft methodology paper §1 + §2 by 2026-06-23 for collaborator review
 
-### 9.2 Yuecheng Fang — proposed Phase-0 DoL
+### 9.2 Yuecheng Fang — proposed Phase-0 DoL (benchmark implementation track)
 
-If you want to evaluate fit, pick one of these as your Phase-0 contribution:
+Yuecheng's prior benchmark-building experience is the natural fit for the implementation side — the runtime infrastructure, scorer library, leaderboard ops that turn the methodology into a tool researchers can actually use. Phase-0 options (pick one or pair two for ~10 hours total):
 
-- **(A) Measurement-model framework review.** Read the §1.5.6 measurement-model-pluralism framework (link in master plan); flag the 3 highest-leverage statistical-rigor improvements. ~3-4 hours.
-- **(B) OracleDecomposable identification conditions.** Write a 1-2 page sketch of the identification conditions for OracleDecomposable across the two v0 Cat C use cases (C1 persona-fit, C2 price-aware product selection). ~5-8 hours.
-- **(C) Sky Computing Lab feasibility.** Explore with your senior advisor whether the cc'd-email introduction pattern is viable for AERead launch; report back on what would unlock it. ~1-2 conversations.
+- **(A) Standard scorer library scoping memo.** Review the runtime spec §5 scorer / generator menu (the [methodology summary](methodology.md) points to the master plan §14); propose which 3-5 scorers ship in v0 and which defer to v1.5. The scoring layer is the load-bearing primitive for Layer 1 + Layer 2 outputs — picking the right v0 set determines what dimensions can actually be measured at launch. ~5-8 hours.
 
-Why these: the §1.5.6 + OracleDecomposable workstreams are the natural Berkeley applied-math / statistics fit; (C) is the highest-leverage non-paper contribution if the advisor channel opens.
+- **(B) lm-evaluation-harness integration prototype.** Sketch the entry-point structure that makes AERead install as an `lm_eval/tasks/aeread_*` task family — a single end-to-end smoke test on a toy task (e.g., a 5-option transitivity probe on Haiku) showing the integration works. This is the §5 plug-and-play adoption gate. ~8-12 hours.
 
-Time commitment for Phase-0: **~4-8 hours over 2-4 weeks.** No deeper commitment until the 4-week checkpoint.
+- **(C) Leaderboard schema + composite-score design.** Propose how per-task scores aggregate into the AERead composite (per the runtime spec §10 leaderboard rendering): what's the right user-facing single number, what's reported alongside in the diagnostic page, how does the 5-axis radar map to a sortable column? ~5-8 hours.
 
-### 9.3 Zihao Li — proposed Phase-0 DoL
+These three are the implementation primitives that turn the methodology paper into a benchmark. Whichever you pick informs the §7 engineering plan directly.
 
-If you want to evaluate fit, pick one of these:
+Time commitment for Phase-0: **~5-12 hours over 2-4 weeks** depending on scope picked.
 
-- **(A) §10 discussion framing review.** Read the methodology paper §10 (discussion + future work) outline; flag mechanism-design framings that should be sharpened or are missing. ~3-4 hours.
-- **(B) v2 D-dimension priority memo.** Draft a 1-page memo on which v2 D-dimension expansion is highest-leverage from a game-theory perspective: D1 context-conditional axiomatization vs D2 bargaining vs D3 agentic vendor selection. ~5-8 hours.
-- **(C) Columbia game-theory advisor channel.** Discuss with your advisor whether AERead is the right artifact to anchor a future agent-mechanism-design paper. ~1 conversation.
+### 9.3 Zihao Li — proposed Phase-0 DoL (econ + formal-math foundation track)
 
-Why these: §10 + v2 framing are the natural Columbia mechanism-design fit; (C) tests whether senior-advisor support exists before we commit to that channel.
+Zihao's economics + formal-mathematics background is the natural fit for the **load-bearing methodology work**: the Layer 1 axiom protocols, the Layer 2 identification framework, and the OracleDecomposable formalization that generalizes TERMS-Bench Eq. 4. This is the heaviest of the three Phase-0 tracks because it's the §3 methodology-paper core — without it, the benchmark has no rigorous claim.
 
-Time commitment for Phase-0: **~4-8 hours over 2-4 weeks.** No deeper commitment until the 4-week checkpoint.
+Phase-0 options (pick 1-2 for ~15-25 hours total — biggest contribution surface of the three collaborators):
 
-### 9.4 Open slot: engineering-side collaborator
+- **(A) OracleDecomposable formalization.** Formalize the OracleDecomposable interface mathematically — what are the precise conditions (hidden state, controllable simulator, oracle policy, belief substitution, state reveal, scalar utility) that admit the Δ_inf + Δ_unc + Δ_ctrl decomposition? Identify which of the v0 use cases (C1 persona-fit, C2 price-aware product selection) satisfy each condition, where the abstraction breaks down, and what the v2 extensions (D2 bargaining, D3 agentic vendor selection) need. Anchor on Zhang et al. 2026 TERMS-Bench §4 (their Eq. 4 derivation); the methodology paper §3 takes this verbatim. **~10-15 hours.** This is the highest-leverage single item in the trial.
 
-The 2-3 week AI-accelerated runtime (§7) reduces the need for a long-term contract engineer, but the **engineering side of the methodology paper** (reproducibility infrastructure, leaderboard polish, evaluation-harness integration) is still a real workstream. If we find someone whose technical contribution is substantive enough to be a coauthor — not a paid contractor — we want them on the team.
+- **(B) Layer 1 axiom protocol specs.** Draft the formal specifications for the Layer 1 axiom-test family: CCEI, GARP, WARP, transitivity, monotonicity, Houtman-Maks. For each: test definition + what passing means + the Bayesian-model-selection posterior structure (per §1.5.6 measurement-model pluralism). Pair with [Andrews 2026](papers/pdfs/andrews_2026_revealed_rationality.pdf) representation-theorem penalties as the §1.5.9.4 Axis 2 mathematical anchor. **~10-15 hours.**
 
-Candidate identification continues via lm-evaluation-harness contributor graph + HuggingFace Datasets maintainers + the existing network search. Same Phase-0 / 4-week-checkpoint discipline applies: if a candidate emerges, they get a Phase-0 DoL item (likely: ship a specific evaluator-harness adapter or leaderboard-infrastructure piece) and authorship is decided at the checkpoint based on what they actually contribute.
+- **(C) Layer 2 identification framework.** Formalize the within-class identification claim per §1.5.6.5: given a functional class (KT '79 prospect theory, CRRA, CARA, cumulative prospect theory TK '92, Kelly-Markowitz), what does identification mean operationally? When does the framework recover unique parameters vs admit non-uniqueness (Andrews's critique)? Draft the §3 methodology-paper subsection that handles this. **~10-15 hours.**
 
-Framing: potential coauthor specializing on the infrastructure side, not a paid contractor.
+You're effectively the §3 co-lead of the methodology paper if this trial converts. If you want to pick all three, that's the maximum-contribution path and would set up co-lead authorship discussion at the checkpoint; one item alone is sufficient signal for the trial.
+
+Time commitment for Phase-0: **~10-25 hours over 2-4 weeks** depending on scope picked.
+
+### 9.4 Open slot: infrastructure-ops collaborator
+
+Yuecheng covers the benchmark *design* side (§9.2). The runtime *operations* side — reproducibility-cache hardening, leaderboard CI/CD, HuggingFace / model-card integration, eval-harness ops at scale — is a distinct workstream and remains an open slot. If we find someone whose ops contribution is substantive enough to be a coauthor (not a paid contractor), we want them on the team.
+
+Candidate identification continues via lm-evaluation-harness contributor graph + HuggingFace Datasets maintainers + existing network search. Same Phase-0 / 4-week-checkpoint discipline applies; if a candidate emerges, they get a Phase-0 DoL item (likely: ship one specific eval-harness adapter or leaderboard-infrastructure piece). Authorship decided at the checkpoint.
+
+Framing: potential coauthor specializing on the ops side, not a paid contractor.
 
 ### 9.5 What gets decided at the 4-week checkpoint (2026-06-30)
 
