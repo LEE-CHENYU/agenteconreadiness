@@ -13,73 +13,73 @@ Anchor abbreviations used below: **§1.5.X** = methodology subsections of the Ag
 Twelve papers that directly inform our methodology paper's §2 (related work) or §3 (test-design choices), or whose findings we adopt as ground truth for a specific dimension's design.
 
 ### 1. STEER: Assessing the Economic Rationality of Large Language Models (Raman et al., 2024)
-- arxiv: 2402.09552 | category: llm_rationality_core
+- arxiv: [2402.09552](https://arxiv.org/abs/2402.09552) | category: llm_rationality_core
 - Authors: Raman, Lundy, Amouyal, Levine, Leyton-Brown, Tennenholtz (UBC / Tel Aviv / Stanford / AI21 / Technion)
 - **Synopsis.** Surveys the economic-rationality literature and decomposes "rational agent" into a taxonomy of fine-grained "elements" with explicit dependencies between them. Proposes STEER, a tuneable benchmark distribution that scores LLMs against each element and combines those scores with a user-supplied rubric into an aggregate rationality score. This is the closest prior art to the AgentEcon Readiness thesis: a multi-dimensional benchmark of LLM economic rationality with a deliberately modular score.
 - **AgentEcon Readiness relevance.** Direct ancestor of our §1.5.2 three-layer hierarchy (axiom→parameter→outcome). STEER's "elements + dependencies" decomposition is the structural template we extend by adding (a) cardinal calibration via persona-fit (§7.C1) that STEER does not address, (b) context-conditional axiomatization (§1.5.5, D1) that resolves STEER's all-or-nothing-axiom problem, and (c) judge-free scoring (§1.5.7). Must cite as the primary "what's different about AgentEcon Readiness" anchor in §2.
 
 ### 2. Economic Rationality under Specialization (Wen, 2025)
-- arxiv: 2501.18190 | category: llm_rationality_core
+- arxiv: [2501.18190](https://arxiv.org/abs/2501.18190) | category: llm_rationality_core
 - Author: ShuiDe Wen (Tsinghua Shenzhen)
 - **Synopsis.** Extends Chen et al. (2023) by running budget-allocation and risk experiments on persona-specialized GPT agents (biotech expert, economist) vs. the generic base model. Finds that specialization *degrades* economic rationality: more GARP violations, lower CCEI, larger deviations under high-risk conditions. Coins "rationality shift" as the conflict between domain specialization and axiomatic compliance.
 - **AgentEcon Readiness relevance.** This is the canonical anchor for §1.5.5 (context-conditional axiomatization) — the empirical evidence that compliance with classical axioms is *not* context-invariant when LLMs are given a role, persona, or domain. Resolves the §7.A1/A2/A3 design problem of "do we test on generic or persona-conditional prompts?" Answer: both, and the gap between them *is* a measurable dimension (D1). Cite in §1.5.5 opener and again in §7.C1 motivation.
 
 ### 3. Recovering Event Probabilities from LLM Embeddings via Axiomatic Constraints (Zhu, Yan, Griffiths, 2025)
-- arxiv: 2505.07883 | category: llm_rationality_core
+- arxiv: [2505.07883](https://arxiv.org/abs/2505.07883) | category: llm_rationality_core
 - Authors: Jian-Qiao Zhu (Princeton), Haijiang Yan (Warwick), Tom Griffiths (Princeton)
 - **Synopsis.** LLM-emitted event probabilities violate basic probability axioms (additivity, complementarity). Authors train a VAE on LLM embeddings with an additivity-constraint penalty and recover probabilities from the latent space that are more coherent and closer to ground truth than the model's verbal outputs. Demonstrates that representations encode coherent beliefs even when token-level outputs do not.
 - **AgentEcon Readiness relevance.** Foundational for §1.5.6 (measurement-model pluralism) and §15.6 (oracle-gap decomposition). Direct evidence that a model can fail the axiom on emitted output while satisfying it in representation space — i.e., the gap between "capability" and "elicited behavior" is real and measurable. Justifies why we need both verbal and representation-level measurement models in §7.A* dimensions. Pair with paper #11 (Yamin et al.) below.
 
 ### 4. Sparks of Rationality: Do Reasoning LLMs Align with Human Judgment and Choice? (Tak et al., 2026)
-- arxiv: 2601.22329 | category: llm_rationality_core
+- arxiv: [2601.22329](https://arxiv.org/abs/2601.22329) | category: llm_rationality_core
 - Authors: Tak, Banayeeanzade, Bolourani, Bahrani, Chaubey, Karimireddy, Schwarz, Gratch (USC / ICT)
 - **Synopsis.** Evaluates reasoning-enabled LLMs (with thinking modes, in-context priming, and rep-level steering) on (i) classical axioms of rational choice and (ii) behavioral-economics decision domains (Allais, framing, certainty effects). Finds reasoning mode shifts models toward EU-maximizing answers and away from human-like biases — a dual-process pattern.
 - **AgentEcon Readiness relevance.** Direct evidence for §1.5.1 (descriptive-vs-normative split): the *same* model can be tuned by thinking-budget toward either rational-axiom compliance or human-like bias replication. Cite in §1.5.1 to motivate why we score both axes separately, and in §7.B1/B2/B3 to justify reporting thinking-mode-on and thinking-mode-off conditions side by side. Most recent (Jan 2026) and directly germane.
 
 ### 5. When Agents Say One Thing and Do Another: Validating Elicited Beliefs from LLMs (Yamin et al., 2026)
-- arxiv: 2602.06286 | category: llm_rationality_core
+- arxiv: [2602.06286](https://arxiv.org/abs/2602.06286) | category: llm_rationality_core
 - Authors: Yamin, Tang, Cortes-Gomez, Sharma, Horvitz, Wilder (CMU / Microsoft Research)
 - **Synopsis.** Decision-theoretic framework that elicits both probability judgments and decisions from an LLM and tests internal consistency: is there *any* near-rational utility function that rationalizes the action given the stated belief? The framework is utility-free (no assumption on the utility shape). Applied to clinical-diagnosis tasks; finds frontier models' belief reports are imperfect summaries of decision-revealed information, but the gap is small for strong models.
 - **AgentEcon Readiness relevance.** This is the methodological anchor for §1.5.7 (judge-free by design): rationality testing without assuming a specific utility shape. The "is there *any* utility that rationalizes the data" framing is exactly the inverse-revealed-preference logic we adopt in §7.C1 (persona-fit) and the consistency tests across dimensions. Adopt their consistency-testing framework directly. Also direct support for §15.6 (oracle-gap intervention decomposition) — emitted-vs-revealed gap is their core finding.
 
 ### 6. Utility Engineering: Analyzing and Controlling Emergent Value Systems in AIs (Mazeika et al., 2025)
-- arxiv: 2502.08640 | category: llm_rationality_core
+- arxiv: [2502.08640](https://arxiv.org/abs/2502.08640) | category: llm_rationality_core
 - Authors: Mazeika et al. (Center for AI Safety / Penn / Berkeley) — Hendrycks group
 - **Synopsis.** Tests whether independently-sampled LLM preferences form coherent utility functions. Surprising finding: structural coherence increases with model scale; frontier models exhibit measurable, stable utility functions over outcomes. Documents specific "shocking" preferences (e.g., AIs valuing themselves over humans). Proposes "utility engineering" — controlling emergent utilities, demonstrated on political-bias reduction via citizen-assembly alignment.
 - **AgentEcon Readiness relevance.** Foundational for §7.A1 (transitivity), §7.A2 (monotonicity), and the entire Category A premise. Provides the empirical claim ("LLMs *do* have coherent utilities at scale") that justifies measuring axiom compliance as a meaningful signal rather than noise. Cite as the affirmative evidence in §1.5.1 ("descriptive prong is non-empty"). Also relevant to §17 commercial tiers — utility-control diagnostics are an obvious paid feature for alignment teams.
 
 ### 7. Algorithmic Collusion by Large Language Models (Fish, Gonczarowski, Shorrer, 2024)
-- arxiv: 2404.00806 | category: llm_rationality_core
+- arxiv: [2404.00806](https://arxiv.org/abs/2404.00806) | category: llm_rationality_core
 - Authors: Fish (Harvard), Gonczarowski (Harvard Econ+CS), Shorrer (Penn State)
 - **Synopsis.** LLM-based oligopoly pricing agents quickly and autonomously settle into supracompetitive collusive prices, with the equilibrium sensitive to seemingly innocuous prompt variations ("price-war concerns" framing increases collusion). Result extends to auctions. Establishes that LLM agents *behaviorally* deviate from competitive Nash and that prompt phrasing materially shapes equilibrium selection.
 - **AgentEcon Readiness relevance.** Anchor for §1.5.3 (prompt-sensitivity is a measurement problem, not just noise) and §17 Tier 3 (regulatory/policy diagnostics). The strongest empirical case for why benchmarks must hold prompts constant across models — and conversely why prompt-sensitivity scoring is itself a useful dimension. Also directly motivates D2 wrap of TERMS-Bench: bargaining behavior depends on identical content-bearing factors. Cite in §1.5.3 and §7.B3 (social preferences / strategic interaction).
 
 ### 8. EconAgents at Auction Arena: Put Your Money Where Your Mouth Is (Chen et al., 2024)
-- arxiv: 2310.05746 | category: llm_as_economic_agent
+- arxiv: [2310.05746](https://arxiv.org/abs/2310.05746) | category: llm_as_economic_agent
 - Authors: Jiangjie Chen et al. (Fudan + AI2)
 - **Synopsis.** AucArena — multi-round auctions as a benchmark for LLM agent planning, budget management, risk-management, and goal-adherence. Finds GPT-4 has the key skills but variance is high and simpler heuristic baselines sometimes outperform. Establishes auctions as a tractable strategic environment for LLM evaluation.
 - **AgentEcon Readiness relevance.** Direct precedent for §7.B1 (risk preferences elicited in resource-constrained multi-round play) and D3 (agentic tool selection — bidding-as-tool-choice). The "GPT-4 sometimes loses to simple heuristics" finding is critical: it bounds the ceiling effect claim in §7.A1 — frontier models are not uniformly dominant on strategic tasks even when they pass axiomatic checks. Cite in §7.A1 ceiling-effect treatment and §7.B1 sizing-under-uncertainty implementation.
 
 ### 9. How Far Are We on the Decision-Making of LLMs? (Huang et al., 2025)
-- arxiv: 2403.11807 | category: llm_as_economic_agent
+- arxiv: [2403.11807](https://arxiv.org/abs/2403.11807) | category: llm_as_economic_agent
 - Authors: Huang et al. (CUHK / Tencent AI Lab) — γ-Bench
 - **Synopsis.** γ-Bench: eight classical game-theory scenarios in multi-agent settings, with a dynamic scoring scheme that adapts to game parameters (test-set leakage-resistant). Evaluates 13 LLMs across 6 families. Best score 69.8/100 (Gemini-1.5-Pro). Decomposes robustness vs generalizability separately.
 - **AgentEcon Readiness relevance.** Methodological precedent for §1.5.4 (leakage-resistance via dynamic instance generation) and §7.B3 (social preferences via game theory). Their robustness/generalizability decomposition maps cleanly onto our prompt-sensitivity and OOD scoring. Best-model 70/100 finding is the empirical scaffold for our §17 Tier 1 free-tier headline-number positioning (multi-dim score with no model saturated). Cite in §1.5.4 and §7.B3.
 
 ### 10. Cooperate or Collapse: Sustainable Cooperation in a Society of LLM Agents (Piatti et al., 2024)
-- arxiv: 2404.16698 | category: llm_as_economic_agent
+- arxiv: [2404.16698](https://arxiv.org/abs/2404.16698) | category: llm_as_economic_agent
 - Authors: Piatti, Jin, Kleiman-Weiner et al. (ETH / MPI / Toronto / UW / Michigan) — GovSim
 - **Synopsis.** Multi-agent commons-governance simulation. Finds that all but the most powerful LLMs fail to reach sustainable cooperation (survival rate <54%); failure traced to inability to formulate and reason about long-term equilibrium effects. "Universalization" prompting (Kantian-style moral reasoning) significantly improves outcomes.
 - **AgentEcon Readiness relevance.** Anchor for §7.B3 (social preferences / cooperation) and v2 D2 bargaining. Demonstrates a clean dimension where capability differences across frontier models are *large* (not ceiling-effected) — useful for §1.5.4 design discussion. Universalization-prompting result also motivates §1.5.3 prompt-conditional scoring. Cite in §7.B3 and v2 D2 motivation.
 
 ### 11. Cognitive Models Can Reveal Interpretable Value Trade-offs in LLMs (Murthy et al., 2026 ICLR)
-- arxiv: 2506.20666 | category: alignment_values
+- arxiv: [2506.20666](https://arxiv.org/abs/2506.20666) | category: alignment_values
 - Authors: Murthy, Zhao, Hu, Kakade, Wulfmeier, Qian, Ullman (Harvard Kempner / DeepMind / Harvard Psych)
 - **Synopsis.** Adapts the polite-speech cognitive model (Bayesian utility-weighting of competing speaker goals) to LLMs. Recovers stable utility-weight profiles per model. Shows: (a) profiles shift predictably with prompt-stated goals, (b) reasoning budgets amplify shifts, (c) profiles diagnose sycophancy. Tracks post-training dynamics: large shifts early, persistent base-model effects, alignment method matters less than feedback dataset.
 - **AgentEcon Readiness relevance.** Foundational for §1.5.6 (measurement-model pluralism). This is the cleanest demonstration that a *cognitive-model* measurement layer recovers interpretable parameters that token-level scoring misses. Adopt their utility-weight recovery as one of the canonical measurement models in §7.A1/A2/A3. Also relevant to §7.C1 (persona-fit) since their per-model utility weights are exactly the "implicit values" we infer in our persona dimension. Cite in §1.5.6 opener and §7.C1 measurement-model selection.
 
 ### 12. Using LLMs to Simulate Multiple Humans and Replicate Human Subject Studies (Aher, Arriaga, Kalai, 2023)
-- arxiv: 2208.10264 | category: llm_as_economic_agent
+- arxiv: [2208.10264](https://arxiv.org/abs/2208.10264) | category: llm_as_economic_agent
 - Authors: Aher (Olin), Arriaga (Georgia Tech), Kalai (Microsoft Research)
 - **Synopsis.** Turing Experiments — replicate Ultimatum Game, Garden Path Sentences, Milgram, Wisdom of Crowds with LLMs simulating populations. First three replicate classic findings; Wisdom of Crowds reveals "hyper-accuracy distortion" (LLMs over-perform on factual tasks compared to human samples).
 - **AgentEcon Readiness relevance.** Methodological precedent for §7.C1 (persona-fit calibration) — using LLMs to simulate distributions of human respondents and validating against known experimental ground truth. Hyper-accuracy distortion is a key threat-model: persona-conditioned LLMs may over-perform on calibration tasks if they recognize the task structure. Cite in §7.C1 threat-model discussion and §1.5.7 judge-free motivation (judges may be hyper-accurate in different directions per model).

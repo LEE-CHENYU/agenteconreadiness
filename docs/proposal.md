@@ -24,9 +24,11 @@ This proposal asks: do you want to co-author the v0 methodology paper, with a de
 A 2025 Anthropic publication reports that **5.9% of Claude API conversations are economic decisions**. JPMorgan announced LLM-agent shareholder voting; Visa announced AI shopping agents. The deployments are happening; the rationality validation is not.
 
 Three Q1-2026 papers from elite teams stake claims in three corners of this problem:
-- **Stanford TERMS-Bench** (Zhang/Athey/Roth-advising, May 2026): bilateral negotiation outcome layer
-- **Harvard EconEvals** (Fish/Gonczarowski, Feb 2026): procurement/scheduling/pricing parameter+outcome layer
-- **MIT Revealed Rationality** (Andrews, Feb 2026): label-free representation-theorem penalties at the axiom layer
+- **Stanford TERMS-Bench** (Zhang/Athey/Roth-advising, May 2026) — [arxiv 2605.13909](https://arxiv.org/abs/2605.13909): bilateral negotiation outcome layer
+- **Harvard EconEvals** (Fish/Gonczarowski, Feb 2026) — [arxiv 2503.18825](https://arxiv.org/abs/2503.18825): procurement/scheduling/pricing parameter+outcome layer
+- **MIT Revealed Rationality** (Andrews, Feb 2026) — [PDF in repo](papers/pdfs/andrews_2026_revealed_rationality.pdf): label-free representation-theorem penalties at the axiom layer
+
+> **Citation links.** All paper references in this proposal map to public URLs or repo-hosted PDFs via [`papers/links.md`](papers/links.md). Inline links below are first-occurrence only.
 
 None integrate the three layers. The integrated benchmark is the open opportunity — and the timing window is narrow (6-9 months before any of these teams ships a v2 extending into the other layers).
 
@@ -53,7 +55,7 @@ This is the methodologically defensible contribution that distinguishes AERead f
 
 **The diagnostic question every benchmark fails to answer**: when a model scores low on a Cat C/D outcome task, *which mechanism failed?* Existing benchmarks decompose along at most one axis: TERMS-Bench by information condition (Δ_inf + Δ_unc + Δ_ctrl) within bargaining; Andrews 2026 by representation theorem; Mazeika 2025 by emergent utility; STEER/EconEvals/Rationality Check! report one number. **None integrate multiple axes.**
 
-**What the diagnostic literature itself says about this gap.** Four 2023–2026 diagnostic papers each *explicitly* discuss whether their single-axis approach is sufficient — and each admits it is not. Chadwick et al. 2025 (§Future Work): "(approximate) probabilistic coherence and transitivity of preferences are necessary conditions for rationality, they are arguably **not sufficient**…it has yet to be determined how useful our system is in real-world scenarios"; and they pose precisely AERead's stack-design question: *"does a two-step refinement (first ordinal, then cardinal) outperform a single probability-based approach?"* Betz & Richardson 2023 (§Future Research) calls for "improved diagnostic tools" with "high-resolution representations of an agent's probabilistic belief system" relating inferential structure of training data to current behavior. Zhu & Griffiths 2024 flags the truthful-reporting assumption underlying any single-axis probability probe. Andrews 2026 §7 separates calibration from coherence as complementary properties.
+**What the diagnostic literature itself says about this gap.** Four 2023–2026 diagnostic papers each *explicitly* discuss whether their single-axis approach is sufficient — and each admits it is not. [Chadwick et al. 2025](papers/pdfs/chadwick_kahng_kipper_2025_dutch_books.pdf) (§Future Work): "(approximate) probabilistic coherence and transitivity of preferences are necessary conditions for rationality, they are arguably **not sufficient**…it has yet to be determined how useful our system is in real-world scenarios"; and they pose precisely AERead's stack-design question: *"does a two-step refinement (first ordinal, then cardinal) outperform a single probability-based approach?"* [Betz & Richardson 2023](https://doi.org/10.1371/journal.pone.0281372) (§Future Research) calls for "improved diagnostic tools" with "high-resolution representations of an agent's probabilistic belief system" relating inferential structure of training data to current behavior. [Zhu & Griffiths 2024](https://arxiv.org/abs/2401.16646) flags the truthful-reporting assumption underlying any single-axis probability probe. Andrews 2026 §7 separates calibration from coherence as complementary properties.
 
 Reading these papers in sequence is reading a request for AERead. The 5-axis taxonomy + cross-decomposition matrix is the integration they each pointed to; the 3-layer pipeline (existence → identification → predictive validity) is the empirical answer to Chadwick's ordinal-then-cardinal question; the collection-of-use-cases Layer 3 design is the cross-domain generalization their single-domain studies could not deliver.
 
@@ -63,9 +65,9 @@ Reading these papers in sequence is reading a request for AERead. The 5-axis tax
 |---|---|---|---|
 | 1 | **Information** | Agent lacks knowledge of hidden state | TERMS-Bench (Zhang et al. 2026) — generalized via `OracleDecomposable` |
 | 2 | **Consistency** | Agent's preference / belief structure violates axioms | Andrews 2026 (representation theorem penalties) |
-| 3 | **Calibration** | Agent's economic parameters are misfit | Mazeika 2025 (utility engineering) |
+| 3 | **Calibration** | Agent's economic parameters are misfit | [Mazeika 2025](https://arxiv.org/abs/2502.08640) (utility engineering); [Guo 2017](https://arxiv.org/abs/1706.04599) (ECE diagnostic); Gneiting-Raftery 2007 (proper scoring rules — [PDF](papers/pdfs/gneiting_raftery_2007_strictly_proper_scoring_rules.pdf)) |
 | 4 | **Computational floor** | Agent can't execute the math the choice requires | Novel for v0; partial precedent in code-eval lit |
-| 5 | **Meta-cognitive calibration** | Agent's confidence is uncalibrated (stated ≠ realized accuracy) | Yamin et al. 2026 (belief coherence) |
+| 5 | **Meta-cognitive calibration** | Agent's confidence is uncalibrated (stated ≠ realized accuracy) | Yamin et al. 2026 ([arxiv 2602.06286](https://arxiv.org/abs/2602.06286)) (belief coherence) |
 
 Each axis has a distinct intervention mechanism and decomposes the per-(model, task) gap independently. Cross-decomposition (information × consistency, etc.) produces the full attribution matrix.
 
