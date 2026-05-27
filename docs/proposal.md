@@ -1,7 +1,7 @@
 # AgentEcon Readiness (AERead): a unified benchmark for LLM rational economic decision-making
 
 **Proposal v0.3 — for Yuecheng Fang and Zihao Li**
-Owner: Cheney Li | Date: 2026-05-26 | Read time: 7 minutes
+Owner: Cheney Li | Date: 2026-05-26 | Read time: ~12 minutes (skim the §9.5 ownership tables on first read)
 
 ---
 
@@ -98,7 +98,7 @@ This respects all prior art (we're extending, not claiming to invent) while stak
 
 4. **Context-conditional axiomatization** is a measurable dimension, not an assumption. Personas, system prompts, and domain framing already degrade axiom compliance. *Anchored: Wen 2025 — biotechnology-expert and economist personas substantially reduce GARP compliance vs baseline.*
 
-5. **Cross-layer attribution + oracle-gap decomposition.** The diagnostic depth that turns scores into actionable signals. The four methodology pillars combine into the defensible position vs. STEER/EconEvals/Rationality-Check (none of which formalize these), TERMS-Bench (which has pillar 5 at one layer), and Andrews (who has pillar 5 at one axiom).
+5. **Cross-layer attribution + oracle-gap decomposition.** The diagnostic depth that turns scores into actionable signals. The five commitments above combine into the defensible position vs. STEER/EconEvals/Rationality-Check (none of which formalize these), TERMS-Bench (which has commitment 5 at one layer only), and Andrews (who has commitment 5 at one axiom only).
 
 ## 5. Adoption-key findings (the launch strategy)
 
@@ -150,8 +150,8 @@ The methodology paper, not the runtime, is the timeline's critical path. The int
 
 | Phase | Calendar | Activity |
 |---|---|---|
-| Phase 0 — trial collaboration | Weeks 1-4 | Each contributor takes one Phase-0 DoL item from §9; output drives the §9 collaboration-fit discussion |
-| Phase 1 — paper draft | Weeks 5-8 | Methodology paper §3 (5-axis + OracleDecomposable) drafted; §1, §2, §10 first drafts; arxiv preprint target |
+| Phase 0 — trial collaboration | Weeks 1-4 | Each contributor takes 1-2 Phase-0 DoL items from §9; Cheney drafts §1+§2 in parallel; output drives the §9.6 checkpoint discussion |
+| Phase 1 — paper draft | Weeks 5-8 | Methodology paper §3 (5-axis + OracleDecomposable) drafted (continuing from Zihao's Phase-0 work); §1+§2 polished from Cheney's Phase-0 drafts; §10 + §6 first drafts; arxiv preprint target |
 | Phase 2 — preprint + reviews | Weeks 9-12 | External methodology reviews (Andrews, Gonczarowski); leaderboard launch with 8+ models; frontier-lab pre-commit conversations |
 | Phase 3 — submission + pilot | Weeks 13-16 | NeurIPS / COLM submission; Tier 2 audit pilot conversations with 1-2 design-partner financial firms |
 
@@ -201,9 +201,9 @@ Phase-0 options (pick 1-2 for ~15-25 hours total):
 
 - **(A) OracleDecomposable formalization.** Formalize the OracleDecomposable interface mathematically — what are the precise conditions (hidden state, controllable simulator, oracle policy, belief substitution, state reveal, scalar utility) that admit the Δ_inf + Δ_unc + Δ_ctrl decomposition? Identify which of the v0 use cases (C1 persona-fit, C2 price-aware product selection) satisfy each condition, where the abstraction breaks down, and what the v2 extensions (D2 bargaining, D3 agentic vendor selection) need. Anchor on Zhang et al. 2026 TERMS-Bench §4 (their Eq. 4 derivation); the methodology paper §3 takes this verbatim. **~10-15 hours.** This is the highest-leverage single item in the trial.
 
-- **(B) Layer 1 axiom protocol specs.** Draft the formal specifications for the Layer 1 axiom-test family: CCEI, GARP, WARP, transitivity, monotonicity, Houtman-Maks. For each: test definition + what passing means + the Bayesian-model-selection posterior structure (per §1.5.6 measurement-model pluralism). Pair with [Andrews 2026](papers/pdfs/andrews_2026_revealed_rationality.pdf) representation-theorem penalties as the §1.5.9.4 Axis 2 mathematical anchor. **~10-15 hours.**
+- **(B) Layer 1 axiom protocol specs.** Draft the formal specifications for the Layer 1 axiom-test family: CCEI, GARP, WARP, transitivity, monotonicity, Houtman-Maks. For each: test definition + what passing means + the Bayesian-model-selection posterior structure under measurement-model pluralism (4-6 competing measurement models fit on the same data; reported posterior over them). Pair with [Andrews 2026](papers/pdfs/andrews_2026_revealed_rationality.pdf) representation-theorem penalties as the Axis 2 (consistency) mathematical anchor. **~10-15 hours.**
 
-- **(C) Layer 2 identification framework.** Formalize the within-class identification claim per §1.5.6.5: given a functional class (KT '79 prospect theory, CRRA, CARA, cumulative prospect theory TK '92, Kelly-Markowitz), what does identification mean operationally? When does the framework recover unique parameters vs admit non-uniqueness (Andrews's critique)? Draft the §3 methodology-paper subsection that handles this. **~10-15 hours.**
+- **(C) Layer 2 identification framework.** Formalize the within-class identification claim: given a functional class (KT '79 prospect theory, CRRA, CARA, cumulative prospect theory TK '92, Kelly-Markowitz), what does identification mean operationally? When does the framework recover unique parameters vs admit non-uniqueness (Andrews 2026's critique that representation theorems guarantee existence, not identification)? Draft the §3 methodology-paper subsection that handles this. **~10-15 hours.**
 
 You're effectively the §3 co-lead of the methodology paper if this trial converts. One item alone is sufficient signal for the trial; picking more is welcome but not expected.
 
@@ -211,7 +211,7 @@ Time commitment for Phase-0: **~10-25 hours over 2-4 weeks** depending on scope 
 
 ### 9.4 Open slot: infrastructure-ops collaborator
 
-Yuecheng covers the benchmark *design* side (§9.2). The runtime *operations* side — reproducibility-cache hardening, leaderboard CI/CD, HuggingFace / model-card integration, eval-harness ops at scale — is a distinct workstream and remains an open slot. If we find someone whose ops contribution is substantive enough to be a coauthor (not a paid contractor), we want them on the team.
+Yuecheng covers the benchmark *implementation* side (§9.2) — scorer library, lm-eval-harness integration, leaderboard schema, contributor-facing infrastructure. The runtime *operations* side — reproducibility-cache hardening, leaderboard CI/CD, HuggingFace / model-card integration, eval-harness ops at scale — is a distinct workstream and remains an open slot. If we find someone whose ops contribution is substantive enough to be a coauthor (not a paid contractor), we want them on the team.
 
 Candidate identification continues via lm-evaluation-harness contributor graph + HuggingFace Datasets maintainers + existing network search. Same Phase-0 / 4-week-checkpoint discipline applies; if a candidate emerges, they get a Phase-0 DoL item (likely: ship one specific eval-harness adapter or leaderboard-infrastructure piece). Authorship decided at the checkpoint.
 
@@ -312,7 +312,7 @@ If the proposed sync slot doesn't work, propose alternates. Cadence matters more
 
 ## 11. Explicit ask + 4-week checkpoint
 
-**Ask**: enter a 4-week trial collaboration. Pick one Phase-0 item from §9.2 / §9.3 and deliver it before 2026-06-23.
+**Ask**: enter a 4-week trial collaboration. Pick 1-2 Phase-0 items from §9.2 / §9.3 and deliver them before 2026-06-23.
 
 **Decision at the checkpoint (2026-06-30)**:
 - **Continue** → discuss authorship + Phase 1 commitment
@@ -343,7 +343,7 @@ This proposal is not risk-free. Honest list:
 
 ## 13. Concrete next steps
 
-1. **Read this proposal + the [methodology summary](methodology.md) + [reading list](reading_list.txt)**. Time: ~30 min for proposal, optional 1-2 hours for the rest.
+1. **Read this proposal + the [methodology summary](methodology.md) + [reading list](reading_list.txt)**. Time: ~45 min for the proposal (skim §9.5 tables on first pass; the ownership map is checkpoint input, not Phase-0 commitment), optional 1-2 hours for the rest.
 2. **First sync 2026-06-02 at 4pm Pacific** (30 min) — async agenda + responses 24h prior.
 3. **Pick one or two Phase-0 items each** from §9.2 (Yuecheng) and §9.3 (Zihao); flag your picks at the first sync.
 4. **Cheney**: ship A4 stability dimension end-to-end by 2026-06-09; draft methodology paper §1+§2 by 2026-06-23.
@@ -361,13 +361,25 @@ This proposal is not risk-free. Honest list:
 
 What it IS asking: enter a 4-week trial collaboration with one bounded Phase-0 item. Decision on continuation at **2026-06-30**.
 
-## 15. Linked artifacts (in this repo)
+## 15. Linked artifacts
+
+### In this repo
 
 - **[Methodology summary](methodology.md)** — 3-layer pipeline + 5-axis taxonomy condensed
 - **[Citation links](papers/links.md)** — one-stop lookup mapping every cited paper to a public URL or repo-hosted PDF
 - **[Reading list](reading_list.txt)** — T1 / T2 / T3 papers with [AXIS-N] anchor flags
 - **[Bibliography](papers/references_master.yaml)** — 160-entry machine-readable references
 - **[Curated paper index](papers/_INDEX.md)** — annotated reading guide
+
+### Available on request (source-repo artifacts)
+
+The master plan + runtime spec live in the internal source repo (`rationale`) — they're the implementation-side documents this proposal summarizes. Request access from Cheney if your Phase-0 item needs drill-down:
+
+- **Master plan** (~3,000 lines) — full §1.5.* methodology development, §2.5 dimension scoping, §6 implementation phases, §7 per-dimension notes, §14 diagnostic decomposition architecture, §17 commercial framing. Useful for Yuecheng's Phase-0 (A) scorer scoping and Zihao's Phase-0 (B)/(C) protocol specs.
+- **Runtime spec** (~1,200 lines) — §2 architecture, §5 scorer menu, §10 leaderboard rendering, §14.7 cache layer extension. Useful for Yuecheng's Phase-0 (B) integration prototype.
+- **Diagnostic-page mock** (~500 lines) — UX wireframes for the 5-axis radar drill-down page. Useful for Yuecheng's Phase-0 (C) leaderboard schema design.
+
+These will be folded into the sister repo (made public alongside the methodology paper preprint) once they stabilize.
 
 ---
 
