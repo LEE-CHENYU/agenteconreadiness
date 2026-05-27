@@ -1,16 +1,25 @@
-# Cited Papers — Curated Index
+# Cited Papers — Curated Index (deep-dive synopses)
 
 Auto-extracted bibliographies from the 3 anchor papers (TERMS-Bench / EconEvals / Revealed Rationality).
 Master list: [`references_master.yaml`](references_master.yaml) (160 entries). Three PDFs in [`pdfs/`](pdfs/) for papers without public URLs (Andrews 2026, Chadwick 2025, Gneiting & Raftery 2007); the rest are accessible via the arxiv/DOI links in this file or via [`links.md`](links.md). The full PDF collection (53 papers) lives in the source repo (`rationale`) — request access from Cheney if you need drill-down (see proposal §15 "Available on request").
-Generated: 2026-05-26.
+Generated: 2026-05-26 (refreshed 2026-05-26 with cross-doc clarification).
+
+**Relationship to other reference docs**:
+
+- [`references_master.yaml`](references_master.yaml) — **master machine-readable bibliography** (160 entries, full metadata)
+- [`../reading_list.txt`](../reading_list.txt) — **priority list** with T1/T2/T3 tiers, [AXIS-N] anchor tags, per-paper one-line rationales, + reading-paths-by-role; lists ~14 T1 papers including the 3 anchor benchmarks AERead integrates (TERMS-Bench / Andrews 2026 / EconEvals)
+- **THIS file (`_INDEX.md`)** — **deep-dive curated synopses** for ~12 supporting-literature papers (multi-agent, cognitive-modeling, mechanism-design); does NOT re-synopsize the 3 anchor benchmarks because they are covered in detail in [`../proposal.md`](../proposal.md) §1-§3 + [`../methodology.md`](../methodology.md)
+- [`links.md`](links.md) — **URL accessibility layer** for every cited paper
+
+Each doc serves a different question. Use this file when you want 5-6 paragraphs of analysis + AERead-relevance discussion for one of the 12 papers below; use `reading_list.txt` when you want "what should I read first?"
 
 Anchor abbreviations used below reference the master plan (in the source repo): **§1.5.X** = methodology subsections; **§7.AX/BX/CX** = dimension implementations; **§15.6** = oracle-gap decomposition; **§17** = commercial-tier model; **D2/D3** = v2 dimension candidates currently in scope (bargaining, agentic vendor selection — see proposal §2 and [`../layer3_candidates.md`](../layer3_candidates.md) for the full open pool).
 
 ---
 
-## Tier 1: Read in full (foundational for AgentEcon Readiness design)
+## Tier 1: Read in full (deep-dive synopses — supporting literature)
 
-Twelve papers that directly inform our methodology paper's §2 (related work) or §3 (test-design choices), or whose findings we adopt as ground truth for a specific dimension's design.
+Twelve papers that directly inform the methodology paper's §2 (related work) or §3 (test-design choices), or whose findings AERead adopts as ground truth for a specific dimension's design. **The 3 anchor benchmarks AERead integrates** (TERMS-Bench / Andrews 2026 / EconEvals) are NOT re-synopsized here — they are covered in [`../proposal.md`](../proposal.md) §1-§3 and listed first in [`../reading_list.txt`](../reading_list.txt) T1. This index complements that coverage by providing depth on the surrounding literature.
 
 ### 1. STEER: Assessing the Economic Rationality of Large Language Models (Raman et al., 2024)
 - arxiv: [2402.09552](https://arxiv.org/abs/2402.09552) | category: llm_rationality_core
