@@ -18,7 +18,7 @@ Pre-launch. v0 runtime in development; methodology paper targeting NeurIPS / COL
 |---|---|
 | [`docs/proposal.md`](docs/proposal.md) | Research-collaboration proposal (the document this repo was created to host) |
 | [`docs/methodology.md`](docs/methodology.md) | Condensed methodology: 3-layer pipeline + 5-axis failure taxonomy + OracleDecomposable abstraction |
-| [`docs/layer3_candidates.md`](docs/layer3_candidates.md) | Open candidate pool of ~22 Layer 3 real-world economic decision use cases (v0 + expansion roadmap) |
+| [`docs/layer3_candidates.md`](docs/layer3_candidates.md) | Open candidate pool of ~25 Layer 3 real-world economic decision use cases on a value × testability matrix (v0 + expansion roadmap) |
 | [`docs/reading_list.txt`](docs/reading_list.txt) | T1 / T2 / T3 prior-art reading list with [AXIS-N] anchor flags |
 | [`docs/papers/links.md`](docs/papers/links.md) | One-stop citation links — every cited paper mapped to a public URL or repo-hosted PDF |
 | [`docs/papers/_INDEX.md`](docs/papers/_INDEX.md) | Annotated index of cited papers (curated reading guide) |
@@ -53,9 +53,9 @@ When a model scores low, the diagnostic page identifies which axis is to blame:
 
 1. **Information** — agent lacks knowledge of hidden state (TERMS-Bench / OracleDecomposable)
 2. **Consistency** — agent's preferences violate axioms (Andrews 2026)
-3. **Calibration** — agent's economic parameters are misfit (Mazeika 2025)
+3. **Calibration** — agent's economic parameters are misfit (Mazeika 2025; Guo 2017 ECE; Gneiting-Raftery 2007 proper scoring rules)
 4. **Computational floor** — agent can't execute the math (novel)
-5. **Meta-cognitive** — agent's confidence is uncalibrated (Yamin / Chadwick)
+5. **Meta-cognitive** — agent's confidence is uncalibrated (Yamin 2026; Zhu & Griffiths 2024; Chadwick 2025)
 
 See [`docs/methodology.md`](docs/methodology.md) for the full description.
 

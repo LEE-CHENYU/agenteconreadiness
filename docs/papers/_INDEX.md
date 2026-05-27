@@ -1,10 +1,10 @@
 # Cited Papers — Curated Index
 
 Auto-extracted bibliographies from the 3 anchor papers (TERMS-Bench / EconEvals / Revealed Rationality).
-Master list: `docs/papers/references_master.yaml` (160 entries; 53 downloaded as PDFs here).
+Master list: [`references_master.yaml`](references_master.yaml) (160 entries). Three PDFs in [`pdfs/`](pdfs/) for papers without public URLs (Andrews 2026, Chadwick 2025, Gneiting & Raftery 2007); the rest are accessible via the arxiv/DOI links in this file or via [`links.md`](links.md). The full PDF collection (53 papers) lives in the source repo (`rationale`) — request access from Cheney if you need drill-down (see proposal §15 "Available on request").
 Generated: 2026-05-26.
 
-Anchor abbreviations used below: **§1.5.X** = methodology subsections of the AgentEcon Readiness v0 plan; **§7.AX/BX/CX** = dimension implementations; **§15.6** = oracle-gap decomposition; **§17** = commercial-tier model; **D1/D2/D3** = v2 dimension candidates (context-conditional axiomatization, bargaining, agentic tool selection).
+Anchor abbreviations used below reference the master plan (in the source repo): **§1.5.X** = methodology subsections; **§7.AX/BX/CX** = dimension implementations; **§15.6** = oracle-gap decomposition; **§17** = commercial-tier model; **D2/D3** = v2 dimension candidates currently in scope (bargaining, agentic vendor selection — see proposal §2 and [`../layer3_candidates.md`](../layer3_candidates.md) for the full open pool).
 
 ---
 

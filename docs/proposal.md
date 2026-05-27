@@ -69,7 +69,7 @@ Reading these papers in sequence is reading a request for AERead. The 5-axis tax
 | 2 | **Consistency** | Agent's preference / belief structure violates axioms | Andrews 2026 (representation theorem penalties) |
 | 3 | **Calibration** | Agent's economic parameters are misfit | [Mazeika 2025](https://arxiv.org/abs/2502.08640) (utility engineering); [Guo 2017](https://arxiv.org/abs/1706.04599) (ECE diagnostic); Gneiting-Raftery 2007 (proper scoring rules — [PDF](papers/pdfs/gneiting_raftery_2007_strictly_proper_scoring_rules.pdf)) |
 | 4 | **Computational floor** | Agent can't execute the math the choice requires | Novel for v0; partial precedent in code-eval lit |
-| 5 | **Meta-cognitive calibration** | Agent's confidence is uncalibrated (stated ≠ realized accuracy) | Yamin et al. 2026 ([arxiv 2602.06286](https://arxiv.org/abs/2602.06286)) (belief coherence) |
+| 5 | **Meta-cognitive calibration** | Agent's confidence is uncalibrated (stated ≠ realized accuracy); separately, agent's probability judgments are internally incoherent | Yamin et al. 2026 ([arxiv 2602.06286](https://arxiv.org/abs/2602.06286)) (belief coherence); Zhu & Griffiths 2024 (incoherent probability judgments); Chadwick 2025 (Dutch books / money pumps) |
 
 Each axis has a distinct intervention mechanism and decomposes the per-(model, task) gap independently. Cross-decomposition (information × consistency, etc.) produces the full attribution matrix.
 
