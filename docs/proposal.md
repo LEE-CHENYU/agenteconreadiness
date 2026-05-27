@@ -153,7 +153,7 @@ The methodology paper, not the runtime, is the timeline's critical path. The int
 | Phase | Calendar | Activity |
 |---|---|---|
 | Phase 0 — trial collaboration | Weeks 1-4 | Each contributor takes 1-2 Phase-0 DoL items from §9; Cheney drafts §1+§2 in parallel; output drives the §9.6 checkpoint discussion |
-| Phase 1 — paper draft | Weeks 5-8 | Methodology paper §3 (5-axis + OracleDecomposable) drafted (continuing from Zihao's Phase-0 work); §1+§2 polished from Cheney's Phase-0 drafts; §10 + §6 first drafts; arxiv preprint target |
+| Phase 1 — paper draft | Weeks 5-8 | Methodology paper §3 (5-axis + OracleDecomposable) drafted (continuing from Zihao's Phase-0 work); §1+§2 polished from Cheney's Phase-0 drafts; §6 polished from Yuecheng's Phase-0 (D) draft if picked, else first draft; §10 (Zihao) first draft; arxiv preprint target |
 | Phase 2 — preprint + reviews | Weeks 9-12 | External methodology reviews (Andrews, Gonczarowski); leaderboard launch with 8+ models; frontier-lab pre-commit conversations |
 | Phase 3 — submission + pilot | Weeks 13-16 | NeurIPS / COLM submission; Tier 2 audit pilot conversations with 1-2 design-partner financial firms |
 
@@ -175,7 +175,7 @@ The principle: **contribution patterns drive authorship, not vice versa.** A neg
 
 ### 9.1 Cheney Li (lead)
 
-Methodology + IRL infrastructure + Category C implementation. Has working 13F-extraction pipeline (~309 named investor network mapped); has Phase-0 baseline transitivity test results on Claude / GPT / DeepSeek.
+Methodology integration + ergonomic design (UX, contributor experience, leaderboard layout) + Category C implementation (C1 13F-IRL pipeline + C2 task design) + external outreach + grant management. Note that the §3 methodology core is Zihao's track (§9.2) and the stats-specific methodology is Yuecheng's (§9.3); Cheney owns the integration layer that holds them together + the Category C domain work + the product/UX surface. Has working 13F-extraction pipeline (~309 named investor network mapped); has Phase-0 baseline transitivity test results on Claude / GPT / DeepSeek.
 
 **Phase-0 commitment** (independent of any collaborator decision):
 - Ship A4 stability dimension end-to-end by 2026-06-09
@@ -387,8 +387,8 @@ What it IS asking: enter a 4-week trial collaboration with one bounded Phase-0 i
 
 The master plan + runtime spec live in the internal source repo (`rationale`) — they're the implementation-side documents this proposal summarizes. Request access from Cheney if your Phase-0 item needs drill-down:
 
-- **Master plan** (~3,000 lines) — full §1.5.* methodology development, §2.5 dimension scoping, §6 implementation phases, §7 per-dimension notes, §14 diagnostic decomposition architecture, §17 commercial framing. Useful for Zihao's Phase-0 (B)/(C) protocol specs and Yuecheng's Phase-0 (A) scorer scoping.
-- **Runtime spec** (~1,200 lines) — §2 architecture, §5 scorer menu, §10 leaderboard rendering, §14.7 cache layer extension. Useful for Yuecheng's Phase-0 (B) integration prototype.
+- **Master plan** (~3,000 lines) — full §1.5.* methodology development (including §1.5.2.1 predict-then-validate design), §2.5 dimension scoping, §6 implementation phases, §7 per-dimension notes, §14 diagnostic decomposition architecture, §17 commercial framing. Useful for Zihao's Phase-0 (B)/(C) protocol specs, Yuecheng's Phase-0 (A) scorer scoping + (D) predict-then-validate design.
+- **Runtime spec** (~1,200 lines) — §2 architecture, §5 scorer menu, §10 leaderboard rendering, §14.7 cache layer extension (relevant for predict-then-validate split files). Useful for Yuecheng's Phase-0 (B) integration prototype + (D) reproducibility framework.
 - **Diagnostic-page mock** (~500 lines) — UX wireframes for the 5-axis radar drill-down page that Cheney will design against. Useful for Yuecheng's Phase-0 (C) composite-score schema implementation + thin frontend prototype.
 
 These will be folded into the sister repo (made public alongside the methodology paper preprint) once they stabilize.
