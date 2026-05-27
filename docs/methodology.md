@@ -59,7 +59,9 @@ When a model scores low on a Layer 3 task, *which mechanism failed?* The 5-axis 
 | 2 | **Consistency** | Agent's preference / belief structure violates axioms | Andrews 2026 (representation theorem penalties) |
 | 3 | **Calibration** | Agent's economic parameters are misfit (Layer 2 identification fails) | Mazeika 2025 (utility engineering) |
 | 4 | **Computational floor** | Agent can't execute the math the choice requires | Novel for v0; partial precedent in code-eval literature |
-| 5 | **Meta-cognitive** | Agent's confidence is uncalibrated (stated ≠ realized accuracy) | Yamin et al. 2026 (belief coherence); Chadwick 2025 (Dutch books) |
+| 5 | **Meta-cognitive** | Agent's confidence is uncalibrated (stated ≠ realized accuracy) | Yamin et al. 2026 (belief coherence); Chadwick 2025 (Dutch books); Zhu & Griffiths 2024 (incoherent probability judgments) |
+
+**Axis 5 footnote — calibration vs. coherence as complementary, not redundant.** Following Andrews 2026's framing, we treat *calibration* (Guo et al. 2017; Gneiting & Raftery 2007's proper scoring rules) and *coherence* (de Finetti / Dutch-book diagnostics) as **complementary** properties. Calibration asks whether predicted probabilities match empirical frequencies — it requires ground-truth outcomes and operates event-by-event. Coherence asks whether stated probabilities are internally consistent — it requires no ground truth and operates across multiple related assessments. A model can be well-calibrated on many events yet incoherent across them, or coherent yet poorly calibrated. AERead's Axis 5 reports both signals separately: calibration error against the held-out validation set (Layer 3 outcomes), and coherence violations under Dutch-book / proper-scoring-rule probes (no ground truth needed).
 
 Each axis has a distinct intervention mechanism:
 - **Axis 1**: substitute beliefs / reveal state and rerun
@@ -69,6 +71,10 @@ Each axis has a distinct intervention mechanism:
 - **Axis 5**: elicit confidence + compare to realized accuracy
 
 Cross-decomposition (Axis 1 × Axis 2, etc.) produces an attribution matrix that explains > 85% of the per-(model, task) gap.
+
+### Relation to the diagnostic-and-correction literature
+
+A growing body of work documents LLM rationality violations: Betz & Richardson 2023 (probabilistic coherence as an epistemic-agent property; with a training-step correction), Chen et al. 2023 (emergence of economic rationality), Hagendorff et al. 2023 (thinking-fast-and-slow patterns), Zhu & Griffiths 2024 (incoherent probability judgments), Chadwick et al. 2025 (Dutch-book / money-pump diagnostics + post-processing correction), Wen 2025 (persona-degrades-GARP), and Qiu et al. 2026 (Bayesian-teaching training corrections). AERead's contribution relative to this literature is the **integrative** stance: rather than documenting one violation type at a time, the 5-axis taxonomy organizes all of them into a single attribution framework anchored on Andrews 2026's representation-theorem "if and only if" guarantees — if the per-axis penalty terms can be driven to zero, the representation theorems imply that there must exist a prior + utility + computational policy + calibration map that fully explain the model's behavior. The diagnostic page is what makes that attribution legible.
 
 ## The diagnostic surface
 
