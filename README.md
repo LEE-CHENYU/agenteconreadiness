@@ -16,11 +16,13 @@ Pre-launch. v0 runtime in development; methodology paper targeting NeurIPS / COL
 
 | File | Purpose |
 |---|---|
-| [`docs/proposal.md`](docs/proposal.md) | Research-collaboration proposal v0.2 (the document this repo was created to host) |
+| [`docs/proposal.md`](docs/proposal.md) | Research-collaboration proposal (the document this repo was created to host) |
 | [`docs/methodology.md`](docs/methodology.md) | Condensed methodology: 3-layer pipeline + 5-axis failure taxonomy + OracleDecomposable abstraction |
 | [`docs/reading_list.txt`](docs/reading_list.txt) | T1 / T2 / T3 prior-art reading list with [AXIS-N] anchor flags |
+| [`docs/papers/links.md`](docs/papers/links.md) | One-stop citation links — every cited paper mapped to a public URL or repo-hosted PDF |
 | [`docs/papers/_INDEX.md`](docs/papers/_INDEX.md) | Annotated index of cited papers (curated reading guide) |
 | [`docs/papers/references_master.yaml`](docs/papers/references_master.yaml) | Machine-readable bibliography (~160 entries, deduped from 3 anchor papers) |
+| [`docs/papers/pdfs/`](docs/papers/pdfs/) | PDFs of cited papers without public URLs (Andrews 2026, Chadwick 2025, Gneiting & Raftery 2007) |
 
 ## The thesis
 

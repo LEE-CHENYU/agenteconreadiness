@@ -293,10 +293,11 @@ What it IS asking: enter a 4-week trial collaboration with one bounded Phase-0 i
 ## 15. Linked artifacts (in this repo)
 
 - **[Methodology summary](methodology.md)** — 3-layer pipeline + 5-axis taxonomy condensed
+- **[Citation links](papers/links.md)** — one-stop lookup mapping every cited paper to a public URL or repo-hosted PDF
 - **[Reading list](reading_list.txt)** — T1 / T2 / T3 papers with [AXIS-N] anchor flags
 - **[Bibliography](papers/references_master.yaml)** — 160-entry machine-readable references
 - **[Curated paper index](papers/_INDEX.md)** — annotated reading guide
 
 ---
 
-**End of proposal v0.2.**
+**End of proposal v0.3.**
