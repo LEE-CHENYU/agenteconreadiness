@@ -148,7 +148,7 @@ Two distinct milestones, both Cheney-time + API spend:
 The 2-3 week timeline alone is not credible for a research-grade reproducible benchmark; the 8-12 week timeline matches the Phase 0 → Phase 2 trajectory in the methodology-paper plan (§7 below) where Phase 0 ships the scaffold and Phase 1-2 harden the reproducibility surface. v0 content (**trimmed to fit 3-4 person team × 16-week timeline** per post-audit scope discipline):
 
 - **Adapter framework** (lm-evaluation-harness integration) for Cat A + Cat B + Cat C v1
-- **Scorer + generator library — v0 subset**: ~3 scorers (Brier + transitivity + 1 multi-class utility-fit) + ~4 generators (enough for C2 + D3). Full library (~9 scorers, ~11 generators) defers to v0.5+.
+- **Scorer + generator library — v0 subset**: ~3 scorers (Brier + transitivity + 1 multi-class utility-fit) + ~4 generators (enough for C2 + C8). Full library (~9 scorers, ~11 generators) defers to v0.5+.
 - **Cache layer** — reproducibility guarantee; signed-ScoreRecord enforcement defers to v0.5+
 - **5-axis diagnostic decomposition** (paper claim intact; v0 implementation tiered):
   - Axis 1 (information): full Δ_inf via `OracleDecomposable` Eq. 4 — **v0**
@@ -166,7 +166,7 @@ Total bootstrap cost: under $10K in API spend + author time (3-5 model validatio
 
 ### Methodology-paper timeline (where the human-collaboration weeks actually live)
 
-The methodology paper, not the runtime, is the timeline's critical path. The intellectual contribution (5-axis taxonomy formalization, OracleDecomposable identification conditions, predict-then-validate validation across 2 v0 use cases — C2 + D3) is where collaborator hours matter most:
+The methodology paper, not the runtime, is the timeline's critical path. The intellectual contribution (5-axis taxonomy formalization, OracleDecomposable identification conditions, predict-then-validate validation across 2 v0 use cases — C2 + C8) is where collaborator hours matter most:
 
 | Phase | Calendar | Activity |
 |---|---|---|
@@ -274,7 +274,7 @@ A first-pass DoL for the v0 scope, mapping workstreams to proposed primary owner
 |---|---|---|
 | Layer 1 axiom protocol specs — **v0 subset: transitivity + dominance** (full 6-axiom family deferred to v0.5+) | Zihao | Yuecheng (scorer impl) |
 | Layer 2 within-class identification framework — **v0 subset: 3 functional classes (KT prospect '79 + CRRA + Kelly-Markowitz)** | Zihao | Yuecheng (fit-procedure impl) |
-| Layer 3 OracleDecomposable formalization | Zihao | Cheney (C2 + D3 instantiation) |
+| Layer 3 OracleDecomposable formalization | Zihao | Cheney (C2 + C8 instantiation) |
 | Layer 3 predict-then-validate train/test split design + Q4 generalization-battery v0 scope (dev + hidden IID + 1 axis-OOD per game) | Yuecheng | Zihao (formal justification) |
 | **5-axis taxonomy**: full instrumentation of Axis 1 (Δ_inf via OracleDecomposable) + Axis 2 (transitivity + dominance counterfactuals) + Axis 3 (Brier/CRPS scoring on within-class fit). **v0 sketched only**: Axis 4 (1 quantity-substitution probe), Axis 5 (1 confidence-elicitation probe). Full instrumentation of axes 4-5 defers to v0.5+. | Yuecheng (axes 3+4+5) + Zihao (axes 1+2) | Cheney |
 
@@ -286,7 +286,7 @@ A first-pass DoL for the v0 scope, mapping workstreams to proposed primary owner
 |---|---|---|
 | lm-evaluation-harness integration + entry-point structure | Cheney (v0 scaffold) + **Jingyi Lu if she joins per §9.4** (adapter prototype + sustained maintenance); else Yuecheng | Yuecheng (scorer integration regardless of who owns the adapter) |
 | **v0 scorer library (subset)** — Brier + 1 transitivity scorer + 1 multi-class utility-fit scorer (NOT the full Bradley-Terry / WST/MST/SST / KT-MLE / isotonic library — that's v0.5+) | Yuecheng | Zihao (correctness review), Cheney (v0 scaffold for simpler scorers) |
-| Generator library + YAML schema (v0 scope: enough for C2 + D3 generation) | Cheney | Yuecheng (refinement) |
+| Generator library + YAML schema (v0 scope: enough for C2 + C8 generation) | Cheney | Yuecheng (refinement) |
 | Cache layer (responses / stimuli / scores / splits / fits / predictions) — **v0 subset** without signed-ScoreRecord enforcement (signed-ScoreRecord defers to v0.5+) | Cheney + Yuecheng | — |
 | CLI (`aeread evaluate / diagnose / init`) — v0 subset; `aeread check` deferred to v0.5+ | Cheney | Yuecheng (extension) |
 | **C2 ProductProcurementGame** end-to-end (discrete-action; qualitative-evidence procurement; Q3 single-stage 4-tier optimality scoring with single utility-weight vector per buyer; 2 counterfactual variants — paraphrase + preference-flip) | Cheney | Zihao (oracle formalization), Yuecheng (Q3 scoring impl) |
