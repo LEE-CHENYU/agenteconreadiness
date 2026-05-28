@@ -391,13 +391,15 @@ What it IS asking: enter a 4-week trial collaboration with one bounded Phase-0 i
 
 ### In this repo
 
-- **[Methodology summary](methodology.md)** — 3-layer pipeline + 5-axis taxonomy condensed
-- **[Prior art brief](prior_art_brief.md)** — ~3-page primer on the anchor benchmarks AERead integrates (TERMS-Bench / Andrews 2026 / EconEvals) — what each contributes + what AERead inherits + extends + synthesis map. Read this before drilling into the full papers.
-- **[Layer 3 candidate pool](layer3_candidates.md)** — open list of ~25 real-world economic decision use cases on a value × testability matrix; per-case pros/cons + Tier S/A/B/C/D priority for v0.5 / v1 / v1.5 / v2 expansion
+- **[v0 sprint plan](v0_sprint.md)** — consolidated operational view: what v0 actually ships, ownership map for the ~13 workstreams, phase timeline, v0.5+ deferral roadmap. **Read this for the operational picture in one place** rather than hunting through inline v0/v0.5+ tags in framework docs.
+- **[Methodology summary](methodology.md)** — 3-layer pipeline + 5-axis taxonomy + 9-Q&A with inline v0/v0.5+ scope tags
+- **[Prior art brief](prior_art_brief.md)** — ~3-page primer on the anchor benchmarks AERead integrates (TERMS-Bench / Andrews 2026 / EconEvals)
+- **[Layer 3 candidate pool](layer3_candidates.md)** — open list of ~25 real-world economic decision use cases on a value × testability matrix
+- **[Post-v0-paper substrate roadmap](aeread_env_design.md)** — forward-looking design spec for an OpenSpiel-compatible substrate (separate follow-up paper, NOT v0.5)
 - **[Citation links](papers/links.md)** — one-stop lookup mapping every cited paper to a public URL or repo-hosted PDF
 - **[Reading list](reading_list.txt)** — T1 / T2 / T3 papers with [AXIS-N] anchor flags
 - **[Bibliography](papers/references_master.yaml)** — 160-entry machine-readable references
-- **[Curated paper index](papers/_INDEX.md)** — deep-dive synopses (~5-6 paragraphs each) for 12 supporting-literature papers; the 3 anchor benchmarks (TERMS-Bench / Andrews / EconEvals) are covered in §1-§3 above + reading_list T1
+- **[Curated paper index](papers/_INDEX.md)** — deep-dive synopses (~5-6 paragraphs each) for 12 supporting-literature papers
 
 ### Available on request (source-repo artifacts)
 

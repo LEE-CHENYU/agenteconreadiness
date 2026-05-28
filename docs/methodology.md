@@ -3,6 +3,8 @@
 This is a condensed methodology overview. The full master plan lives in the implementation repo; this document describes the conceptual architecture that should travel with the proposal.
 
 > **Citation links.** Every paper named below has a clickable link in [`papers/links.md`](papers/links.md) — public URL where one exists, or PDF in [`papers/pdfs/`](papers/pdfs/) where it does not. Inline links below are first-occurrence only.
+>
+> **Operational scope**: this doc describes the **full methodology framework** with inline v0/v0.5+ scope tags showing what v0 first paper implements vs what defers to v0.5+. For a **consolidated operational view** (v0 deliverables, ownership map, phase timeline, status tracker — all in one place), see [`v0_sprint.md`](v0_sprint.md).
 
 ## The thesis in one paragraph
 

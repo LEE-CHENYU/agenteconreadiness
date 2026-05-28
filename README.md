@@ -29,7 +29,9 @@ Engagement channel: contact details in [`docs/proposal.md` §15](docs/proposal.m
 | File | Purpose |
 |---|---|
 | [`docs/proposal.md`](docs/proposal.md) | Research-collaboration proposal (the document this repo was created to host) |
-| [`docs/methodology.md`](docs/methodology.md) | Condensed methodology: 3-layer pipeline + 5-axis failure taxonomy + OracleDecomposable abstraction |
+| [`docs/v0_sprint.md`](docs/v0_sprint.md) | **Consolidated operational view** — v0 implementation scope, ownership map for the ~13 workstreams, phase timeline, v0.5+ deferral roadmap. One-stop scan for the team. |
+| [`docs/methodology.md`](docs/methodology.md) | Methodology framework: 3-layer pipeline + 5-axis failure taxonomy + OracleDecomposable abstraction + 9-Q open-questions with inline v0/v0.5+ scope tags |
+| [`docs/aeread_env_design.md`](docs/aeread_env_design.md) | Post-v0-paper substrate roadmap — forward-looking OpenSpiel-compatible substrate design for a separate follow-up paper (NOT v0.5) |
 | [`docs/prior_art_brief.md`](docs/prior_art_brief.md) | 3-page primer on the anchor benchmarks AERead integrates (TERMS-Bench / Andrews 2026 / EconEvals) — what each contributes + what AERead inherits + extends |
 | [`docs/layer3_candidates.md`](docs/layer3_candidates.md) | Open candidate pool of ~25 Layer 3 real-world economic decision use cases on a value × testability matrix (v0 + expansion roadmap) |
 | [`docs/reading_list.txt`](docs/reading_list.txt) | T1 / T2 / T3 prior-art reading list with [AXIS-N] anchor flags |
