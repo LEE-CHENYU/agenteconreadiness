@@ -89,7 +89,7 @@ The pair (C2 + C8) is **structurally distinct** on action space (discrete vs con
 | Component | v0 | v0.5+ |
 |---|---|---|
 | Scorers | 3 (Brier + transitivity + 1 multi-class utility-fit) | Full Bradley-Terry / WST/MST/SST / KT-MLE / isotonic library |
-| Generators | ~4 (enough for C2 + D3) | ~11 |
+| Generators | ~4 (enough for C2 + C8) | ~11 |
 | Cache layer | yes | + signed ScoreRecords |
 | CLI | `aeread evaluate / diagnose / init` | + `aeread check` |
 | Submission paths | web form only | + Colab + PR |
@@ -118,7 +118,7 @@ The pair (C2 + C8) is **structurally distinct** on action space (discrete vs con
 |---|---|---|---|
 | M1 | Layer 1 axiom protocol specs (transitivity + dominance) | Zihao | Yuecheng (scorer impl) |
 | M2 | Layer 2 within-class identification framework (3 functional classes) | Zihao | Yuecheng (fit-procedure impl) |
-| M3 | Layer 3 OracleDecomposable formalization | Zihao | Cheney (C2 + D3 instantiation) |
+| M3 | Layer 3 OracleDecomposable formalization | Zihao | Cheney (C2 + C8 instantiation) |
 | M4 | Layer 3 predict-then-validate train/test split design + Q4 generalization-battery v0 scope | Yuecheng | Zihao (formal justification) |
 | M5 | 5-axis taxonomy instrumentation (axes 1+2+3 full; axes 4+5 sketched) | Yuecheng (axes 3-5) + Zihao (axes 1-2) | Cheney |
 
@@ -128,7 +128,7 @@ The pair (C2 + C8) is **structurally distinct** on action space (discrete vs con
 |---|---|---|---|
 | E1 | lm-evaluation-harness adapter | **Jingyi if she joins per §9.4**; else Yuecheng | Yuecheng (scorer integration regardless) |
 | E2 | v0 scorer library subset (3 scorers) | Yuecheng | Zihao (correctness review), Cheney (v0 scaffold) |
-| E3 | Generator library + YAML schema (enough for C2 + D3) | Cheney | Yuecheng (refinement) |
+| E3 | Generator library + YAML schema (enough for C2 + C8) | Cheney | Yuecheng (refinement) |
 | E4 | Cache layer + CLI | Cheney + Yuecheng | — |
 | E5 | C2 ProductProcurementGame end-to-end (discrete-action) | Cheney | Zihao (utility-vector oracle formalization), Yuecheng (Q3 4-tier scoring impl) |
 | E6 | C8 SimplePricingGame end-to-end (continuous-action) | Cheney | Zihao (Bayes-optimal pricing argmax oracle derivation), Yuecheng (continuous-action scorer + expected-revenue computation + demand-prior interface) |
