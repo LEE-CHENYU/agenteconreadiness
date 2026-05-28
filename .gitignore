@@ -46,3 +46,7 @@ ENV/
 *.local
 .env.local
 secrets/
+
+# Internal-only docs (commercial tiers, uncommitted collaborator details)
+docs/proposal.md
+docs/v0_sprint.md
