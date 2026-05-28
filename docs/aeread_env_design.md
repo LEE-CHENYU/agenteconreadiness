@@ -1,6 +1,6 @@
 # AERead-env: OpenSpiel-compatible benchmark substrate for LLM economic agency
 
-> Forward-looking design spec for the AERead benchmark substrate. Referenced from [`methodology.md`](methodology.md) Q5. Likely v0.5 deliverable — after methodology paper draft + first 2 v0 use cases land.
+> Forward-looking design spec for the AERead benchmark substrate. Referenced from [`methodology.md`](methodology.md) Q8 (OpenSpiel-compatible benchmark substrate). Likely v0.5 deliverable — after methodology paper draft + first 2 v0 use cases land.
 
 ## Positioning
 
