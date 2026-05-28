@@ -53,7 +53,7 @@ Each game declares its structural footprint:
 - **Strategic**: solo / cooperative / competitive / mixed
 - **Oracle**: exact / approximate / dominance-only / human-reference / market-simulation
 
-Release cannot be 90% single-shot multiple-choice. The MVP scope of 4 games (below) is explicitly chosen to maximize structural diversity within a small footprint.
+Release cannot be 90% single-shot multiple-choice. The MVP scope of 5 games (below) is explicitly chosen to maximize structural diversity within a small footprint.
 
 ### 3. Oracle decomposition as the common abstraction
 
@@ -125,17 +125,18 @@ The 5 games span the structural-diversity matrix in design goal #2:
 ### SimplePricingGame (C8) — v0 first paper, game 2
 - Single-agent, one-shot, **continuous-action** (price p ∈ [0, P_max])
 - Hidden state: true demand-curve parameters (intercept α*, elasticity β*, noise σ*) sampled from the declared prior
-- **Three conditions for TERMS-Bench Eq. 4 decomposition**:
-  - **base condition**: model sees declared demand prior (e.g., "α ∈ [α_low, α_high]; β ∈ [β_low, β_high]; σ ∈ [σ_low, σ_high]") + product description + **n=10 noisy historical (price, quantity) sales observations** → must infer posterior over (α, β, σ) + choose price
-  - **belief-substituted condition**: model is given the Bayes-optimal posterior directly (computed by the simulator from the same evidence) → chooses price under the posterior (isolates posterior-computation gap from price-choice gap)
-  - **state-revealed condition**: true demand parameters (α*, β*, σ*) revealed → model chooses oracle price = argmax_p p × (α* − β*·p)
+- **Four policies for TERMS-Bench Eq. 4 decomposition** (base → posterior → revealed → oracle):
+  - **base condition** (π_base): model sees declared demand prior (e.g., "α ∈ [α_low, α_high]; β ∈ [β_low, β_high]; σ ∈ [σ_low, σ_high]") + product description + **n=10 noisy historical (price, quantity) sales observations** → must infer posterior over (α, β, σ) + choose price
+  - **belief-substituted / posterior condition** (π_post): model is given the Bayes-optimal posterior directly (computed by the simulator from the same evidence) → chooses price under the posterior (isolates posterior-computation gap from price-choice gap)
+  - **state-revealed condition** (π_reveal): true demand parameters (α*, β*, σ*) revealed → model must still **compute** the revenue-maximizing price itself (no closed-form hint — this is what keeps Δ_ctrl a real computational-floor test)
+  - **oracle** (π★): the simulator's closed-form revenue-maximum price p* = α*/(2β*), computed by the harness — kept SEPARATE from the state-revealed agent answer
 - Action: structured price decision (p ∈ [0, P_max])
 - Payoff: stochastic revenue = p × D(p) where D(p) = α* − β*·p + ε, ε ~ N(0, σ*²)
-- Eq. 4 decomposition:
-  - **Δ_inf** = U(state-revealed) − U(base) — total information gap
-  - **Δ_unc** = U(belief-substituted) − U(base) — gap from posterior-computation failure (agent's posterior ≠ Bayes-optimal posterior given the evidence)
-  - **Δ_ctrl** = U(state-revealed) − U(belief-substituted) — residual gap after best inference (Bayes risk under residual uncertainty + continuous-action argmax computation)
-- Oracle (per condition): base/posterior conditions use Bayes-optimal expected revenue under the posterior; state-revealed uses closed-form revenue-maximum price under known parameters
+- Eq. 4 decomposition (U(π★) − U(base) = Δ_inf + Δ_unc + Δ_ctrl):
+  - **Δ_inf** = U(post) − U(base) — inference gap (value of replacing the agent's own inference with the simulator's Bayes-optimal posterior)
+  - **Δ_unc** = U(reveal) − U(post) — uncertainty gap (value of resolving residual parameter uncertainty: posterior → true (α*, β*))
+  - **Δ_ctrl** = U(oracle) − U(reveal) — control gap (residual to the closed-form oracle after the truth is revealed: the continuous-action argmax / computational floor)
+- Oracle: the closed-form revenue-maximum price α*/(2β*) under the true parameters — the benchmark-internal reference policy π★, distinct from the state-revealed agent answer
 - Tests:
   - Axis 1 (information): Δ_inf measures gain from full information
   - Axis 3 (calibration): does the model compute the posterior correctly from noisy sales evidence?
@@ -173,7 +174,7 @@ The 5 games span the structural-diversity matrix in design goal #2:
 - Oracle: **approximate** (declared gap to multi-agent equilibrium)
 - Tests: Axis 2 (consistency across rounds) + Axis 4 (computational floor on adaptive policy)
 
-This 4-game MVP costs ~$15-30K + 6-10 weeks of engineering. Each game can be developed independently. Submission/contribution API enables external researchers to add a 5th, 6th, etc.
+This 5-game MVP costs ~$15-30K + 6-10 weeks of engineering. Each game can be developed independently. Submission/contribution API enables external researchers to add a 6th, 7th, etc.
 
 ## 10 hard constraints
 
@@ -264,10 +265,10 @@ aeread_env/
 
 - **v0 first paper**: 2 standalone games (C2 ProductProcurementGame + C8 SimplePricingGame — action-space-distinct: discrete + continuous); no shared environment substrate. Each game is implemented standalone in v0 to fit the 3-4 person team × 16-week timeline. D3 VendorSelectionGame was originally v0 game 2 but demoted to v0.5+ on 2026-05-28 (structurally similar to C2).
 - **v0.5+**: small extensions on the 2 v0 games (the deferred items per methodology.md Q3/Q4/Q5/Q6 v0.5+ tags) — NOT the AERead-env substrate.
-- **Post-v0 follow-up paper** (timing depends on v0 traction; not pre-committed): the AERead-env substrate as described in this doc. Becomes a *separate* paper ("AERead-env: an OpenSpiel-compatible substrate for economic-agency evaluation") rather than v0.5 or v1 of the v0 paper. The 4-game MVP + 6-interface architecture is months of engineering — worth doing only if the v0 paper establishes traction + a frontier-lab partner pre-commits to citing the substrate paper.
+- **Post-v0 follow-up paper** (timing depends on v0 traction; not pre-committed): the AERead-env substrate as described in this doc. Becomes a *separate* paper ("AERead-env: an OpenSpiel-compatible substrate for economic-agency evaluation") rather than v0.5 or v1 of the v0 paper. The 5-game MVP + 6-interface architecture is months of engineering — worth doing only if the v0 paper establishes traction + a frontier-lab partner pre-commits to citing the substrate paper.
 - **Conditional v1+**: if a follow-up paper publishes, then community-contribution API + lm-evaluation-harness adapter + 1-2 community-contributed games extend the substrate.
 
-Engineering ownership: post-v0-paper-publication conversation, not part of the v0 collaboration ask. The 4-game MVP is naturally Cheney+Yuecheng's joint scope IF the substrate paper happens — but that's a separate decision from the v0 ownership map in proposal §9.5.
+Engineering ownership: post-v0-paper-publication conversation, not part of the v0 collaboration ask. The 5-game MVP is naturally Chenyu+Yuecheng's joint scope IF the substrate paper happens — but that's a separate decision from the v0 ownership map.
 
 ## References
 

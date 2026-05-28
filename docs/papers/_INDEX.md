@@ -1,7 +1,7 @@
 # Cited Papers — Curated Index (deep-dive synopses)
 
 Auto-extracted bibliographies from the 3 anchor papers (TERMS-Bench / EconEvals / Revealed Rationality).
-Master list: [`references_master.yaml`](references_master.yaml) (160 entries). Three PDFs in [`pdfs/`](pdfs/) for papers without public URLs (Andrews 2026, Chadwick 2025, Gneiting & Raftery 2007); the rest are accessible via the arxiv/DOI links in this file or via [`links.md`](links.md). The full PDF collection (53 papers) lives in the source repo (`rationale`) — request access from Cheney if you need drill-down (see proposal §15 "Available on request").
+Master list: [`references_master.yaml`](references_master.yaml) (160 entries). Three PDFs in [`pdfs/`](pdfs/) for papers without public URLs (Andrews 2026, Chadwick 2025, Gneiting & Raftery 2007); the rest are accessible via the arxiv/DOI links in this file or via [`links.md`](links.md). The full PDF collection (53 papers) lives in the source repo (`rationale`) — open an issue or email fretin13@gmail.com to request access.
 Generated: 2026-05-26 (refreshed 2026-05-26 with cross-doc clarification).
 
 **Relationship to other reference docs**:
