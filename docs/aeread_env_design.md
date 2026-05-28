@@ -6,9 +6,9 @@
 
 **Not** "OpenSpiel for economic games." That framing is too broad, invites unflattering comparison with the existing DeepMind library, and obscures the contribution. The actual positioning:
 
-> **OracleDecomposition Environments for LLM Economic Agency** — a lightweight, OpenSpiel-compatible benchmark substrate adding oracle decomposition, qualitative evidence, revealed-preference diagnostics, utility/belief calibration, and OOD generalization tests on top of generic game substrates.
+> **An OpenSpiel-compatible economic-agency evaluation layer for LLMs** — combining oracle decomposition, revealed-preference diagnostics, qualitative-evidence interpretation, utility/belief calibration, and hidden-OOD generalization tests on top of generic game substrates. Shorthand: **OracleDecomposition Environments for LLM Economic Agency**.
 
-OpenSpiel already covers the generic game substrate (n-player, zero-sum/cooperative/general-sum, one-shot/sequential, perfect/imperfect-information). AERead-env is **the economic-agency layer on top** — the diagnostic + evaluation infrastructure that turns a game into a benchmark for LLM economic decision-making.
+OpenSpiel already covers the generic game substrate (n-player, zero-sum/cooperative/general-sum, one-shot/sequential, perfect/imperfect-information). AERead-env is **the economic-agency evaluation layer on top** — the diagnostic + evaluation infrastructure that turns a game into a benchmark for LLM economic decision-making. The four explicit additions on top of OpenSpiel-style substrates are: (1) oracle decomposition (Δ_inf / Δ_unc / Δ_ctrl), (2) revealed-preference diagnostics (axiom checks + within-class identification), (3) qualitative-evidence interpretation (structured ordinal states, not hidden cardinal truth — per methodology Q2), (4) hidden-OOD generalization protocol (axis-OOD + compositional + far-OOD + fresh seasons).
 
 This positioning matters strategically. Major model labs cite **diagnostic + evaluation frameworks**, not "yet another game library." Adoption traction analysis (see source-repo notes) shows the "-Bench" suffix caps citations at low single-digit numbers even with elite-PI authorship; the deployment-verdict / diagnostic framing is what GDPval-style benchmarks use to break out.
 
@@ -155,7 +155,22 @@ Locked into the framework. Contributors must satisfy all 10 at submission time:
 9. **Decomposable metrics.** Every game returns: outcome_score + constraint_violations + oracle_gap + dominated_action_taken + calibration_error + per-axis diagnostic_breakdown. Never a single opaque number.
 10. **Declare what the game is NOT testing.** Prevents overclaiming. Example: ProductProcurementGame does NOT test multi-period adaptation, opponent modeling, or robust-decision-under-ambiguity. This forces honest scope statements.
 
-## Architecture sketch
+## Architecture: six first-class interfaces
+
+The substrate exposes six first-class interfaces. Each maps to a top-level directory in the module sketch.
+
+| Interface | What it owns | Why first-class |
+|---|---|---|
+| **Game Interface** (`core/`) | state, observation, actions, transition, payoff | OpenSpiel-compatible game substrate |
+| **Oracle Interface** (`oracles/`) | exact / Bayes / approximate / dominance / robust-tier / reference-policy / human-reference / market-sim | No oracle, no benchmark (constraint #3); 7 oracle types for non-closed-form games |
+| **Behavioral Representation Interface** (`behavioral_rep/`) | utility calibration (KT '79 / CRRA / CARA / CPT '92 / Kelly-Markowitz multi-class fits); belief calibration (Brier / CRPS / ECE diagnostic); risk calibration; policy fitting | Methodology Layer 2 identification + Axis 3 calibration are first-class diagnostic outputs of every game — not afterthoughts wrapped around the oracle. Multi-class robustness (per methodology Q1) is implemented here. |
+| **Diagnostic Intervention Interface** (`diagnostics/`) | reveal information / paraphrase / remove noise / relax constraint / change buyer / change opponent / change utility regime / Dutch-book probe / dominated-option injection | Factorial intervention design (per §3 methodology contribution claim) requires interventions to be first-class objects, not test-time augmentations |
+| **Generalization Protocol** (`eval/splits.py`) | dev / hidden IID / axis-OOD / compositional-OOD / far-OOD / fresh seasons / counterfactual battery | Per Q1 hold-out-dimensions framing + AERead-Train/Dev/Cert tier separation |
+| **LLM Adapter** (`adapters/`) | prompt formatting, structured action schema, tool-use handling, OpenSpiel + Gymnasium + lm-evaluation-harness bridges | Three adoption channels (OpenSpiel for RL research, Gymnasium for RL practitioner, lm-eval-harness for LLM eval) require explicit bridge code |
+
+The **`behavioral_rep/`** module is the engineering counterpart to methodology Layer 2 (identification) — it's where multi-class utility fits live, where Bayesian posteriors over functional classes are computed, and where per-axis calibration scores (Brier, CRPS) get assembled. Treating it as a separate top-level module — rather than burying it inside `diagnostics/` — makes the 6-layer diagnostic stack (per methodology.md "Architecture mapping" section) visible at the architecture level.
+
+**Module sketch**:
 
 ```
 aeread_env/
@@ -172,8 +187,14 @@ aeread_env/
     dominance.py       # partial-order oracles
     approximate.py     # bounded-gap oracles
     robust_tier.py     # minimax oracles
+    reference_policy.py # declared-policy reference for partial oracles
     human_reference.py # panel / expert reference
     market_sim.py      # counterfactual simulator
+  behavioral_rep/
+    utility_calibration.py  # multi-class MLE fits (KT/CRRA/CARA/CPT/Kelly-Markowitz)
+    belief_calibration.py   # Brier / CRPS / ECE; Dutch-book probes
+    risk_calibration.py     # within-class risk-preference parameter fits
+    policy_fitting.py       # behavioral cloning of observed policy for diagnostic
   diagnostics/
     decomposition.py   # gap decomposition (Δ_inf / Δ_unc / Δ_ctrl)
     interventions.py   # paraphrase / state-reveal / constraint-explicit / etc.
