@@ -12,7 +12,7 @@ LLM agents are being deployed for economic decisions — procurement, pricing, n
 
 ## Critical methodological questions (open Q&A)
 
-These are the open methodological questions AERead must address for major-lab adoption + methodology-paper acceptance. The answers below are **working positions, not closed claims** — engagement from collaborators, reviewers, and frontier-lab researchers is invited on all nine.
+These are the open methodological questions AERead must address for major-lab adoption + methodology-paper acceptance. The answers below are **working positions, not closed claims** — engagement from collaborators, reviewers, and frontier-lab researchers is invited on all ten.
 
 **Q&A topic index** (each topic is its own standalone question for explicit citation-visibility):
 
@@ -27,6 +27,7 @@ These are the open methodological questions AERead must address for major-lab ad
 | **Q7** | Layer 1+2 vs Layer 3 residual hypothesis | Per-domain explanatory-power table (60-75% procurement, 30-55% multi-agent markets); pre-registered falsification criteria. The central empirical claim of §3 contribution. |
 | **Q8** | OpenSpiel-compatible benchmark substrate | OracleDecomposition Environments for LLM Economic Agency; thin layer on top of OpenSpiel; 4-game MVP; 10 hard constraints. |
 | **Q9** | Operational emergence definition | Conservative 5-criterion test (floor + sharp improvement + multi-metric coherence + OOD transfer + counterfactual robustness) for the *emergence* claim specifically; IRT extension (v1+). Built on top of Q4's infrastructure. Addresses Schaeffer-Krueger 2023 emergence-as-discontinuous-metric-artifact critique by name. |
+| **Q10** | Training-signal validation (scorer vs. validated training signal) | **Honest scope distinction**: v0 ships a *scorer* (LP-checkable diagnostic per Andrews 2026 §2); v0 does NOT ship a *validated training signal* (evidence that training with AERead penalty improves downstream). Causal claim requires a small-model training experiment (Qwen 0.5B/3B + custom auxiliary loss). Three options: defer to follow-up paper, include in v0 (~3 person-weeks + ~$1K compute), or hybrid (pre-register in v0; result lands soon after). **Pending 4-week checkpoint decision.** |
 
 ### Q1 — How does AERead defend against function misspecification?
 
@@ -264,6 +265,50 @@ Background: the original emergent-abilities literature (Wei et al. 2022) defined
 
 **Open**: AERead's per-capability scaling curves across model families are the empirical test of whether economic-decision capability is emergent-like or smoothly scaling. The methodology paper reports both views and lets the data settle which framing fits. Frontier-lab reviewers interested in emergence vs scaling-law framings are invited to engage on this question explicitly.
 
+### Q10 — Can AERead validate training-signal quality without training models ourselves?
+
+This is the most consequential v0 scope decision. **Honest framing**: AERead in v0 ships **a scorer**, not **a validated training signal**. The distinction matters for what the paper can claim.
+
+**Three distinct claims about training signal**:
+
+| Claim | Evidence type | v0 status |
+|---|---|---|
+| (1) "AERead's per-axis penalty is computable + LP-checkable + zero iff data are rationalizable" | Theoretical (Andrews 2026 §2 representation theorems) | **v0 ships** the scorer; claim follows from Andrews's theorems |
+| (2) "Frontier models with lower AERead penalties exhibit better economic-decision performance" | Observational (correlation across existing models) | **v0 demonstrates** (3-5 frontier-model cross-eval) |
+| (3) "Training a model with AERead's penalty as auxiliary loss *causes* improvement on held-out economic decisions" | Causal (training experiment) | **v0 does NOT demonstrate** by default |
+
+Claims (1) + (2) are what v0 *can* defend without training a model ourselves. Claim (3) — the causal claim — is what Q5's training-signal mechanism description *implies* but does NOT prove without an actual training experiment.
+
+**The cheapest credible causal experiment**:
+- Fine-tune a small open-weight model (e.g., **Qwen 0.5B or Qwen 3B**) on a v0 use case (e.g., C2 ProductProcurementGame trajectories)
+- Train two variants: **baseline** (no penalty) vs **treatment** (AERead Andrews-style penalty as auxiliary loss per Q5 mechanism 1)
+- Evaluate both on held-out AERead-Cert split
+- If treatment > baseline by statistically meaningful margin on held-out evaluation → the training signal is validated for at least one task on at least one small model
+- **Cost estimate**: ~$500-1000 GPU + ~2-3 person-weeks engineering (using existing TRL / axolotl / open-instruct harness with custom auxiliary-loss integration)
+- Compute is modest because Qwen-scale fine-tunes on bounded trajectory data are cheap; the engineering cost is wiring AERead's LP-checkable penalty into the training loop
+
+**Three v0 options**:
+
+| Option | Scope | What v0 paper claims | Risk |
+|---|---|---|---|
+| **(A) Defer the causal experiment to follow-up paper** | v0 = scorer + observational evidence only | Claims (1) + (2) only. The causal claim is the **follow-up paper headline** (with Chadwick / Qiu / Betz mechanism implementations). | Lowest scope; v0 still publishable, but the strongest training-signal claim is held back |
+| **(B) Include a minimal Qwen-scale training experiment in v0** | v0 = scorer + observational + causal (1 task × 1 model size × 1 mechanism) | Claims (1) + (2) + (3) for *at least one* task/model/mechanism. Moves AERead from diagnostic to diagnostic + validated training signal. | +3 person-weeks + ~$1K compute. Substantially stronger first paper. Needs Jingyi (or comparable SDE) to own the training-loop integration. |
+| **(C) Hybrid — pre-register in v0; result lands shortly after** | v0 = scorer + observational; pre-registered training experiment runs during Phase 2 + 3 | v0 paper pre-registers the design + falsification criteria; follow-up arxiv update (~6 weeks post-v0) reports the result. | Splits scope across two milestones; lower upfront cost; result trickles in after v0. |
+
+**My working recommendation** (open to checkpoint discussion): **Option (C) hybrid** for these reasons:
+- Avoids scoping +3 weeks into v0 first paper (already tight at ~25 person-weeks)
+- Pre-registration is the academic-credibility move: stating "we will train Qwen 0.5B with vs without AERead penalty + report result by [date]" in the v0 paper is more honest than either silently deferring (A) or rushing the experiment (B)
+- If Jingyi joins per §9.4 + has bandwidth post-Phase-0, the training-loop-integration workstream is the natural extension of her lm-eval-harness adapter Phase-0 item (both involve harness-side engineering)
+- The result lands during the Phase-3 NeurIPS/COLM revision window — if it's positive, the revision strengthens the paper; if it's null or negative, that's *also* a publishable result (negative training-signal evidence narrows the per-axis claim, but doesn't kill the diagnostic claim)
+
+**Open** (this Q is itself the consequential decision):
+- (i) Is the causal-validation experiment worth the +3 weeks and ~$1K compute, or is the observational + pre-registered claim sufficient for the v0 paper?
+- (ii) Does Jingyi (or another ops collaborator) have bandwidth + interest for the training-loop-integration workstream?
+- (iii) Should the experiment use Qwen 0.5B (faster, cheaper, less convincing) vs Qwen 3B (slower, costlier, more convincing) — or a hybrid (0.5B first; if positive, scale to 3B in v0.5+)?
+- (iv) If the causal claim *fails* (null result on training with AERead penalty improving downstream), what's the paper's revised framing? The scorer + observational evidence still ships; the per-axis penalty just isn't validated as auxiliary training signal yet.
+
+This is the most strategic Q in the v0 scope conversation. Engagement explicitly invited at the 4-week checkpoint.
+
 ## Methodological foundation in behavioral economics
 
 AERead is not inventing scoring methodology from scratch. The methodological stack draws from established behavioral-economics and decision-research methods, with citations frontier-lab reviewers can audit:
@@ -427,7 +472,7 @@ These docs are working artifacts. AERead's pre-commercial deliverable is the met
 
 Engagement is invited at every layer:
 
-- **On the open methodology Q&A** (above): the nine questions are real research questions; reviewers, frontier-lab researchers, and collaborators are invited to challenge the working positions before the methodology paper draft circulates
+- **On the open methodology Q&A** (above): the ten questions are real research questions; reviewers, frontier-lab researchers, and collaborators are invited to challenge the working positions before the methodology paper draft circulates. Q10 (training-signal validation) is the most consequential v0 scope decision pending the 4-week checkpoint.
 - **On the 5-axis taxonomy**: if a sixth axis is needed (or a current axis collapses into another), the pre-registered factorial design will reveal it — pre-registration commits us to publishing the finding regardless of direction
 - **On the OracleDecomposable abstraction**: counterexamples — economic decisions that don't fit the (hidden state + controllable simulator + oracle policy + scalar utility) interface — strengthen the methodology paper by exposing scope limits. Submit them.
 - **On Layer 3 use cases**: the open candidate pool ([`layer3_candidates.md`](layer3_candidates.md)) invites external researchers to propose new cases via the value × testability matrix; high-value + high-testability gaps (especially the empty top-right cell) are explicitly open contribution surface
