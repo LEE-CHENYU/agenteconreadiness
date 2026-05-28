@@ -10,7 +10,7 @@ LLM agents are being deployed for economic decisions — procurement, pricing, n
 
 ## Critical methodological questions (open Q&A)
 
-These are the open methodological questions AERead must address for major-lab adoption + methodology-paper acceptance. The answers below are **working positions, not closed claims** — engagement from collaborators, reviewers, and frontier-lab researchers is invited on all five.
+These are the open methodological questions AERead must address for major-lab adoption + methodology-paper acceptance. The answers below are **working positions, not closed claims** — engagement from collaborators, reviewers, and frontier-lab researchers is invited on all six.
 
 ### Q1 — How does AERead prevent overfitting + function misspecification?
 
@@ -24,29 +24,51 @@ Two distinct risks: (a) overfitting to the v0 task set / chosen functional class
 - **Locked held-out test set** + bootstrap confidence intervals + model/prompt-version hashes
 - **Anti-shortcut audits** (per Q5 below): option order, text length, brand, marketing positivity — none should predict the answer at contributor-submission time
 - **OOD splits** mandatory per game: dev → hidden IID → axis-OOD → compositional → far-OOD → fresh
+- **Hold out dimensions, not just examples**. Splits hold out entire generative axes — product domain (chairs in dev → laptops + SaaS in OOD), buyer profile (budget-sensitive in dev → committee-compromise in OOD), language template (clean spec sheets in dev → noisy review snippets in OOD), qualitative feature (durability in dev → vendor-lock-in in OOD), utility regime (price-dominant in dev → constraint-dominant in OOD). A model learning "AERead-specific heuristics" rather than transferable economic reasoning fails the cross-axis tests.
+- **Overfit-bot baseline** — train a small model or rule-based agent directly on the public dev generator; report its hidden-IID + hidden-OOD scores; any frontier LLM with the same public-vs-hidden gap pattern as the overfit bot is exhibiting benchmark exploitation, not general capability
+- **Rotating benchmark seasons** — v0.5+ ships a new hidden eval set every 6 months (new domains, new templates, new utility regimes); per-season scores + cross-season stability both reported; static-leaderboard ageing is a known failure mode of every benchmark we want to avoid
+- **Public-hidden gap reporting** as a first-class benchmark-overfitting diagnostic: leaderboard rows show `public_dev_score`, `hidden_IID_score`, `hidden_OOD_score`, and `transfer_ratio = S_OOD / S_IID`. A model scoring 0.92 on public but 0.61 on hidden OOD is exposed by the report itself — no manual audit needed
+- **Generalization Index** as composite leaderboard score (a *possible* aggregation, weights subject to community calibration): `GI = 0.20·S_IID + 0.25·S_AxisOOD + 0.25·S_CompositionalOOD + 0.20·S_FarOOD + 0.10·S_Counterfactual − Penalties`. Penalties include hard-constraint violations, dominated choices, paraphrase instability, marketing susceptibility, and the public-hidden overfit gap
 
-**Open**: posterior concentration across functional classes is itself an empirical finding. If it concentrates on one class, that's a generalization claim worth publishing; if it remains diffuse, that's a methodological caveat worth surfacing.
+**Open**: (a) posterior concentration across functional classes is itself an empirical finding — concentration is a publishable generalization claim, diffusion is a methodological caveat to surface; (b) the Generalization Index weights are an empirical question — the methodology paper will calibrate them against frontier-lab feedback rather than asserting them.
 
 ### Q2 — How does AERead evaluate quantitative features?
 
-Quantitative features = predicted-vs-actual conviction, dollar-equivalent surplus, oracle gaps, calibration scores.
+Two distinct sub-problems hide inside this question: (a) **scoring discipline for genuinely numeric outcomes** (dollar surplus, oracle gaps, predicted probabilities) and (b) **scoring discipline for qualitative product/state features** that are often presented as numeric but shouldn't be (a hidden `durability = 0.82` in a procurement task is fake precision — the model is being scored on whether it recovers the generator's arbitrary encoding scheme, not whether it made a good decision).
 
-**Scoring discipline** (per Axis 5 strict-propriety footnote):
+#### (a) Numeric outcomes — strict-propriety + bootstrap
+
+For genuinely numeric outcomes (Layer 3 predictive validity, dollar surplus, oracle gap):
 - **Brier score** (strictly proper) for discrete events — leaderboard headline
 - **Continuous Ranked Probability Score (CRPS)** for continuous emissions — leaderboard headline
 - **MAE / Spearman / Kendall** for point predictions and rank correlations
 - **ECE + reliability diagrams** (Guo 2017) for diagnostic visualization only — **NOT for leaderboard ranking** (ECE is not strictly proper per Gneiting-Raftery 2007; can be gamed)
 - **Choice-agreement rate** for discrete decisions
+- **Direct dollar surplus** when measurable (procurement: cost paid vs LP-optimal; pricing: revenue captured vs revenue-maximum; matching: stable-match efficiency)
+- **Counterfactual delta via oracle policy**: "what would the Bayes-optimal policy have earned given this state?"
+- **Surplus efficiency normalized 0-1** (TERMS-Bench SE⁺ pattern)
+- **Bootstrap confidence intervals** on every reported metric
 
-**Economic-value scoring**:
-- Direct dollar surplus when measurable (procurement: cost paid vs LP-optimal; pricing: revenue captured vs revenue-maximum; matching: stable-match efficiency)
-- Counterfactual delta via oracle policy: "what would the Bayes-optimal policy have earned given this state?"
-- Surplus efficiency normalized 0-1 (TERMS-Bench SE⁺ pattern)
-- Bootstrap confidence intervals on every reported metric
+#### (b) Qualitative features — structured states + ordinal labels, never hidden cardinal truth
 
-**Statistical-reproducibility framework** (sister repo proposal §9.3 (D) Phase-0 deliverable for Yuecheng): immutable split manifests, seed + scorer-version + measurement-model-set-version hashing, factorial intervention design with main + interaction effects + residual reported.
+For procurement-style cases where product attributes (durability, comfort, style fit, assembly difficulty) are qualitative, AERead **does not** evaluate by hidden cardinal truth (`durability = 0.82`). Instead:
 
-**Open**: how should heterogeneous quantitative features aggregate into a composite leaderboard score without false precision? TERMS-Bench's 7-orthogonal-axis sortable table (terms-bench.github.io) is the current design precedent — AERead extends to a 5-axis radar + composite.
+**Qualitative-feature scoring discipline**:
+- **Structured qualitative states**, not hidden 0-1 scalars: `{durability_evidence: "strong positive", seat_feel: "firm", assembly_friction: "moderate"}`. The generator starts from a **qualitative evidence bundle** (concrete review/spec snippets) and emits product text from the bundle — NOT from a hidden scalar reverse-engineered into text.
+- **Ordinal labels for directional features** (`durability: weak < mixed < strong`; `assembly_friction: easy < moderate < hard`); **categorical labels for non-directional features** (`style: minimalist / executive / industrial / playful`). Non-directional feature value depends on buyer fit, not feature value alone.
+- **Two-stage scoring**:
+  - **Stage 1 (qualitative interpretation)** — diagnostic score: did the model infer the right qualitative category? did it recognize mixed evidence? did it avoid turning marketing fluff into evidence? did it distinguish property from value?
+  - **Stage 2 (buyer-specific procurement choice)** — primary score: given the inferred qualitative state, did the model map it to a decision appropriate for a particular buyer profile? The same product may be optimal for buyer A and dominated for buyer B.
+- **Four case types**: (1) **constraint cases** (objective correctness — model violates a hard budget/deadline = fail); (2) **dominance cases** (one option strictly better on every relevant dimension — clear pass/fail); (3) **pairwise tradeoff cases** (model must flip choice across buyer profiles — tests buyer-conditional reasoning); (4) **ambiguous cases** (multiple defensible choices — partial credit, never forced single-truth).
+- **4-tier optimality classification**: `robust optimal / acceptable / weak but defensible / dominated or constraint-violating`. Points map to `1.0 / 0.75 / 0.4 / 0.0` (with negative or auto-fail for constraint violation). Partial credit is the design feature, not a workaround.
+- **Pairwise-regret scoring**: count how many clearly superior alternatives the chosen product loses to. Reported alongside primary score.
+- **Robust utility, not one arbitrary utility function**: define a **family of plausible utility weight vectors** per buyer profile; classify products as `robust_best / robust_top_tier / sensitive / dominated` by their performance across the family. Model isn't heavily penalized for choosing a `robust_top_tier` product instead of the exact numeric winner — only for choosing dominated or constraint-violating options.
+
+#### Statistical-reproducibility framework
+
+(Sister repo proposal §9.3 (D) Phase-0 deliverable for Yuecheng): immutable split manifests, seed + scorer-version + measurement-model-set-version hashing, factorial intervention design with main + interaction effects + residual reported.
+
+**Open**: (a) how should heterogeneous quantitative features aggregate into a composite leaderboard score without false precision? TERMS-Bench's 7-orthogonal-axis sortable table (terms-bench.github.io) is the current design precedent — AERead extends to a 5-axis radar + GI composite (see Q1 Generalization Index). (b) Where does the qualitative/numeric boundary fall for *new* Layer 3 cases? Submitters declare per-feature scoring type at submission time; the framework rejects cases that try to score a qualitative feature as a hidden cardinal scalar.
 
 ### Q3 — How do the tests function as RL environments providing generalizable training signals?
 
@@ -59,6 +81,16 @@ The detailed answer is **the AERead-env design spec** ([`aeread_env_design.md`](
 - **OOD splits give external-validity signal**: train on dev; report on hidden IID / axis-OOD / compositional / far-OOD; researchers see whether their RL improvements actually generalize
 
 **Training-signal infrastructure**: AERead's per-axis penalties are designed to plug directly into model training, not just into evaluation. Four prior-art mechanisms anchor the integration surface — Andrews 2026 (training-time penalty; label-free axiom loss), Chadwick 2025 (inference-time IMDC; Dutch-book post-correction), Qiu 2026 (supervised trace; Bayesian-teaching mimicry), Betz & Richardson 2023 (self-supervised consistency training; probabilistic coherence). AERead's evaluation becomes a direct input to RLHF/DPO loops — this is what makes per-axis scores load-bearing for frontier labs running their own fine-tuning, not just citing the methodology paper after the fact.
+
+**Training-environment vs final-evaluation discipline**. A critical honesty principle (per the TERMS-Bench overfitting analysis in [Zhang et al. 2026](papers/links.md)): once a benchmark becomes a training target, the published score is **no longer an unbiased out-of-sample evaluation**. The right distinction:
+
+- **AERead as a training environment** (lab uses public dev set to fine-tune): **acceptable** + encouraged — that's the Tier 4 infrastructure value
+- **AERead as final evaluation after training on it** (claim "model X scores 0.87 on AERead" using only the public dev distribution): **contaminated** — should not be cited as out-of-sample evidence
+
+AERead enforces this by:
+- **Public dev / hidden IID / hidden OOD / fresh-season splits** (see Q1) — published model-card scores must report hidden splits separately from public dev
+- **Public-hidden overfit gap** reported per model — if a model's `public_dev_score − hidden_IID_score` exceeds the overfit-bot baseline gap, the methodology paper flags it explicitly
+- **Submitter discipline**: any model card citing AERead must declare what splits the model was trained on (training distribution, RL feedback signal, dev-set fine-tuning) — provenance is the citation contract
 
 **Open**: which axes (information / consistency / calibration / computational floor / meta-cognitive) most cleanly produce RL training signal? AERead's per-axis scoring is the empirical test — labs running the benchmark can compare per-axis reward effectiveness in their own fine-tuning runs and feed the result back into the next methodology-paper revision.
 
@@ -108,6 +140,35 @@ This split mirrors a finding from the diagnostic-and-correction literature (Andr
 **Naming**: not "OpenSpiel for economic games" (too broad). Position as "**OracleDecomposition Environments for LLM Economic Agency**" — a lightweight OpenSpiel-compatible benchmark layer with oracle decomposition, qualitative evidence, revealed-preference diagnostics, and OOD generalization tests.
 
 **Open**: when does this ship relative to v0? Likely **v0.5** — after methodology paper draft + first 2 v0 use cases land. The 4-game MVP becomes a v1 contribution that reinforces the "AERead is a benchmark substrate, not a single benchmark" framing.
+
+### Q6 — How does AERead operationalize "emergence" claims?
+
+Background: the original emergent-abilities literature (Wei et al. 2022) defined emergence as abilities absent in small models + present in large ones. Schaeffer-Krueger 2023 + follow-on work argued that some apparent emergence is an artifact of **discontinuous metrics** (pass/fail thresholds) rather than genuine qualitative jumps in model behavior. AERead must claim emergence carefully — overclaiming on a fragile metric is exactly the citation-credibility risk frontier-lab reviewers flag.
+
+**AERead's conservative operational definition**. A capability is "emergent-like" only when ALL FIVE criteria hold:
+
+1. **Floor effect at smaller scales** — smaller models perform near random or choose dominated options on the capability
+2. **Sharp improvement at larger scales** — larger models improve substantially (not just incrementally) on this capability
+3. **Multi-metric coherence** — the improvement appears across multiple metrics simultaneously (e.g., choice-agreement rate + robust-optimal rate + transfer ratio + paraphrase stability), not only on exact-match accuracy
+4. **OOD transfer** — the improvement transfers to held-out domains (chair → laptop → SaaS procurement), not just hidden-IID instances from the same distribution
+5. **Counterfactual robustness** — the improvement survives paraphrase + preference-flip + marketing-injection + constraint-tightening tests; gains that collapse under counterfactual perturbation are likely overfitting
+
+**A weaker claim that frontier-lab reviewers will reject**: "Model X got 78% exact-best-choice accuracy on AERead-Procurement." This proves nothing about emergence — it could be benchmark exploitation, ceiling effects, or fragile metric thresholding.
+
+**Anti-discontinuity discipline**: AERead reports **continuous and ordinal measures** alongside any binary pass/fail metric:
+- Utility-regret distribution (not just exact-match)
+- Robust-top-tier rate (not just exact-optimal)
+- Dominated-choice rate (counterpart to optimal-choice rate)
+- Pairwise preference-violation count (continuous)
+- Paraphrase instability (continuous variance)
+- Transfer ratio (continuous OOD vs IID)
+- Calibration error (continuous)
+
+When a larger model improves, the methodology paper asks: is this a real jump across multiple continuous metrics, or only an artifact of crossing a pass/fail threshold on one fragile metric?
+
+**Item-response-theory extension (v1+)**: a deeper diagnostic per Andrews / Davis-Stober Bayesian-mixture precedent. Estimate per-item difficulty + per-item discrimination + per-model ability parameters via `P(success_{m,i}) = σ(θ_m − β_i + γ_q·capability_tags_i)`. This identifies which items separate strong from weak models (high discrimination), which capabilities are actually hard, whether the benchmark saturates, and whether larger models improve smoothly or sharply. IRT is the v1+ rigor extension; v0 uses simpler bootstrap intervals.
+
+**Open**: AERead's per-capability scaling curves across model families are the empirical test of whether economic-decision capability is emergent-like or smoothly scaling. The methodology paper reports both views and lets the data settle which framing fits. Frontier-lab reviewers interested in emergence vs scaling-law framings are invited to engage on this question explicitly.
 
 ## The 3-layer pipeline
 
@@ -234,7 +295,7 @@ These docs are working artifacts. AERead's pre-commercial deliverable is the met
 
 Engagement is invited at every layer:
 
-- **On the open methodology Q&A** (above): the five questions are real research questions; reviewers, frontier-lab researchers, and collaborators are invited to challenge the working positions before the methodology paper draft circulates
+- **On the open methodology Q&A** (above): the six questions are real research questions; reviewers, frontier-lab researchers, and collaborators are invited to challenge the working positions before the methodology paper draft circulates
 - **On the 5-axis taxonomy**: if a sixth axis is needed (or a current axis collapses into another), the pre-registered factorial design will reveal it — pre-registration commits us to publishing the finding regardless of direction
 - **On the OracleDecomposable abstraction**: counterexamples — economic decisions that don't fit the (hidden state + controllable simulator + oracle policy + scalar utility) interface — strengthen the methodology paper by exposing scope limits. Submit them.
 - **On Layer 3 use cases**: the open candidate pool ([`layer3_candidates.md`](layer3_candidates.md)) invites external researchers to propose new cases via the value × testability matrix; high-value + high-testability gaps (especially the empty top-right cell) are explicitly open contribution surface
