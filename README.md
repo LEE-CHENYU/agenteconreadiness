@@ -12,6 +12,18 @@ The leaderboard reports a deployment verdict; the drill-down page reports *why* 
 
 Pre-launch. v0 runtime in development; methodology paper targeting NeurIPS / COLM 2026. This repo is currently private and serves as the canonical artifact for the research-collaboration proposal.
 
+## Pre-commercial final goal: methodological engagement from frontier labs
+
+AERead's pre-commercial deliverable is the methodology paper + reproducible v0 runtime. The citation channel we're optimizing for is **methodological engagement** from frontier-lab safety + economics-of-AI researchers — not adoption traction alone. Every design choice is structured to invite engagement *before* the methodology paper circulates:
+
+- Five open methodological questions with stated working positions + "Open:" invitations — [`docs/methodology.md` § Critical methodological questions](docs/methodology.md#critical-methodological-questions-open-qa)
+- Pre-registered factorial hypothesis with falsification criteria (>80% / <50% / 50-80% bands) — [`docs/methodology.md` § Q4](docs/methodology.md#q4--how-much-of-the-per-model-task-gap-do-layers-1--2-explain-whats-the-residual)
+- Counterexample submission channel for the OracleDecomposable abstraction — [`docs/methodology.md` § How to engage](docs/methodology.md#how-to-engage-pre-commercial-final-goal)
+- OpenSpiel-compatible substrate with 10-hard-constraint contribution API (v0.5) — [`docs/aeread_env_design.md`](docs/aeread_env_design.md)
+- Open candidate pool for new Layer 3 use cases on a value × testability matrix — [`docs/layer3_candidates.md`](docs/layer3_candidates.md)
+
+Engagement channel: contact details in [`docs/proposal.md` §15](docs/proposal.md).
+
 ## Repository contents
 
 | File | Purpose |

@@ -21,7 +21,7 @@ Every candidate can be placed on two axes:
 - **Economic value** (vertical): how high is the dollar / utility stake of getting this decision right? High = revenue-leaking deployments (pricing, matching) or life-stakes (kidney exchange, healthcare); Medium = enterprise efficiency (procurement, scheduling); Low = academic interest only (Allais paradox)
 - **Testability** (horizontal): how cleanly can we evaluate it? High = closed-form oracle + cheap simulator + deterministic ground truth; Medium = tractable but data-dependent; Low = ground truth requires long observation, proprietary data, or unsettled methodology
 
-The **top-right quadrant** (high value × high testability) is where AERead's leaderboard headline value sits. Top-middle and middle-right are good v1+ adds. Bottom row is methodologically interesting but doesn't anchor commercial narrative. Anything in the low-testability column needs methodology work before we can ship it.
+The **top-right quadrant** (high value × high testability) is where AERead's leaderboard headline value sits — and where the methodology paper's §3 generalization claim ("OracleDecomposable Eq. 4 across non-bargaining domains") gets the strongest empirical demonstration. Top-middle and middle-right are good v1+ adds. Bottom row is methodologically interesting + clean for §3 falsification testing but doesn't drive leaderboard impact. Anything in the low-testability column needs methodology work before we can ship it.
 
 |                    | **High testability** (closed-form oracle, cheap sim) | **Medium testability** (data-dependent, approximate oracle) | **Low testability** (hard ground truth, contested method) |
 |---|---|---|---|
@@ -30,15 +30,17 @@ The **top-right quadrant** (high value × high testability) is where AERead's le
 | **Low value** | D8 weather forecasting • G15 iterated ultimatum • G17 Allais paradox | C3 commons governance • C4 repeated PD • C5 multi-agent coord (γ-Bench) • G16 trust game | E11 budget-constraint learning • F13 web browsing under budget |
 
 **What the matrix tells us**:
-- **AERead's commercial story is concentrated in the top-right quadrant** — pricing, matching, trading, procurement, scheduling, auctions. These are the cases enterprise buyers (Tier 2 audits) actually care about.
+- **The top-right quadrant is the primary methodology-validation surface** — pricing, matching, trading, procurement, scheduling, auctions. These are the cases with both economic stakes and clean oracle decomposition, making them the strongest demonstration sites for the OracleDecomposable Eq. 4 generalization across non-bargaining domains (the methodology paper §3 contribution).
 - **The top-middle is the highest-priority "needs methodology work" zone** — B1 Calvano collusion + A7 price discrimination both have high economic value but require multi-round simulator engineering before they're testable at AERead's plug-and-play standard.
-- **The bottom-right is the academic-credibility cluster** — weather forecasting, iterated ultimatum, Allais paradox. These don't drive Tier 2 audits but they're clean, citable, and good for methodology-paper §3 validation.
-- **The top-right of the top-right is empty** — the highest-economic-value cases (pricing, matching) currently have medium testability because the oracle policies require domain calibration. This is where Zihao's mechanism-design background can contribute (per §9.3 Phase-0 option D below): theoretically formalize the oracle for these cases so they move to the high-testability column.
+- **The bottom-right is the academic-credibility cluster** — weather forecasting, iterated ultimatum, Allais paradox. These are clean, citable, and load-bearing for methodology-paper §3 validation across non-bargaining domains.
+- **The top-right of the top-right is empty** — the highest-economic-value cases (pricing, matching) currently have medium testability because the oracle policies require domain calibration. Mechanism-design contribution (per §9.3 Phase-0 option D below or external contributions via the OracleDecomposable submission channel): theoretically formalize the oracle for these cases so they move to the high-testability column.
 
 **Open ask for Zihao** (per §9.3 (D) in the proposal): two complementary mechanism-design contributions, either of which closes the matrix gap:
 
 1. **Propose new candidates** that aren't yet in this doc — strong theoretical formalization + deployment relevance (spectrum auctions, prediction markets, generalized second-price / AdWords, market-maker bid-ask spread, etc. are likely missing). Land them in the high-value rows wherever the testability allows.
-2. **Formalize the oracle policy for existing high-value cases** that currently sit in medium testability (A2 EconEvals pricing or B1 Calvano collusion are highest-leverage). Deriving the closed-form oracle moves them into the high-testability column — and that's where AERead's commercial leaderboard story most needs them.
+2. **Formalize the oracle policy for existing high-value cases** that currently sit in medium testability (A2 EconEvals pricing or B1 Calvano collusion are highest-leverage). Deriving the closed-form oracle moves them into the high-testability column — strongest demonstration sites for the methodology paper §3 generalization claim.
+
+**Open contribution channel for external researchers**: the OracleDecomposable abstraction *is* the contribution interface — any economic-decision use case admitting (hidden state + controllable simulator + oracle policy + scalar utility) with declared OOD axes (per [`aeread_env_design.md`](aeread_env_design.md) §6) lands somewhere in the matrix above. The methodology paper §3 cites contributors whose cases enter v0.5 or later releases. **This is part of AERead's pre-commercial citation strategy**: the contribution channel itself is engagement bait — frontier-lab researchers who submit cases become co-authors on the methodology paper's generalization claim.
 
 ## Status quo (v0 / v2 in proposal)
 

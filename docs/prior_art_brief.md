@@ -44,7 +44,7 @@ A second contribution: their oracle policy is **simulator-relative Bayes-optimal
 
 ### What AERead addresses from their §Future Work
 
-TERMS-Bench focuses on bargaining. Their findings — that αcue < 0 universally — raise a question they don't pursue: **does this cue-fooling pattern hold across non-bargaining economic decisions, or is it bargaining-specific?** AERead's collection-of-use-cases design (C1 + C2 + D2 + D3) is the empirical test. If αcue < 0 holds across domains, that's a load-bearing finding for the Tier 2 audit framing ("your agent loses surplus when you give it cues — across procurement, pricing, vendor selection").
+TERMS-Bench focuses on bargaining. Their findings — that αcue < 0 universally — raise a question they don't pursue: **does this cue-fooling pattern hold across non-bargaining economic decisions, or is it bargaining-specific?** AERead's collection-of-use-cases design (C1 + C2 + D2 + D3) is the empirical test. If αcue < 0 holds across domains, that's a load-bearing methodology-paper finding ("LLM agents lose surplus when given cues — across procurement, pricing, vendor selection") and a citable generalization claim downstream researchers can build on.
 
 ---
 
@@ -72,7 +72,7 @@ A second contribution that AERead operationalizes: the **§3 non-identification 
 
 ### What AERead inherits
 
-- **Tier 4 commercial mechanism #1** (training-time penalty regularization): Andrews's three rep-theorem penalties become the academic foundation for AERead Tier 4 Variant 1 — a training-signal API that scores (prompt, response) pairs on rationality dimensions for use as auxiliary RLHF/DPO losses.
+- **Training-signal integration mechanism #1** (training-time penalty regularization): Andrews's three rep-theorem penalties anchor AERead's first training-signal integration variant — per-axis penalties scored on (prompt, response) pairs for use as auxiliary RLHF/DPO losses. This is one of four prior-art-anchored integration mechanisms (Andrews / Chadwick / Qiu / Betz-Richardson) that turn the methodology paper from "report card" into "input to model training."
 - **Axis 2 (Consistency) mathematical anchor**: AERead's 5-axis taxonomy cites Andrews as the prior-art anchor for Axis 2; the consistency intervention mechanism (counterfactual axiom probes) operationalizes Andrews's de Finetti / Afriat penalties as runtime tests.
 - **§3 non-identification framing for within-class identification**: AERead's Layer 2 (identification) explicitly commits to *within-class* identification (methodology.md §Layer 3 design discipline: predict-then-validate, multi-class robustness paragraph) — meaning we fit parameters within a chosen functional class and **explicitly acknowledge** that another class would yield different parameters that also rationalize the same data. Multi-class robustness (fit all 5 candidate classes; report posterior over them) is the predict-then-validate response to Andrews's critique.
 - **§7 caveat as descriptive-not-normative anchor**: AERead's first methodological commitment — "descriptive measurement, not normative ranking" (methodology.md §Five methodological commitments #1) — is Andrews's §7 caveat verbatim. Higher AERead scores ≠ better-aligned; AERead reports a fingerprint, not a verdict.
@@ -80,11 +80,11 @@ A second contribution that AERead operationalizes: the **§3 non-identification 
 ### What AERead extends
 
 - **Beyond training-signal to deployment-eval**: Andrews's penalties are designed as training signals. AERead operationalizes them as **runtime diagnostic probes** for deployed models — every per-(model, task) Layer 3 result gets a per-axis Axis 2 score derived from counterfactual axiom probes.
-- **§4 lit review integrated, not just surveyed**: Andrews's §4 names 8 papers documenting rationality violations but treats them as separate findings. AERead's 5-axis taxonomy **organizes** Andrews's §4 papers into a single attribution framework — Betz + Chadwick anchor Axis 5 (Meta-cognitive) + Tier 4 Variants 2 + 4; Chen + Wen anchor the context-conditional axiomatization commitment (methodology.md §Five methodological commitments #4); Zhu-Griffiths anchors Axis 5 coherence probes; Mazeika anchors Axis 3 (Calibration); Qiu anchors Tier 4 Variant 3. The methodology paper §3 frames this as "reading these papers in sequence is reading a request for AERead."
+- **§4 lit review integrated, not just surveyed**: Andrews's §4 names 8 papers documenting rationality violations but treats them as separate findings. AERead's 5-axis taxonomy **organizes** Andrews's §4 papers into a single attribution framework — Betz + Chadwick anchor Axis 5 (Meta-cognitive) and the training-signal integration mechanisms for inference-time correction + self-supervised consistency training; Chen + Wen anchor the context-conditional axiomatization commitment (methodology.md §Five methodological commitments #4); Zhu-Griffiths anchors Axis 5 coherence probes; Mazeika anchors Axis 3 (Calibration); Qiu anchors the supervised-trace integration mechanism. The methodology paper §3 frames this as "reading these papers in sequence is reading a request for AERead."
 
 ### What AERead addresses from their §Future Work
 
-Andrews's penalties are derived but not yet deployed at scale. The open question is **whether the penalties drive measurable rationality improvement in frontier LLMs**. AERead's Tier 4 architecture (4 product variants tied to Andrews + Chadwick + Qiu + Betz-Richardson) is the commercialization path for testing this. The methodology paper + leaderboard are the **measurement infrastructure** that lets anyone — including Andrews's own group — quantify before/after impact of any of the 4 mechanisms.
+Andrews's penalties are derived but not yet deployed at scale. The open question is **whether the penalties drive measurable rationality improvement in frontier LLMs**. AERead's training-signal integration architecture (4 prior-art-anchored mechanisms tied to Andrews + Chadwick + Qiu + Betz-Richardson) is the **methodology paper's empirical answer** to this question. The leaderboard + per-axis penalties are the **measurement infrastructure** that lets anyone — including Andrews's own group + frontier-lab researchers building on his penalties — quantify before/after impact of any of the 4 mechanisms in their own fine-tuning runs.
 
 ---
 
@@ -137,10 +137,10 @@ EconEvals's adoption ceiling is the question their §Future Work doesn't ask but
 | **Measurement-model pluralism** (commitment #2) | — | §3 non-identification critique motivates within-class identification | — |
 | **Judge-free by construction** (commitment #3) | Environment-as-verifier | LP-checkable penalties (no judge) | "Directly grounded in theoretical model" |
 | **Context-conditional axiomatization** (commitment #4) | — | §4 lit-review names Wen 2025 as anchor | — |
-| **Tier 4 commercial Variant 1** (training-time penalty) | — | Primary anchor | — |
-| **Tier 4 Variant 2** (inference-time remediation) | — | — | — (Chadwick 2025 anchors this) |
-| **Tier 4 Variant 3** (supervised trace mimicry) | — | — | — (Qiu 2026 anchors this) |
-| **Tier 4 Variant 4** (self-supervised consistency training) | — | — | — (Betz & Richardson 2023 anchors this) |
+| **Training-signal mechanism 1** (training-time penalty) | — | Primary anchor | — |
+| **Training-signal mechanism 2** (inference-time remediation) | — | — | — (Chadwick 2025 anchors this) |
+| **Training-signal mechanism 3** (supervised trace mimicry) | — | — | — (Qiu 2026 anchors this) |
+| **Training-signal mechanism 4** (self-supervised consistency training) | — | — | — (Betz & Richardson 2023 anchors this) |
 | **Adoption strategy** | UX precedent (7-axis sortable leaderboard at terms-bench.github.io) | — | Anti-exemplar (1 cite at 14 months → AERead avoids via Day-1 leaderboard + plug-and-play UX) |
 
 The "reading these papers in sequence is reading a request for AERead" thesis in [`proposal.md`](proposal.md) §3 emerges from this map: each anchor paper independently arrived at one of AERead's structural commitments (judge-free, oracle-grounded, within-class identification, descriptive-not-normative); AERead's contribution is the **integration** across all three plus the diagnostic-and-correction literature ([`reading_list.txt`](reading_list.txt) T1 covers the cluster).

@@ -88,7 +88,11 @@ The methodology paper's §3 contribution is precisely:
 
 This respects all prior art (we're extending, not claiming to invent) while staking the integrative claim.
 
+**Why the falsifiability matters for citation**. The "main effects > 80% of variance" claim is **pre-registered with falsification criteria** before cross-model evaluation begins (full criteria in [`methodology.md` § Q4](methodology.md#q4--how-much-of-the-per-model-task-gap-do-layers-1--2-explain-whats-the-residual)): above 80%, simplify the framework; below 50%, the 5-axis residual becomes the headline; between 50-80%, the architecture is empirically justified. This is what makes the §3 contribution **citable as methodology** rather than asserted as framework — an empirical claim with a stated falsification path, regardless of which band the data land in. **The pre-commercial citation channel we're optimizing for is methodological engagement from frontier-lab researchers** (safety, economics-of-AI, evaluation methodology); pre-registration is the artifact that invites that engagement.
+
 **Diagnostic surface**: every per-(model, task) result has a drill-down page rendering a **5-axis radar chart** with one spoke per axis + headline ("model X's primary failure mode is Axis 3 calibration via B1 risk-preference miscalibration during persona inference") + cross-decomposition matrix for advanced users.
+
+> **Open methodological questions** — five strategic questions critical to frontier-lab methodological engagement are addressed in a dedicated Q&A section: [`methodology.md` § Critical methodological questions](methodology.md#critical-methodological-questions-open-qa). The Q&A covers (1) overfitting + function misspecification defenses, (2) quantitative-feature scoring discipline, (3) RL-environment / training-signal design, (4) the Layer 1+2 vs Layer 3 residual hypothesis (the central empirical claim of the §3 contribution above), and (5) the post-v0 OpenSpiel-compatible environment substrate ([`aeread_env_design.md`](aeread_env_design.md)). Each Q&A entry ends with an "Open:" invitation — these are open research questions inviting engagement, not closed claims. Engagement on all five is invited at the 2026-06-02 first sync and again before methodology-paper preprint circulation.
 
 ## 4. Five methodological commitments (each citation-anchored)
 
@@ -202,7 +206,7 @@ Phase-0 options (pick 1-2 for ~8-30 hours total, depending on which):
   1. **Propose 2-3 additional candidates** not yet in the pool (examples we suspect are missing: spectrum auctions, prediction markets, generalized second-price / AdWords mechanism, market-maker bid-ask spread, revenue-equivalence stress tests). For each: source paper(s), OracleDecomposable mapping sketch, matrix-position justification.
   2. **Formalize the oracle policy for 1-2 existing high-value cases** that currently sit in medium testability (A2 EconEvals pricing or B1 Calvano collusion are the highest-leverage targets) — move them into the high-testability column by deriving the closed-form oracle their mechanism-design lit supports.
   
-  Either path closes the same matrix gap: "high economic value × high testability" is the quadrant where AERead's commercial leaderboard story sits, and it's currently sparse because the oracle-derivation work hasn't been done. **~8-12 hours** for either path; ~15-20h if you do both. This is the highest-leverage Phase-0 item for the candidate-pool curation workstream in §9.5.
+  Either path closes the same matrix gap: "high economic value × high testability" is the quadrant where the OracleDecomposable Eq. 4 generalization gets the strongest empirical demonstration (the methodology paper §3 claim), and it's currently sparse because the oracle-derivation work hasn't been done. **~8-12 hours** for either path; ~15-20h if you do both. This is the highest-leverage Phase-0 item for the candidate-pool curation workstream in §9.5.
 
 You're effectively the §3 co-lead of the methodology paper if this trial converts. One item alone is sufficient signal for the trial; picking more is welcome but not expected.
 
