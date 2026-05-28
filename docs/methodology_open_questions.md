@@ -167,7 +167,7 @@ OpenSpiel covers generic game substrates. AERead's contribution layer = the **ec
 
 **Naming**: position as "**OracleDecomposition Environments for LLM Economic Agency**" — not "OpenSpiel for economic games" (too broad).
 
-**Open — sequencing**: the substrate is **NOT v0.5** — it becomes a separate post-v0-paper follow-up paper. v0 first paper ships 2 standalone games (no shared substrate). Building the 4-game MVP + 6-interface architecture is months of engineering; worth doing only after v0 establishes traction.
+**Open — sequencing**: the substrate is **NOT v0.5** — it becomes a separate post-v0-paper follow-up paper. v0 first paper ships 2 standalone games (no shared substrate). Building the 5-game MVP + 6-interface architecture is months of engineering; worth doing only after v0 establishes traction.
 
 ### Q9 — How does AERead operationalize "emergence" claims?
 
