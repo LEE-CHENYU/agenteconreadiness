@@ -19,7 +19,7 @@ AERead's pre-commercial deliverable is the methodology paper + reproducible v0 r
 - Nine open methodological questions with stated working positions + "Open:" invitations — function misspecification (Q1), numeric-feature evaluation (Q2), qualitative-feature scoring discipline (Q3), generalization battery (Q4), RL training-signal mechanisms (Q5), TERMS-Bench-as-training-signal overfitting + AERead-Train/Dev/Cert (Q6), Layer 1+2 vs Layer 3 residual hypothesis (Q7), OpenSpiel-compatible environment substrate (Q8), operational emergence definition (Q9) — [`docs/methodology.md` § Critical methodological questions](docs/methodology.md#critical-methodological-questions-open-qa)
 - Pre-registered factorial hypothesis with per-domain explanatory-power estimates (60-75% procurement → 25-50% long-horizon agents) + falsification criteria — [`docs/methodology.md` § Q7](docs/methodology.md#q7--how-much-of-the-per-model-task-gap-do-layers-1--2-explain-whats-the-residual)
 - Counterexample submission channel for the OracleDecomposable abstraction — [`docs/methodology.md` § How to engage](docs/methodology.md#how-to-engage-pre-commercial-final-goal)
-- OpenSpiel-compatible substrate with 10-hard-constraint contribution API (v0.5) — [`docs/aeread_env_design.md`](docs/aeread_env_design.md)
+- OpenSpiel-compatible substrate with 10-hard-constraint contribution API (post-v0-paper follow-up paper, NOT v0.5) — [`docs/aeread_env_design.md`](docs/aeread_env_design.md)
 - Open candidate pool for new Layer 3 use cases on a value × testability matrix — [`docs/layer3_candidates.md`](docs/layer3_candidates.md)
 
 Engagement channel: contact details in [`docs/proposal.md` §15](docs/proposal.md).
@@ -69,7 +69,7 @@ When a model scores low, the diagnostic page identifies which axis is to blame:
 1. **Information** — agent lacks knowledge of hidden state (TERMS-Bench / OracleDecomposable)
 2. **Consistency** — agent's preferences violate axioms (Andrews 2026)
 3. **Calibration** — agent's economic parameters are misfit (Mazeika 2025; Guo 2017 ECE; Gneiting-Raftery 2007 proper scoring rules)
-4. **Computational floor** — agent can't execute the math (novel)
+4. **Computational floor** — agent can't execute the math (EconEvals 2025 competency-as-prerequisite is the closest precedent; AERead extends to per-axis quantity-substitution decomposition)
 5. **Meta-cognitive** — agent's confidence is uncalibrated (Yamin 2026; Zhu & Griffiths 2024; Chadwick 2025)
 
 See [`docs/methodology.md`](docs/methodology.md) for the full description.
@@ -90,7 +90,7 @@ Adoption traction analysis (25 benchmarks studied) found that benchmarks > 200 c
 - One-line evaluation: `pip install aeread && aeread evaluate --model claude-opus-4-7 --task all`
 - **v0: one submission path** (web form); Colab + PR paths defer to v0.5+
 - Integration AS lm-evaluation-harness task family — so labs already running `lm_eval` have us installed
-- Cache layer never invalidates — reviewer reproducibility is a hard guarantee (signed-ScoreRecord enforcement defers to v0.5+)
+- Cache layer never invalidates — good-hygiene reproducibility (cache hashes externally auditable; signed-ScoreRecord cryptographic provenance defers to v0.5+)
 
 ## License
 

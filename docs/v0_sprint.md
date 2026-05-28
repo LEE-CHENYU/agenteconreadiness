@@ -25,10 +25,10 @@
 
 ### Layer 3 use cases (2 games)
 
-- **C2 ProductProcurementGame** — single-agent, one-shot, qualitative-evidence procurement; oracle = robust-optimal choice per Q3 4-tier optimality with single utility-weight vector per buyer
+- **C2 ProductProcurementGame** — single-agent, one-shot, qualitative-evidence procurement; **v0 oracle = optimal under single declared utility-weight vector per buyer profile** (per Q3 v0 scope; robust-utility-family is v0.5+ upgrade); 4-tier optimality classification (robust optimal / acceptable / weak / dominated)
 - **D3 VendorSelectionGame** — single-agent, risk/uncertainty supplier selection; oracle = Bayes risk minimization given declared utility curvature
 
-These are structurally distinct (qualitative evidence vs probabilistic risk; robust-utility-family oracle vs Bayes-risk oracle) — the pair demonstrates Eq. 4 portability across two distinct procurement-style decision structures.
+These are structurally distinct (qualitative evidence vs probabilistic risk; declared-single-vector oracle vs Bayes-risk oracle) — the pair demonstrates Eq. 4 portability across two distinct procurement-style decision structures.
 
 ### Layer 2 functional classes (3 of 5)
 
@@ -226,8 +226,8 @@ Why we're deferring these (not optional commitments — these are the next-relea
 
 ### Cross-repo sync status
 
-- agenteconreadiness (this repo): canonical v0 scope (per recent deferral refactor + Jingyi addition)
-- rationale source repo: parallel sync of master plan + applications pending
+- agenteconreadiness (this repo): canonical v0 scope (per 2026-05-27 deferral refactor + Jingyi addition + 10-issue review fixes)
+- rationale source repo: synced 2026-05-27 — master plan + Open Phil application + pitch v0.2 + runtime spec all carry the 2026-05-27 v0 scope revision banner
 
 ---
 
