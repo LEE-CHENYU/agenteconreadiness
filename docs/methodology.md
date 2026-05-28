@@ -19,12 +19,12 @@ These are the open methodological questions AERead must address for major-lab ad
 | **Q1** | Function misspecification + within-class identification rigor | Andrews 2026 §3 non-identification critique. Multi-class robustness over 5 functional classes + measurement-model pluralism + predict-then-validate. **Layer 2 modeling rigor.** (Layer 3 evaluation infrastructure is Q4; training-use contamination is Q6.) |
 | **Q2** | Numeric-feature evaluation discipline | Strict propriety (Brier/CRPS), dollar surplus, oracle gap, bootstrap CIs. ECE diagnostic-only (not leaderboard). |
 | **Q3** | Qualitative-feature scoring discipline (no hidden cardinal truth) | Ordinal states + 4-tier optimality + pairwise-regret + robust-utility-family. Critical for procurement-style cases — getting this wrong is the citation-credibility risk. |
-| **Q4** | Generalization battery + benchmark integrity | 5 splits (dev → hidden IID → axis-OOD → compositional → far-OOD → fresh seasons); hold-out *dimensions* not examples; overfit-bot baseline; rotating seasons; Generalization Index + Transfer Ratio; locked test sets, cache layer, anti-shortcut audits as foundational integrity gates. **Layer 3 evaluation rigor.** |
+| **Q4** | Generalization battery + benchmark integrity | 5 splits (dev → hidden IID → axis-OOD → compositional → far-OOD → fresh seasons); hold-out *dimensions* not examples; overfit-bot baseline; rotating seasons; Generalization Index + Transfer Ratio; locked test sets, cache layer, anti-shortcut audits, anti-discontinuous-metric reporting as foundational integrity gates. **Layer 3 evaluation rigor — applies to all claims.** |
 | **Q5** | RL environment + training-signal mechanisms | 4 prior-art-anchored mechanisms (Andrews/Chadwick/Qiu/Betz-Richardson); per-axis penalties as auxiliary RL loss; factorial intervention design as training-data composition guide. |
 | **Q6** | Training-signal contamination (TERMS-Bench overfitting + AERead-Train/Dev/Cert) | What happens when AERead is used as training target; the training-vs-evaluation tier separation; submitter provenance contract. **Training-use rigor** — distinct from Q1 (modeling) + Q4 (evaluation). |
 | **Q7** | Layer 1+2 vs Layer 3 residual hypothesis | Per-domain explanatory-power table (60-75% procurement, 30-55% multi-agent markets); pre-registered falsification criteria. The central empirical claim of §3 contribution. |
 | **Q8** | OpenSpiel-compatible benchmark substrate | OracleDecomposition Environments for LLM Economic Agency; thin layer on top of OpenSpiel; 4-game MVP; 10 hard constraints. |
-| **Q9** | Operational emergence definition | Conservative 5-criterion test (floor + sharp improvement + multi-metric coherence + OOD transfer + counterfactual robustness); anti-discontinuous-metric discipline; IRT extension (v1+). |
+| **Q9** | Operational emergence definition | Conservative 5-criterion test (floor + sharp improvement + multi-metric coherence + OOD transfer + counterfactual robustness) for the *emergence* claim specifically; IRT extension (v1+). Built on top of Q4's infrastructure. Addresses Schaeffer-Krueger 2023 emergence-as-discontinuous-metric-artifact critique by name. |
 
 ### Q1 — How does AERead defend against function misspecification?
 
@@ -92,6 +92,7 @@ This Q is scoped to **Layer 3 evaluation rigor** — the split design + benchmar
 - **Cache layer never invalidates** + signed ScoreRecords → contamination becomes detectable from public cache hashes
 - **Locked held-out test set** + bootstrap confidence intervals + model/prompt-version hashes
 - **Anti-shortcut audits** (per Q8 constraint 6): option order, text length, brand, marketing positivity, etc. — none should predict the answer at contributor-submission time
+- **Anti-discontinuous-metric reporting** — alongside any binary pass/fail metric, AERead reports continuous + ordinal measures (utility-regret distribution; robust-top-tier rate; dominated-choice rate; pairwise preference-violation count; paraphrase instability; transfer ratio; calibration error). This is a general benchmark-design principle: any claim that depends on crossing a single fragile pass/fail threshold is suspect. The emergence-claim-specific application is in Q9.
 
 **Five splits, mandatory per game** (Q6 names them AERead-Train, AERead-Dev, AERead-Cert as the citation-contract tiers — same splits, different vocabulary for the model-card contract):
 
@@ -237,32 +238,21 @@ This split mirrors a finding from the diagnostic-and-correction literature (Andr
 
 ### Q9 — How does AERead operationalize "emergence" claims?
 
-Background: the original emergent-abilities literature (Wei et al. 2022) defined emergence as abilities absent in small models + present in large ones. Schaeffer-Krueger 2023 + follow-on work argued that some apparent emergence is an artifact of **discontinuous metrics** (pass/fail thresholds) rather than genuine qualitative jumps in model behavior. AERead must claim emergence carefully — overclaiming on a fragile metric is exactly the citation-credibility risk frontier-lab reviewers flag.
-
-**Q9 vs Q4 boundary** (both touch "multi-metric reporting" but at different levels): Q4 reports metrics **across distribution splits** (dev / hidden IID / axis-OOD / compositional / far-OOD) — multi-axis coverage. Q9 reports metrics **within a single split, across metric shapes** (continuous + ordinal + binary) — anti-discontinuous-metric discipline. Q4 prevents you from claiming "the model generalizes" when it only memorized the dev set; Q9 prevents you from claiming "the model emerged a capability" when only one fragile pass/fail metric crossed a threshold. Different overclaiming failure modes; complementary defenses.
+Background: the original emergent-abilities literature (Wei et al. 2022) defined emergence as abilities absent in small models + present in large ones. Schaeffer-Krueger 2023 + follow-on work argued that some apparent emergence is an artifact of **discontinuous metrics** (pass/fail thresholds) rather than genuine qualitative jumps in model behavior. AERead must claim emergence carefully — overclaiming on a fragile metric is exactly the citation-credibility risk frontier-lab reviewers flag. This Q is narrowly scoped to **emergence-claim-making discipline** specifically; the general anti-discontinuous-metric reporting principle lives in Q4 (it applies to all claims, not just emergence).
 
 **AERead's conservative operational definition**. A capability is "emergent-like" only when ALL FIVE criteria hold:
 
 1. **Floor effect at smaller scales** — smaller models perform near random or choose dominated options on the capability
 2. **Sharp improvement at larger scales** — larger models improve substantially (not just incrementally) on this capability
-3. **Multi-metric coherence** — the improvement appears across multiple metrics simultaneously (e.g., choice-agreement rate + robust-optimal rate + transfer ratio + paraphrase stability), not only on exact-match accuracy
-4. **OOD transfer** — the improvement transfers to held-out domains (chair → laptop → SaaS procurement), not just hidden-IID instances from the same distribution
-5. **Counterfactual robustness** — the improvement survives paraphrase + preference-flip + marketing-injection + constraint-tightening tests; gains that collapse under counterfactual perturbation are likely overfitting
+3. **Multi-metric coherence** — the improvement appears across multiple metrics simultaneously (e.g., choice-agreement rate + robust-optimal rate + transfer ratio + paraphrase stability per Q4's anti-discontinuous reporting), not only on exact-match accuracy
+4. **OOD transfer** — the improvement transfers to held-out domains (chair → laptop → SaaS procurement) per Q4's split design, not just hidden-IID instances from the same distribution
+5. **Counterfactual robustness** — the improvement survives paraphrase + preference-flip + marketing-injection + constraint-tightening tests (Q4's counterfactual battery); gains that collapse under counterfactual perturbation are likely overfitting
 
 **A weaker claim that frontier-lab reviewers will reject**: "Model X got 78% exact-best-choice accuracy on AERead-Procurement." This proves nothing about emergence — it could be benchmark exploitation, ceiling effects, or fragile metric thresholding.
 
-**Anti-discontinuity discipline**: AERead reports **continuous and ordinal measures** alongside any binary pass/fail metric:
-- Utility-regret distribution (not just exact-match)
-- Robust-top-tier rate (not just exact-optimal)
-- Dominated-choice rate (counterpart to optimal-choice rate)
-- Pairwise preference-violation count (continuous)
-- Paraphrase instability (continuous variance)
-- Transfer ratio (continuous OOD vs IID)
-- Calibration error (continuous)
+**Q9 vs Q4 — why this is its own Q despite leaning heavily on Q4**: Q4 provides the *infrastructure* (multi-axis splits + continuous metrics + counterfactual battery) that any claim can use. Q9 says how to *specifically* invoke that infrastructure to make a defensible emergence claim — the Schaeffer-Krueger critique is a named critique frontier-lab reviewers expect benchmarks to address by name, and a dedicated Q is the clearest way to do so. Without Q9, "AERead handles emergence claims" gets buried in Q4's infrastructure description.
 
-When a larger model improves, the methodology paper asks: is this a real jump across multiple continuous metrics, or only an artifact of crossing a pass/fail threshold on one fragile metric?
-
-**Item-response-theory extension (v1+)**: a deeper diagnostic per Andrews / Davis-Stober Bayesian-mixture precedent. Estimate per-item difficulty + per-item discrimination + per-model ability parameters via `P(success_{m,i}) = σ(θ_m − β_i + γ_q·capability_tags_i)`. This identifies which items separate strong from weak models (high discrimination), which capabilities are actually hard, whether the benchmark saturates, and whether larger models improve smoothly or sharply. IRT is the v1+ rigor extension; v0 uses simpler bootstrap intervals.
+**Item-response-theory extension (v1+)**: a deeper diagnostic for emergence-curve analysis per Andrews / Davis-Stober Bayesian-mixture precedent. Estimate per-item difficulty + per-item discrimination + per-model ability parameters via `P(success_{m,i}) = σ(θ_m − β_i + γ_q·capability_tags_i)`. This identifies which items separate strong from weak models (high discrimination), which capabilities are actually hard, whether the benchmark saturates, and whether larger models improve smoothly or sharply. IRT is the v1+ rigor extension; v0 uses simpler bootstrap intervals.
 
 **Open**: AERead's per-capability scaling curves across model families are the empirical test of whether economic-decision capability is emergent-like or smoothly scaling. The methodology paper reports both views and lets the data settle which framing fits. Frontier-lab reviewers interested in emergence vs scaling-law framings are invited to engage on this question explicitly.
 
