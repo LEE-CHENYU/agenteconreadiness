@@ -14,7 +14,7 @@
 
 > **An OpenSpiel-compatible economic-agency evaluation layer for LLMs** — combining oracle decomposition, revealed-preference diagnostics, qualitative-evidence interpretation, utility/belief calibration, and hidden-OOD generalization tests on top of generic game substrates. Shorthand: **OracleDecomposition Environments for LLM Economic Agency**.
 
-OpenSpiel already covers the generic game substrate (n-player, zero-sum/cooperative/general-sum, one-shot/sequential, perfect/imperfect-information). AERead-env is **the economic-agency evaluation layer on top** — the diagnostic + evaluation infrastructure that turns a game into a benchmark for LLM economic decision-making. The four explicit additions on top of OpenSpiel-style substrates are: (1) oracle decomposition (Δ_inf / Δ_unc / Δ_ctrl), (2) revealed-preference diagnostics (axiom checks + within-class identification), (3) qualitative-evidence interpretation (structured ordinal states, not hidden cardinal truth — per methodology Q2), (4) hidden-OOD generalization protocol (axis-OOD + compositional + far-OOD + fresh seasons).
+OpenSpiel already covers the generic game substrate (n-player, zero-sum/cooperative/general-sum, one-shot/sequential, perfect/imperfect-information). AERead-env is **the economic-agency evaluation layer on top** — the diagnostic + evaluation infrastructure that turns a game into a benchmark for LLM economic decision-making. The four explicit additions on top of OpenSpiel-style substrates are: (1) oracle decomposition (Δ_inf / Δ_unc / Δ_ctrl), (2) revealed-preference diagnostics (axiom checks + within-class identification), (3) qualitative-evidence interpretation (structured ordinal states, not hidden cardinal truth — per methodology Q3), (4) hidden-OOD generalization protocol (axis-OOD + compositional + far-OOD + fresh seasons).
 
 This positioning matters strategically. Major model labs cite **diagnostic + evaluation frameworks**, not "yet another game library." Adoption traction analysis (see source-repo notes) shows the "-Bench" suffix caps citations at low single-digit numbers even with elite-PI authorship; the deployment-verdict / diagnostic framing is what GDPval-style benchmarks use to break out.
 
@@ -108,16 +108,18 @@ Not every economic game has a closed-form optimal policy. Oracle support tiers:
 
 Each game declares its oracle certainty in metadata. Scoring transparency: a model isn't penalized for not matching an oracle when only dominance is declared.
 
-## MVP scope (4 games — v0 first paper covers 2; v0.5+ covers all 4)
+## Substrate MVP scope (4 games — post-v0-paper follow-up paper; v0 first paper has NO shared substrate)
 
-Chosen to span the structural-diversity matrix in design goal #2. **First-paper v0 = ProductProcurementGame + VendorSelectionGame only** (two structurally distinct procurement-style decisions — qualitative-evidence vs risk/uncertainty — enough to demonstrate the OracleDecomposable Eq. 4 generalization without overscoping). NegotiationGame + PricingCompetitionGame are roadmap modules: the substrate ships their scaffolding at v0.5, but they are not load-bearing for the methodology paper's §3 contribution claim.
+Per the top-of-doc banner: this substrate is a **post-v0-paper follow-up paper**, NOT v0 or v0.5. The v0 first paper ships 2 standalone games (ProductProcurementGame + VendorSelectionGame) implemented independently — no shared `aeread_env/` substrate code yet. The 4-game MVP below is the substrate scope for the follow-up paper, which only happens if the v0 paper establishes traction.
+
+The 4 games span the structural-diversity matrix in design goal #2:
 
 ### ProductProcurementGame — v0 first paper, game 1
 - Single-agent, one-shot
 - Information: imperfect (qualitative evidence about products: reviews, specs, marketing)
 - Action: structured purchase decision (product_id, quantity, optional bundle)
 - Payoff: revealed-preference fit + dollar-equivalent surplus (per Q3 4-tier optimality scoring)
-- Oracle: **robust-optimal across plausible utility-weight family** (per Q3 robust-utility framing); not a single hidden-cardinal exact-optimum
+- Oracle (v0): **optimal under a single declared utility-weight vector per buyer profile** (per Q3 v0 scope — single-vector scoring); v0.5+ extension is the robust-optimal-across-plausible-utility-weight-family upgrade per Q3 v0.5+ scope. Either way, NOT a hidden-cardinal exact-optimum from a 0-1 scalar (that's the fake-precision failure Q3 prevents).
 - Tests: Axis 1 (information processing from reviews) + Axis 4 (constraint satisfaction) + qualitative-evidence interpretation residual
 
 ### VendorSelectionGame — v0 first paper, game 2

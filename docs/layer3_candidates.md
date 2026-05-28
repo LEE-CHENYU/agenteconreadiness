@@ -1,6 +1,6 @@
 # Layer 3 Use Case Candidates — Open List
 
-This is the **open candidate pool** for AERead Layer 3 (real-world economic decision use cases). v0 ships with 4; the rest are listed here as candidates we'll evaluate for v0.5 / v1 / v1.5 / v2 expansion. **Listing is harmless** — having the full pool visible prevents us from missing high-leverage cases later.
+This is the **open candidate pool** for AERead Layer 3 (real-world economic decision use cases). v0 ships with **2 deep games** (C2 ProductProcurementGame + D3 VendorSelectionGame); the rest are listed here as candidates we'll evaluate for v0.5 / v1 / v1.5 / v2 expansion. **Listing is harmless** — having the full pool visible prevents us from missing high-leverage cases later.
 
 ## Selection criteria
 
@@ -33,7 +33,7 @@ The **top-right quadrant** (high value × high testability) is where AERead's le
 - **The top-right quadrant is the primary methodology-validation surface** — pricing, matching, trading, procurement, scheduling, auctions. These are the cases with both economic stakes and clean oracle decomposition, making them the strongest demonstration sites for the OracleDecomposable Eq. 4 generalization across non-bargaining domains (the methodology paper §3 contribution).
 - **The top-middle is the highest-priority "needs methodology work" zone** — B1 Calvano collusion + A7 price discrimination both have high economic value but require multi-round simulator engineering before they're testable at AERead's plug-and-play standard.
 - **The bottom-right is the academic-credibility cluster** — weather forecasting, iterated ultimatum, Allais paradox. These are clean, citable, and load-bearing for methodology-paper §3 validation across non-bargaining domains.
-- **The top-right of the top-right is empty** — the highest-economic-value cases (pricing, matching) currently have medium testability because the oracle policies require domain calibration. Mechanism-design contribution (per §9.3 Phase-0 option D below or external contributions via the OracleDecomposable submission channel): theoretically formalize the oracle for these cases so they move to the high-testability column.
+- **The high-value × high-testability cell is sparser than ideal** — A2 EconEvals pricing, A6 two-sided matching, B3 algorithmic trading are listed there, but each has substantive oracle-derivation work pending before the OracleDecomposable interface ships clean. Mechanism-design contribution (per §9.3 Phase-0 option D below or external contributions via the OracleDecomposable submission channel): theoretically formalize the oracle for these cases to harden their testability score.
 
 **Open ask for Zihao** (per §9.3 (D) in the proposal): two complementary mechanism-design contributions, either of which closes the matrix gap:
 
