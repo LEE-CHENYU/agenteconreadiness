@@ -46,7 +46,9 @@ All three are necessary; none overlaps. A model could pass Q1 (well-identified u
 
 ### Q2 — How does AERead evaluate numeric features?
 
-For genuinely numeric outcomes (Layer 3 predictive validity, dollar surplus, oracle gap, predicted probabilities), AERead uses strict-propriety scoring + bootstrap intervals. For *qualitative* features (which are often presented as numeric but shouldn't be), see Q3 — that's its own dedicated question because hidden cardinal scoring of qualitative features is a known failure mode.
+This Q is scoped to **genuinely numeric outcomes** — dollar surplus, oracle gap, predicted probabilities, choice-agreement rate on probability emissions — where the ground truth IS a number. For qualitative outcomes (where the ground truth is an ordinal state like "strong / mixed / weak durability evidence" rather than a number), the right approach is Q3 — hidden cardinal scoring of qualitative features is the failure mode that motivates Q3 as a separate Q.
+
+**Q2 vs Q3 boundary**: ask "what is the ground truth?" If it's a number that exists in the world (dollar amount, probability, oracle utility), use Q2's strict-propriety scoring. If it's a qualitative state we've encoded into ordinal labels (review sentiment, assembly difficulty), use Q3's ordinal-state + 4-tier-optimality scoring. Never reverse-engineer a number-from-a-state and score against that — that's the fake-precision failure Q3 prevents.
 
 **Numeric-outcome scoring discipline**:
 - **Brier score** (strictly proper) for discrete events — leaderboard headline
@@ -170,6 +172,8 @@ The right framing:
 
 This is **the central empirical hypothesis of the methodology paper §3 contribution**. The honest answer: we don't know yet — that's what the benchmark measures.
 
+**Q7 depends on Q1 + Q4**: the explanatory-power claim presupposes (a) Layer 2 identification is well-done per Q1 (multi-class robustness + measurement-model pluralism — without these, "Layer 1+2 explains 60-75%" is meaningless because the Layer 2 fit itself is noisy), and (b) Layer 3 evaluation uses honest held-out splits per Q4 (without these, the "residual" includes contamination noise). Q7 is the downstream empirical claim; Q1 + Q4 are the upstream rigor that makes the claim measurable.
+
 **Per-domain working hypothesis** (refined from a single estimate to domain-specific ranges):
 
 | Domain | Expected Layer 1+2 explanatory share | What dominates the residual |
@@ -234,6 +238,8 @@ This split mirrors a finding from the diagnostic-and-correction literature (Andr
 ### Q9 — How does AERead operationalize "emergence" claims?
 
 Background: the original emergent-abilities literature (Wei et al. 2022) defined emergence as abilities absent in small models + present in large ones. Schaeffer-Krueger 2023 + follow-on work argued that some apparent emergence is an artifact of **discontinuous metrics** (pass/fail thresholds) rather than genuine qualitative jumps in model behavior. AERead must claim emergence carefully — overclaiming on a fragile metric is exactly the citation-credibility risk frontier-lab reviewers flag.
+
+**Q9 vs Q4 boundary** (both touch "multi-metric reporting" but at different levels): Q4 reports metrics **across distribution splits** (dev / hidden IID / axis-OOD / compositional / far-OOD) — multi-axis coverage. Q9 reports metrics **within a single split, across metric shapes** (continuous + ordinal + binary) — anti-discontinuous-metric discipline. Q4 prevents you from claiming "the model generalizes" when it only memorized the dev set; Q9 prevents you from claiming "the model emerged a capability" when only one fragile pass/fail metric crossed a threshold. Different overclaiming failure modes; complementary defenses.
 
 **AERead's conservative operational definition**. A capability is "emergent-like" only when ALL FIVE criteria hold:
 
