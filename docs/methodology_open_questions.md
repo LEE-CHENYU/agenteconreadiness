@@ -134,7 +134,7 @@ Per the TERMS-Bench overfitting analysis ([Zhang et al. 2026](papers/links.md)):
 | Domain | Expected Layer 1+2 explanatory share | Dominant residual driver |
 |---|---|---|
 | Discrete-action procurement (v0 C2) | **60-75%** | Qualitative-evidence interpretation; marketing susceptibility |
-| Continuous-action pricing (v0 C8) | **50-70%** | Continuous-action optimization; demand-prior misinterpretation |
+| Continuous-action pricing (v0 C8) | **50-70%** | Posterior-computation failure (Δ_unc — agent's posterior from n=10 noisy sales evidence ≠ Bayes-optimal); continuous-action argmax under uncertainty (Δ_ctrl); round-number-price bias |
 | Vendor selection (roadmap D3) | **55-75%** | Belief calibration; risk-preference functional-class disagreement |
 | Portfolio / risk choice (C1 13F roadmap) | **50-70%** | Functional-class misspecification; opportunity-set mis-modeling |
 | TERMS-like negotiation (roadmap D2) | **40-65%** | Strategic belief; opponent-type inference |
