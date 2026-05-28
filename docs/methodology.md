@@ -134,7 +134,7 @@ Each axis has a distinct intervention mechanism:
 - **Axis 4**: substitute the computational quantity with a closed-form answer
 - **Axis 5**: elicit confidence + compare to realized accuracy for calibration (Brier score on held-out events; ECE + reliability diagrams for diagnostic visualization); run Dutch-book + money-pump constructions (Chadwick 2025) and probabilistic-identity probes (Zhu & Griffiths 2024) for coherence (no ground truth needed)
 
-Cross-decomposition (Axis 1 × Axis 2, etc.) produces an attribution matrix with main-effect cells + pairwise interaction cells + residual. **Whether main effects explain a high fraction of the per-(model, task) gap is a per-domain empirical hypothesis** (per Q7's per-domain working ranges: 60-75% clean procurement, 55-75% vendor selection under risk, declining to 30-55% multi-agent markets and 25-50% long-horizon agents — see Q7 for the full table). This is pre-registered with falsification criteria per domain, not assumed as a uniform threshold. Interactions between axes are expected (e.g., calibration depends on whether the agent has the relevant information; computational-floor failures can masquerade as inconsistent preference) — the factorial design measures these rather than assuming them away.
+Cross-decomposition (Axis 1 × Axis 2, etc.) produces an attribution matrix with main-effect cells + pairwise interaction cells + residual. **Whether main effects explain a high fraction of the per-(model, task) gap is a per-domain empirical hypothesis** (per Q7 working ranges: 60-75% discrete-action procurement (v0 C2), 50-70% continuous-action pricing (v0 C8), declining to 30-55% multi-agent markets and 25-50% long-horizon agents — see [`methodology_open_questions.md` § Q7](methodology_open_questions.md#q7--how-much-of-the-per-model-task-gap-do-layers-1--2-explain-whats-the-residual) for the full table). This is pre-registered with falsification criteria per domain, not assumed as a uniform threshold. Interactions between axes are expected (e.g., calibration depends on whether the agent has the relevant information; computational-floor failures can masquerade as inconsistent preference) — the factorial design measures these rather than assuming them away.
 
 ### Relation to the diagnostic-and-correction literature
 
@@ -193,12 +193,12 @@ These docs are working artifacts. AERead's pre-commercial deliverable is the met
 
 Engagement is invited at every layer:
 
-- **On the open methodology Q&A** (above): the ten questions are real research questions; reviewers, frontier-lab researchers, and collaborators are invited to challenge the working positions before the methodology paper draft circulates. Q10 (training-signal validation) is the most consequential v0 scope decision pending the 4-week checkpoint.
+- **On the open methodology Q&A** (full bodies in [`methodology_open_questions.md`](methodology_open_questions.md); topic-index above): the ten questions are real research questions; reviewers, frontier-lab researchers, and collaborators are invited to challenge the working positions before the methodology paper draft circulates. Q10 (training-signal validation) is the most consequential v0 scope decision pending the 4-week checkpoint.
 - **On the 5-axis taxonomy**: if a sixth axis is needed (or a current axis collapses into another), the pre-registered factorial design will reveal it — pre-registration commits us to publishing the finding regardless of direction
 - **On the OracleDecomposable abstraction**: counterexamples — economic decisions that don't fit the (hidden state + controllable simulator + oracle policy + scalar utility) interface — strengthen the methodology paper by exposing scope limits. Submit them.
 - **On Layer 3 use cases**: the open candidate pool ([`layer3_candidates.md`](layer3_candidates.md)) invites external researchers to propose new cases via the value × testability matrix; high-value + high-testability gaps (especially the empty top-right cell) are explicitly open contribution surface
-- **On the OpenSpiel-compatible substrate** ([`aeread_env_design.md`](aeread_env_design.md)): external contributors can add games via the 10-hard-constraint submission API once the substrate ships (v0.5)
-- **On the falsifiability of §3** ([proposal §3](proposal.md#3-novel-methodology-contribution-5-axis-failure-taxonomy--oracledecomposable-generalization)): the headline per-domain explanatory-share hypothesis (60-75% clean procurement → 25-50% long-horizon agents; see Q7 for the full table) is pre-registered with falsification criteria — reviewers can challenge the per-domain thresholds or the design before cross-model evaluation begins
+- **On the OpenSpiel-compatible substrate** ([`aeread_env_design.md`](aeread_env_design.md)): external contributors can add games via the 10-hard-constraint submission API once the substrate ships (post-v0-paper follow-up paper, NOT v0.5)
+- **On the falsifiability of §3** ([proposal §3](proposal.md#3-novel-methodology-contribution-5-axis-failure-taxonomy--oracledecomposable-generalization)): the headline per-domain explanatory-share hypothesis (60-75% discrete-action procurement → 25-50% long-horizon agents; see [`methodology_open_questions.md` § Q7](methodology_open_questions.md#q7--how-much-of-the-per-model-task-gap-do-layers-1--2-explain-whats-the-residual) for the full table) is pre-registered with falsification criteria — reviewers can challenge the per-domain thresholds or the design before cross-model evaluation begins
 
 **Channel for engagement**: contact details in [`proposal.md` §15](proposal.md). Before methodology-paper preprint circulation, we will invite reviewer engagement from major-lab safety + economics-of-AI researchers — pre-registration is the artifact that makes the §3 claim citable rather than asserted.
 
@@ -208,9 +208,9 @@ Plug-and-play is an **adoption** commitment, not a methodology commitment — se
 
 - Zero-code task contribution via YAML
 - One-line evaluation: `pip install aeread && aeread evaluate --model claude-opus-4-7 --task all`
-- Three submission paths (web form / Colab / PR) for differing technical comfort levels
+- **v0**: one submission path (web form); Colab + PR paths defer to v0.5+
 - Integration AS lm-evaluation-harness task family — so labs already running `lm_eval` have us installed automatically
-- Cache layer never invalidates — reviewer reproducibility is a hard guarantee
+- Cache layer never invalidates — good-hygiene reproducibility (cache hashes externally auditable; signed-ScoreRecord cryptographic provenance defers to v0.5+)
 
 ## What this is not
 
