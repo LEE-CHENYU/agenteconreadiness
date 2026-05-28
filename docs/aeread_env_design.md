@@ -2,9 +2,9 @@
 
 > **Status: post-v0-paper substrate roadmap. NOT a v0 first-paper deliverable, NOT a v0.5 commitment.**
 >
-> This document is a forward-looking design spec for the *eventual* AERead benchmark substrate. The v0 first paper (per [proposal §2](proposal.md#2-the-3-layer-hierarchy-canonical-revealed-preference-pipeline)) ships 2 standalone games (ProductProcurementGame + VendorSelectionGame) — no shared substrate. Each game is implemented standalone in v0 to keep scope tractable for a 3-4 person team over a 16-week timeline.
+> This document is a forward-looking design spec for the *eventual* AERead benchmark substrate. The v0 first paper (per [proposal §2](proposal.md#2-the-3-layer-hierarchy-canonical-revealed-preference-pipeline)) ships 2 standalone games (**C2 ProductProcurementGame + C8 SimplePricingGame**) — no shared substrate. Each game is implemented standalone in v0 to keep scope tractable for a 3-4 person team over a 16-week timeline.
 >
-> The substrate framework below describes what AERead *could* become after the v0 paper publishes + frontier-lab citation channel is established. Building the substrate is naturally a **second paper** ("AERead-env: an OpenSpiel-compatible substrate for economic-agency evaluation") rather than a v0.5 extension. The 4-game MVP + 6 first-class interfaces below is months of engineering — it's worth doing only after v0 establishes traction.
+> The substrate framework below describes what AERead *could* become after the v0 paper publishes + frontier-lab citation channel is established. Building the substrate is naturally a **second paper** ("AERead-env: an OpenSpiel-compatible substrate for economic-agency evaluation") rather than a v0.5 extension. The 5-game MVP + 6 first-class interfaces below is months of engineering — it's worth doing only after v0 establishes traction.
 >
 > Referenced from [`methodology.md`](methodology.md) Q8 (which now also describes Q8 as post-v0-paper scope, not v0.5).
 
@@ -108,11 +108,11 @@ Not every economic game has a closed-form optimal policy. Oracle support tiers:
 
 Each game declares its oracle certainty in metadata. Scoring transparency: a model isn't penalized for not matching an oracle when only dominance is declared.
 
-## Substrate MVP scope (4 games — post-v0-paper follow-up paper; v0 first paper has NO shared substrate)
+## Substrate MVP scope (5 games — post-v0-paper follow-up paper; v0 first paper has NO shared substrate)
 
-Per the top-of-doc banner: this substrate is a **post-v0-paper follow-up paper**, NOT v0 or v0.5. The v0 first paper ships 2 standalone games (ProductProcurementGame + VendorSelectionGame) implemented independently — no shared `aeread_env/` substrate code yet. The 4-game MVP below is the substrate scope for the follow-up paper, which only happens if the v0 paper establishes traction.
+Per the top-of-doc banner: this substrate is a **post-v0-paper follow-up paper**, NOT v0 or v0.5. The v0 first paper ships 2 standalone games (C2 ProductProcurementGame + C8 SimplePricingGame) implemented independently — no shared `aeread_env/` substrate code yet. The 5-game MVP below is the substrate scope for the follow-up paper, which only happens if the v0 paper establishes traction.
 
-The 4 games span the structural-diversity matrix in design goal #2:
+The 5 games span the structural-diversity matrix in design goal #2:
 
 ### ProductProcurementGame (C2) — v0 first paper, game 1
 - Single-agent, one-shot, **discrete-action**
@@ -124,15 +124,23 @@ The 4 games span the structural-diversity matrix in design goal #2:
 
 ### SimplePricingGame (C8) — v0 first paper, game 2
 - Single-agent, one-shot, **continuous-action** (price p ∈ [0, P_max])
-- Information: declared demand prior (e.g., "demand is approximately α − β·p with noise σ; α ∈ [α_low, α_high]; β ∈ [β_low, β_high]; σ ∈ [σ_low, σ_high]") + product description
 - Hidden state: true demand-curve parameters (intercept α*, elasticity β*, noise σ*) sampled from the declared prior
+- **Three conditions for TERMS-Bench Eq. 4 decomposition**:
+  - **base condition**: model sees declared demand prior (e.g., "α ∈ [α_low, α_high]; β ∈ [β_low, β_high]; σ ∈ [σ_low, σ_high]") + product description + **n=10 noisy historical (price, quantity) sales observations** → must infer posterior over (α, β, σ) + choose price
+  - **belief-substituted condition**: model is given the Bayes-optimal posterior directly (computed by the simulator from the same evidence) → chooses price under the posterior (isolates posterior-computation gap from price-choice gap)
+  - **state-revealed condition**: true demand parameters (α*, β*, σ*) revealed → model chooses oracle price = argmax_p p × (α* − β*·p)
 - Action: structured price decision (p ∈ [0, P_max])
 - Payoff: stochastic revenue = p × D(p) where D(p) = α* − β*·p + ε, ε ~ N(0, σ*²)
-- Oracle: **Bayes-optimal expected revenue = argmax_p E[p × D(p) | declared prior]** = argmax_p p × (E[α] − E[β]·p) under quadratic-cost interpretation; closed-form solution exists for linear demand model
+- Eq. 4 decomposition:
+  - **Δ_inf** = U(state-revealed) − U(base) — total information gap
+  - **Δ_unc** = U(belief-substituted) − U(base) — gap from posterior-computation failure (agent's posterior ≠ Bayes-optimal posterior given the evidence)
+  - **Δ_ctrl** = U(state-revealed) − U(belief-substituted) — residual gap after best inference (Bayes risk under residual uncertainty + continuous-action argmax computation)
+- Oracle (per condition): base/posterior conditions use Bayes-optimal expected revenue under the posterior; state-revealed uses closed-form revenue-maximum price under known parameters
 - Tests:
-  - Axis 1 (information): how does revealing the true demand parameters change the model's chosen price?
-  - Axis 3 (calibration): does the model compute expected revenue correctly under the declared prior?
-  - Axis 4 (computational floor): can the model find argmax over the continuous price space? Common failure mode: model picks a "round number" (e.g., $10, $20) rather than the actual argmax
+  - Axis 1 (information): Δ_inf measures gain from full information
+  - Axis 3 (calibration): does the model compute the posterior correctly from noisy sales evidence?
+  - Axis 4 (computational floor): can the model find argmax over the continuous price space? Common failure: "round number" choice ($10, $20) rather than actual argmax
+  - Axis 5 (meta-cognitive): stated-confidence-in-posterior vs realized-revenue calibration
 - **Structurally distinct from C2 ProductProcurementGame** on:
   - Action space: continuous vs discrete
   - Outcome: stochastic (revenue under demand uncertainty) vs deterministic (utility match under known weights)
@@ -249,7 +257,7 @@ aeread_env/
 1. **Naming**. "AERead-env" works as a working title. Alternatives: "OracleDecomp-env" (clearer about the abstraction), "Econ-Diagnostic-Suite" (clearer about the use case). Decision: defer until v0.5 ship.
 2. **OpenSpiel integration depth**. Should AERead-env import OpenSpiel as a dependency (loose coupling — wrap their Game class) or just mirror the API? Loose coupling is easier; full integration may attract DeepMind attention. Decision: start with API mirror; consider tighter integration in v1 if collaboration emerges.
 3. **lm-evaluation-harness integration**. EleutherAI's harness is the de-facto LLM eval framework. AERead-env should ship a harness adapter from day one. Cost: ~1 week additional engineering.
-4. **Multi-agent infrastructure**. PricingCompetitionGame needs N-agent simulator infrastructure. Open question: is this in-scope for v0.5 or do we use the simpler repeated-vs-simulator setup?
+4. **Multi-agent infrastructure**. PricingCompetitionGame needs N-agent simulator infrastructure. Open question: is this in-scope for the follow-up substrate paper, or does it get deferred to a v1 substrate revision? (Not v0.5 — substrate itself is post-v0-paper per top banner.)
 5. **Contribution workflow**. How does an external researcher submit a new game? Likely PR + automated test suite (the 10 hard constraints become automated checks). v1 work.
 
 ## Sequencing (revised — NOT a v0.5 commitment)

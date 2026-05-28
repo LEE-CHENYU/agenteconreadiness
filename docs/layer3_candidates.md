@@ -143,7 +143,7 @@ If we add cases after shipping v0 (C2 ProductProcurementGame + C8 SimplePricingG
 
 **Tier S → A → B → C → D mapping**:
 - **S (v0, shipping)**: C2 ProductProcurementGame + C8 SimplePricingGame (the two v0 first-paper games — action-space-distinct: discrete + continuous)
-- **A (v0.5, ~3-4 months post-launch)**: D2 TERMS-Bench wrap + C1 persona-fit (Layer 2 case) + A1 EconEvals procurement + A2 EconEvals pricing + B1 collusion + F15 Market-Bench + F16 PolyBench (substrate also adds NegotiationGame + PricingCompetitionGame here)
+- **A (v0.5, ~3-4 months post-launch)**: D2 TERMS-Bench wrap + C1 persona-fit (Layer 2 case) + A1 EconEvals procurement + A2 EconEvals pricing + B1 collusion + F15 Market-Bench + F16 PolyBench. NegotiationGame + PricingCompetitionGame are NOT v0.5 — they land in the separate post-v0-paper substrate follow-up paper per [`aeread_env_design.md`](aeread_env_design.md).
 - **B (v1, ~6 months post-launch)**: A3, A4, A6, C7, D8, F12, F17, agentic marketplace extension
 - **C (v1.5, ~9-12 months post-launch)**: A5, B2, B3, C3, C4, C5, D9, D10, F13, F14, G15, G18
 - **D (parked, may never ship)**: A7, C6, E11, G16, G17

@@ -156,12 +156,12 @@ Per the TERMS-Bench overfitting analysis ([Zhang et al. 2026](papers/links.md)):
 
 OpenSpiel covers generic game substrates. AERead's contribution layer = the **economic-agency layer on top**: oracle decomposition, qualitative evidence, revealed-preference diagnostics, OOD benchmark design.
 
-**Substrate MVP scope** (4 structurally diverse games):
-- ProductProcurementGame (C2) — discrete-action, qualitative evidence — **v0 game 1**
-- SimplePricingGame (C8) — continuous-action, demand uncertainty — **v0 game 2**
-- VendorSelectionGame (D3) — risk/uncertainty — v0.5+ roadmap (demoted 2026-05-28; structurally similar to C2)
-- NegotiationGame — two-agent strategic — v0.5 roadmap
-- PricingCompetitionGame — multi-agent / repeated — v0.5+ roadmap
+**Substrate MVP scope** (5 structurally diverse games — all in the post-v0-paper substrate follow-up paper, NOT v0.5+ of the first paper):
+- ProductProcurementGame (C2) — discrete-action, qualitative evidence — **v0 first paper, game 1** (standalone, no substrate)
+- SimplePricingGame (C8) — continuous-action, demand uncertainty — **v0 first paper, game 2** (standalone, no substrate)
+- VendorSelectionGame (D3) — risk/uncertainty — v0.5+ first-paper extension (single-game; demoted 2026-05-28 from v0 game 2; structurally similar to C2)
+- NegotiationGame — two-agent strategic — substrate-paper deliverable
+- PricingCompetitionGame — multi-agent / repeated — substrate-paper deliverable
 
 **10 hard constraints** locked into the framework — full details in [`aeread_env_design.md`](aeread_env_design.md).
 

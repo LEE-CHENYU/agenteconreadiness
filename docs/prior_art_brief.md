@@ -44,7 +44,7 @@ A second contribution: their oracle policy is **simulator-relative Bayes-optimal
 
 ### What AERead addresses from their §Future Work
 
-TERMS-Bench focuses on bargaining. Their findings — that αcue < 0 universally — raise a question they don't pursue: **does this cue-fooling pattern hold across non-bargaining economic decisions, or is it bargaining-specific?** AERead's collection-of-use-cases design (C1 + C2 + D2 + D3) is the empirical test. If αcue < 0 holds across domains, that's a load-bearing methodology-paper finding ("LLM agents lose surplus when given cues — across procurement, pricing, vendor selection") and a citable generalization claim downstream researchers can build on.
+TERMS-Bench focuses on bargaining. Their findings — that αcue < 0 universally — raise a question they don't pursue: **does this cue-fooling pattern hold across non-bargaining economic decisions, or is it bargaining-specific?** AERead's collection-of-use-cases design (v0: C2 ProductProcurementGame + C8 SimplePricingGame; roadmap: D2 bargaining wrap + D3 VendorSelectionGame + C1 persona-fit + agentic marketplace) is the empirical test. If αcue < 0 holds across domains, that's a load-bearing methodology-paper finding ("LLM agents lose surplus when given cues — across procurement, pricing, vendor selection") and a citable generalization claim downstream researchers can build on.
 
 ---
 

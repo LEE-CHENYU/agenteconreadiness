@@ -74,9 +74,9 @@ The pair (C2 + C8) is **structurally distinct** on action space (discrete vs con
 
 **Deferred to v0.5+**: Two-stage scoring (qualitative-interpretation diagnostic + buyer-specific procurement primary); robust utility family (family of plausible weight vectors per buyer)
 
-### Q5 RL training-signal mechanisms (1 of 4 implemented)
+### Q5 RL training-signal mechanisms (1 of 4 ships as reference; 3 described in paper)
 
-- **Implemented in v0**: Andrews 2026 training-time penalty (the simplest, label-free, LP-checkable)
+- **v0 ships**: Andrews-style penalty/scorer reference (the simplest LP-checkable diagnostic surface; computes the de Finetti / Afriat / SARSEU penalty on any (prompt, response) pair). The auxiliary-loss fine-tuning pipeline is NOT in v0 — labs wire AERead's diagnostic into their own training loop. Full end-to-end fine-tuning integration defers to follow-up paper. Causal training-signal validation (does training with the penalty cause improvement?) is the central Q10 decision pending the 4-week checkpoint — **not demonstrated by default in v0**.
 - **Described in v0 paper, implementation deferred**: Chadwick 2025 (inference-time correction), Qiu 2026 (supervised trace mimicry), Betz & Richardson 2023 (self-supervised consistency training) → follow-up paper
 
 ### Q6 AERead-Train/Dev/Cert naming convention
