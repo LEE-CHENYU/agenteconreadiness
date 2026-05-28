@@ -16,27 +16,31 @@ These are the open methodological questions AERead must address for major-lab ad
 
 | Q | Topic | One-line summary |
 |---|---|---|
-| **Q1** | Function misspecification + general overfitting defenses | Predict-then-validate, multi-class robustness, measurement-model pluralism, locked test sets, anti-shortcut audits. The generalization-battery machinery is Q4. |
+| **Q1** | Function misspecification + within-class identification rigor | Andrews 2026 §3 non-identification critique. Multi-class robustness over 5 functional classes + measurement-model pluralism + predict-then-validate. **Layer 2 modeling rigor.** (Layer 3 evaluation infrastructure is Q4; training-use contamination is Q6.) |
 | **Q2** | Numeric-feature evaluation discipline | Strict propriety (Brier/CRPS), dollar surplus, oracle gap, bootstrap CIs. ECE diagnostic-only (not leaderboard). |
 | **Q3** | Qualitative-feature scoring discipline (no hidden cardinal truth) | Ordinal states + 4-tier optimality + pairwise-regret + robust-utility-family. Critical for procurement-style cases — getting this wrong is the citation-credibility risk. |
-| **Q4** | Generalization battery (the full design) | 5 splits (dev → hidden IID → axis-OOD → compositional → far-OOD → fresh seasons); hold-out *dimensions* not examples; overfit-bot baseline; rotating seasons; Generalization Index composite; Transfer Ratio reporting. |
+| **Q4** | Generalization battery + benchmark integrity | 5 splits (dev → hidden IID → axis-OOD → compositional → far-OOD → fresh seasons); hold-out *dimensions* not examples; overfit-bot baseline; rotating seasons; Generalization Index + Transfer Ratio; locked test sets, cache layer, anti-shortcut audits as foundational integrity gates. **Layer 3 evaluation rigor.** |
 | **Q5** | RL environment + training-signal mechanisms | 4 prior-art-anchored mechanisms (Andrews/Chadwick/Qiu/Betz-Richardson); per-axis penalties as auxiliary RL loss; factorial intervention design as training-data composition guide. |
-| **Q6** | TERMS-Bench-as-training-signal overfitting + AERead-Train/Dev/Cert | The training-environment-vs-final-evaluation distinction; submitter provenance contract; how AERead avoids becoming the next gamed benchmark. |
+| **Q6** | Training-signal contamination (TERMS-Bench overfitting + AERead-Train/Dev/Cert) | What happens when AERead is used as training target; the training-vs-evaluation tier separation; submitter provenance contract. **Training-use rigor** — distinct from Q1 (modeling) + Q4 (evaluation). |
 | **Q7** | Layer 1+2 vs Layer 3 residual hypothesis | Per-domain explanatory-power table (60-75% procurement, 30-55% multi-agent markets); pre-registered falsification criteria. The central empirical claim of §3 contribution. |
 | **Q8** | OpenSpiel-compatible benchmark substrate | OracleDecomposition Environments for LLM Economic Agency; thin layer on top of OpenSpiel; 4-game MVP; 10 hard constraints. |
 | **Q9** | Operational emergence definition | Conservative 5-criterion test (floor + sharp improvement + multi-metric coherence + OOD transfer + counterfactual robustness); anti-discontinuous-metric discipline; IRT extension (v1+). |
 
-### Q1 — How does AERead prevent function misspecification + general overfitting?
+### Q1 — How does AERead defend against function misspecification?
 
-Two distinct risks: (a) misspecifying the rationalizing utility (Andrews 2026 §3 non-identification critique — representation theorems guarantee existence, not unique identification); (b) general overfitting to the v0 task set / chosen functional classes.
+This Q is narrowly scoped to **Layer 2 modeling rigor**: the Andrews 2026 §3 non-identification critique — classical representation theorems guarantee existence (some rationalizing utility exists) but not unique identification (different functional classes can rationalize the same observed choices with different parameters; CRRA / CARA / KT prospect / CPT / Kelly-Markowitz). Any benchmark claiming to "recover" an agent's true utility is overclaiming. AERead's response: **within-class identification with explicit class-uncertainty reporting**.
 
-**Statistical defenses in place** (the *generalization battery* infrastructure — splits, hold-out dimensions, overfit-bot, Generalization Index — is Q4):
+**Defenses (Layer 2 modeling rigor)**:
 - **Predict-then-validate** Layer 3 (train/test split, fixed seed, immutable manifest, held-out predictions; the headline score is best-fitting class's held-out accuracy, not in-sample fit)
 - **Multi-class robustness** — fit all 5 candidate functional classes (KT prospect '79, CRRA, CARA, cumulative prospect TK '92, Kelly-Markowitz); report Bayesian posterior over classes
 - **Measurement-model pluralism** (commitment #2) — 4-6 competing measurement models per axiom; Bayesian posterior over them; never a single point estimate
-- **Cache layer never invalidates** + signed ScoreRecords → contamination becomes detectable from public cache hashes
-- **Locked held-out test set** + bootstrap confidence intervals + model/prompt-version hashes
-- **Anti-shortcut audits** (per Q8 below): option order, text length, brand, marketing positivity — none should predict the answer at contributor-submission time
+
+**Q1 boundary with Q4 and Q6** (three distinct overfitting angles — not redundant):
+- **Q1** = Layer 2 *modeling* rigor (the Andrews angle — function misspecification within the parametric utility fit)
+- **Q4** = Layer 3 *evaluation* rigor (split design + benchmark-integrity gates + overfit-bot detection)
+- **Q6** = Training-*use* rigor (Train/Dev/Cert tier separation when AERead is used as RL training signal)
+
+All three are necessary; none overlaps. A model could pass Q1 (well-identified utility class) yet fail Q4 (memorized the dev set) yet still be cited correctly per Q6 (provenance contract honored).
 
 **Open**: posterior concentration across functional classes is itself an empirical finding — concentration is a publishable generalization claim, diffusion is a methodological caveat to surface.
 
@@ -80,7 +84,12 @@ This is its own standalone Q because the failure mode is specific + load-bearing
 
 ### Q4 — How does AERead's generalization battery work in detail?
 
-This is its own standalone Q because generalization is the load-bearing claim that distinguishes "the model learned a transferable economic capability" from "the model learned AERead-specific heuristics." A benchmark without an explicit generalization battery has no defense against optimization-as-exploitation.
+This Q is scoped to **Layer 3 evaluation rigor** — the split design + benchmark-integrity infrastructure that distinguishes "the model learned a transferable economic capability" from "the model learned AERead-specific heuristics." A benchmark without an explicit generalization battery has no defense against optimization-as-exploitation. (Layer 2 modeling rigor is Q1; training-use contamination is Q6.)
+
+**Benchmark-integrity foundations** (the prerequisites that make the splits + GI meaningful):
+- **Cache layer never invalidates** + signed ScoreRecords → contamination becomes detectable from public cache hashes
+- **Locked held-out test set** + bootstrap confidence intervals + model/prompt-version hashes
+- **Anti-shortcut audits** (per Q8 constraint 6): option order, text length, brand, marketing positivity, etc. — none should predict the answer at contributor-submission time
 
 **Five splits, mandatory per game** (Q6 names them AERead-Train, AERead-Dev, AERead-Cert as the citation-contract tiers — same splits, different vocabulary for the model-card contract):
 
