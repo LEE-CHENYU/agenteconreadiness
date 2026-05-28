@@ -91,7 +91,7 @@ Split design + benchmark-integrity infrastructure that distinguishes "model lear
 
 **Open**: deferred items pre-registered as v0.5+ commitments — reviewer engagement on priority order invited.
 
-### Q5 — How do the tests function as RL environments providing generalizable training signals?
+### Q5 — How do the test functions as RL environments providing generalizable training signals?
 
 Four prior-art-anchored mechanisms make AERead's per-axis penalties usable as training signal:
 
