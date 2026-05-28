@@ -228,7 +228,7 @@ Why we're deferring these (not optional commitments — these are the next-relea
 
 ### Pending v0 scope decisions (4-week checkpoint)
 
-- **Q10 training-signal validation experiment** — whether to include a small-model (Qwen 0.5B / 3B) training experiment in v0 to causally validate AERead's per-axis penalty as auxiliary training signal. Three options pending checkpoint resolution: (A) defer to follow-up paper; (B) include in v0 (+3 person-weeks, ~$1K compute); (C) hybrid — pre-register in v0, result lands shortly after. **Working recommendation: (C) hybrid**, contingent on Jingyi (or ops collaborator) bandwidth for training-loop-integration. See [methodology.md § Q10](methodology.md#q10--can-aeread-validate-training-signal-quality-without-training-models-ourselves) for the full options table + open subquestions.
+- **Q10 training-signal validation experiment** — whether to include a small-model (Qwen 0.5B / 3B) training experiment in v0 to causally validate AERead's per-axis penalty as auxiliary training signal. Three options pending checkpoint resolution: (A) defer to follow-up paper; (B) include in v0 (+3 person-weeks, ~$1K compute); (C) hybrid — pre-register in v0, result lands shortly after. **Working recommendation: (C) hybrid**, contingent on Jingyi (or ops collaborator) bandwidth for training-loop-integration. See [methodology_open_questions.md § Q10](methodology_open_questions.md#q10--can-aeread-validate-training-signal-quality-without-training-models-ourselves) for the full options table + open subquestions.
 
 ### Cross-repo sync status
 
