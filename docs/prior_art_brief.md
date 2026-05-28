@@ -21,11 +21,11 @@ A Bayesian-game framework for **bilateral price negotiation** where LLM agents b
 
 ### Key methodology contribution
 
-The **oracle-gap intervention decomposition**: for any task admitting (hidden state, controllable simulator, oracle policy, belief substitution, state reveal, scalar utility), the gap between the oracle's utility and the agent's utility decomposes as
+The **oracle-gap intervention decomposition**: for a task with (hidden state, controllable simulator, oracle policy, belief substitution, state reveal, scalar utility) — **subject to admitting conditions AERead treats as not-yet-formalized** (intervention non-commutativity, attribution when interventions don't commute, failure modes; see [`methodology.md`](methodology.md) OracleDecomposable section) — the gap between the oracle's utility and the agent's utility decomposes as
 
 > U(π★) − U(π_base) = Δ_inf + Δ_unc + Δ_ctrl
 
-where Δ_inf = information gap (closed by revealing the hidden state); Δ_unc = uncertainty gap (closed by substituting the agent's beliefs with the oracle posterior); Δ_ctrl = control gap (residual — the agent's policy is suboptimal even given the oracle posterior). Zhang et al. presented this as **bargaining-specific** but the construction is the cleanest formalization of "why did the model lose surplus?" in the LLM-economics literature.
+across four reference policies (base → oracle-posterior → revealed-type → simulator oracle): **Δ_inf = U(π_post) − U(π_base)** (inference gap, closed by substituting the oracle posterior for the agent's own inference); **Δ_unc = U(π_reveal) − U(π_post)** (uncertainty gap, closed by then revealing the true hidden state); **Δ_ctrl = U(π★) − U(π_reveal)** (control gap, the residual to the simulator oracle once the state is no longer hidden). Zhang et al. presented this as **bargaining-specific**; AERead proposes it as a **candidate abstraction whose admitting conditions Phase-0 (A) formalizes** — the construction is already the cleanest formalization of "why did the model lose surplus?" in the LLM-economics literature.
 
 A second contribution: their oracle policy is **simulator-relative Bayes-optimal** — explicitly NOT normative. They reject the framing where "rational" means "matches a particular utility function"; instead they ask "Bayes-optimal given the simulator's specification" and let downstream users decide whether the simulator is normatively interesting. This rejects LLM-as-judge entirely.
 
