@@ -141,21 +141,24 @@ Two distinct milestones, both Cheney-time + API spend:
 - **Internal MVP (~2-3 weeks of focused build)**: Claude Code drafts from the runtime spec; scorer + adapter + cache scaffolding works end-to-end on a toy task; one model evaluated end-to-end; enough to validate the architecture but not yet reproducible by external researchers.
 - **Public research-grade artifact (~8-12 weeks total)**: signed ScoreRecord protocol, contamination controls, locked held-out test set, bootstrap confidence intervals, model/prompt-version hashes, contributor docs, web-form submission backend, cross-model validation runs (8+ models), reliability-diagram visualization, reproducible cache manifest. This is the artifact the methodology paper points at.
 
-The 2-3 week timeline alone is not credible for a research-grade reproducible benchmark; the 8-12 week timeline matches the Phase 0 → Phase 2 trajectory in the methodology-paper plan (§7 below) where Phase 0 ships the scaffold and Phase 1-2 harden the reproducibility surface. v0 content:
+The 2-3 week timeline alone is not credible for a research-grade reproducible benchmark; the 8-12 week timeline matches the Phase 0 → Phase 2 trajectory in the methodology-paper plan (§7 below) where Phase 0 ships the scaffold and Phase 1-2 harden the reproducibility surface. v0 content (**trimmed to fit 3-4 person team × 16-week timeline** per post-audit scope discipline):
 
 - **Adapter framework** (lm-evaluation-harness integration) for Cat A + Cat B + Cat C v1
-- **Scorer + generator library** (~9 scorers, ~11 generators) — researchers configure via pure YAML
-- **Cache layer never invalidates** — reproducibility hard guarantee
-- **5-axis diagnostic decomposition** module (`aeread/diagnostic/`) covering all axes:
-  - Axis 1 (information): `OracleDecomposable` interface — TERMS-Bench Eq. 4 generalized
-  - Axis 2 (consistency): counterfactual axiom interventions
-  - Axis 3 (calibration): parameter-fit attribution
-  - Axis 4 (computational floor): quantity substitution
-  - Axis 5 (meta-cognitive): confidence elicitation + calibration metrics
-- **Live leaderboard** at agenteconreadiness.org accepting external PRs, with diagnostic drill-down pages (5-axis radar + cross-decomposition matrix). Closest design precedent: [TERMS-Bench leaderboard](https://terms-bench.github.io) — 7 orthogonal diagnostic axes (SE⁺, AGR⁺, CSE⁺, FAGR⁻, BEtype, CritViol%, Ū) on a sortable table. AERead extends this pattern to the 5-axis taxonomy + drill-down diagnostic page.
-- **Three submission paths** (web form / Colab / PR) — plug-and-play onboarding
+- **Scorer + generator library — v0 subset**: ~3 scorers (Brier + transitivity + 1 multi-class utility-fit) + ~4 generators (enough for C2 + D3). Full library (~9 scorers, ~11 generators) defers to v0.5+.
+- **Cache layer** — reproducibility guarantee; signed-ScoreRecord enforcement defers to v0.5+
+- **5-axis diagnostic decomposition** (paper claim intact; v0 implementation tiered):
+  - Axis 1 (information): full Δ_inf via `OracleDecomposable` Eq. 4 — **v0**
+  - Axis 2 (consistency): 2 axiom tests (transitivity + dominance) — **v0**
+  - Axis 3 (calibration): Brier/CRPS + within-class utility-fit error — **v0**
+  - Axis 4 (computational floor): 1 quantity-substitution probe — **v0 sketched only**; full suite v0.5+
+  - Axis 5 (meta-cognitive): confidence elicitation + Brier calibration — **v0 sketched only**; Dutch-book / probabilistic-identity probes v0.5+
+- **Live leaderboard** at agenteconreadiness.org with diagnostic drill-down page (5-axis radar; v0 shows axes 1+2+3 fully + axes 4+5 as sketched cells; main effects only — cross-decomposition matrix defers to v0.5+). Closest design precedent: [TERMS-Bench leaderboard](https://terms-bench.github.io) — 7 orthogonal diagnostic axes on a sortable table.
+- **One submission path** (web form) — Colab + PR paths defer to v0.5+
+- **Validation runs** — 3-5 frontier models pre-launch (NOT 8+; that's v0.5+ scope)
 
-Total bootstrap cost: under $10K in API spend + author time.
+**Deferred to v0.5+** (per methodology.md Q3/Q4/Q5/Q6 + post-audit scope): full 5-functional-class multi-class fits (v0 ships 3); robust utility family (v0 single weight vector); multi-stage qualitative scoring (v0 single stage); 5-counterfactual battery (v0 ships 2); compositional + far-OOD splits + rotating seasons (v0 ships dev + hidden IID + 1 axis-OOD); overfit-bot baseline; Generalization Index composite; pairwise interaction matrix; 3 of 4 RL training-signal mechanisms (v0 implements Andrews only); signed-ScoreRecord enforcement; cross-decomposition diagnostic matrix; Colab + PR submission paths; AERead-env substrate (now flagged as post-v0-paper follow-up paper, NOT v0.5).
+
+Total bootstrap cost: under $10K in API spend + author time (3-5 model validation runs, not 8+).
 
 ### Methodology-paper timeline (where the human-collaboration weeks actually live)
 
@@ -240,9 +243,11 @@ Framing: potential coauthor specializing on the ops side, not a paid contractor.
 
 ### 9.5 Proposed post-exploration ownership map
 
-A first-pass DoL for the full v0 scope, mapping workstreams to proposed primary owner + supporting collaborators. This is a *proposal* for the checkpoint discussion, not a commitment — Phase-0 contribution patterns drive the actual ownership decisions.
+A first-pass DoL for the v0 scope, mapping workstreams to proposed primary owner + supporting collaborators. This is a *proposal* for the checkpoint discussion, not a commitment — Phase-0 contribution patterns drive the actual ownership decisions.
 
-**Note on engineering ownership**: Cheney ships the v0 runtime scaffold during Phase-0 (per §7 — "mostly Cheney-time + API spend"); the engineering primary roles below reflect the **ongoing post-conversion split**. Benchmark implementation is intentionally shared between Cheney and Yuecheng — Cheney leads the researcher-facing surface (generator library, CLI, submission paths, documentation, leaderboard/diagnostic frontend) where ergonomic design dominates; Yuecheng leads the math/stats-heavy infrastructure (scorer library, cache extensions for Layer 3 splits, validation runs, statistical reproducibility framework). The split tracks expertise (Cheney = product/UX + Cat C domain; Yuecheng = stats/math implementation) rather than carving by abstraction layer.
+**Scope discipline (post-audit)**: this ownership map reflects the **trimmed v0 scope** (~12-14 workstreams for the 3-4 person team over 16 weeks). Deferred items (5-axis full instrumentation of axes 4-5; robust utility family; multi-stage qualitative scoring; rotating benchmark seasons; Generalization Index composite; overfit-bot baseline; pairwise interaction effects; 3 of 4 RL training-signal mechanisms; AERead-env substrate; 2 of 5 functional classes; 3 of 5 counterfactual variants; compositional + far-OOD splits) are flagged as **v0.5+** in methodology.md and are NOT in this v0 ownership map. A separate "v0.5+ extension ownership map" can be drafted post-launch once v0 ships.
+
+**Note on engineering ownership**: Cheney ships the v0 runtime scaffold during Phase-0 (per §7); the engineering primary roles below reflect the **ongoing post-conversion split**. Benchmark implementation is shared between Cheney and Yuecheng — Cheney leads the researcher-facing surface (generator library, CLI, submission path, documentation, leaderboard/diagnostic frontend); Yuecheng leads the math/stats-heavy infrastructure (scorer library, cache, validation runs, statistical reproducibility framework). The split tracks expertise rather than abstraction layer.
 
 **Methodology paper workstreams**:
 
@@ -257,43 +262,37 @@ A first-pass DoL for the full v0 scope, mapping workstreams to proposed primary 
 | §8 Experiments — cross-model eval runs + result tables | Yuecheng | Cheney (analysis), Zihao (interpretation) |
 | §10 Discussion — mechanism design + agent-market thesis | Zihao | Cheney |
 
-**Methodology workstreams (Layer × Axis)**:
+**Methodology workstreams (v0 only — 5 workstreams)**:
 
 | Workstream | Proposed primary | Supporting |
 |---|---|---|
-| Layer 1 axiom protocol specs (CCEI / GARP / WARP / transitivity / monotonicity / Houtman-Maks) | Zihao | Yuecheng (scorer impl) |
-| Layer 2 within-class identification framework | Zihao | Yuecheng (fit-procedure impl) |
-| Layer 3 OracleDecomposable formalization | Zihao | Cheney (C1 instantiation) |
-| Layer 3 candidate-pool curation (mechanism-design lens) | Zihao | Cheney (deployment-relevance scoring) |
-| Layer 3 predict-then-validate train/test split design (stats-methodology lead) | Yuecheng | Cheney (Cat C-specific extensions), Zihao (formal justification of identification claims) |
-| Axis 1 Information — OracleDecomposable Δ_inf / Δ_unc / Δ_ctrl mechanics | Zihao | Cheney |
-| Axis 2 Consistency — counterfactual axiom interventions | Zihao | Yuecheng |
-| Axis 3 Calibration — Mazeika utility-fit + Brier/CRPS scoring | Yuecheng | Zihao (proper-scoring-rule theory) |
-| Axis 4 Computational floor — quantity-substitution probes | Yuecheng | Cheney |
-| Axis 5 Meta-cognitive — Brier on held-out + Dutch-book / probabilistic-identity probes | Yuecheng | Zihao (Gneiting-Raftery foundations) |
+| Layer 1 axiom protocol specs — **v0 subset: transitivity + dominance** (full 6-axiom family deferred to v0.5+) | Zihao | Yuecheng (scorer impl) |
+| Layer 2 within-class identification framework — **v0 subset: 3 functional classes (KT prospect '79 + CRRA + Kelly-Markowitz)** | Zihao | Yuecheng (fit-procedure impl) |
+| Layer 3 OracleDecomposable formalization | Zihao | Cheney (C2 + D3 instantiation) |
+| Layer 3 predict-then-validate train/test split design + Q4 generalization-battery v0 scope (dev + hidden IID + 1 axis-OOD per game) | Yuecheng | Zihao (formal justification) |
+| **5-axis taxonomy**: full instrumentation of Axis 1 (Δ_inf via OracleDecomposable) + Axis 2 (transitivity + dominance counterfactuals) + Axis 3 (Brier/CRPS scoring on within-class fit). **v0 sketched only**: Axis 4 (1 quantity-substitution probe), Axis 5 (1 confidence-elicitation probe). Full instrumentation of axes 4-5 defers to v0.5+. | Yuecheng (axes 3+4+5) + Zihao (axes 1+2) | Cheney |
 
-**Engineering workstreams**:
+**v0.5+ workstreams (NOT in v0 ownership)**: full 6-axiom family; CARA + cumulative prospect functional classes; axes 4-5 full instrumentation; rotating benchmark seasons; overfit-bot baseline; Generalization Index composite; pairwise interaction effects in cross-axis matrix; 3 of 4 RL training-signal mechanism implementations; compositional-OOD + far-OOD splits; multi-stage qualitative scoring; robust utility family.
+
+**Engineering workstreams (v0 only — 7 workstreams)**:
 
 | Workstream | Proposed primary | Supporting |
 |---|---|---|
-| lm-evaluation-harness integration + entry-point structure | Cheney (v0 scaffold) + Yuecheng (post-v0 maintenance + scorer integration) | — |
-| Standard scorer library (Bradley-Terry, WST/MST/SST, KT-MLE, isotonic, etc.) | Yuecheng | Zihao (mathematical correctness review), Cheney (v0 scaffold for simpler scorers) |
-| Generator library + YAML schema | Cheney (ergonomic design + v0 build) | Yuecheng (implementation refinement + new generators) |
-| Cache layer (responses / stimuli / scores / splits / fits / predictions / diagnostics) | Cheney (v0 scaffold) + Yuecheng (Layer 3 splits/fits/predictions extensions) | — |
-| CLI (`aeread evaluate / diagnose / check / init`) | Cheney (command-surface design + v0 build) | Yuecheng (subcommand implementation + extension) |
-| Composite-score aggregator | Cheney (rubric design + v0 build) + Yuecheng (aggregator math + extension) | Zihao (statistical rubric review) |
-| **Category A test design (A1 / A2 / A3 / A5)** — A4 covered by Cheney's Phase-0 | Cheney | Zihao (axiom-spec review), Yuecheng (scorer wiring) |
-| **Category B test design (B1 risk / B2 inter-temporal / B3 social)** — protocol picking + prompt engineering | Cheney | Zihao (utility-class anchors), Yuecheng (scorer wiring) |
-| C2 ProductProcurementGame task design (v0 game 1 — qualitative-evidence procurement) | Cheney | Zihao (robust-utility-family oracle formalization), Yuecheng (Q3 scoring discipline implementation) |
-| D3 VendorSelectionGame task design (v0 game 2 — risk/uncertainty supplier selection) | Cheney | Zihao (Bayes-risk oracle derivation), Yuecheng (risk-calibration scorer) |
-| C1 13F-IRL pipeline (roadmap; Layer 2 parameter-fit infrastructure in rationale source repo; v0.5+ Layer 3 case study) | Cheney | — |
-| Three submission paths (web form / Colab / PR) — ergonomic design + flow | Cheney | Yuecheng (implementation) |
-| **Documentation** (README, new-task-guide, Colab template, contributor onboarding) | Cheney | Yuecheng (technical content + maintenance) |
-| **Benchmark validation runs** (execute AERead on 8+ models pre-launch, generate v1 leaderboard) | Cheney (API spend + run orchestration) + Yuecheng (result-table generation + statistical analysis) | — |
-| Leaderboard frontend + reliability-diagram visualization | Cheney (design lead) + open ops slot (implementation) — Cheney implements solo if no ops candidate | Yuecheng (implementation review) |
-| Diagnostic drill-down page (5-axis radar + cross-decomposition matrix) | Cheney (design lead) + open ops slot (implementation) — Cheney implements solo if no ops candidate | Yuecheng (implementation review) |
-| HuggingFace integration + model-card adoption pipeline | Open (ops slot) — defers to v1.5 if no candidate | — |
-| Reproducibility hardening (signed ScoreRecords, external-submission flow) | Open (ops slot) — Cheney inherits if no candidate | Yuecheng (schema design) |
+| lm-evaluation-harness integration + entry-point structure | Cheney (v0 scaffold) | Yuecheng (scorer integration) |
+| **v0 scorer library (subset)** — Brier + 1 transitivity scorer + 1 multi-class utility-fit scorer (NOT the full Bradley-Terry / WST/MST/SST / KT-MLE / isotonic library — that's v0.5+) | Yuecheng | Zihao (correctness review), Cheney (v0 scaffold for simpler scorers) |
+| Generator library + YAML schema (v0 scope: enough for C2 + D3 generation) | Cheney | Yuecheng (refinement) |
+| Cache layer (responses / stimuli / scores / splits / fits / predictions) — **v0 subset** without signed-ScoreRecord enforcement (signed-ScoreRecord defers to v0.5+) | Cheney + Yuecheng | — |
+| CLI (`aeread evaluate / diagnose / init`) — v0 subset; `aeread check` deferred to v0.5+ | Cheney | Yuecheng (extension) |
+| **C2 ProductProcurementGame** end-to-end (qualitative-evidence procurement; Q3 single-stage 4-tier optimality scoring with single utility-weight vector per buyer; 2 counterfactual variants — paraphrase + preference-flip) | Cheney | Zihao (oracle formalization), Yuecheng (Q3 scoring impl) |
+| **D3 VendorSelectionGame** end-to-end (risk/uncertainty; Bayes risk minimization; 2 counterfactual variants) | Cheney | Zihao (Bayes-risk oracle), Yuecheng (risk-calibration scorer) |
+| Leaderboard frontend + diagnostic drill-down page (5-axis radar — v0 shows axes 1+2+3 fully, axes 4+5 as sketched) | Cheney | Yuecheng (review) |
+| **Benchmark validation runs (v0 scope: 3-5 frontier models, not 8+)** | Cheney (run orchestration) + Yuecheng (result-table generation) | — |
+| Documentation (README, contributor onboarding for v0 scope) | Cheney | Yuecheng (technical content) |
+| **Web-form submission path only** (Colab + PR paths defer to v0.5+) | Cheney | — |
+
+**Engineering deferred to v0.5+ (NOT in v0 ownership)**: full Bradley-Terry / WST/MST/SST / KT-MLE / isotonic scorer library; signed ScoreRecords; Colab + PR submission paths; composite-score aggregator (Generalization Index formula); HuggingFace + model-card adoption pipeline; reproducibility-hardening external-submission flow; cross-decomposition matrix on diagnostic page (v0 shows main effects only).
+
+**Open ops slot**: still relevant if a candidate emerges (leaderboard / HuggingFace ops would be their workstream). If no candidate by Phase-0 checkpoint, the deferred items above stay deferred; Cheney does NOT inherit them in v0.
 
 **External outreach + coordination**:
 

@@ -1,6 +1,12 @@
 # AERead-env: OpenSpiel-compatible benchmark substrate for LLM economic agency
 
-> Forward-looking design spec for the AERead benchmark substrate. Referenced from [`methodology.md`](methodology.md) Q8 (OpenSpiel-compatible benchmark substrate). Likely v0.5 deliverable — after methodology paper draft + first 2 v0 use cases land.
+> **Status: post-v0-paper substrate roadmap. NOT a v0 first-paper deliverable, NOT a v0.5 commitment.**
+>
+> This document is a forward-looking design spec for the *eventual* AERead benchmark substrate. The v0 first paper (per [proposal §2](proposal.md#2-the-3-layer-hierarchy-canonical-revealed-preference-pipeline)) ships 2 standalone games (ProductProcurementGame + VendorSelectionGame) — no shared substrate. Each game is implemented standalone in v0 to keep scope tractable for a 3-4 person team over a 16-week timeline.
+>
+> The substrate framework below describes what AERead *could* become after the v0 paper publishes + frontier-lab citation channel is established. Building the substrate is naturally a **second paper** ("AERead-env: an OpenSpiel-compatible substrate for economic-agency evaluation") rather than a v0.5 extension. The 4-game MVP + 6 first-class interfaces below is months of engineering — it's worth doing only after v0 establishes traction.
+>
+> Referenced from [`methodology.md`](methodology.md) Q8 (which now also describes Q8 as post-v0-paper scope, not v0.5).
 
 ## Positioning
 
@@ -226,13 +232,14 @@ aeread_env/
 4. **Multi-agent infrastructure**. PricingCompetitionGame needs N-agent simulator infrastructure. Open question: is this in-scope for v0.5 or do we use the simpler repeated-vs-simulator setup?
 5. **Contribution workflow**. How does an external researcher submit a new game? Likely PR + automated test suite (the 10 hard constraints become automated checks). v1 work.
 
-## Sequencing
+## Sequencing (revised — NOT a v0.5 commitment)
 
-- **v0** (sister-repo proposal §2 / methodology current): 2 standalone games (C2 ProductProcurementGame + D3 VendorSelectionGame); no shared environment substrate yet (each game is implemented standalone in v0)
-- **v0.5**: AERead-env v0 ships (4-game MVP); methodology paper draft cites the substrate
-- **v1**: External contribution API ships; lm-evaluation-harness adapter; 1-2 community-contributed games
+- **v0 first paper**: 2 standalone games (C2 ProductProcurementGame + D3 VendorSelectionGame); no shared environment substrate. Each game is implemented standalone in v0 to fit the 3-4 person team × 16-week timeline.
+- **v0.5+**: small extensions on the 2 v0 games (the deferred items per methodology.md Q3/Q4/Q5/Q6 v0.5+ tags) — NOT the AERead-env substrate.
+- **Post-v0 follow-up paper** (timing depends on v0 traction; not pre-committed): the AERead-env substrate as described in this doc. Becomes a *separate* paper ("AERead-env: an OpenSpiel-compatible substrate for economic-agency evaluation") rather than v0.5 or v1 of the v0 paper. The 4-game MVP + 6-interface architecture is months of engineering — worth doing only if the v0 paper establishes traction + a frontier-lab partner pre-commits to citing the substrate paper.
+- **Conditional v1+**: if a follow-up paper publishes, then community-contribution API + lm-evaluation-harness adapter + 1-2 community-contributed games extend the substrate.
 
-Engineering ownership: post-v0 conversation. The 4-game MVP is naturally Cheney+Yuecheng's joint scope per the proposal §9.5 split framing.
+Engineering ownership: post-v0-paper-publication conversation, not part of the v0 collaboration ask. The 4-game MVP is naturally Cheney+Yuecheng's joint scope IF the substrate paper happens — but that's a separate decision from the v0 ownership map in proposal §9.5.
 
 ## References
 

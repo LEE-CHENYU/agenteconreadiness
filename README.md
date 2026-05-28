@@ -86,9 +86,9 @@ Adoption traction analysis (25 benchmarks studied) found that benchmarks > 200 c
 
 - Zero-code task contribution via YAML
 - One-line evaluation: `pip install aeread && aeread evaluate --model claude-opus-4-7 --task all`
-- Three submission paths (web form / Colab / PR)
+- **v0: one submission path** (web form); Colab + PR paths defer to v0.5+
 - Integration AS lm-evaluation-harness task family — so labs already running `lm_eval` have us installed
-- Cache layer never invalidates — reviewer reproducibility is a hard guarantee
+- Cache layer never invalidates — reviewer reproducibility is a hard guarantee (signed-ScoreRecord enforcement defers to v0.5+)
 
 ## License
 

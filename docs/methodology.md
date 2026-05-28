@@ -32,7 +32,7 @@ This Q is narrowly scoped to **Layer 2 modeling rigor**: the Andrews 2026 §3 no
 
 **Defenses (Layer 2 modeling rigor)**:
 - **Predict-then-validate** Layer 3 (train/test split, fixed seed, immutable manifest, held-out predictions; the headline score is best-fitting class's held-out accuracy, not in-sample fit)
-- **Multi-class robustness** — fit all 5 candidate functional classes (KT prospect '79, CRRA, CARA, cumulative prospect TK '92, Kelly-Markowitz); report Bayesian posterior over classes
+- **Multi-class robustness** — **v0**: fit 3 candidate functional classes (KT prospect '79, CRRA, Kelly-Markowitz) covering risk preferences across two functional families + one financial-decision class; report Bayesian posterior over classes. **v0.5+**: extend to CARA + cumulative prospect TK '92 once v0 framework is validated. (Trimming to 3 classes saves ~2-3 person-weeks of v0 implementation without weakening the §3 contribution claim.)
 - **Measurement-model pluralism** (commitment #2) — 4-6 competing measurement models per axiom; Bayesian posterior over them; never a single point estimate
 
 **Q1 boundary with Q4 and Q6** (three distinct overfitting angles — not redundant):
@@ -69,16 +69,14 @@ This Q is scoped to **genuinely numeric outcomes** — dollar surplus, oracle ga
 
 This is its own standalone Q because the failure mode is specific + load-bearing: a hidden `durability = 0.82` in a procurement task is **fake precision** — the model is being scored on whether it recovers the generator's arbitrary encoding scheme, not whether it made a good decision. Getting this wrong is the citation-credibility risk frontier-lab reviewers flag first. Getting it right (structured ordinal states grounded in established discrete-choice + conjoint methods) is what makes the methodology paper defensible on Layer 3 procurement-style cases.
 
-**Qualitative-feature scoring discipline**:
-- **Structured qualitative states**, not hidden 0-1 scalars: `{durability_evidence: "strong positive", seat_feel: "firm", assembly_friction: "moderate"}`. The generator starts from a **qualitative evidence bundle** (concrete review/spec snippets) and emits product text from the bundle — NOT from a hidden scalar reverse-engineered into text.
-- **Ordinal labels for directional features** (`durability: weak < mixed < strong`; `assembly_friction: easy < moderate < hard`); **categorical labels for non-directional features** (`style: minimalist / executive / industrial / playful`). Non-directional feature value depends on buyer fit, not feature value alone.
-- **Two-stage scoring**:
-  - **Stage 1 (qualitative interpretation)** — diagnostic score: did the model infer the right qualitative category? did it recognize mixed evidence? did it avoid turning marketing fluff into evidence? did it distinguish property from value?
-  - **Stage 2 (buyer-specific procurement choice)** — primary score: given the inferred qualitative state, did the model map it to a decision appropriate for a particular buyer profile? The same product may be optimal for buyer A and dominated for buyer B.
-- **Four case types**: (1) **constraint cases** (objective correctness — model violates a hard budget/deadline = fail); (2) **dominance cases** (one option strictly better on every relevant dimension — clear pass/fail); (3) **pairwise tradeoff cases** (model must flip choice across buyer profiles — tests buyer-conditional reasoning); (4) **ambiguous cases** (multiple defensible choices — partial credit, never forced single-truth).
-- **4-tier optimality classification**: `robust optimal / acceptable / weak but defensible / dominated or constraint-violating`. Points map to `1.0 / 0.75 / 0.4 / 0.0` (with negative or auto-fail for constraint violation). Partial credit is the design feature, not a workaround.
-- **Pairwise-regret scoring**: count how many clearly superior alternatives the chosen product loses to. Reported alongside primary score.
-- **Robust utility, not one arbitrary utility function**: define a **family of plausible utility weight vectors** per buyer profile; classify products as `robust_best / robust_top_tier / sensitive / dominated` by their performance across the family. Model isn't heavily penalized for choosing a `robust_top_tier` product instead of the exact numeric winner — only for choosing dominated or constraint-violating options.
+**Qualitative-feature scoring discipline** (v0 scope tagged; v0.5+ extensions noted):
+- **Structured qualitative states**, not hidden 0-1 scalars: `{durability_evidence: "strong positive", seat_feel: "firm", assembly_friction: "moderate"}`. The generator starts from a **qualitative evidence bundle** (concrete review/spec snippets) and emits product text from the bundle — NOT from a hidden scalar reverse-engineered into text. **v0 + v0.5+.**
+- **Ordinal labels for directional features** (`durability: weak < mixed < strong`; `assembly_friction: easy < moderate < hard`); **categorical labels for non-directional features** (`style: minimalist / executive / industrial / playful`). **v0 + v0.5+.**
+- **Single-stage scoring (v0)**: given the inferred qualitative state, did the model map it to a buyer-appropriate decision? Primary score = 4-tier optimality classification (below). **Two-stage scoring (v0.5+)** adds a separate diagnostic score for qualitative-interpretation accuracy (did the model infer the right qualitative category? recognize mixed evidence? avoid marketing fluff? distinguish property from value?) — deferred to keep v0 scope tractable.
+- **Four case types**: (1) **constraint cases** (objective correctness — model violates a hard budget/deadline = fail); (2) **dominance cases** (one option strictly better on every relevant dimension — clear pass/fail); (3) **pairwise tradeoff cases** (model must flip choice across buyer profiles — tests buyer-conditional reasoning); (4) **ambiguous cases** (multiple defensible choices — partial credit, never forced single-truth). **v0 + v0.5+.**
+- **4-tier optimality classification**: `robust optimal / acceptable / weak but defensible / dominated or constraint-violating`. Points map to `1.0 / 0.75 / 0.4 / 0.0` (with negative or auto-fail for constraint violation). Partial credit is the design feature, not a workaround. **v0 + v0.5+.**
+- **Pairwise-regret scoring**: count how many clearly superior alternatives the chosen product loses to. Reported alongside primary score. **v0 + v0.5+.**
+- **v0**: use a **single utility-weight vector per buyer profile** (declared in the test specification). **v0.5+**: extend to **robust utility family** — a set of plausible weight vectors per buyer; classify products as `robust_best / robust_top_tier / sensitive / dominated` by their performance across the family. Model isn't heavily penalized for choosing a `robust_top_tier` product instead of the exact numeric winner. The robust-utility-family extension is the v0.5+ upgrade once v0 single-vector scoring is validated.
 
 **Methodological anchors** (Q3 is not invented from scratch — it's grounded in established methods, per the "Methodological foundation in behavioral economics" table below): discrete choice experiments (Louviere et al. 2000), conjoint analysis (Marley & Louviere 2005), multi-attribute utility theory (Keeney & Raiffa 1976), robust optimization (Ben-Tal & Nemirovski 2002), vignette experiments (Atzmüller & Steiner 2010), qualitative coding.
 
@@ -94,29 +92,33 @@ This Q is scoped to **Layer 3 evaluation rigor** — the split design + benchmar
 - **Anti-shortcut audits** (per Q8 constraint 6): option order, text length, brand, marketing positivity, etc. — none should predict the answer at contributor-submission time
 - **Anti-discontinuous-metric reporting** — alongside any binary pass/fail metric, AERead reports continuous + ordinal measures (utility-regret distribution; robust-top-tier rate; dominated-choice rate; pairwise preference-violation count; paraphrase instability; transfer ratio; calibration error). This is a general benchmark-design principle: any claim that depends on crossing a single fragile pass/fail threshold is suspect. The emergence-claim-specific application is in Q9.
 
-**Five splits, mandatory per game** (Q6 names them AERead-Train, AERead-Dev, AERead-Cert as the citation-contract tiers — same splits, different vocabulary for the model-card contract):
+**Splits, mandatory per game** (Q6 names them AERead-Train, AERead-Dev, AERead-Cert as the citation-contract tiers — same splits, different vocabulary):
 
-| Split | Visibility | Purpose | What it tests | Q6 tier |
-|---|---|---|---|---|
-| **dev** | public, with answers | training-generator development + reproducibility | basic task format | AERead-Dev |
-| **hidden IID** | private | non-contamination baseline | same distribution as dev, unseen instances | AERead-Cert |
-| **axis-OOD** | private | controlled generalization | one generative axis held out | AERead-Cert |
-| **compositional-OOD** | private | systematic generalization | known components in unseen combinations | AERead-Cert |
-| **far-OOD / fresh seasons** | private, rotating | benchmark-overfitting resistance | semantically distinct domains; new every 6mo | AERead-Cert |
+| Split | Visibility | Purpose | What it tests | Q6 tier | v0 status |
+|---|---|---|---|---|---|
+| **dev** | public, with answers | training-generator development + reproducibility | basic task format | AERead-Dev | **v0** |
+| **hidden IID** | private | non-contamination baseline | same distribution as dev, unseen instances | AERead-Cert | **v0** |
+| **axis-OOD** | private | controlled generalization | one generative axis held out | AERead-Cert | **v0** (1 axis only; remaining axes v0.5+) |
+| **compositional-OOD** | private | systematic generalization | known components in unseen combinations | AERead-Cert | **v0.5+** |
+| **far-OOD / fresh seasons** | private, rotating | benchmark-overfitting resistance | semantically distinct domains; new every 6mo | AERead-Cert | **v1+ (if benchmark gains traction; ongoing maintenance commitment)** |
 
-**Hold out dimensions, not just examples**. Splits hold out entire generative axes — product domain (chairs in dev → laptops + SaaS in OOD), buyer profile (budget-sensitive in dev → committee-compromise in OOD), language template (clean spec sheets in dev → noisy review snippets in OOD), qualitative feature (durability in dev → vendor-lock-in in OOD), utility regime (price-dominant in dev → constraint-dominant in OOD), **constraint type** (hard budget in dev → soft preference + hard deadline in OOD), **strategic structure** (single-agent in dev → 2-agent in OOD), **action space** (discrete choice in dev → continuous bid in OOD), **time horizon** (one-shot in dev → repeated/sequential in OOD). A model learning "AERead-specific heuristics" rather than transferable economic reasoning fails the cross-axis tests.
+**v0 ships 3 splits per game** (dev + hidden IID + 1 axis-OOD). Compositional-OOD and far-OOD/rotating seasons are deferred to keep v0 implementation tractable for a 3-4 person team.
 
-**Overfit-bot baseline** — train a small model or rule-based agent directly on the public dev generator; report its hidden-IID + hidden-OOD scores; any frontier LLM with the same public-vs-hidden gap pattern as the overfit bot is exhibiting benchmark exploitation, not general capability.
+**Hold out dimensions, not just examples**. Splits hold out entire generative axes — product domain, buyer profile, language template, qualitative feature, utility regime, constraint type, strategic structure, action space, time horizon. **v0 picks 1 axis to hold out per game** (e.g., product domain for ProductProcurementGame; buyer profile for VendorSelectionGame); v0.5+ expands.
 
-**Rotating benchmark seasons** — v0.5+ ships a new hidden eval set every 6 months (new domains, new templates, new utility regimes); per-season scores + cross-season stability both reported; static-leaderboard ageing is a known failure mode of every benchmark we want to avoid.
+**Public-hidden gap reporting** as a benchmark-overfitting diagnostic: leaderboard rows show `public_dev_score`, `hidden_IID_score`, `hidden_axis-OOD_score`, and `transfer_ratio = S_OOD / S_IID`. **v0** — these four numbers per (model, game). A model scoring 0.92 on public but 0.61 on hidden OOD is exposed by the report itself.
 
-**Public-hidden gap reporting** as a first-class benchmark-overfitting diagnostic: leaderboard rows show `public_dev_score`, `hidden_IID_score`, `hidden_OOD_score`, and `transfer_ratio = S_OOD / S_IID`. A model scoring 0.92 on public but 0.61 on hidden OOD is exposed by the report itself — no manual audit needed.
+**Counterfactual battery per game**:
+- **v0** ships 2 mandatory variants: **paraphrase-invariance** (same hidden state, different wording — Q5 mechanism 4 ties to this); **preference-flip** (same products, different buyer profile — tests buyer-conditional reasoning per Q3 case-type 3)
+- **v0.5+** adds 3 more variants: marketing-robustness, dominated-option, constraint-tightening
 
-**Generalization Index** as composite leaderboard score (a *possible* aggregation, weights subject to community calibration): `GI = 0.20·S_IID + 0.25·S_AxisOOD + 0.25·S_CompositionalOOD + 0.20·S_FarOOD + 0.10·S_Counterfactual − Penalties`. Penalties include hard-constraint violations, dominated choices, paraphrase instability, marketing susceptibility, and the public-hidden overfit gap.
+**Deferred to v0.5+** (kept as commitments in the docs, not in v0 build):
+- **Overfit-bot baseline** — train a small model on public dev; compare hidden-OOD gap. Useful diagnostic but adds ~2 weeks of v0 engineering not justified for a 3-4 person team.
+- **Rotating benchmark seasons** — new hidden eval every 6 months. Ongoing maintenance commitment; only sustainable if the benchmark gains traction. Defer.
+- **Generalization Index composite** — `GI = 0.20·S_IID + 0.25·S_AxisOOD + ...` weighted aggregation. v0 reports individual split scores + Transfer Ratio; composite formula is research debt until the empirical weights are calibrated from frontier-lab feedback.
+- **Pairwise interaction effects** in the cross-axis attribution matrix. v0 reports main effects only; interaction matrix becomes v0.5+ once main-effect data motivates the additional measurement.
 
-**Counterfactual battery per game** (mandatory): preference-flip (same products, different buyer); paraphrase-invariance (same hidden state, different wording); marketing-robustness (same product facts + irrelevant persuasive copy); dominated-option (add strictly worse alternative — model should never pick); constraint-tightening (same products, tighter budget/deadline — model should adapt sharply).
-
-**Open**: the Generalization Index weights are themselves an empirical question — the methodology paper will calibrate them against frontier-lab feedback rather than asserting them. The decomposition (`S_IID`, `S_AxisOOD`, `S_CompositionalOOD`, `S_FarOOD`, `S_Counterfactual`) is the load-bearing commitment; the specific weights are open for calibration.
+**Open**: the deferred items (GI composite, overfit-bot, rotating seasons) are listed as v0.5+ commitments in the methodology paper's "Future work" section. Reviewers can engage on their priority order pre-launch.
 
 ### Q5 — How do the tests function as RL environments providing generalizable training signals?
 
@@ -129,12 +131,14 @@ The detailed answer is **the AERead-env design spec** ([`aeread_env_design.md`](
 
 **Four prior-art-anchored mechanisms** make AERead's per-axis penalties usable as training signal, not just evaluation:
 
-| # | Mechanism | Prior-art anchor | What it does |
-|---|---|---|---|
-| 1 | Training-time penalty (label-free axiom loss) | [Andrews 2026](papers/pdfs/andrews_2026_revealed_rationality.pdf) | de Finetti / Afriat / SARSEU penalties as auxiliary loss; zero iff the data are rationalizable |
-| 2 | Inference-time correction (Dutch-book post-correction) | [Chadwick 2025](papers/pdfs/chadwick_kahng_kipper_2025_dutch_books.pdf) (IMDC) | Post-hoc correction of incoherent probability emissions |
-| 3 | Supervised trace mimicry (Bayesian-teaching) | [Qiu 2026](https://arxiv.org/abs/2503.17523) | Train on reasoning traces from a coherent oracle policy |
-| 4 | Self-supervised consistency training (probabilistic coherence) | [Betz & Richardson 2023](https://doi.org/10.1371/journal.pone.0281372) | Penalize incoherent self-emissions across paraphrases of the same query |
+| # | Mechanism | Prior-art anchor | What it does | v0 status |
+|---|---|---|---|---|
+| 1 | Training-time penalty (label-free axiom loss) | [Andrews 2026](papers/pdfs/andrews_2026_revealed_rationality.pdf) | de Finetti / Afriat / SARSEU penalties as auxiliary loss; zero iff the data are rationalizable | **v0 implements** (the simplest, label-free; ships as a working reference) |
+| 2 | Inference-time correction (Dutch-book post-correction) | [Chadwick 2025](papers/pdfs/chadwick_kahng_kipper_2025_dutch_books.pdf) (IMDC) | Post-hoc correction of incoherent probability emissions | **Described in v0; implementation defers to follow-up paper** |
+| 3 | Supervised trace mimicry (Bayesian-teaching) | [Qiu 2026](https://arxiv.org/abs/2503.17523) | Train on reasoning traces from a coherent oracle policy | **Described in v0; implementation defers to follow-up paper** |
+| 4 | Self-supervised consistency training (probabilistic coherence) | [Betz & Richardson 2023](https://doi.org/10.1371/journal.pone.0281372) | Penalize incoherent self-emissions across paraphrases of the same query | **Described in v0; implementation defers to follow-up paper** |
+
+**v0 scope discipline**: only mechanism 1 (Andrews training-time penalty) is implemented end-to-end in v0 — it's the simplest (label-free, polynomial-time-LP-checkable) and ships as a working reference that frontier labs can run themselves. Mechanisms 2-4 are theoretically described in the methodology paper as the **full integration surface**, but their implementations defer to a follow-up paper. This reflects the 3-4 person team scope: building all 4 mechanism implementations would cost months and isn't load-bearing for the v0 paper's §3 contribution.
 
 AERead's evaluation becomes a direct input to RLHF/DPO loops — what makes per-axis scores load-bearing for frontier labs running their own fine-tuning, not just citing the methodology paper after the fact.
 
@@ -147,6 +151,8 @@ AERead's evaluation becomes a direct input to RLHF/DPO loops — what makes per-
 ### Q6 — What happens if AERead is used as a training signal — and how does AERead avoid being gamed?
 
 This is its own standalone Q because Q5's training-signal infrastructure creates an integrity risk that needs explicit treatment. Per the TERMS-Bench overfitting analysis ([Zhang et al. 2026](papers/links.md)): once a benchmark becomes a training target, the published score is **no longer an unbiased out-of-sample evaluation**. AERead's defense is a tier-separation naming convention that frontier labs can audit at the model-card level.
+
+**v0 scope**: the Train/Dev/Cert naming convention + submitter provenance contract are **docs-only commitments** — the methodology paper articulates the convention, the leaderboard webpage labels splits accordingly, and submission instructions require provenance declaration. **v0.5+** adds infrastructure enforcement (automated provenance verification at submission; leaderboard auto-refusal of Dev-only scores reported as "AERead scores"; signed-ScoreRecord verification of split-attribution claims). v0 leans on social enforcement (reviewers + readers flagging non-compliant model cards); v0.5+ converts that to technical enforcement once the benchmark gains traction enough to justify the build.
 
 **AERead's published naming convention** makes the training-vs-evaluation distinction explicit:
 
@@ -234,7 +240,7 @@ This split mirrors a finding from the diagnostic-and-correction literature (Andr
 
 **Naming**: not "OpenSpiel for economic games" (too broad). Position as "**OracleDecomposition Environments for LLM Economic Agency**" — a lightweight OpenSpiel-compatible benchmark layer with oracle decomposition, qualitative evidence, revealed-preference diagnostics, and OOD generalization tests.
 
-**Open**: when does this ship relative to v0? Likely **v0.5** — after methodology paper draft + first 2 v0 use cases land. The 4-game MVP becomes a v1 contribution that reinforces the "AERead is a benchmark substrate, not a single benchmark" framing.
+**Open — sequencing** (revised after scope-vs-team-fit audit): the substrate is **NOT a v0.5 commitment**; it becomes a separate **post-v0-paper follow-up paper** ("AERead-env: an OpenSpiel-compatible substrate for economic-agency evaluation"). Building the 4-game MVP + 6-interface architecture is months of engineering — worth doing only after v0 establishes traction + frontier-lab citation channel. For now, v0 first paper ships 2 standalone games (no shared substrate). See [`aeread_env_design.md`](aeread_env_design.md) for the full design spec as a forward-looking roadmap.
 
 ### Q9 — How does AERead operationalize "emergence" claims?
 
@@ -327,7 +333,19 @@ The full open candidate pool — ~25 cases including EconEvals procurement/prici
 
 ## The 5-axis failure taxonomy
 
-When a model scores low on a Layer 3 task, *which mechanism failed?* The 5-axis taxonomy decomposes the gap:
+When a model scores low on a Layer 3 task, *which mechanism failed?* The 5-axis taxonomy decomposes the gap.
+
+**v0 instrumentation tiers** (5-axis taxonomy stays intact as the paper's §3 claim; instrumentation depth varies):
+
+| Axis | v0 instrumentation | v0.5+ extension |
+|---|---|---|
+| **Axis 1 — Information** | Full Δ_inf measurement per OracleDecomposable (TERMS-Bench Eq. 4) | Belief-substitution beyond state-reveal |
+| **Axis 2 — Consistency** | 2 axiom tests (transitivity + dominance) per game | Full 6-axiom family (CCEI/GARP/WARP/transitivity/monotonicity/Houtman-Maks) |
+| **Axis 3 — Calibration** | Brier score + within-class utility-fit error per Q1 multi-class | ECE diagnostic + reliability diagrams + full proper-scoring-rule suite |
+| **Axis 4 — Computational floor** | 1 quantity-substitution probe per game (sketched only) | Full computation-substitution suite (LP-substitution / DP-substitution / Bayes-update-substitution) |
+| **Axis 5 — Meta-cognitive** | Confidence elicitation + Brier calibration on held-out (sketched only) | Full Dutch-book / probabilistic-identity / money-pump probe suite |
+
+**Why this split**: the 5-axis taxonomy paper claim is the integrative framework; v0 demonstrates it by **fully instrumenting axes 1-3** + **sketching axes 4-5 with 1 sub-test each**. Reviewers see the full taxonomy in the paper; the implementation is partial-but-honest. v0.5+ extensions are pre-committed in the methodology paper's "Future work" section + the v0.5+ extension column above.
 
 | # | Axis | Causal hypothesis | Prior-art anchor |
 |---|---|---|---|
@@ -375,25 +393,6 @@ Betz & Richardson 2023's §Future Research explicitly calls for "improved diagno
 Chadwick et al. 2025's §Future Work explicitly asks: "does a two-step refinement (first ordinal, then cardinal) outperform a single probability-based approach?" **AERead's 3-layer pipeline (existence → identification → predictive validity) is the empirical answer.**
 
 The methodology paper's §3 framing therefore writes itself: four 2023–2026 diagnostic papers each measured one axis of LLM rationality in one domain; each explicitly admitted that integration with other axes, scaling beyond their setup, the coherence-vs-accuracy gap, and real-world deployment validity remained open. AERead is built directly on the diagnostic surface Betz & Richardson called for and the stack-design question Chadwick et al. posed.
-
-## Architecture mapping: 6-layer diagnostic stack vs AERead's 3-layer pipeline + 5-axis taxonomy
-
-A useful alternate framing of the same architecture organizes the diagnostic surface into **6 conceptual layers** (per external review). This is not a competing taxonomy — it's a more granular decomposition that maps cleanly onto AERead's published 3-layer pipeline + 5-axis taxonomy.
-
-| 6-layer diagnostic stack | Maps to AERead's 3-layer pipeline | Maps to AERead's 5-axis taxonomy |
-|---|---|---|
-| **Layer 1 — axiom / coherence diagnostics** (dominated choice, transitivity, budget monotonicity, menu independence, paraphrase consistency, constraint consistency) | Layer 1 — existence | Axis 2 — Consistency |
-| **Layer 2 — behavioral representation / utility calibration** (price sensitivity, risk preference, buyer-fit weights, brand overweighting, delivery underweighting, qualitative-feature tradeoffs) | Layer 2 — identification | Axis 3 — Calibration |
-| **Layer 3 — qualitative evidence interpretation** (does the model infer right qualitative category? recognize mixed evidence? avoid marketing fluff? distinguish property from value?) | — (cross-cuts Layer 2 & Layer 3) | Axis 1 — Information *(partial)* |
-| **Layer 4 — belief / information-state calibration** (Bayesian update from new signals; stated-vs-revealed belief alignment; Dutch-book coherence) | Layer 3 — predictive validity *(partial)* | Axis 1 — Information + Axis 5 — Meta-cognitive |
-| **Layer 5 — computation / planning / strategic policy gap** (can the model execute the math? plan multi-step? model the opponent?) | Layer 3 — predictive validity *(partial)* | Axis 4 — Computational floor + strategic-reasoning residual |
-| **Layer 6 — OOD generalization + robustness** (hidden IID + axis-OOD + compositional + far-OOD; counterfactual battery; paraphrase invariance) | (cross-cuts all 3 layers) | (cross-cuts all 5 axes) |
-
-**Why two framings of the same thing**: the 3-layer pipeline + 5-axis taxonomy is the **methodology-paper headline** structure (canonical revealed-preference framing + integrative taxonomy citing prior art). The 6-layer diagnostic stack is the **engineering-architecture** view — it maps to what each module of the AERead-env substrate computes, and it's easier to communicate to engineering collaborators + RL practitioners.
-
-**Key insight**: Layer 3 (qualitative evidence interpretation) is a **first-class diagnostic layer** in the 6-layer framing but is implicit in the 3-layer + 5-axis architecture (folded into Axis 1 Information + Q3 qualitative-feature scoring discipline). The 6-layer framing elevates it because procurement-style tasks rely on it heavily — the qualitative-evidence-interpretation failure mode is distinct from belief calibration or computational-floor failures and deserves its own diagnostic surface.
-
-**Open**: should the methodology paper present the 6-layer stack as the architectural figure + retain the 3-layer + 5-axis as the contribution claim? This is a presentation-layer choice that reviewers may push on — the diagnostic content is the same either way, but the figure that anchors the paper's section structure is a design decision worth opening to feedback.
 
 ## The diagnostic surface
 
