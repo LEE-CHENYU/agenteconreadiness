@@ -114,22 +114,40 @@ Per the top-of-doc banner: this substrate is a **post-v0-paper follow-up paper**
 
 The 4 games span the structural-diversity matrix in design goal #2:
 
-### ProductProcurementGame — v0 first paper, game 1
-- Single-agent, one-shot
+### ProductProcurementGame (C2) — v0 first paper, game 1
+- Single-agent, one-shot, **discrete-action**
 - Information: imperfect (qualitative evidence about products: reviews, specs, marketing)
 - Action: structured purchase decision (product_id, quantity, optional bundle)
-- Payoff: revealed-preference fit + dollar-equivalent surplus (per Q3 4-tier optimality scoring)
+- Payoff: revealed-preference fit + dollar-equivalent surplus (per Q3 4-tier optimality scoring); deterministic
 - Oracle (v0): **optimal under a single declared utility-weight vector per buyer profile** (per Q3 v0 scope — single-vector scoring); v0.5+ extension is the robust-optimal-across-plausible-utility-weight-family upgrade per Q3 v0.5+ scope. Either way, NOT a hidden-cardinal exact-optimum from a 0-1 scalar (that's the fake-precision failure Q3 prevents).
 - Tests: Axis 1 (information processing from reviews) + Axis 4 (constraint satisfaction) + qualitative-evidence interpretation residual
 
-### VendorSelectionGame — v0 first paper, game 2
-- Single-agent, risk/uncertainty
+### SimplePricingGame (C8) — v0 first paper, game 2
+- Single-agent, one-shot, **continuous-action** (price p ∈ [0, P_max])
+- Information: declared demand prior (e.g., "demand is approximately α − β·p with noise σ; α ∈ [α_low, α_high]; β ∈ [β_low, β_high]; σ ∈ [σ_low, σ_high]") + product description
+- Hidden state: true demand-curve parameters (intercept α*, elasticity β*, noise σ*) sampled from the declared prior
+- Action: structured price decision (p ∈ [0, P_max])
+- Payoff: stochastic revenue = p × D(p) where D(p) = α* − β*·p + ε, ε ~ N(0, σ*²)
+- Oracle: **Bayes-optimal expected revenue = argmax_p E[p × D(p) | declared prior]** = argmax_p p × (E[α] − E[β]·p) under quadratic-cost interpretation; closed-form solution exists for linear demand model
+- Tests:
+  - Axis 1 (information): how does revealing the true demand parameters change the model's chosen price?
+  - Axis 3 (calibration): does the model compute expected revenue correctly under the declared prior?
+  - Axis 4 (computational floor): can the model find argmax over the continuous price space? Common failure mode: model picks a "round number" (e.g., $10, $20) rather than the actual argmax
+- **Structurally distinct from C2 ProductProcurementGame** on:
+  - Action space: continuous vs discrete
+  - Outcome: stochastic (revenue under demand uncertainty) vs deterministic (utility match under known weights)
+  - Oracle math: argmax over continuous space vs utility-vector dot product
+  - Uncertainty representation: parametric demand curve vs qualitative text evidence
+- Conceptual precedent: EconEvals 2025 pricing dimension (A2 in [`layer3_candidates.md`](layer3_candidates.md)); v0 ships AERead-native single-period simplification, with EconEvals's multi-period + competition-aware pricing wrappable at v0.5+
+
+### VendorSelectionGame (D3) — v0.5+ roadmap (demoted 2026-05-28)
+- Single-agent, risk/uncertainty supplier selection
 - Information: supplier evidence (reliability history, lead-time variance)
 - Action: select vendor + quantity, with explicit risk acknowledgment
 - Payoff: expected cost - risk premium, revealed via stochastic resolution
 - Oracle: **exact** (Bayes risk minimization given declared utility curvature)
 - Tests: Axis 3 (calibration on risk) + Axis 4 (reliability-cost tradeoff) + belief-calibration residual
-- Distinct from ProductProcurementGame: probabilistic risk + Bayes oracle here vs qualitative evidence + robust-utility oracle in C2. The pair demonstrates Eq. 4 across two distinct procurement-style structures.
+- **Demoted from v0 to v0.5+ (2026-05-28)**: structurally similar to C2 ProductProcurementGame (both single-agent + one-shot + discrete-choice + solo + decision-theoretic); v0 pair needed cross-structure variation, so C8 SimplePricingGame replaced D3 as v0 game 2. D3 ships at v0.5+ once the v0 procurement + pricing framework validates.
 
 ### NegotiationGame — v0.5 roadmap
 - Two-agent, sequential
@@ -236,7 +254,7 @@ aeread_env/
 
 ## Sequencing (revised — NOT a v0.5 commitment)
 
-- **v0 first paper**: 2 standalone games (C2 ProductProcurementGame + D3 VendorSelectionGame); no shared environment substrate. Each game is implemented standalone in v0 to fit the 3-4 person team × 16-week timeline.
+- **v0 first paper**: 2 standalone games (C2 ProductProcurementGame + C8 SimplePricingGame — action-space-distinct: discrete + continuous); no shared environment substrate. Each game is implemented standalone in v0 to fit the 3-4 person team × 16-week timeline. D3 VendorSelectionGame was originally v0 game 2 but demoted to v0.5+ on 2026-05-28 (structurally similar to C2).
 - **v0.5+**: small extensions on the 2 v0 games (the deferred items per methodology.md Q3/Q4/Q5/Q6 v0.5+ tags) — NOT the AERead-env substrate.
 - **Post-v0 follow-up paper** (timing depends on v0 traction; not pre-committed): the AERead-env substrate as described in this doc. Becomes a *separate* paper ("AERead-env: an OpenSpiel-compatible substrate for economic-agency evaluation") rather than v0.5 or v1 of the v0 paper. The 4-game MVP + 6-interface architecture is months of engineering — worth doing only if the v0 paper establishes traction + a frontier-lab partner pre-commits to citing the substrate paper.
 - **Conditional v1+**: if a follow-up paper publishes, then community-contribution API + lm-evaluation-harness adapter + 1-2 community-contributed games extend the substrate.

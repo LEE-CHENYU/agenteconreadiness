@@ -12,8 +12,8 @@
 |---|---|
 | **Team** | Cheney (lead) + Yuecheng + Zihao + Jingyi (candidate per proposal §9.4) |
 | **Capacity** | ~25 person-weeks over 16 weeks |
-| **Layer 3 use cases** | 2 deep games — C2 ProductProcurementGame + D3 VendorSelectionGame |
-| **Methodology paper §3 claim** | Integrative 5-axis taxonomy + OracleDecomposable Eq. 4 generalization across 2 procurement-style decision structures |
+| **Layer 3 use cases** | 2 deep games — C2 ProductProcurementGame (discrete-action) + C8 SimplePricingGame (continuous-action) |
+| **Methodology paper §3 claim** | Integrative 5-axis taxonomy + OracleDecomposable Eq. 4 generalization across **action-space-distinct** decisions (discrete-choice procurement vs continuous-action pricing) |
 | **Citation channel goal** | Methodological engagement from frontier-lab researchers (pre-commercial) |
 | **First sync** | 2026-06-02 |
 | **4-week checkpoint** | 2026-06-30 |
@@ -25,10 +25,10 @@
 
 ### Layer 3 use cases (2 games)
 
-- **C2 ProductProcurementGame** — single-agent, one-shot, qualitative-evidence procurement; **v0 oracle = optimal under single declared utility-weight vector per buyer profile** (per Q3 v0 scope; robust-utility-family is v0.5+ upgrade); 4-tier optimality classification (robust optimal / acceptable / weak / dominated)
-- **D3 VendorSelectionGame** — single-agent, risk/uncertainty supplier selection; oracle = Bayes risk minimization given declared utility curvature
+- **C2 ProductProcurementGame** — single-agent, one-shot, **discrete-action** (select 1 of N products); qualitative-evidence procurement; **v0 oracle = optimal under single declared utility-weight vector per buyer profile** (per Q3 v0 scope; robust-utility-family is v0.5+ upgrade); 4-tier optimality classification (robust optimal / acceptable / weak / dominated); deterministic preference-match payoff
+- **C8 SimplePricingGame** — single-agent, one-shot, **continuous-action** (set price p ∈ [0, P_max]); hidden state = demand-curve parameters (intercept α, elasticity β, noise σ); model receives declared demand prior + chooses revenue-maximizing price; **oracle = Bayes-optimal expected revenue = argmax_p E[p × D(p)]** under the declared prior; stochastic revenue payoff
 
-These are structurally distinct (qualitative evidence vs probabilistic risk; declared-single-vector oracle vs Bayes-risk oracle) — the pair demonstrates Eq. 4 portability across two distinct procurement-style decision structures.
+The pair (C2 + C8) is **structurally distinct** on action space (discrete vs continuous) + outcome (deterministic preference match vs stochastic revenue) + oracle math (utility-vector dot product vs argmax over continuous space) + uncertainty representation (qualitative text vs parametric demand curve) — demonstrates Eq. 4 portability across **action-space variation**, not just uncertainty-type variation. D3 VendorSelectionGame (single-agent risk/uncertainty) was originally v0 game 2 but **demoted to roadmap** (2026-05-28) because it shared too much structure with C2; C8 SimplePricingGame replaced it for stronger cross-structure generalization claim.
 
 ### Layer 2 functional classes (3 of 5)
 
@@ -103,8 +103,10 @@ These are structurally distinct (qualitative evidence vs probabilistic risk; dec
 ### Out of v0 entirely
 
 - **AERead-env substrate** ([`aeread_env_design.md`](aeread_env_design.md)) — post-v0-paper follow-up paper, NOT v0.5+. v0 ships 2 standalone games (no shared substrate).
-- C1 persona-fit / 13F IRL as a Layer 3 use case — moved to roadmap. The rationale source repo continues developing the IRL infrastructure as Layer 2 parameter-fit work; C1 appears as a v0.5+ Layer 3 case study once v0 framework validates.
-- D2 bargaining (TERMS-Bench wrap) — roadmap; wrap when TERMS-Bench releases code
+- **D3 VendorSelectionGame** (single-agent risk/uncertainty supplier selection) — was originally v0 game 2; demoted to v0.5+ (2026-05-28) because structurally redundant with C2; v0 pair needed cross-structure variation, so C8 SimplePricingGame replaced D3 for stronger generalization claim
+- **C1 persona-fit / 13F IRL** as a Layer 3 use case — moved to roadmap. The rationale source repo continues developing the IRL infrastructure as Layer 2 parameter-fit work; C1 appears as a v0.5+ Layer 3 case study once v0 framework validates.
+- **D2 bargaining** (TERMS-Bench wrap) — roadmap; wrap when TERMS-Bench releases code
+- **EconEvals A2 pricing** (multi-period + competition) — v0.5+ wrap; C8 v0 SimplePricingGame is the AERead-native single-period simplification
 
 ---
 
@@ -128,8 +130,8 @@ These are structurally distinct (qualitative evidence vs probabilistic risk; dec
 | E2 | v0 scorer library subset (3 scorers) | Yuecheng | Zihao (correctness review), Cheney (v0 scaffold) |
 | E3 | Generator library + YAML schema (enough for C2 + D3) | Cheney | Yuecheng (refinement) |
 | E4 | Cache layer + CLI | Cheney + Yuecheng | — |
-| E5 | C2 ProductProcurementGame end-to-end | Cheney | Zihao (oracle formalization), Yuecheng (Q3 scoring impl) |
-| E6 | D3 VendorSelectionGame end-to-end | Cheney | Zihao (Bayes-risk oracle), Yuecheng (risk-calibration scorer) |
+| E5 | C2 ProductProcurementGame end-to-end (discrete-action) | Cheney | Zihao (utility-vector oracle formalization), Yuecheng (Q3 4-tier scoring impl) |
+| E6 | C8 SimplePricingGame end-to-end (continuous-action) | Cheney | Zihao (Bayes-optimal pricing argmax oracle derivation), Yuecheng (continuous-action scorer + expected-revenue computation + demand-prior interface) |
 | E7 | Leaderboard frontend + diagnostic drill-down page | Cheney | Yuecheng (review) |
 | E8 | Benchmark validation runs (3-5 frontier models) | Cheney + Yuecheng | — |
 | E9 | Documentation (README + contributor onboarding) | Cheney | Yuecheng (technical content) |

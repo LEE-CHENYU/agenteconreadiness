@@ -1,6 +1,6 @@
 # Layer 3 Use Case Candidates — Open List
 
-This is the **open candidate pool** for AERead Layer 3 (real-world economic decision use cases). v0 ships with **2 deep games** (C2 ProductProcurementGame + D3 VendorSelectionGame); the rest are listed here as candidates we'll evaluate for v0.5 / v1 / v1.5 / v2 expansion. **Listing is harmless** — having the full pool visible prevents us from missing high-leverage cases later.
+This is the **open candidate pool** for AERead Layer 3 (real-world economic decision use cases). v0 ships with **2 deep games** (C2 ProductProcurementGame + C8 SimplePricingGame — action-space-distinct decisions: discrete-action procurement + continuous-action pricing); the rest are listed here as candidates we'll evaluate for v0.5 / v1 / v1.5 / v2 expansion. **Listing is harmless** — having the full pool visible prevents us from missing high-leverage cases later.
 
 ## Selection criteria
 
@@ -26,7 +26,7 @@ The **top-right quadrant** (high value × high testability) is where AERead's le
 |                    | **High testability** (closed-form oracle, cheap sim) | **Medium testability** (data-dependent, approximate oracle) | **Low testability** (hard ground truth, contested method) |
 |---|---|---|---|
 | **High economic value** | A2 EconEvals pricing • A6 two-sided matching (kidney exchange / residency) • B3 algorithmic trading | B1 Calvano collusion • A7 price discrimination | (Zihao mechanism-design candidates land here?) |
-| **Medium value** | A1 EconEvals procurement • A3 EconEvals scheduling • A4 sealed-bid auction • A5 ascending auction • C2 ProductProcurementGame (v0 game 1) • D3 VendorSelectionGame (v0 game 2) • D2 bargaining (roadmap wrap) | C1 persona-fit (roadmap; v0.5+ Layer 3 case) • C7 multi-issue negotiation • D9 election prediction • G18 insurance / risk pooling | C6 coalitional bargaining • F14 customer-service triage |
+| **Medium value** | A1 EconEvals procurement • A2 EconEvals pricing (v0.5+ wrap of C8) • A3 EconEvals scheduling • A4 sealed-bid auction • A5 ascending auction • C2 ProductProcurementGame (v0 game 1) • C8 SimplePricingGame (v0 game 2) • D3 VendorSelectionGame (v0.5+ roadmap) • D2 bargaining (roadmap wrap) | C1 persona-fit (roadmap; v0.5+ Layer 3 case) • C7 multi-issue negotiation • D9 election prediction • G18 insurance / risk pooling | C6 coalitional bargaining • F14 customer-service triage |
 | **Low value** | D8 weather forecasting • G15 iterated ultimatum • G17 Allais paradox | C3 commons governance • C4 repeated PD • C5 multi-agent coord (γ-Bench) • G16 trust game | E11 budget-constraint learning • F13 web browsing under budget |
 
 **What the matrix tells us**:
@@ -46,11 +46,13 @@ The **top-right quadrant** (high value × high testability) is where AERead's le
 
 | Code | Case | Status | Source |
 |---|---|---|---|
-| C2 | **ProductProcurementGame** (qualitative-evidence procurement) | **v0 — game 1** | Novel; primary demonstration site for Q3 qualitative-feature scoring discipline |
-| D3 | **VendorSelectionGame** (single-agent risk/uncertainty supplier selection) | **v0 — game 2** | Novel single-agent simpler form; the agentic marketplace extension is roadmap |
+| C2 | **ProductProcurementGame** (discrete-action; qualitative-evidence procurement) | **v0 — game 1** | Novel; primary demonstration site for Q3 qualitative-feature scoring discipline |
+| C8 | **SimplePricingGame** (continuous-action; pricing under demand uncertainty) | **v0 — game 2** | Novel AERead-native simplification of EconEvals A2 pricing; single-period, single-agent. Structurally distinct from C2 on action space (continuous vs discrete) — strengthens v0 generalization claim. |
+| D3 | VendorSelectionGame (single-agent risk/uncertainty supplier selection) | **Roadmap (v0.5+; demoted 2026-05-28)** | Was originally v0 game 2; demoted because structurally similar to C2 (single-agent + one-shot + discrete-choice + solo + decision-theoretic); v0 pair needed action-space variation |
 | D2 | Bilateral bargaining | **Roadmap (wrap)** | Zhang et al. 2026 TERMS-Bench ([paper](https://arxiv.org/abs/2605.13909) + [live leaderboard](https://terms-bench.github.io)) |
 | C1 | Persona-fit (IRL on 13F investor decisions) — Layer 2 parameter-fit case study | **Roadmap (v0.5+ Layer 3 case)** | Novel; rationale source repo's IRL infrastructure continues to develop this for v0.5+ |
 | Agentic marketplace | D3 multi-agent + agentic tool-use extension | **Roadmap (v1+ extends D3)** | EconEvals precedent |
+| A2 | EconEvals pricing (multi-period + competition + collusion litmus) | **Roadmap (v0.5+ wrap)** | Fish/Gonczarowski 2026 — v0.5+ wrap of EconEvals's full pricing dimension; v0 C8 SimplePricingGame is the AERead-native simplification |
 
 ## Candidate pool (open)
 
@@ -122,7 +124,7 @@ Organized by structural cluster. Each row: case, source, OracleDecomposable hint
 
 ## Top selection priority (recommended additions beyond v0)
 
-If we add cases after shipping v0 (C2 ProductProcurementGame + D3 VendorSelectionGame), this is the recommended priority order for v0.5+ expansion (which also reintegrates the roadmap items: D2 TERMS-Bench wrap, C1 persona-fit, agentic marketplace, NegotiationGame, PricingCompetitionGame):
+If we add cases after shipping v0 (C2 ProductProcurementGame + C8 SimplePricingGame), this is the recommended priority order for v0.5+ expansion (which also reintegrates the roadmap items: D3 VendorSelectionGame, D2 TERMS-Bench wrap, C1 persona-fit, A2 EconEvals pricing full wrap, agentic marketplace, NegotiationGame, PricingCompetitionGame):
 
 | Rank | Code | Case | Justification |
 |---|---|---|---|
@@ -140,7 +142,7 @@ If we add cases after shipping v0 (C2 ProductProcurementGame + D3 VendorSelectio
 | 12 | F16 | PolyBench live prediction-market forecasting + trading | Contamination-resistant; clean Bayes-optimal oracle; pairs with Axis 5 calibration + C1 financial-decision framing |
 
 **Tier S → A → B → C → D mapping**:
-- **S (v0, shipping)**: C2 ProductProcurementGame + D3 VendorSelectionGame (the two v0 first-paper games)
+- **S (v0, shipping)**: C2 ProductProcurementGame + C8 SimplePricingGame (the two v0 first-paper games — action-space-distinct: discrete + continuous)
 - **A (v0.5, ~3-4 months post-launch)**: D2 TERMS-Bench wrap + C1 persona-fit (Layer 2 case) + A1 EconEvals procurement + A2 EconEvals pricing + B1 collusion + F15 Market-Bench + F16 PolyBench (substrate also adds NegotiationGame + PricingCompetitionGame here)
 - **B (v1, ~6 months post-launch)**: A3, A4, A6, C7, D8, F12, F17, agentic marketplace extension
 - **C (v1.5, ~9-12 months post-launch)**: A5, B2, B3, C3, C4, C5, D9, D10, F13, F14, G15, G18
