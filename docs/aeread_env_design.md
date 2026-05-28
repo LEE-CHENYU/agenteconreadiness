@@ -1,0 +1,222 @@
+# AERead-env: OpenSpiel-compatible benchmark substrate for LLM economic agency
+
+> Forward-looking design spec for the AERead benchmark substrate. Referenced from [`methodology.md`](methodology.md) Q5. Likely v0.5 deliverable — after methodology paper draft + first 2 v0 use cases land.
+
+## Positioning
+
+**Not** "OpenSpiel for economic games." That framing is too broad, invites unflattering comparison with the existing DeepMind library, and obscures the contribution. The actual positioning:
+
+> **OracleDecomposition Environments for LLM Economic Agency** — a lightweight, OpenSpiel-compatible benchmark substrate adding oracle decomposition, qualitative evidence, revealed-preference diagnostics, utility/belief calibration, and OOD generalization tests on top of generic game substrates.
+
+OpenSpiel already covers the generic game substrate (n-player, zero-sum/cooperative/general-sum, one-shot/sequential, perfect/imperfect-information). AERead-env is **the economic-agency layer on top** — the diagnostic + evaluation infrastructure that turns a game into a benchmark for LLM economic decision-making.
+
+This positioning matters strategically. Major model labs cite **diagnostic + evaluation frameworks**, not "yet another game library." Adoption traction analysis (see source-repo notes) shows the "-Bench" suffix caps citations at low single-digit numbers even with elite-PI authorship; the deployment-verdict / diagnostic framing is what GDPval-style benchmarks use to break out.
+
+## Why this matters for AERead
+
+Three concrete reasons AERead needs an environment substrate, not just a leaderboard:
+
+1. **RL training signal** — the methodology-paper claim that AERead's per-axis penalties can serve as training signal requires AERead to expose oracle-grounded rewards + factorial intervention data, not just black-box scores. The environment substrate is the academic foundation for that claim — and the integration surface frontier labs need before they cite the methodology paper as load-bearing for their own training pipelines.
+2. **Generalizable diagnostic** — a single-task benchmark can't distinguish task-specific weakness from cross-task pattern. The substrate's structural-diversity goal makes per-axis 5-factor scores generalizable.
+3. **Community contribution** — frontier-lab adoption requires a path for external researchers to contribute new games. The substrate's submission API + anti-shortcut audit + OOD-axis declaration is the contribution interface.
+
+## Key design goals (7)
+
+### 1. OpenSpiel compatibility, not replacement
+
+The environment substrate's `Game` API mirrors OpenSpiel's:
+- `reset(seed)` / `observe(state)` / `legal_actions(state)` / `step(state, action)` / `is_terminal(state)` / `returns(state)` / `metadata()`
+
+Plus AERead-specific economic-evaluation hooks:
+- `oracle_policy(state)` — the reference / oracle policy that AERead's evaluation calls
+- `oracle_value(state)` — the oracle's value function
+- `decompose_gap(observed_action, state)` — gap decomposition (Δ_inf / Δ_unc / Δ_ctrl per TERMS-Bench Eq. 4)
+- `counterfactual(state, intervention)` — apply a diagnostic intervention (state reveal / belief substitution / paraphrase / option-set perturbation)
+- `behavioral_representation(state, action_trace)` — extract revealed-preference primitives from a trajectory
+
+Compatible enough that someone using OpenSpiel can drop in an AERead-env game with minimal API translation. Different enough to expose the economic-evaluation machinery OpenSpiel doesn't have.
+
+### 2. Structural diversity by design
+
+Each game declares its structural footprint:
+- **Agents**: 1 / 2 / N
+- **Time**: one-shot / sequential / repeated
+- **Information**: perfect / imperfect / private-type / asymmetric
+- **Action space**: discrete / continuous / structured (combinatorial)
+- **Payoff**: outcome / preference-revealed / market / mechanism-grounded
+- **Strategic**: solo / cooperative / competitive / mixed
+- **Oracle**: exact / approximate / dominance-only / human-reference / market-simulation
+
+Release cannot be 90% single-shot multiple-choice. The MVP scope of 4 games (below) is explicitly chosen to maximize structural diversity within a small footprint.
+
+### 3. Oracle decomposition as the common abstraction
+
+Not "all games share the same utility function" — that's wrong. Different games have different utility structures.
+
+But: **all games admit the same intervention decomposition.** Every game answers "if we revealed the hidden state, would the model have chosen better?" / "if we removed uncertainty, would the model have chosen better?" / "if we paraphrased the prompt, would the choice flip?" The oracle decomposition pattern (from TERMS-Bench's Δ_inf / Δ_unc / Δ_ctrl) is the **shared abstraction**, not the utility form.
+
+### 4. LLM-native observations + actions
+
+Both **symbolic ground state** (the hidden truth — used to compute oracle gap + diagnostic) and **textual observation** (what the LLM sees) are exposed separately. This is hard constraint #1.
+
+Action space is **structured action schema** (JSON-like: `{action: "purchase", product_id: "X", quantity: 5}`) with optional natural-language trace. Models can output both; scoring uses the structured action; the trace feeds Axis 5 meta-cognitive scoring (Qiu 2026 supervised trace mimicry).
+
+### 5. Generalization-first splits
+
+Six split categories mandatory per game:
+- **dev** — public, with answers (training generator + baseline)
+- **hidden IID** — same distribution as dev, no answers public (anti-leakage)
+- **axis-OOD** — one axis (domain / buyer_type / language template / utility regime / risk model / opponent policy) shifted
+- **compositional-OOD** — two axes shifted
+- **far-OOD** — multiple axes shifted, semantically distinct distribution
+- **fresh** — held-out, post-publication generation (anti-contamination)
+
+Each game's `metadata()` declares which OOD axes it can shift. Contributors must declare these at submission time.
+
+### 6. Diagnostic interventions as first-class objects
+
+Every game declares its supported counterfactual interventions. The minimum:
+- **baseline** — vanilla game state
+- **paraphrase** — same state, different prompt wording (Axis 2 consistency check)
+- **constraint-explicit** — make constraints explicit vs implicit (Axis 4 computational floor)
+- **state-revealed** — show the model the hidden state directly (Axis 1 information)
+
+Optional extras per game type:
+- **preference-change** — change utility weights mid-game
+- **dominated-option** — add a strictly dominated alternative (sanity check)
+- **belief-substitution** — replace the model's belief with a known prior
+- **adversarial-paraphrase** — semantically equivalent but cosmetically misleading
+
+These are not test-time augmentations — they are **factorial intervention design** at evaluation time, producing main effects + interactions + residual variance per the methodology paper §3 contribution claim.
+
+### 7. Multiple oracle types
+
+Not every economic game has a closed-form optimal policy. Oracle support tiers:
+- **exact** — LP / DP / closed-form (ProductProcurementGame, simple matching)
+- **Bayes** — Bayes-optimal given declared prior (NegotiationGame with declared opponent prior)
+- **approximate** — bounded approximation with declared gap (PricingCompetitionGame multi-agent equilibrium)
+- **dominance-only** — partial order (some moves strictly dominate; no exact best move ranking)
+- **robust-tier** — minimax-style under uncertainty about opponent
+- **human-reference** — expert / panel reference policy (when no algorithmic oracle exists)
+- **market-simulation** — counterfactual simulator (for adaptive / repeated environments)
+
+Each game declares its oracle certainty in metadata. Scoring transparency: a model isn't penalized for not matching an oracle when only dominance is declared.
+
+## MVP scope (4 games)
+
+Chosen to span the structural-diversity matrix in design goal #2.
+
+### ProductProcurementGame
+- Single-agent, one-shot
+- Information: imperfect (qualitative evidence about products: reviews, specs, marketing)
+- Action: structured purchase decision (product_id, quantity, optional bundle)
+- Payoff: revealed-preference fit + dollar-equivalent surplus
+- Oracle: **exact** (LP given true utility weights)
+- Tests: Axis 1 (information processing from reviews) + Axis 4 (constraint satisfaction)
+
+### NegotiationGame
+- Two-agent, sequential
+- Information: private type (opponent's reservation value hidden)
+- Action: structured offer/counteroffer with optional textual justification
+- Payoff: agreed price - own reservation (zero if no agreement)
+- Oracle: **Bayes-optimal** given declared opponent prior
+- Tests: Axis 1 (belief update from opponent moves) + Axis 5 (calibration of belief stated vs revealed)
+
+### VendorSelectionGame
+- Single-agent, risk/uncertainty
+- Information: supplier evidence (reliability history, lead-time variance)
+- Action: select vendor + quantity, with explicit risk acknowledgment
+- Payoff: expected cost - risk premium, revealed via stochastic resolution
+- Oracle: **exact** (Bayes risk minimization given declared utility curvature)
+- Tests: Axis 3 (calibration on risk) + Axis 4 (reliability-cost tradeoff)
+
+### PricingCompetitionGame
+- Multi-agent or repeated against simulator
+- Information: imperfect (market state, opponent prices revealed with lag)
+- Action: structured price posting
+- Payoff: revenue captured over T rounds
+- Oracle: **approximate** (declared gap to multi-agent equilibrium)
+- Tests: Axis 2 (consistency across rounds) + Axis 4 (computational floor on adaptive policy)
+
+This 4-game MVP costs ~$15-30K + 6-10 weeks of engineering. Each game can be developed independently. Submission/contribution API enables external researchers to add a 5th, 6th, etc.
+
+## 10 hard constraints
+
+Locked into the framework. Contributors must satisfy all 10 at submission time:
+
+1. **Symbolic ground state exposed separately from text observations.** A model failing to parse the text observation is a text-understanding failure, not a decision-making failure. AERead-env separates these so the 5-axis attribution stays clean.
+2. **Legal actions + invalid-action penalty taxonomy.** Six categories: invalid / constraint-violating / dominated / suboptimal / acceptable / optimal. Constraint-violating ≠ dominated; both signal different axis failures.
+3. **At least one oracle or reference policy per game.** No oracle, no benchmark. Even when only dominance is declared, some reference is needed.
+4. **At least one diagnostic intervention per game.** Minimum: baseline + paraphrase + constraint-explicit + state-revealed. No baseline-only games (those can't decompose failures).
+5. **Declared OOD axes per game.** Domain / buyer_type / language_template / utility_regime / risk_model / opponent_policy — each contributor lists which apply.
+6. **Anti-shortcut audits before inclusion.** No spurious correlates: option order, product_id, text length, price, brand mention, marketing positivity, hidden label leakage. None should predict the answer with > random baseline at acceptance.
+7. **Seedable + reproducible.** `reset(seed=...)` / `generate_instance(seed=...)` / no uncontrolled randomness. Two runs with same seed must produce identical trajectories.
+8. **Public + private split separation.** Public train generator, public dev set, private hidden certification (no answers shared), private hidden OOD set (no axis info shared until paper publication).
+9. **Decomposable metrics.** Every game returns: outcome_score + constraint_violations + oracle_gap + dominated_action_taken + calibration_error + per-axis diagnostic_breakdown. Never a single opaque number.
+10. **Declare what the game is NOT testing.** Prevents overclaiming. Example: ProductProcurementGame does NOT test multi-period adaptation, opponent modeling, or robust-decision-under-ambiguity. This forces honest scope statements.
+
+## Architecture sketch
+
+```
+aeread_env/
+  core/
+    game.py            # base Game class with OpenSpiel-compatible API
+    state.py           # symbolic ground state + textual observation
+    action.py          # structured action schema + trace
+    observation.py     # textual + symbolic observation wrappers
+    trajectory.py      # full episode with intervention metadata
+    registry.py        # game registration + metadata validation
+  oracles/
+    exact.py           # LP / DP / closed-form oracles
+    bayes.py           # Bayes-optimal under declared prior
+    dominance.py       # partial-order oracles
+    approximate.py     # bounded-gap oracles
+    robust_tier.py     # minimax oracles
+    human_reference.py # panel / expert reference
+    market_sim.py      # counterfactual simulator
+  diagnostics/
+    decomposition.py   # gap decomposition (Δ_inf / Δ_unc / Δ_ctrl)
+    interventions.py   # paraphrase / state-reveal / constraint-explicit / etc.
+    axioms.py          # de Finetti / Afriat / SARSEU checks
+    calibration.py     # Brier / CRPS / ECE diagnostic
+    robustness.py      # anti-shortcut audits
+  games/
+    procurement/
+    negotiation/
+    vendor_selection/
+    pricing/
+  adapters/
+    llm_prompt.py      # textual observation rendering
+    open_spiel_bridge.py
+    gymnasium_bridge.py
+  eval/
+    runner.py
+    scorer.py
+    splits.py          # split manifest enforcement
+    leaderboard.py
+```
+
+## Open design questions
+
+1. **Naming**. "AERead-env" works as a working title. Alternatives: "OracleDecomp-env" (clearer about the abstraction), "Econ-Diagnostic-Suite" (clearer about the use case). Decision: defer until v0.5 ship.
+2. **OpenSpiel integration depth**. Should AERead-env import OpenSpiel as a dependency (loose coupling — wrap their Game class) or just mirror the API? Loose coupling is easier; full integration may attract DeepMind attention. Decision: start with API mirror; consider tighter integration in v1 if collaboration emerges.
+3. **lm-evaluation-harness integration**. EleutherAI's harness is the de-facto LLM eval framework. AERead-env should ship a harness adapter from day one. Cost: ~1 week additional engineering.
+4. **Multi-agent infrastructure**. PricingCompetitionGame needs N-agent simulator infrastructure. Open question: is this in-scope for v0.5 or do we use the simpler repeated-vs-simulator setup?
+5. **Contribution workflow**. How does an external researcher submit a new game? Likely PR + automated test suite (the 10 hard constraints become automated checks). v1 work.
+
+## Sequencing
+
+- **v0** (sister-repo proposal §1 / methodology current): 2 standalone use cases (C1 13F + C2 negotiation); no environment substrate yet
+- **v0.5**: AERead-env v0 ships (4-game MVP); methodology paper draft cites the substrate
+- **v1**: External contribution API ships; lm-evaluation-harness adapter; 1-2 community-contributed games
+
+Engineering ownership: post-v0 conversation. The 4-game MVP is naturally Cheney+Yuecheng's joint scope per the proposal §9.5 split framing.
+
+## References
+
+- OpenSpiel (DeepMind): https://github.com/deepmind/open_spiel
+- TERMS-Bench oracle decomposition: [`papers/links.md`](papers/links.md) Anchor papers
+- Andrews 2026 training-time penalty mechanism: [`papers/links.md`](papers/links.md) 5-axis anchors
+- AERead methodology Q&A: [`methodology.md`](methodology.md) "Critical methodological questions"
+- AERead Layer 3 candidate matrix: [`layer3_candidates.md`](layer3_candidates.md) F12 / F15 / F16 / F17
+- lm-evaluation-harness: https://github.com/EleutherAI/lm-evaluation-harness

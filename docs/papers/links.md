@@ -65,6 +65,14 @@ One-stop lookup for every paper cited in this repo's docs. Every entry has eithe
 | "When Agents Shop for You" 2026 — role coherence + willingness-to-pay leakage | https://arxiv.org/abs/2604.26220 | F17 |
 | Vending-Bench 2025 — long-horizon coherence | https://arxiv.org/abs/2502.15840 | F12 |
 
+## Environment / evaluation infrastructure (for AERead-env design)
+
+| Library | Public link | Purpose |
+|---|---|---|
+| OpenSpiel (DeepMind) — general game substrate | https://github.com/deepmind/open_spiel | API precedent for AERead-env compatibility (see [`aeread_env_design.md`](../aeread_env_design.md)) |
+| lm-evaluation-harness (EleutherAI) — LLM eval framework | https://github.com/EleutherAI/lm-evaluation-harness | Adoption channel; AERead-env ships a harness adapter from v0.5 |
+| Gymnasium (Farama) — RL environment API | https://github.com/Farama-Foundation/Gymnasium | Bridge adapter for RL practitioner adoption |
+
 ## Convention
 
 - **Always provide a public URL** when one exists (arxiv, DOI, publisher, preprint server)

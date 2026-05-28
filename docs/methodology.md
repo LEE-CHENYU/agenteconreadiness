@@ -8,6 +8,107 @@ This is a condensed methodology overview. The full master plan lives in the impl
 
 LLM agents are being deployed for economic decisions — procurement, pricing, negotiation, investment, vendor selection. Whether they satisfy the rationality assumptions those use cases presuppose has not been validated at scale. AERead is the integrated benchmark: a 3-layer revealed-preference pipeline (existence → identification → predictive validity) cross-cut by a 5-axis failure taxonomy (information, consistency, calibration, computational floor, meta-cognitive). The leaderboard reports a deployment verdict; the drill-down page reports *why* a model failed.
 
+## Critical methodological questions (open Q&A)
+
+These are the open methodological questions AERead must address for major-lab adoption + methodology-paper acceptance. The answers below are **working positions, not closed claims** — engagement from collaborators, reviewers, and frontier-lab researchers is invited on all five.
+
+### Q1 — How does AERead prevent overfitting + function misspecification?
+
+Two distinct risks: (a) overfitting to the v0 task set / chosen functional classes; (b) misspecifying the rationalizing utility (Andrews 2026 §3 non-identification critique — representation theorems guarantee existence, not unique identification).
+
+**Defenses in place**:
+- **Predict-then-validate** Layer 3 (train/test split, fixed seed, immutable manifest, held-out predictions; the headline score is best-fitting class's held-out accuracy, not in-sample fit)
+- **Multi-class robustness** — fit all 5 candidate functional classes (KT prospect '79, CRRA, CARA, cumulative prospect TK '92, Kelly-Markowitz); report Bayesian posterior over classes
+- **Measurement-model pluralism** (commitment #2) — 4-6 competing measurement models per axiom; Bayesian posterior over them; never a single point estimate
+- **Cache layer never invalidates** + signed ScoreRecords → contamination becomes detectable from public cache hashes
+- **Locked held-out test set** + bootstrap confidence intervals + model/prompt-version hashes
+- **Anti-shortcut audits** (per Q5 below): option order, text length, brand, marketing positivity — none should predict the answer at contributor-submission time
+- **OOD splits** mandatory per game: dev → hidden IID → axis-OOD → compositional → far-OOD → fresh
+
+**Open**: posterior concentration across functional classes is itself an empirical finding. If it concentrates on one class, that's a generalization claim worth publishing; if it remains diffuse, that's a methodological caveat worth surfacing.
+
+### Q2 — How does AERead evaluate quantitative features?
+
+Quantitative features = predicted-vs-actual conviction, dollar-equivalent surplus, oracle gaps, calibration scores.
+
+**Scoring discipline** (per Axis 5 strict-propriety footnote):
+- **Brier score** (strictly proper) for discrete events — leaderboard headline
+- **Continuous Ranked Probability Score (CRPS)** for continuous emissions — leaderboard headline
+- **MAE / Spearman / Kendall** for point predictions and rank correlations
+- **ECE + reliability diagrams** (Guo 2017) for diagnostic visualization only — **NOT for leaderboard ranking** (ECE is not strictly proper per Gneiting-Raftery 2007; can be gamed)
+- **Choice-agreement rate** for discrete decisions
+
+**Economic-value scoring**:
+- Direct dollar surplus when measurable (procurement: cost paid vs LP-optimal; pricing: revenue captured vs revenue-maximum; matching: stable-match efficiency)
+- Counterfactual delta via oracle policy: "what would the Bayes-optimal policy have earned given this state?"
+- Surplus efficiency normalized 0-1 (TERMS-Bench SE⁺ pattern)
+- Bootstrap confidence intervals on every reported metric
+
+**Statistical-reproducibility framework** (sister repo proposal §9.3 (D) Phase-0 deliverable for Yuecheng): immutable split manifests, seed + scorer-version + measurement-model-set-version hashing, factorial intervention design with main + interaction effects + residual reported.
+
+**Open**: how should heterogeneous quantitative features aggregate into a composite leaderboard score without false precision? TERMS-Bench's 7-orthogonal-axis sortable table (terms-bench.github.io) is the current design precedent — AERead extends to a 5-axis radar + composite.
+
+### Q3 — How do the tests function as RL environments providing generalizable training signals?
+
+The detailed answer is **the AERead-env design spec** ([`aeread_env_design.md`](aeread_env_design.md)) — an OpenSpiel-compatible benchmark substrate. The short answer:
+
+- **Oracles produce both dense scalars (reward) and decompositions (diagnostic)** — AERead environments plug into RLHF/DPO loops; resulting models can be diagnosed by AERead at evaluation time
+- **Axiom violations as RL reward signals** (Andrews 2026 training-time penalty mechanism): de Finetti / Afriat / SARSEU penalties are LP-checkable in polynomial time, label-free, zero iff the data are rationalizable — natural auxiliary loss
+- **Pre-registered factorial intervention design**: each game declares the interventions it admits (state reveal / belief substitution / paraphrase / option-set perturbation); RL practitioners compose training data principled
+- **Anti-shortcut audits prevent reward-hacking**: RL can't game spurious correlates (option order / brand / marketing positivity) because the framework tests for them at contributor-submission time
+- **OOD splits give external-validity signal**: train on dev; report on hidden IID / axis-OOD / compositional / far-OOD; researchers see whether their RL improvements actually generalize
+
+**Training-signal infrastructure**: AERead's per-axis penalties are designed to plug directly into model training, not just into evaluation. Four prior-art mechanisms anchor the integration surface — Andrews 2026 (training-time penalty; label-free axiom loss), Chadwick 2025 (inference-time IMDC; Dutch-book post-correction), Qiu 2026 (supervised trace; Bayesian-teaching mimicry), Betz & Richardson 2023 (self-supervised consistency training; probabilistic coherence). AERead's evaluation becomes a direct input to RLHF/DPO loops — this is what makes per-axis scores load-bearing for frontier labs running their own fine-tuning, not just citing the methodology paper after the fact.
+
+**Open**: which axes (information / consistency / calibration / computational floor / meta-cognitive) most cleanly produce RL training signal? AERead's per-axis scoring is the empirical test — labs running the benchmark can compare per-axis reward effectiveness in their own fine-tuning runs and feed the result back into the next methodology-paper revision.
+
+### Q4 — How much of the per-(model, task) gap do Layers 1 + 2 explain? What's the residual?
+
+This is **the central empirical hypothesis of the methodology paper §3 contribution**. The honest answer: we don't know yet — that's what the benchmark measures.
+
+**Working hypothesis**: For frontier models on simple use cases, Layer 1 (existence — axiom compliance) + Layer 2 (identification — within-class utility fit) explain **~50-70% of the Layer 3 predictive-validity gap**. The remaining **~30-50% residual** is what the 5-axis taxonomy decomposes into:
+- Axis 1 Information (hidden-state knowledge gaps)
+- Axis 4 Computational floor (capability gaps masquerading as preference)
+- Axis 5 Meta-cognitive (calibration vs coherence; stated-vs-revealed mismatch)
+- Cross-axis interactions (calibration depends on information; computational floor can masquerade as inconsistency — the factorial design measures these)
+
+This split mirrors a finding from the diagnostic-and-correction literature (Andrews §7, Chadwick §Future Work, Zhu-Griffiths 2024 footnote): **coherence is necessary but not sufficient**. Layer 1+2 measure coherence-style properties; Layer 3 measures the sufficient predictive-validity claim.
+
+**Falsification criteria** (pre-registered before cross-model eval):
+- If Layer 1+2 explain > 80% of the gap → 5-axis decomposition adds incremental value but isn't load-bearing → simplify the framework
+- If Layer 1+2 explain < 50% → the 5-axis residual is doing most of the explanatory work → the diagnostic contribution becomes the headline
+- If between (50-80%, working hypothesis) → AERead's full architecture is empirically justified
+
+**Open**: this is exactly the empirical claim the methodology paper will validate. Pre-registration is what makes the §3 contribution testable, not assumed.
+
+### Q5 — Should we build an OpenSpiel-like general environment for later contribution?
+
+**Yes — but as a thin, OpenSpiel-compatible economic-benchmark substrate, not a full game-engine replacement.** Full design spec at [`aeread_env_design.md`](aeread_env_design.md).
+
+**The thesis**: OpenSpiel already covers generic game substrates (n-player, zero-sum/cooperative/general-sum, one-shot/sequential, perfect/imperfect-information). AERead's contribution layer is the **economic-agency layer on top**: oracle decomposition, qualitative evidence, revealed-preference diagnostics, utility/belief calibration, OOD benchmark design.
+
+**MVP scope** (4 structurally diverse games, not 20):
+- **ProductProcurementGame** — single-agent, one-shot, qualitative evidence; tests multi-attribute buyer fit
+- **NegotiationGame** — two-agent, sequential, hidden type; tests strategic belief + concessions
+- **VendorSelectionGame** — single-agent, risk/uncertainty, supplier evidence; tests reliability + risk tradeoffs
+- **PricingCompetitionGame** — multi-agent/repeated or market simulator; tests market feedback + adaptive policy
+
+**10 hard constraints** locked into the framework (full details in [`aeread_env_design.md`](aeread_env_design.md)):
+1. Symbolic ground state exposed separately from text observations
+2. Legal-actions + invalid-action penalty taxonomy
+3. At least one oracle or reference policy per game (no oracle, no benchmark)
+4. At least one diagnostic intervention per game (baseline + paraphrase + constraint-explicit + state-revealed)
+5. Declared OOD axes per game (domain / buyer_type / language_template / utility_regime / risk_model / opponent_policy)
+6. Anti-shortcut audits before inclusion (option order / product_id / text length / price / brand / marketing positivity)
+7. Seedable + reproducible (no uncontrolled randomness)
+8. Public + private split separation (train generator / dev / hidden certification / hidden OOD)
+9. Decomposable metrics (every game returns outcome_score + constraint_violations + oracle_gap + per-axis diagnostic_breakdown — never a single opaque number)
+10. Declare what the game is NOT testing (prevents overclaiming)
+
+**Naming**: not "OpenSpiel for economic games" (too broad). Position as "**OracleDecomposition Environments for LLM Economic Agency**" — a lightweight OpenSpiel-compatible benchmark layer with oracle decomposition, qualitative evidence, revealed-preference diagnostics, and OOD generalization tests.
+
+**Open**: when does this ship relative to v0? Likely **v0.5** — after methodology paper draft + first 2 v0 use cases land. The 4-game MVP becomes a v1 contribution that reinforces the "AERead is a benchmark substrate, not a single benchmark" framing.
+
 ## The 3-layer pipeline
 
 The three layers are the canonical revealed-preference pipeline applied to LLM behavior:
@@ -115,7 +216,7 @@ Every per-(model, task) leaderboard row links to a drill-down page rendering:
 7. **Counterfactual scenario card** — "if Axis 4 computational floor were fixed, predictive accuracy → 0.71"
 8. **Raw trajectory viewer** — link to JSONL with per-decision rationale + axiom-probe results
 
-This page is the Tier 2 audit deliverable surface: when a financial firm asks "what's wrong with our deployed Claude agent?" the answer is one of these.
+This page is the **load-bearing diagnostic artifact** of the methodology paper: when a reviewer asks "show me how the 5-axis decomposition tells me something I couldn't get from a single-number leaderboard," the answer is one of these. The same page is also what enables downstream applications (deployed-agent diagnostics, training-signal feedback, audit deliverables) — but those are derivative of the methodology-paper artifact, not the other way around.
 
 ## Five methodological commitments
 
@@ -126,6 +227,21 @@ Each citation-anchored:
 3. **Judge-free by construction.** No LLM evaluates another LLM. All three anchor papers (TERMS-Bench May 2026; Revealed Rationality Feb 2026; EconEvals March 2025) independently adopted this. *TERMS-Bench / EconEvals / QEDBench.*
 4. **Context-conditional axiomatization.** Personas degrade axiom compliance; this is a measurable dimension, not an assumption to control. *Wen 2025.*
 5. **Cross-layer attribution + oracle-gap decomposition.** What turns scores into actionable signals.
+
+## How to engage (pre-commercial final goal)
+
+These docs are working artifacts. AERead's pre-commercial deliverable is the methodology paper + reproducible v0 runtime — and the citation channel we're optimizing for is **methodological engagement from frontier-lab researchers**, not adoption traction alone. Every design choice (Q&A invitations, pre-registered factorial hypothesis, falsification criteria, OracleDecomposable counterexample channel, OpenSpiel-compatible substrate) is structured to invite engagement *before* the methodology paper circulates.
+
+Engagement is invited at every layer:
+
+- **On the open methodology Q&A** (above): the five questions are real research questions; reviewers, frontier-lab researchers, and collaborators are invited to challenge the working positions before the methodology paper draft circulates
+- **On the 5-axis taxonomy**: if a sixth axis is needed (or a current axis collapses into another), the pre-registered factorial design will reveal it — pre-registration commits us to publishing the finding regardless of direction
+- **On the OracleDecomposable abstraction**: counterexamples — economic decisions that don't fit the (hidden state + controllable simulator + oracle policy + scalar utility) interface — strengthen the methodology paper by exposing scope limits. Submit them.
+- **On Layer 3 use cases**: the open candidate pool ([`layer3_candidates.md`](layer3_candidates.md)) invites external researchers to propose new cases via the value × testability matrix; high-value + high-testability gaps (especially the empty top-right cell) are explicitly open contribution surface
+- **On the OpenSpiel-compatible substrate** ([`aeread_env_design.md`](aeread_env_design.md)): external contributors can add games via the 10-hard-constraint submission API once the substrate ships (v0.5)
+- **On the falsifiability of §3** ([proposal §3](proposal.md#3-novel-methodology-contribution-5-axis-failure-taxonomy--oracledecomposable-generalization)): the headline "main effects explain > 80% of variance" claim is pre-registered with falsification criteria — reviewers can challenge the threshold or the design before cross-model evaluation begins
+
+**Channel for engagement**: contact details in [`proposal.md` §15](proposal.md). Before methodology-paper preprint circulation, we will invite reviewer engagement from major-lab safety + economics-of-AI researchers — pre-registration is the artifact that makes the §3 claim citable rather than asserted.
 
 ## Adoption commitment: plug-and-play usability
 
