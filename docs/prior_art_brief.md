@@ -84,7 +84,7 @@ A second contribution that AERead operationalizes: the **§3 non-identification 
 
 ### What AERead addresses from their §Future Work
 
-Andrews's penalties are derived but not yet deployed at scale. The open question is **whether the penalties drive measurable rationality improvement in frontier LLMs**. AERead's training-signal integration architecture (4 prior-art-anchored mechanisms tied to Andrews + Chadwick + Qiu + Betz-Richardson) is the **methodology paper's empirical answer** to this question. The leaderboard + per-axis penalties are the **measurement infrastructure** that lets anyone — including Andrews's own group + frontier-lab researchers building on his penalties — quantify before/after impact of any of the 4 mechanisms in their own fine-tuning runs.
+Andrews's penalties are derived but not yet deployed at scale. The open question is **whether the penalties drive measurable rationality improvement in frontier LLMs**. AERead's training-signal integration architecture **describes 4 prior-art-anchored mechanisms** (Andrews + Chadwick + Qiu + Betz-Richardson) in the methodology paper; **v0 implements only Andrews's mechanism** (the simplest, label-free) as a working reference, with the other 3 deferred to a follow-up paper (per methodology.md Q5 scope-trim). The leaderboard + per-axis penalties are the **measurement infrastructure** that lets anyone — including Andrews's own group + frontier-lab researchers building on his penalties — quantify before/after impact of the Andrews mechanism in their own fine-tuning runs; v0.5+ + follow-up paper expand to the other 3 mechanisms.
 
 ---
 
