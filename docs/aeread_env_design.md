@@ -102,19 +102,28 @@ Not every economic game has a closed-form optimal policy. Oracle support tiers:
 
 Each game declares its oracle certainty in metadata. Scoring transparency: a model isn't penalized for not matching an oracle when only dominance is declared.
 
-## MVP scope (4 games)
+## MVP scope (4 games — v0 first paper covers 2; v0.5+ covers all 4)
 
-Chosen to span the structural-diversity matrix in design goal #2.
+Chosen to span the structural-diversity matrix in design goal #2. **First-paper v0 = ProductProcurementGame + VendorSelectionGame only** (two structurally distinct procurement-style decisions — qualitative-evidence vs risk/uncertainty — enough to demonstrate the OracleDecomposable Eq. 4 generalization without overscoping). NegotiationGame + PricingCompetitionGame are roadmap modules: the substrate ships their scaffolding at v0.5, but they are not load-bearing for the methodology paper's §3 contribution claim.
 
-### ProductProcurementGame
+### ProductProcurementGame — v0 first paper, game 1
 - Single-agent, one-shot
 - Information: imperfect (qualitative evidence about products: reviews, specs, marketing)
 - Action: structured purchase decision (product_id, quantity, optional bundle)
-- Payoff: revealed-preference fit + dollar-equivalent surplus
-- Oracle: **exact** (LP given true utility weights)
-- Tests: Axis 1 (information processing from reviews) + Axis 4 (constraint satisfaction)
+- Payoff: revealed-preference fit + dollar-equivalent surplus (per Q3 4-tier optimality scoring)
+- Oracle: **robust-optimal across plausible utility-weight family** (per Q3 robust-utility framing); not a single hidden-cardinal exact-optimum
+- Tests: Axis 1 (information processing from reviews) + Axis 4 (constraint satisfaction) + qualitative-evidence interpretation residual
 
-### NegotiationGame
+### VendorSelectionGame — v0 first paper, game 2
+- Single-agent, risk/uncertainty
+- Information: supplier evidence (reliability history, lead-time variance)
+- Action: select vendor + quantity, with explicit risk acknowledgment
+- Payoff: expected cost - risk premium, revealed via stochastic resolution
+- Oracle: **exact** (Bayes risk minimization given declared utility curvature)
+- Tests: Axis 3 (calibration on risk) + Axis 4 (reliability-cost tradeoff) + belief-calibration residual
+- Distinct from ProductProcurementGame: probabilistic risk + Bayes oracle here vs qualitative evidence + robust-utility oracle in C2. The pair demonstrates Eq. 4 across two distinct procurement-style structures.
+
+### NegotiationGame — v0.5 roadmap
 - Two-agent, sequential
 - Information: private type (opponent's reservation value hidden)
 - Action: structured offer/counteroffer with optional textual justification
@@ -122,15 +131,7 @@ Chosen to span the structural-diversity matrix in design goal #2.
 - Oracle: **Bayes-optimal** given declared opponent prior
 - Tests: Axis 1 (belief update from opponent moves) + Axis 5 (calibration of belief stated vs revealed)
 
-### VendorSelectionGame
-- Single-agent, risk/uncertainty
-- Information: supplier evidence (reliability history, lead-time variance)
-- Action: select vendor + quantity, with explicit risk acknowledgment
-- Payoff: expected cost - risk premium, revealed via stochastic resolution
-- Oracle: **exact** (Bayes risk minimization given declared utility curvature)
-- Tests: Axis 3 (calibration on risk) + Axis 4 (reliability-cost tradeoff)
-
-### PricingCompetitionGame
+### PricingCompetitionGame — v0.5+ roadmap
 - Multi-agent or repeated against simulator
 - Information: imperfect (market state, opponent prices revealed with lag)
 - Action: structured price posting
@@ -227,7 +228,7 @@ aeread_env/
 
 ## Sequencing
 
-- **v0** (sister-repo proposal §1 / methodology current): 2 standalone use cases (C1 13F + C2 negotiation); no environment substrate yet
+- **v0** (sister-repo proposal §2 / methodology current): 2 standalone games (C2 ProductProcurementGame + D3 VendorSelectionGame); no shared environment substrate yet (each game is implemented standalone in v0)
 - **v0.5**: AERead-env v0 ships (4-game MVP); methodology paper draft cites the substrate
 - **v1**: External contribution API ships; lm-evaluation-harness adapter; 1-2 community-contributed games
 

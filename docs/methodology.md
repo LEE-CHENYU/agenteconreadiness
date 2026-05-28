@@ -198,11 +198,13 @@ This split mirrors a finding from the diagnostic-and-correction literature (Andr
 
 **The thesis**: OpenSpiel already covers generic game substrates (n-player, zero-sum/cooperative/general-sum, one-shot/sequential, perfect/imperfect-information). AERead's contribution layer is the **economic-agency layer on top**: oracle decomposition, qualitative evidence, revealed-preference diagnostics, utility/belief calibration, OOD benchmark design.
 
-**MVP scope** (4 structurally diverse games, not 20):
-- **ProductProcurementGame** — single-agent, one-shot, qualitative evidence; tests multi-attribute buyer fit
-- **NegotiationGame** — two-agent, sequential, hidden type; tests strategic belief + concessions
-- **VendorSelectionGame** — single-agent, risk/uncertainty, supplier evidence; tests reliability + risk tradeoffs
-- **PricingCompetitionGame** — multi-agent/repeated or market simulator; tests market feedback + adaptive policy
+**Substrate MVP scope** (4 structurally diverse games, not 20):
+- **ProductProcurementGame** — single-agent, one-shot, qualitative evidence; tests multi-attribute buyer fit. **v0 first paper, game 1.**
+- **VendorSelectionGame** — single-agent, risk/uncertainty, supplier evidence; tests reliability + risk tradeoffs. **v0 first paper, game 2.**
+- **NegotiationGame** — two-agent, sequential, hidden type; tests strategic belief + concessions. **v0.5 roadmap.**
+- **PricingCompetitionGame** — multi-agent/repeated or market simulator; tests market feedback + adaptive policy. **v0.5+ roadmap.**
+
+**v0 first-paper subset = 2 deep games** (ProductProcurement + VendorSelection — two structurally distinct procurement-style decisions). The other 2 substrate games ship at v0.5 but are not in the first paper.
 
 **10 hard constraints** locked into the framework (full details in [`aeread_env_design.md`](aeread_env_design.md)):
 1. Symbolic ground state exposed separately from text observations
@@ -304,14 +306,19 @@ A Layer 3 use case is `OracleDecomposable` if it admits:
 
 Any such use case admits the [TERMS-Bench](https://arxiv.org/abs/2605.13909) Eq. 4 decomposition: U(π★) − U(π_base) = Δ_inf + Δ_unc + Δ_ctrl (information gap + uncertainty gap + control gap).
 
-Zhang et al. 2026 introduced this decomposition for bilateral bargaining. We abstract the construction and demonstrate it on a *collection* of use cases. The v0 collection:
+Zhang et al. 2026 introduced this decomposition for bilateral bargaining. We abstract the construction and demonstrate it on a *collection* of use cases. The v0 collection (2 deep games — scope discipline at v0 is what makes the first paper publishable rather than diffuse):
 
-- **C1 Persona-fit**: hidden state = principal's IRL-fit utility coefficients (α_kelly, δ_turnover); oracle = closed-form Kelly-Markowitz. **Caveat**: 13F filings are an approximate revealed-preference proxy (long positions only, quarterly delay; shorts + derivatives not required) — v0 treats C1 as an approximate-RP case study with assumption sensitivity tests, not clean ground truth.
-- **C2 Price-aware product selection**: hidden state = vendor true cost/quality; oracle = cheapest dominating choice
-- **D2 Bargaining (v2)**: native TERMS-Bench instantiation
-- **D3 Agentic vendor selection (v2)**: extends C2 to full marketplace with agentic tool-use
+- **C2 ProductProcurementGame (v0)**: hidden state = vendor true cost + structured qualitative attributes (durability evidence / assembly friction / style fit etc.); oracle = robust-optimal across plausible utility-weight family (per Q3 qualitative-feature scoring discipline). The qualitative-evidence procurement structure.
+- **D3 VendorSelectionGame (v0)**: single-agent, risk/uncertainty; hidden state = supplier reliability + lead-time variance; oracle = Bayes risk minimization given declared utility curvature. The risk/uncertainty supplier-selection structure — structurally distinct from C2 (qualitative evidence vs probabilistic risk), so the pair demonstrates Eq. 4 across two procurement-style decision structures.
 
-The full open candidate pool — ~25 cases including EconEvals procurement/pricing/scheduling wraps, Calvano collusion detection, Gale-Shapley two-sided matching, Vending-Bench long-horizon coherence, weather/event forecasting — is enumerated in [`layer3_candidates.md`](layer3_candidates.md) on a value × testability matrix with per-case pros/cons. The generalization claim is the multi-domain application — not just one new task wrapped in the same Eq. 4. v0 ships with 4; v0.5+ expansion ranks against the candidate pool.
+**Roadmap** (v0.5 → v1 expansion):
+
+- **D2 Bargaining**: native TERMS-Bench instantiation; wrap their runtime when code releases
+- **C1 Persona-fit (portfolio/investment, Layer 2 parameter-fit case study)**: hidden state = principal's IRL-fit utility coefficients (α_kelly, δ_turnover); oracle = closed-form Kelly-Markowitz. **Caveat**: 13F filings are an approximate revealed-preference proxy (long positions only, quarterly delay; shorts + derivatives not required) — treated as an approximate-RP case study with assumption sensitivity tests. The rationale source repo continues to develop C1's IRL infrastructure; it appears as a v0.5+ Layer 3 case once the v0 procurement + vendor framework is validated.
+- **Agentic marketplace extension**: extends D3 to multi-agent marketplace + agentic tool-use
+- **NegotiationGame** + **PricingCompetitionGame**: per [`aeread_env_design.md`](aeread_env_design.md) MVP roster — v0.5 substrate deliverables
+
+The full open candidate pool — ~25 cases including EconEvals procurement/pricing/scheduling wraps, Calvano collusion detection, Gale-Shapley two-sided matching, Vending-Bench long-horizon coherence, weather/event forecasting — is enumerated in [`layer3_candidates.md`](layer3_candidates.md) on a value × testability matrix with per-case pros/cons. The generalization claim is the multi-domain application — not just one new task wrapped in the same Eq. 4. v0 ships with 2 deep games; v0.5+ expansion ranks against the candidate pool.
 
 ## The 5-axis failure taxonomy
 
@@ -348,7 +355,7 @@ These papers each *explicitly* discuss whether their diagnostic / correction app
 
 | Challenge admitted in the literature | Source | AERead's design response |
 |---|---|---|
-| **Single-domain validation** — each paper tests one axis in one domain | Betz (synthetic corpora), Zhu-Griffiths (weather + politics), Chadwick (synthetic preferences), Mazeika (preference elicitation only) | The collection-of-use-cases framing (Layer 3: C1 persona-fit + C2 price-aware product selection + v2 D2 bargaining + D3 agentic vendor selection) demonstrates portability of the same Eq. 4 decomposition across non-bargaining domains |
+| **Single-domain validation** — each paper tests one axis in one domain | Betz (synthetic corpora), Zhu-Griffiths (weather + politics), Chadwick (synthetic preferences), Mazeika (preference elicitation only) | The collection-of-use-cases framing (Layer 3 v0: C2 ProductProcurementGame + D3 VendorSelectionGame as two structurally distinct procurement-style decisions; roadmap adds D2 bargaining, C1 persona-fit, agentic marketplace) demonstrates portability of the same Eq. 4 decomposition across non-bargaining domains |
 | **Coherence ≠ accuracy** — necessary but not sufficient | Chadwick explicit ("a model's probability estimates may be coherent but still fail to be calibrated or accurate"); Betz Q4 caveat; Andrews 2026 §7 | Axis 5 reports calibration (Brier on held-out outcomes) AND coherence (Dutch-book / probabilistic-identity probes) **separately**; never substitutes one for the other |
 | **Scaling unverified** — small models / narrow domains | Betz (T5 only; BART / GPT-3 not tested); Zhu-Griffiths (4 SOTA but only on probability judgments, not deployed decisions) | AERead targets frontier LLMs on deployment-relevant tasks (13F decisions, procurement, negotiation) — the scaling gap *is* our headline contribution |
 | **Stack-design question: which combination order?** | Chadwick explicit: "does a two-step refinement (first ordinal, then cardinal) outperform a single probability-based approach?" | The 3-layer pipeline IS our answer: existence → identification → predictive validity. The cross-layer attribution matrix measures whether the layers compose. |

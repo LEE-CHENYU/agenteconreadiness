@@ -26,7 +26,7 @@ The **top-right quadrant** (high value × high testability) is where AERead's le
 |                    | **High testability** (closed-form oracle, cheap sim) | **Medium testability** (data-dependent, approximate oracle) | **Low testability** (hard ground truth, contested method) |
 |---|---|---|---|
 | **High economic value** | A2 EconEvals pricing • A6 two-sided matching (kidney exchange / residency) • B3 algorithmic trading | B1 Calvano collusion • A7 price discrimination | (Zihao mechanism-design candidates land here?) |
-| **Medium value** | A1 EconEvals procurement • A3 EconEvals scheduling • A4 sealed-bid auction • A5 ascending auction • C2 product selection (in v0) • D2 bargaining (v2 wrap) | C1 persona-fit (in v0) • C7 multi-issue negotiation • D9 election prediction • G18 insurance / risk pooling | C6 coalitional bargaining • F14 customer-service triage |
+| **Medium value** | A1 EconEvals procurement • A3 EconEvals scheduling • A4 sealed-bid auction • A5 ascending auction • C2 ProductProcurementGame (v0 game 1) • D3 VendorSelectionGame (v0 game 2) • D2 bargaining (roadmap wrap) | C1 persona-fit (roadmap; v0.5+ Layer 3 case) • C7 multi-issue negotiation • D9 election prediction • G18 insurance / risk pooling | C6 coalitional bargaining • F14 customer-service triage |
 | **Low value** | D8 weather forecasting • G15 iterated ultimatum • G17 Allais paradox | C3 commons governance • C4 repeated PD • C5 multi-agent coord (γ-Bench) • G16 trust game | E11 budget-constraint learning • F13 web browsing under budget |
 
 **What the matrix tells us**:
@@ -42,14 +42,15 @@ The **top-right quadrant** (high value × high testability) is where AERead's le
 
 **Open contribution channel for external researchers**: the OracleDecomposable abstraction *is* the contribution interface — any economic-decision use case admitting (hidden state + controllable simulator + oracle policy + scalar utility) with declared OOD axes (per [`aeread_env_design.md`](aeread_env_design.md) §6) lands somewhere in the matrix above. The methodology paper §3 cites contributors whose cases enter v0.5 or later releases. **This is part of AERead's pre-commercial citation strategy**: the contribution channel itself is engagement bait — frontier-lab researchers who submit cases become co-authors on the methodology paper's generalization claim.
 
-## Status quo (v0 / v2 in proposal)
+## Status quo (v0 / roadmap)
 
 | Code | Case | Status | Source |
 |---|---|---|---|
-| C1 | Persona-fit (IRL on 13F investor decisions) | **v0** | Novel; this repo's primary infrastructure |
-| C2 | Price-aware product selection | **v0** | Novel; procurement-adjacent |
-| D2 | Bilateral bargaining | **v2 (wrap)** | Zhang et al. 2026 TERMS-Bench ([paper](https://arxiv.org/abs/2605.13909) + [live leaderboard](https://terms-bench.github.io)) |
-| D3 | Agentic vendor selection | **v2 (extends C2)** | EconEvals precedent |
+| C2 | **ProductProcurementGame** (qualitative-evidence procurement) | **v0 — game 1** | Novel; primary demonstration site for Q3 qualitative-feature scoring discipline |
+| D3 | **VendorSelectionGame** (single-agent risk/uncertainty supplier selection) | **v0 — game 2** | Novel single-agent simpler form; the agentic marketplace extension is roadmap |
+| D2 | Bilateral bargaining | **Roadmap (wrap)** | Zhang et al. 2026 TERMS-Bench ([paper](https://arxiv.org/abs/2605.13909) + [live leaderboard](https://terms-bench.github.io)) |
+| C1 | Persona-fit (IRL on 13F investor decisions) — Layer 2 parameter-fit case study | **Roadmap (v0.5+ Layer 3 case)** | Novel; rationale source repo's IRL infrastructure continues to develop this for v0.5+ |
+| Agentic marketplace | D3 multi-agent + agentic tool-use extension | **Roadmap (v1+ extends D3)** | EconEvals precedent |
 
 ## Candidate pool (open)
 
@@ -121,7 +122,7 @@ Organized by structural cluster. Each row: case, source, OracleDecomposable hint
 
 ## Top selection priority (recommended additions beyond v0)
 
-If we add cases after shipping v0 (C1 + C2 + D2 + D3), this is the recommended priority order:
+If we add cases after shipping v0 (C2 ProductProcurementGame + D3 VendorSelectionGame), this is the recommended priority order for v0.5+ expansion (which also reintegrates the roadmap items: D2 TERMS-Bench wrap, C1 persona-fit, agentic marketplace, NegotiationGame, PricingCompetitionGame):
 
 | Rank | Code | Case | Justification |
 |---|---|---|---|
@@ -139,9 +140,9 @@ If we add cases after shipping v0 (C1 + C2 + D2 + D3), this is the recommended p
 | 12 | F16 | PolyBench live prediction-market forecasting + trading | Contamination-resistant; clean Bayes-optimal oracle; pairs with Axis 5 calibration + C1 financial-decision framing |
 
 **Tier S → A → B → C → D mapping**:
-- **S (v0, shipping)**: C1, C2 + v2 D2/D3 already proposed
-- **A (v0.5, ~3-4 months post-launch)**: A1, A2, B1, F15, F16 — the EconEvals + Market-Bench + PolyBench + collusion cluster (all are published-benchmark wraps + financial-decision)
-- **B (v1, ~6 months post-launch)**: A3, A4, A6, C7, D8, F12, F17
+- **S (v0, shipping)**: C2 ProductProcurementGame + D3 VendorSelectionGame (the two v0 first-paper games)
+- **A (v0.5, ~3-4 months post-launch)**: D2 TERMS-Bench wrap + C1 persona-fit (Layer 2 case) + A1 EconEvals procurement + A2 EconEvals pricing + B1 collusion + F15 Market-Bench + F16 PolyBench (substrate also adds NegotiationGame + PricingCompetitionGame here)
+- **B (v1, ~6 months post-launch)**: A3, A4, A6, C7, D8, F12, F17, agentic marketplace extension
 - **C (v1.5, ~9-12 months post-launch)**: A5, B2, B3, C3, C4, C5, D9, D10, F13, F14, G15, G18
 - **D (parked, may never ship)**: A7, C6, E11, G16, G17
 
