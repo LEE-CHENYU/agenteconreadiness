@@ -18,6 +18,7 @@
 | **Q8** | OpenSpiel-compatible benchmark substrate | Post-v0-paper follow-up paper, NOT v0.5+; v0 ships 2 standalone games |
 | **Q9** | Operational emergence definition | Conservative 5-criterion test for emergence claims (addresses Schaeffer-Krueger 2023 critique) |
 | **Q10** | Training-signal validation (scorer vs validated signal) | v0 ships a scorer + observational evidence; causal claim requires training experiment. Three options pending checkpoint. |
+| **Q11** | Gate vs grade: rationality and persona-fidelity — one problem or two? | One pipeline, gate → grade; two scored stages, explicit dependency. Rationality (gate) is a floor for frontier models; persona-fidelity (grade) is the discriminator + alignment-relevant signal. Separate scoring forced by opposite failure-sign. Falsifiable. |
 
 ---
 
@@ -216,6 +217,34 @@ Schaeffer-Krueger 2023 argued that some apparent emergence is an artifact of dis
 - Does Jingyi (or other ops collaborator) have bandwidth for training-loop integration?
 - Qwen 0.5B (cheaper, less convincing) vs 3B (more convincing) — or staged?
 - If causal claim *fails*, what's the revised paper framing? Scorer + observational evidence still ships.
+
+### Q11 — Gate vs grade: should rationality and persona-fidelity be scored as one problem or two?
+
+**Working position**: not two problems — **one pipeline, gate → grade**, with two separately-reported scores and an explicit dependency.
+
+| Stage | Question | Score | Status for frontier models |
+|---|---|---|---|
+| Gate (Layer 1) | Does *some* utility rationalize the choices? | pass/fail floor | pass uniformly (table stakes) |
+| Identification (Layer 2) | Fit that utility | machinery | — |
+| Grade (Layer 3) | Does it match the configured/revealed principal + predict held-out? | graded headline | the discriminator |
+
+**Why one pipeline, not two benchmarks**: the grade presupposes the gate — you cannot fit a utility to GARP-violating choices. The relationship is hierarchical, not parallel. The integrative artifact (gate → identification → grade + the deployment verdict) is the contribution; two standalone benchmarks ("a rationality benchmark" + "a steerability benchmark") would each read as derivative and would misrepresent the dependency.
+
+**Why separate scoring is nonetheless forced**:
+- **Opposite failure sign**: deviation from the generically-rational answer is a failure at the gate but a success at the grade (it is what a loss-averse principal wants). One number cannot encode both.
+- **Different oracle structures**: the gate has a clean, computable, gameable oracle; the grade has a noisy revealed-preference oracle (IRL fit with estimation error) that is ungameable but requires predict-then-validate.
+- **Two distinct failure modes**: incoherence (gate) vs coherent-but-unfaithful (grade) need different fixes; a single score hides which one a model has.
+
+**Empirical motivation (preliminary, single-seed)**: across a toy battery spanning procurement, pricing (linear + logistic demand), auctions, matching, forecasting, repeated games, and a capacity-constraint recipe-trap, frontier models passed the gate uniformly — including the contamination probes designed to defeat textbook-retrieval. A standalone persona-maintenance probe was the only one to separate frontier models: configured to a persona whose acceptance threshold deviates from EV-rational, a weaker model collapsed to its rational default when the persona was stated once, while a stronger model maintained it. Both recovered full fidelity once the persona was restated per-decision or quantified — so the gap measures **steerability / default-stickiness, not capability**. Illustrative, not validated.
+
+**Falsification (pre-registered)**: the "gate is a floor" position is falsified if frontier models systematically separate on gate-layer axioms beyond arithmetic noise; the "grade is the discriminator" position is falsified if frontier models do not separate on persona-fidelity under multi-seed evaluation using the per-persona fidelity metric (penalizes under- and over-steering, so separation cannot come from over-correction alone).
+
+**Relation to Categories A/B/C**: Category A (classical axioms) is pure gate; Category C (persona-fit / IRL on revealed preferences) is pure grade; Category B (behavioral-economics parameters) is the hinge — "compute the behavioral value" is gate, "maintain a configured behavioral persona" is grade.
+
+**Open**:
+- Is the unified gate→grade framing stronger than a standalone steerability paper aimed squarely at the safety audience? (Positioning trade-off: integration + deployment-verdict framing vs faster single-audience hit.)
+- Is persona separation (threshold spread) the right grade metric, or must the per-persona fidelity score (which penalizes over-steering) be the headline? Multi-seed CIs required either way.
+- Does the "persona collapse under rationality pressure" finding replicate on the named-principal (13F-style) instrument, not just synthetic personas?
 
 ---
 

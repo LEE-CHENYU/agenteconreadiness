@@ -8,7 +8,7 @@ This is a condensed methodology overview. The full master plan lives in the impl
 
 ## The thesis in one paragraph
 
-LLM agents are being deployed for economic decisions — procurement, pricing, negotiation, investment, vendor selection. Whether they satisfy the rationality assumptions those use cases presuppose has not been validated at scale. AERead is the **economic-decision evaluation framework** for LLM agents — combining game environments, oracle decomposition, revealed-preference diagnostics, qualitative-evidence interpretation, and hidden-OOD generalization tests into a single integrated artifact. Architecturally: a 3-layer revealed-preference pipeline (existence → identification → predictive validity) cross-cut by a 5-axis failure taxonomy (information, consistency, calibration, computational floor, meta-cognitive). The leaderboard reports a deployment verdict; the drill-down page reports *why* a model failed.
+LLM agents are being deployed for economic decisions — procurement, pricing, negotiation, investment, vendor selection. Whether they satisfy the rationality assumptions those use cases presuppose has not been validated at scale. AERead is the **economic-decision evaluation framework** for LLM agents — combining game environments, oracle decomposition, revealed-preference diagnostics, qualitative-evidence interpretation, and hidden-OOD generalization tests into a single integrated artifact. Architecturally: a 3-layer revealed-preference pipeline (existence → identification → predictive validity) cross-cut by a 5-axis failure taxonomy (information, consistency, calibration, computational floor, meta-cognitive). Read as a hierarchy, the pipeline is a **gate → grade** structure: axiomatic coherence (existence) is the *gate* — a pass/fail precondition — and predictive fidelity to a configured or revealed principal (predictive validity) is the *graded headline*. A **working position** emerging from early toy runs (Q11): rationality-compliance (the gate) is a weak discriminator among frontier models, while persona-fidelity (the grade) is the discriminating — and alignment-relevant — signal. The leaderboard reports a deployment verdict; the drill-down page reports *why* a model failed.
 
 ## Critical methodological questions (open Q&A)
 
@@ -26,6 +26,7 @@ LLM agents are being deployed for economic decisions — procurement, pricing, n
 | **Q8** | OpenSpiel-compatible benchmark substrate | Post-v0-paper follow-up paper, NOT v0.5+; v0 ships 2 standalone games |
 | **Q9** | Operational emergence definition | Conservative 5-criterion test for emergence claims (addresses Schaeffer-Krueger 2023 critique) |
 | **Q10** | Training-signal validation (scorer vs validated signal) | v0 ships a scorer + observational evidence; causal claim requires training experiment. Three options pending checkpoint. |
+| **Q11** | Gate vs grade: rationality and persona-fidelity — one problem or two? | One pipeline, gate → grade; two scored stages, explicit dependency. Working position: rationality (gate) is a floor for frontier models, persona-fidelity (grade) is the discriminator + the alignment-relevant signal. Separate scoring forced by opposite failure-sign. Falsifiable. |
 
 
 ## Methodological foundation in behavioral economics
@@ -60,6 +61,26 @@ The three layers are the canonical revealed-preference pipeline applied to LLM b
 | 3 — predictive validity | Does the identified utility predict held-out choices? | Predict-then-validate: train/test split → identify on training → predict held-out → score predictive accuracy | Choice-agreement rate (discrete) + MAE (continuous) on held-out + oracle gap |
 
 The methodology paper's load-bearing argument is that **integration** of all three layers is what enables actionable diagnostics. A single-number score at any one layer (the current state of the art) cannot tell you whether a model failed because its preferences are inconsistent, because its calibrated utility is wrong, or because it can't execute the choice the calibrated utility prescribes.
+
+## The gate → grade reading: coherence is the floor, fidelity is the headline
+
+The three layers read as a hierarchy, not three peers. Coherence (Layer 1) is a **precondition**: you cannot fit a utility (Layer 2) to choices that violate GARP, because no such utility exists. So the pipeline is a **gate → grade** structure:
+
+- **Gate (Layer 1 — coherence/rationality)**: does *some* utility rationalize the choices? Pass/fail floor. The 5-axis failure taxonomy (below) is the **anatomy of this gate** — the ways an agent can fail to be coherent.
+- **Identification (Layer 2)**: fit the utility. Only well-defined once the gate passes.
+- **Grade (Layer 3 — fidelity)**: does the fitted utility match the *configured or revealed* principal, and predict held-out behavior? The graded headline.
+
+**Working position (engagement invited; see Q11).** Early toy runs suggest that for frontier models the gate is a **table-stakes floor** — they retrieve-and-compute the rational answer from problem *structure*, so contamination-style framings (non-textbook functional forms; recipe-traps where a memorized formula no longer applies) do not separate them. The discriminating signal is the **grade**: whether a model configured to a principal whose preferences deviate from the generically-rational answer *maintains* that configuration or *collapses* back to its default. This reframes the deployment verdict from "is the agent rational?" to "can the agent faithfully represent a configured principal under pressure?"
+
+Two consequences for scoring:
+- **The gate and grade must be scored separately**, because the failure sign is opposite: deviation from the generically-rational answer is a *failure* at the gate but can be a *success* at the grade (it is what a loss-averse principal wants). No single number can encode one behavior as both.
+- **The grade surfaces a failure mode the gate cannot**: an agent can be perfectly coherent yet faithful to the *wrong* persona (coherent-but-unfaithful) — distinct from incoherence, and requiring a different fix.
+
+**Why this is the alignment-relevant framing.** Persona-fidelity is **steerability**: can a deployed agent's revealed economic preferences be configured to its principal, or does it revert to training-default behavior under pressure? An agent that reverts is a faithful-delegation / principal-agent risk — the property the safety + economics-of-AI audience cares about, and what the grade layer measures directly.
+
+**Scope note (honest about v0).** v0's two shipped games (C2, C8) exercise the gate + identification + predictive-validity machinery; the persona-fidelity grade is demonstrated in a standalone persona-maintenance probe and matures into a named-principal instrument (C1 persona-fit on revealed preferences) in v0.5+. The gate→grade reading clarifies *where the discriminating signal is expected to live*, informing v0.5+ prioritization — it does not claim v0 already ships the full grade instrument.
+
+**Falsification (pre-registered).** The "gate is a floor" position is falsified if, under the multi-class robustness battery, frontier models systematically separate on gate-layer axioms (one frontier model failing GARP / Bayes-optimal inference where another passes, beyond arithmetic noise). The "grade is the discriminator" position is falsified if frontier models do *not* separate on persona-fidelity under multi-seed evaluation with a per-persona fidelity metric that penalizes both under- and over-steering (so separation cannot be claimed from over-correction alone). Both are testable before the methodology paper circulates.
 
 ## Layer 3 design discipline: predict-then-validate
 
@@ -101,7 +122,7 @@ The full open candidate pool — ~25 cases including EconEvals procurement/prici
 
 ## The 5-axis failure taxonomy
 
-When a model scores low on a Layer 3 task, *which mechanism failed?* The 5-axis taxonomy decomposes the gap.
+When a model scores low on a Layer 3 task, *which mechanism failed?* The 5-axis taxonomy decomposes the gap. The five axes are the **anatomy of the gate** — the ways an agent fails to be coherent/rational. Persona-fidelity (the grade) is a distinct *type* of measurement (graded, opposite failure-sign, noisy oracle), **not a sixth axis** of the same kind (see the gate→grade section + Q11).
 
 **v0 instrumentation tiers** (5-axis taxonomy stays intact as the paper's §3 claim; instrumentation depth varies):
 
@@ -195,6 +216,7 @@ Engagement is invited at every layer:
 
 - **On the open methodology Q&A** (full bodies in [`methodology_open_questions.md`](methodology_open_questions.md); topic-index above): the ten questions are real research questions; reviewers, frontier-lab researchers, and collaborators are invited to challenge the working positions before the methodology paper draft circulates. Q10 (training-signal validation) is the most consequential v0 scope decision pending the 4-week checkpoint.
 - **On the 5-axis taxonomy**: if a sixth axis is needed (or a current axis collapses into another), the pre-registered factorial design will reveal it — pre-registration commits us to publishing the finding regardless of direction
+- **On the gate→grade reading** (Q11): the working position that rationality (the gate) is a floor for frontier models and persona-fidelity (the grade) is the discriminator is pre-registered with falsification criteria — challenge it. If frontier models separate on the gate, or fail to separate on the grade under multi-seed evaluation, the reframe is wrong and we want to know before the paper circulates.
 - **On the OracleDecomposable abstraction**: counterexamples — economic decisions that don't fit the (hidden state + controllable simulator + oracle policy + scalar utility) interface — strengthen the methodology paper by exposing scope limits. Submit them.
 - **On Layer 3 use cases**: the open candidate pool ([`layer3_candidates.md`](layer3_candidates.md)) invites external researchers to propose new cases via the value × testability matrix; high-value + high-testability gaps (especially the empty top-right cell) are explicitly open contribution surface
 - **On the OpenSpiel-compatible substrate** ([`aeread_env_design.md`](aeread_env_design.md)): external contributors can add games via the 10-hard-constraint submission API once the substrate ships (post-v0-paper follow-up paper, NOT v0.5)
