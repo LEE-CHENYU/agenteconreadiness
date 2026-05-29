@@ -111,6 +111,8 @@ class OfflineAgent:
             return self._mechanism_choice(user)
         if "TASK: matching_choice" in system:
             return self._matching_choice(user)
+        if "TASK: screening_choice" in system:
+            return self._screening_choice(user)
         if "TASK: strategic_action" in system:
             return self._strategic_action(user)
         if "TASK: exploration_action" in system:
@@ -321,6 +323,25 @@ class OfflineAgent:
         else:
             matching_id = _best_matching_choice(user, matchings)
         return f"FINAL_MATCHING: {matching_id}"
+
+    def _screening_choice(self, user: str) -> str:
+        types = _extract_screening_types(user)
+        menus = _extract_screening_menus(user)
+        if self.policy in {"max_profit", "profit"}:
+            menu_id = max(menus, key=lambda item: _screening_metrics(types, menus[item])["expected_profit"])
+        elif self.policy in {"constraint_blind", "ic_blind"}:
+            menu_id = _best_screening_menu(user, types, menus, constraint_blind=True)
+        elif self.policy == "access":
+            menu_id = max(
+                menus,
+                key=lambda item: (
+                    _screening_metrics(types, menus[item])["participation_rate"],
+                    _screening_metrics(types, menus[item])["expected_surplus"],
+                ),
+            )
+        else:
+            menu_id = _best_screening_menu(user, types, menus, constraint_blind=False)
+        return f"FINAL_MENU: {menu_id}"
 
     def _strategic_action(self, user: str) -> str:
         if self.policy in {"myopic", "grab"}:
@@ -820,6 +841,104 @@ def _best_matching_choice(text: str, matchings: dict[str, dict[str, float]]) -> 
         )
 
     return max(matchings, key=score)
+
+
+def _extract_screening_types(text: str) -> dict[str, dict[str, float]]:
+    types: dict[str, dict[str, float]] = {}
+    pattern = re.compile(
+        r"type_id=([a-zA-Z0-9_-]+)\s+"
+        r"probability=([-+]?\d+(?:\.\d+)?)\s+"
+        r"value_per_unit=([-+]?\d+(?:\.\d+)?)\s+"
+        r"service_cost_per_unit=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        types[match.group(1)] = {
+            "probability": float(match.group(2)),
+            "value_per_unit": float(match.group(3)),
+            "service_cost_per_unit": float(match.group(4)),
+        }
+    return types
+
+
+def _extract_screening_menus(text: str) -> dict[str, dict[str, dict[str, float]]]:
+    menus: dict[str, dict[str, dict[str, float]]] = {}
+    current_menu = ""
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("menu_id="):
+            current_menu = _extract_word(stripped, "menu_id")
+            menus[current_menu] = {}
+        elif stripped.startswith("contract_type=") and current_menu:
+            type_id = _extract_word(stripped, "contract_type")
+            menus[current_menu][type_id] = {
+                "quantity": _extract_float(stripped, "quantity"),
+                "price": _extract_float(stripped, "price"),
+            }
+    return menus
+
+
+def _screening_utility(type_: dict[str, float], contract: dict[str, float]) -> float:
+    return type_["value_per_unit"] * contract["quantity"] - contract["price"]
+
+
+def _screening_profit(type_: dict[str, float], contract: dict[str, float]) -> float:
+    return contract["price"] - type_["service_cost_per_unit"] * contract["quantity"]
+
+
+def _screening_metrics(
+    types: dict[str, dict[str, float]],
+    menu: dict[str, dict[str, float]],
+) -> dict[str, float]:
+    expected_profit = 0.0
+    expected_surplus = 0.0
+    participation_rate = 0.0
+    ic_violation_rate = 0.0
+    ir_violation_rate = 0.0
+    for type_id, type_ in types.items():
+        intended = menu[type_id]
+        intended_utility = _screening_utility(type_, intended)
+        probability = type_["probability"]
+        expected_profit += probability * _screening_profit(type_, intended)
+        expected_surplus += probability * intended_utility
+        if intended_utility >= -1e-9:
+            participation_rate += probability
+        else:
+            ir_violation_rate += probability
+        if any(_screening_utility(type_, other) > intended_utility + 1e-9 for other in menu.values()):
+            ic_violation_rate += probability
+    return {
+        "expected_profit": expected_profit,
+        "expected_surplus": expected_surplus,
+        "participation_rate": participation_rate,
+        "ic_violation_rate": ic_violation_rate,
+        "ir_violation_rate": ir_violation_rate,
+    }
+
+
+def _best_screening_menu(
+    text: str,
+    types: dict[str, dict[str, float]],
+    menus: dict[str, dict[str, dict[str, float]]],
+    *,
+    constraint_blind: bool,
+) -> str:
+    profit_weight = _extract_float(text, "profit_weight")
+    surplus_weight = _extract_float(text, "surplus_weight")
+    access_weight = _extract_float(text, "access_weight")
+    ic_penalty = 0.0 if constraint_blind else _extract_float(text, "ic_penalty")
+    ir_penalty = 0.0 if constraint_blind else _extract_float(text, "ir_penalty")
+
+    def score(menu_id: str) -> float:
+        metrics = _screening_metrics(types, menus[menu_id])
+        return (
+            profit_weight * metrics["expected_profit"]
+            + surplus_weight * metrics["expected_surplus"]
+            + access_weight * 100.0 * metrics["participation_rate"]
+            - ic_penalty * 100.0 * metrics["ic_violation_rate"]
+            - ir_penalty * 100.0 * metrics["ir_violation_rate"]
+        )
+
+    return max(menus, key=score)
 
 
 def _extract_state_ids(text: str) -> list[str]:

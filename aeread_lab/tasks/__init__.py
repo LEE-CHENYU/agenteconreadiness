@@ -14,6 +14,7 @@ from .principal_inference import run_principal_inference_game
 from .procurement import run_procurement_game
 from .regime import run_regime_battery
 from .retail import run_retail_game
+from .screening import run_screening_game
 from .strategic_drift import run_strategic_drift_game
 
 __all__ = [
@@ -33,5 +34,6 @@ __all__ = [
     "run_procurement_game",
     "run_regime_battery",
     "run_retail_game",
+    "run_screening_game",
     "run_strategic_drift_game",
 ]

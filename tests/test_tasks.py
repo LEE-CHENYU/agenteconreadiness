@@ -39,6 +39,9 @@ from aeread_lab.tasks.procurement import _prompt as procurement_prompt
 from aeread_lab.tasks.procurement import run_procurement_game
 from aeread_lab.tasks.regime import DEFAULT_GAMBLES, _prompt as regime_prompt
 from aeread_lab.tasks.retail import run_retail_game
+from aeread_lab.tasks.screening import DEFAULT_CASES as SCREENING_CASES
+from aeread_lab.tasks.screening import _prompt as screening_prompt
+from aeread_lab.tasks.screening import run_screening_game
 from aeread_lab.tasks.strategic_drift import DEFAULT_CASES as DRIFT_CASES
 from aeread_lab.tasks.strategic_drift import _prompt as strategic_prompt
 from aeread_lab.tasks.strategic_drift import run_strategic_drift_game
@@ -70,6 +73,7 @@ class TaskSmokeTests(unittest.TestCase):
         portfolio = portfolio_prompt(PORTFOLIO_CASES[0])
         ambiguity = ambiguity_prompt(AMBIGUITY_CASES[0])
         matching = matching_prompt(MATCHING_CASES[0])
+        screening = screening_prompt(SCREENING_CASES[0])
         mechanism = mechanism_prompt(MECHANISM_CASES[0])
         experiment = experiment_prompt(EXPERIMENT_CASES[0])
         self.assertNotIn("oracle", regime)
@@ -82,6 +86,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", portfolio)
         self.assertNotIn("oracle", ambiguity)
         self.assertNotIn("oracle", matching)
+        self.assertNotIn("oracle", screening)
         self.assertNotIn("oracle", mechanism)
         self.assertNotIn("oracle", experiment)
         self.assertNotIn("kelly_fraction", regime)
@@ -138,6 +143,15 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(max_value["mean_score_regret"], 25.0)
         self.assertGreater(max_value["max_value_miss_rate"], 0.5)
         self.assertGreater(access["access_only_miss_rate"], 0.2)
+
+    def test_screening_flags_profit_and_constraint_blind_menus(self):
+        configured = run_screening_game(OfflineAgent("oracle"))
+        max_profit = run_screening_game(OfflineAgent("max_profit"))
+        blind = run_screening_game(OfflineAgent("constraint_blind"))
+        self.assertLess(configured["mean_score_regret"], 1e-9)
+        self.assertGreater(max_profit["mean_score_regret"], 25.0)
+        self.assertGreater(max_profit["max_profit_miss_rate"], 0.5)
+        self.assertGreater(blind["constraint_blind_miss_rate"], 0.5)
 
     def test_auction_splits_revenue_from_configured_objective(self):
         configured = run_auction_game(OfflineAgent("oracle"))
@@ -244,6 +258,13 @@ class TaskSmokeTests(unittest.TestCase):
         matching_rows = [row for row in rows if row["task"] == "matching"]
         self.assertEqual(matching_rows[0]["agent"], "offline:oracle")
         self.assertEqual(matching_rows[1]["agent"], "offline:max_value")
+
+    def test_offline_sweep_ranks_configured_above_max_profit_on_screening(self):
+        sweep = run_sweep(task="screening", agent_specs=["offline:oracle", "offline:max_profit"])
+        rows = rank_rows(comparison_table(sweep))
+        screening_rows = [row for row in rows if row["task"] == "screening"]
+        self.assertEqual(screening_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(screening_rows[1]["agent"], "offline:max_profit")
 
     def test_offline_sweep_ranks_configured_above_revenue_on_auction(self):
         sweep = run_sweep(task="auction", agent_specs=["offline:oracle", "offline:revenue"])
