@@ -1,6 +1,12 @@
 import unittest
+from types import SimpleNamespace
 
-from aeread_lab.models import OfflineAgent, OpenAIResponsesAgent, resolve_openai_model
+from aeread_lab.models import (
+    OfflineAgent,
+    OpenAIResponsesAgent,
+    _extract_openai_response_text,
+    resolve_openai_model,
+)
 from aeread_lab.reporting import comparison_table, rank_rows
 from aeread_lab.runner import run_sweep
 from aeread_lab.tasks.adversarial import run_scam_arena
@@ -66,6 +72,36 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(agent.max_output_tokens, 800)
         self.assertEqual(agent.reasoning_effort, "low")
         self.assertEqual(agent.text_verbosity, "low")
+
+    def test_openai_response_extraction_collects_all_text_chunks(self):
+        response = SimpleNamespace(
+            status="completed",
+            output_text="",
+            output=[
+                SimpleNamespace(
+                    content=[
+                        SimpleNamespace(text="FINAL_ONE: a"),
+                        SimpleNamespace(text="FINAL_TWO: b"),
+                    ]
+                )
+            ],
+        )
+        self.assertEqual(_extract_openai_response_text(response), "FINAL_ONE: a\nFINAL_TWO: b")
+
+    def test_openai_response_extraction_raises_on_incomplete(self):
+        response = SimpleNamespace(
+            status="incomplete",
+            incomplete_details=SimpleNamespace(reason="max_output_tokens"),
+            output_text="",
+            output=[],
+        )
+        with self.assertRaisesRegex(RuntimeError, "max_output_tokens"):
+            _extract_openai_response_text(response)
+
+    def test_openai_response_extraction_raises_on_textless_completed_response(self):
+        response = {"status": "completed", "output_text": "", "output": [{"content": []}]}
+        with self.assertRaisesRegex(RuntimeError, "no text output"):
+            _extract_openai_response_text(response)
 
     def test_procurement_oracle_offline(self):
         summary = run_procurement_game(OfflineAgent("oracle"))

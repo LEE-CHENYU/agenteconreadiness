@@ -68,26 +68,7 @@ class OpenAIResponsesAgent:
             text={"verbosity": self.text_verbosity},
             store=False,
         )
-        status = getattr(response, "status", None)
-        if status == "incomplete":
-            details = getattr(response, "incomplete_details", None)
-            reason = getattr(details, "reason", None) or str(details)
-            raise RuntimeError(f"OpenAI response incomplete: {reason}")
-
-        text = getattr(response, "output_text", None)
-        if text:
-            return str(text)
-
-        chunks: list[str] = []
-        for item in getattr(response, "output", []) or []:
-            for content in getattr(item, "content", []) or []:
-                value = getattr(content, "text", None)
-            if value:
-                chunks.append(str(value))
-        output = "\n".join(chunks).strip()
-        if not output:
-            raise RuntimeError("OpenAI response contained no text output")
-        return output
+        return _extract_openai_response_text(response)
 
 
 @dataclass
@@ -482,6 +463,35 @@ def build_agent(spec: str) -> Agent:
     if spec in ALLOWED_OPENAI_ALIASES:
         return OpenAIResponsesAgent(model=spec)
     return OfflineAgent(policy=spec)
+
+
+def _value(obj, key: str, default=None):
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
+def _extract_openai_response_text(response) -> str:
+    status = _value(response, "status")
+    if status == "incomplete":
+        details = _value(response, "incomplete_details")
+        reason = _value(details, "reason") or str(details)
+        raise RuntimeError(f"OpenAI response incomplete: {reason}")
+
+    text = _value(response, "output_text")
+    if text:
+        return str(text).strip()
+
+    chunks: list[str] = []
+    for item in _value(response, "output", []) or []:
+        for content in _value(item, "content", []) or []:
+            value = _value(content, "text")
+            if value:
+                chunks.append(str(value))
+    output = "\n".join(chunks).strip()
+    if not output:
+        raise RuntimeError("OpenAI response contained no text output")
+    return output
 
 
 def _extract_float(text: str, key: str, default: float = 0.0) -> float:
