@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aeread-build-lab"
+version = "0.1.0"
+description = "Local AERead research build lab: v0 games, regime-appropriateness probes, and adversarial stress toys."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+openai = ["openai>=1.0.0"]
+
+[project.scripts]
+aeread-lab = "aeread_lab.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["aeread_lab*"]
