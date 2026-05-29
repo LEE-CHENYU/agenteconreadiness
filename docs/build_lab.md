@@ -55,8 +55,8 @@ OPENAI_API_KEY=... python -m aeread_lab.cli --sweep --task all \
 
 There is no Anthropic/OpenRouter path in this build lab.
 
-The adapter uses low reasoning effort, low text verbosity, `store=false`, and an
-800-token output budget by default. It raises on incomplete or textless responses
+The adapter uses low reasoning effort, low text verbosity, `store=false`, and a
+1200-token output budget by default. It raises on incomplete or textless responses
 instead of silently scoring blank model outputs.
 
 ## Sweep runner and cache

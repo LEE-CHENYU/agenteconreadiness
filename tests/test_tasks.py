@@ -69,7 +69,7 @@ class TaskSmokeTests(unittest.TestCase):
 
     def test_openai_agent_defaults_are_eval_safe(self):
         agent = OpenAIResponsesAgent(model="gpt-5.5")
-        self.assertEqual(agent.max_output_tokens, 800)
+        self.assertEqual(agent.max_output_tokens, 1200)
         self.assertEqual(agent.reasoning_effort, "low")
         self.assertEqual(agent.text_verbosity, "low")
 

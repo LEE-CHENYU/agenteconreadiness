@@ -38,7 +38,7 @@ class OpenAIResponsesAgent:
     """
 
     model: str = "nano"
-    max_output_tokens: int = 800
+    max_output_tokens: int = 1200
     reasoning_effort: str = "low"
     text_verbosity: str = "low"
     name: str = "openai"
