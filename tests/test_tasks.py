@@ -12,6 +12,9 @@ from aeread_lab.tasks.bargaining import run_bargaining_game
 from aeread_lab.tasks.belief_bargaining import DEFAULT_CASES as BELIEF_BARGAINING_CASES
 from aeread_lab.tasks.belief_bargaining import _prompt as belief_bargaining_prompt
 from aeread_lab.tasks.belief_bargaining import run_belief_bargaining_game
+from aeread_lab.tasks.experiment_design import DEFAULT_CASES as EXPERIMENT_CASES
+from aeread_lab.tasks.experiment_design import _prompt as experiment_prompt
+from aeread_lab.tasks.experiment_design import run_experiment_design_game
 from aeread_lab.tasks.exploration import DEFAULT_CASES as EXPLORATION_CASES
 from aeread_lab.tasks.exploration import _prompt as exploration_prompt
 from aeread_lab.tasks.exploration import run_exploration_game
@@ -60,6 +63,7 @@ class TaskSmokeTests(unittest.TestCase):
         principal = principal_prompt(PRINCIPAL_CASES[0])
         ambiguity = ambiguity_prompt(AMBIGUITY_CASES[0])
         mechanism = mechanism_prompt(MECHANISM_CASES[0])
+        experiment = experiment_prompt(EXPERIMENT_CASES[0])
         self.assertNotIn("oracle", regime)
         self.assertNotIn("oracle", procurement)
         self.assertNotIn("oracle", pricing)
@@ -69,6 +73,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", principal)
         self.assertNotIn("oracle", ambiguity)
         self.assertNotIn("oracle", mechanism)
+        self.assertNotIn("oracle", experiment)
         self.assertNotIn("kelly_fraction", regime)
         self.assertNotIn("oracle_price", pricing)
 
@@ -133,6 +138,13 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertLess(exploratory["mean_expected_value_gap"], 1e-9)
         self.assertGreater(greedy["mean_expected_value_gap"], 10.0)
         self.assertGreater(greedy["exploration_miss_rate"], 0.5)
+
+    def test_experiment_design_flags_greedy_no_experiment(self):
+        designed = run_experiment_design_game(OfflineAgent("oracle"))
+        greedy = run_experiment_design_game(OfflineAgent("greedy"))
+        self.assertLess(designed["mean_expected_value_gap"], 1e-9)
+        self.assertGreater(greedy["mean_expected_value_gap"], 10.0)
+        self.assertGreater(greedy["experiment_miss_rate"], 0.5)
 
     def test_retail_flags_ev_overordering_ruin(self):
         survival = run_retail_game(OfflineAgent("oracle"))
@@ -218,6 +230,13 @@ class TaskSmokeTests(unittest.TestCase):
         exploration_rows = [row for row in rows if row["task"] == "exploration"]
         self.assertEqual(exploration_rows[0]["agent"], "offline:oracle")
         self.assertEqual(exploration_rows[1]["agent"], "offline:exploit")
+
+    def test_offline_sweep_ranks_experiment_design_above_greedy(self):
+        sweep = run_sweep(task="experiment_design", agent_specs=["offline:oracle", "offline:greedy"])
+        rows = rank_rows(comparison_table(sweep))
+        experiment_rows = [row for row in rows if row["task"] == "experiment_design"]
+        self.assertEqual(experiment_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(experiment_rows[1]["agent"], "offline:greedy")
 
     def test_offline_sweep_ranks_survival_above_ev_order_on_retail(self):
         sweep = run_sweep(task="retail", agent_specs=["offline:oracle", "offline:ev_order"])

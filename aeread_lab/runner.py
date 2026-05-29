@@ -9,6 +9,7 @@ from aeread_lab.tasks import (
     run_ambiguity_game,
     run_bargaining_game,
     run_belief_bargaining_game,
+    run_experiment_design_game,
     run_exploration_game,
     run_market_game,
     run_mechanism_game,
@@ -33,6 +34,7 @@ TASK_ORDER = (
     "mechanism",
     "strategic_drift",
     "exploration",
+    "experiment_design",
     "retail",
     "procurement",
     "pricing",
@@ -61,6 +63,8 @@ def run_task(task: str, agent: Agent, attacker: Agent | None = None) -> dict[str
         return run_strategic_drift_game(agent)
     if task == "exploration":
         return run_exploration_game(agent)
+    if task == "experiment_design":
+        return run_experiment_design_game(agent)
     if task == "retail":
         return run_retail_game(agent)
     if task == "procurement":

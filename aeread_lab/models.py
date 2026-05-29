@@ -111,6 +111,8 @@ class OfflineAgent:
             return self._strategic_action(user)
         if "TASK: exploration_action" in system:
             return self._exploration_action(user)
+        if "TASK: experiment_action" in system:
+            return self._experiment_action(user)
         if "TASK: retail_order" in system:
             return self._retail_order(user)
         if "TASK: scam_estimate" in system:
@@ -316,6 +318,18 @@ class OfflineAgent:
         if self.policy in {"exploit", "greedy"}:
             deploy_values = {key: value for key, value in values.items() if key.startswith("DEPLOY_")}
             action = max(deploy_values, key=deploy_values.get)
+        else:
+            action = max(values, key=values.get)
+        return f"FINAL_ACTION: {action}"
+
+    def _experiment_action(self, user: str) -> str:
+        values = _experiment_action_values(user)
+        if self.policy in {"exploit", "greedy"}:
+            deploy_values = {key: value for key, value in values.items() if key.startswith("DEPLOY_")}
+            action = max(deploy_values, key=deploy_values.get)
+        elif self.policy == "cheap":
+            experiments = [key for key in values if key.startswith("EXPERIMENT_")]
+            action = min(experiments, key=lambda key: _extract_experiment_cost(user, key.removeprefix("EXPERIMENT_")))
         else:
             action = max(values, key=values.get)
         return f"FINAL_ACTION: {action}"
@@ -546,6 +560,62 @@ def _exploration_action_values(
                 )
                 value += probability * best_after_sample
             values[f"SAMPLE_{arm_id}"] = value
+    return values
+
+
+def _extract_experiment_arms(text: str) -> dict[str, tuple[float, float]]:
+    arms: dict[str, tuple[float, float]] = {}
+    pattern = re.compile(
+        r"arm_id=([a-zA-Z0-9_-]+)\s+"
+        r"low_payoff=([-+]?\d+(?:\.\d+)?)\s+"
+        r"high_payoff=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        arms[match.group(1)] = (float(match.group(2)), float(match.group(3)))
+    return arms
+
+
+def _extract_experiments(text: str) -> dict[str, tuple[float, float]]:
+    experiments: dict[str, tuple[float, float]] = {}
+    pattern = re.compile(
+        r"experiment_id=([a-zA-Z0-9_-]+)\s+"
+        r"cost=([-+]?\d+(?:\.\d+)?)\s+"
+        r"accuracy=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        experiments[match.group(1)] = (float(match.group(2)), float(match.group(3)))
+    return experiments
+
+
+def _extract_experiment_cost(text: str, experiment_id: str) -> float:
+    experiments = _extract_experiments(text)
+    return experiments.get(experiment_id, (math.inf, 0.0))[0]
+
+
+def _experiment_action_values(text: str) -> dict[str, float]:
+    units = _extract_float(text, "deployment_units")
+    p_high = _extract_float(text, "high_state_probability")
+    arms = _extract_experiment_arms(text)
+    experiments = _extract_experiments(text)
+
+    def deploy_value(arm_id: str, high_probability: float) -> float:
+        low, high = arms[arm_id]
+        return units * (high_probability * high + (1.0 - high_probability) * low)
+
+    values = {f"DEPLOY_{arm_id}": deploy_value(arm_id, p_high) for arm_id in arms}
+    for experiment_id, (cost, accuracy) in experiments.items():
+        p_low = 1.0 - p_high
+        p_signal_high = p_high * accuracy + p_low * (1.0 - accuracy)
+        p_signal_low = p_high * (1.0 - accuracy) + p_low * accuracy
+        posterior_high_given_high_signal = (p_high * accuracy) / p_signal_high if p_signal_high > 0 else p_high
+        posterior_high_given_low_signal = (
+            (p_high * (1.0 - accuracy)) / p_signal_low if p_signal_low > 0 else p_high
+        )
+        best_after_high_signal = max(deploy_value(arm_id, posterior_high_given_high_signal) for arm_id in arms)
+        best_after_low_signal = max(deploy_value(arm_id, posterior_high_given_low_signal) for arm_id in arms)
+        values[f"EXPERIMENT_{experiment_id}"] = (
+            -cost + p_signal_high * best_after_high_signal + p_signal_low * best_after_low_signal
+        )
     return values
 
 

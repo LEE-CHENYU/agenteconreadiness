@@ -20,6 +20,7 @@ only.
 | `mechanism` | Mechanism-choice task: choose among auction/allocation rules using configured principal weights and strategic-risk penalties. | `python -m aeread_lab.cli --task mechanism --agent offline:oracle` |
 | `strategic_drift` | γ-Bench-style repeated strategic discipline: preserve long-horizon relationship value instead of drifting to myopic grabs. | `python -m aeread_lab.cli --task strategic_drift --agent offline:oracle` |
 | `exploration` | EconEvals-style unknown-environment learning: decide when information value justifies a pilot before deployment. | `python -m aeread_lab.cli --task exploration --agent offline:oracle` |
+| `experiment_design` | Imperfect-signal experiment design: choose whether and how to run a noisy experiment before deployment, then update by Bayes rule. | `python -m aeread_lab.cli --task experiment_design --agent offline:oracle` |
 | `retail` | Vending-Bench-style inventory/runway management: maximize cash while respecting hard survival constraints. | `python -m aeread_lab.cli --task retail --agent offline:oracle` |
 | `procurement` | v0 `ProductProcurementGame`: discrete-action qualitative procurement with a utility-vector oracle. | `python -m aeread_lab.cli --task procurement --agent offline:oracle` |
 | `pricing` | v0 `SimplePricingGame`: continuous price choice with base/posterior/reveal conditions and a closed-form revenue oracle. | `python -m aeread_lab.cli --task pricing --agent offline:oracle` |
@@ -71,6 +72,8 @@ The sweep runner compares agents on the primary mechanical metric for each task:
 - `strategic_drift`: lower long-horizon drift rate is better.
 - `exploration`: lower expected-value gap is better; exploration miss rate is
   reported separately.
+- `experiment_design`: lower expected-value gap is better; experiment miss
+  rate is reported separately.
 - `retail`: lower ruin probability is better; expected cash gap and order error
   are reported separately.
 - `procurement`: higher oracle-choice accuracy is better.
@@ -119,4 +122,4 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    appreciation, and multi-period survival.
 9. Broaden `retail` into multi-period inventory and supplier-scam variants.
 10. Broaden `strategic_drift` into imperfect-information and N-player games.
-11. Broaden `exploration` into multi-step Bayesian experiment design.
+11. Broaden `experiment_design` into multi-step adaptive tests.
