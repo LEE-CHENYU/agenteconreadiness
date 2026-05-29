@@ -1,6 +1,8 @@
 import unittest
 
 from aeread_lab.models import OfflineAgent, resolve_openai_model
+from aeread_lab.reporting import comparison_table, rank_rows
+from aeread_lab.runner import run_sweep
 from aeread_lab.tasks.adversarial import run_scam_arena
 from aeread_lab.tasks.pricing import run_pricing_game
 from aeread_lab.tasks.procurement import run_procurement_game
@@ -29,6 +31,22 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertTrue(summary["instrument_fires"])
         self.assertGreater(summary["controls"]["credulous_mean_overpayment"], 25.0)
         self.assertGreaterEqual(summary["mean_susceptibility"], 0.0)
+
+    def test_offline_sweep_ranks_oracle_above_ev_on_regime(self):
+        sweep = run_sweep(task="regime", agent_specs=["offline:oracle", "offline:ev"])
+        rows = rank_rows(comparison_table(sweep))
+        regime_rows = [row for row in rows if row["task"] == "regime"]
+        self.assertEqual(regime_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(regime_rows[1]["agent"], "offline:ev")
+
+    def test_rank_rows_keeps_missing_metrics_last(self):
+        rows = [
+            {"agent": "missing", "task": "procurement", "metric": "accuracy", "direction": "higher", "value": None},
+            {"agent": "low", "task": "procurement", "metric": "accuracy", "direction": "higher", "value": 0.25},
+            {"agent": "high", "task": "procurement", "metric": "accuracy", "direction": "higher", "value": 0.75},
+        ]
+        ranked = rank_rows(rows)
+        self.assertEqual([row["agent"] for row in ranked], ["high", "low", "missing"])
 
 
 if __name__ == "__main__":

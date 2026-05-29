@@ -2,15 +2,13 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 from typing import Any
 
-from aeread_lab.models import OfflineAgent, build_agent
-from aeread_lab.tasks import (
-    run_pricing_game,
-    run_procurement_game,
-    run_regime_battery,
-    run_scam_arena,
-)
+from aeread_lab.cache import CachedAgent, DEFAULT_CACHE_DIR
+from aeread_lab.models import build_agent
+from aeread_lab.reporting import format_sweep
+from aeread_lab.runner import run_sweep, run_tasks
 
 
 TASKS = ("regime", "procurement", "pricing", "scam", "all")
@@ -29,24 +27,48 @@ def main(argv: list[str] | None = None) -> int:
         default="offline:credulous",
         help="Attacker for scam arena. Defaults to offline:credulous for no API spend.",
     )
+    parser.add_argument(
+        "--sweep",
+        action="store_true",
+        help="Run a multi-agent sweep instead of a single agent report.",
+    )
+    parser.add_argument(
+        "--agents",
+        default="openai:gpt-5.5,openai:mini,openai:nano",
+        help="Comma-separated agent specs for --sweep.",
+    )
+    parser.add_argument(
+        "--cache-dir",
+        default=str(DEFAULT_CACHE_DIR),
+        help="Response cache directory for sweeps and OpenAI calls.",
+    )
+    parser.add_argument("--no-cache", action="store_true", help="Disable response cache.")
     parser.add_argument("--json", action="store_true", help="Print raw JSON only.")
     args = parser.parse_args(argv)
 
+    def _wrap(agent):
+        return CachedAgent(agent, cache_dir=Path(args.cache_dir), enabled=not args.no_cache)
+
+    if args.sweep:
+        specs = [item.strip() for item in args.agents.split(",") if item.strip()]
+        payload = run_sweep(
+            task=args.task,
+            agent_specs=specs,
+            attacker_spec=args.attacker,
+            wrap_cache=_wrap,
+        )
+        if args.json:
+            print(json.dumps(payload, indent=2, sort_keys=True))
+        else:
+            print(format_sweep(payload))
+        return 0
+
     agent = build_agent(args.agent)
-    results: list[dict[str, Any]] = []
-    selected = [args.task] if args.task != "all" else ["regime", "procurement", "pricing", "scam"]
-
-    for task in selected:
-        if task == "regime":
-            results.append(run_regime_battery(agent))
-        elif task == "procurement":
-            results.append(run_procurement_game(agent))
-        elif task == "pricing":
-            results.append(run_pricing_game(agent))
-        elif task == "scam":
-            attacker = build_agent(args.attacker)
-            results.append(run_scam_arena(defender=agent, attacker=attacker))
-
+    attacker = build_agent(args.attacker)
+    if not args.no_cache:
+        agent = _wrap(agent)
+        attacker = _wrap(attacker)
+    results: list[dict[str, Any]] = run_tasks(args.task, agent, attacker=attacker)
     payload = {"agent": agent.name, "results": results}
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))

@@ -29,7 +29,34 @@ Example:
 OPENAI_API_KEY=... python -m aeread_lab.cli --task regime --agent openai:nano
 ```
 
+Run the full OpenAI-only model sweep with:
+
+```bash
+OPENAI_API_KEY=... python -m aeread_lab.cli --sweep --task all \
+  --agents openai:gpt-5.5,openai:mini,openai:nano
+```
+
 There is no Anthropic/OpenRouter path in this build lab.
+
+## Sweep runner and cache
+
+The sweep runner compares agents on the primary mechanical metric for each task:
+
+- `regime`: lower mean absolute error to the regime-correct oracle is better.
+- `procurement`: higher oracle-choice accuracy is better.
+- `pricing`: lower revenue gap to the closed-form optimum is better.
+- `scam`: lower mean overpayment is better.
+
+Offline comparison example:
+
+```bash
+python -m aeread_lab.cli --sweep --task all \
+  --agents offline:oracle,offline:ev --no-cache
+```
+
+Live OpenAI responses are cached under `.aeread-cache/responses/` by default.
+Use `--cache-dir <path>` to relocate the cache or `--no-cache` to force fresh
+calls. Offline agents do not need the cache and never call the API.
 
 ## Validation
 
@@ -38,6 +65,8 @@ Run offline validation without API spend:
 ```bash
 python -m unittest discover -s tests
 python -m aeread_lab.cli --task all --agent offline:oracle
+python -m aeread_lab.cli --sweep --task regime \
+  --agents offline:oracle,offline:ev --no-cache
 ```
 
 ## Expansion order
@@ -46,8 +75,8 @@ The next builds should keep the same discipline: add a deterministic generator,
 a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
 
 1. Broaden the `regime` battery to more gamble families and explicit barrier states.
-2. Add model-version sweeps for alignment-shift diagnostics across `gpt-5.5`,
-   `mini`, and `nano`.
+2. Run cached model-version sweeps for alignment-shift diagnostics across
+   `gpt-5.5`, `mini`, and `nano`.
 3. Add a `TERMS`-style bargaining grade wrapper: gate oracle first, then
    configured-principal bargaining oracle.
 4. Add `Market-Bench`/agentic-market simulation wrappers only after the above
