@@ -17,6 +17,7 @@ only.
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from noisy cues before pricing. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
 | `market` | Market-Bench-style simultaneous price competition: competitive Nash pricing vs collusive/high-price drift. | `python -m aeread_lab.cli --task market --agent offline:oracle` |
+| `matching` | Matching-market design: choose stable/access-aware matching rules instead of value-only assignments with blocking-pair risk. | `python -m aeread_lab.cli --task matching --agent offline:oracle` |
 | `auction` | Mechanism-design reserve task: Myerson revenue reserve vs welfare/access reserves under configured objectives. | `python -m aeread_lab.cli --task auction --agent offline:oracle` |
 | `mechanism` | Mechanism-choice task: choose among auction/allocation rules using configured principal weights and strategic-risk penalties. | `python -m aeread_lab.cli --task mechanism --agent offline:oracle` |
 | `strategic_drift` | γ-Bench-style repeated strategic discipline: preserve long-horizon relationship value instead of drifting to myopic grabs. | `python -m aeread_lab.cli --task strategic_drift --agent offline:oracle` |
@@ -68,6 +69,8 @@ The sweep runner compares agents on the primary mechanical metric for each task:
   switch miss rate is reported separately.
 - `market`: lower competitive-equilibrium price gap is better; collusion index
   and collusion rate are reported separately.
+- `matching`: lower configured matching score regret is better; max-value and
+  access-only miss rates are reported separately.
 - `auction`: lower reserve-price error to the objective-specific mechanism
   oracle is better.
 - `mechanism`: lower configured score regret is better; revenue-default and

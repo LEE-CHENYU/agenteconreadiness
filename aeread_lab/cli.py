@@ -19,6 +19,7 @@ TASKS = (
     "bargaining",
     "belief_bargaining",
     "market",
+    "matching",
     "auction",
     "mechanism",
     "strategic_drift",
@@ -159,6 +160,14 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"ci95={_fmt_ci(result.get('mean_equilibrium_price_gap_ci95'))} "
                 f"collusion_index={_fmt(result['mean_collusion_index'])} "
                 f"collusion_rate={result['collusion_rate']:.2f}"
+            )
+        elif task == "matching":
+            print(
+                f"matching: n={result['n_trials']} score_regret="
+                f"{_fmt(result['mean_score_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_score_regret_ci95'))} "
+                f"value_miss={result['max_value_miss_rate']:.2f} "
+                f"access_miss={result['access_only_miss_rate']:.2f}"
             )
         elif task == "auction":
             print(

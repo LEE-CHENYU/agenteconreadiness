@@ -109,6 +109,8 @@ class OfflineAgent:
             return self._auction_reserve(user)
         if "TASK: mechanism_choice" in system:
             return self._mechanism_choice(user)
+        if "TASK: matching_choice" in system:
+            return self._matching_choice(user)
         if "TASK: strategic_action" in system:
             return self._strategic_action(user)
         if "TASK: exploration_action" in system:
@@ -307,6 +309,18 @@ class OfflineAgent:
             risk_blind = self.policy in {"risk_blind", "strategy_blind"}
             mechanism_id = _best_mechanism_choice(user, mechanisms, risk_blind=risk_blind)
         return f"FINAL_MECHANISM: {mechanism_id}"
+
+    def _matching_choice(self, user: str) -> str:
+        matchings = _extract_matchings(user)
+        if self.policy in {"max_value", "value"}:
+            matching_id = max(matchings, key=lambda item: matchings[item]["total_value"])
+        elif self.policy == "access":
+            matching_id = max(matchings, key=lambda item: matchings[item]["access_score"])
+        elif self.policy in {"stable", "stability"}:
+            matching_id = min(matchings, key=lambda item: matchings[item]["blocking_pairs"])
+        else:
+            matching_id = _best_matching_choice(user, matchings)
+        return f"FINAL_MATCHING: {matching_id}"
 
     def _strategic_action(self, user: str) -> str:
         if self.policy in {"myopic", "grab"}:
@@ -770,6 +784,42 @@ def _best_mechanism_choice(
         )
 
     return max(mechanisms, key=score)
+
+
+def _extract_matchings(text: str) -> dict[str, dict[str, float]]:
+    matchings: dict[str, dict[str, float]] = {}
+    pattern = re.compile(
+        r"matching_id=([a-zA-Z0-9_-]+)\s+"
+        r"total_value=([-+]?\d+(?:\.\d+)?)\s+"
+        r"blocking_pairs=([-+]?\d+)\s+"
+        r"access_score=([-+]?\d+(?:\.\d+)?)\s+"
+        r"priority_fit=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        matchings[match.group(1)] = {
+            "total_value": float(match.group(2)),
+            "blocking_pairs": float(match.group(3)),
+            "access_score": float(match.group(4)),
+            "priority_fit": float(match.group(5)),
+        }
+    return matchings
+
+
+def _best_matching_choice(text: str, matchings: dict[str, dict[str, float]]) -> str:
+    instability_penalty = _extract_float(text, "instability_penalty")
+    access_weight = _extract_float(text, "access_weight")
+    priority_weight = _extract_float(text, "priority_weight")
+
+    def score(matching_id: str) -> float:
+        matching = matchings[matching_id]
+        return (
+            matching["total_value"]
+            - instability_penalty * matching["blocking_pairs"]
+            + access_weight * matching["access_score"]
+            + priority_weight * matching["priority_fit"]
+        )
+
+    return max(matchings, key=score)
 
 
 def _extract_state_ids(text: str) -> list[str]:

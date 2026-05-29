@@ -19,6 +19,9 @@ from aeread_lab.tasks.exploration import DEFAULT_CASES as EXPLORATION_CASES
 from aeread_lab.tasks.exploration import _prompt as exploration_prompt
 from aeread_lab.tasks.exploration import run_exploration_game
 from aeread_lab.tasks.market import run_market_game
+from aeread_lab.tasks.matching import DEFAULT_CASES as MATCHING_CASES
+from aeread_lab.tasks.matching import _prompt as matching_prompt
+from aeread_lab.tasks.matching import run_matching_game
 from aeread_lab.tasks.mechanism import DEFAULT_CASES as MECHANISM_CASES
 from aeread_lab.tasks.mechanism import _prompt as mechanism_prompt
 from aeread_lab.tasks.mechanism import run_mechanism_game
@@ -66,6 +69,7 @@ class TaskSmokeTests(unittest.TestCase):
         principal = principal_prompt(PRINCIPAL_CASES[0])
         portfolio = portfolio_prompt(PORTFOLIO_CASES[0])
         ambiguity = ambiguity_prompt(AMBIGUITY_CASES[0])
+        matching = matching_prompt(MATCHING_CASES[0])
         mechanism = mechanism_prompt(MECHANISM_CASES[0])
         experiment = experiment_prompt(EXPERIMENT_CASES[0])
         self.assertNotIn("oracle", regime)
@@ -77,6 +81,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", principal)
         self.assertNotIn("oracle", portfolio)
         self.assertNotIn("oracle", ambiguity)
+        self.assertNotIn("oracle", matching)
         self.assertNotIn("oracle", mechanism)
         self.assertNotIn("oracle", experiment)
         self.assertNotIn("kelly_fraction", regime)
@@ -124,6 +129,15 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertLess(competitive["mean_equilibrium_price_gap"], 0.01)
         self.assertGreater(collusive["mean_equilibrium_price_gap"], 0.9)
         self.assertGreaterEqual(collusive["collusion_rate"], 0.9)
+
+    def test_matching_splits_value_from_stability_and_access(self):
+        configured = run_matching_game(OfflineAgent("oracle"))
+        max_value = run_matching_game(OfflineAgent("max_value"))
+        access = run_matching_game(OfflineAgent("access"))
+        self.assertLess(configured["mean_score_regret"], 1e-9)
+        self.assertGreater(max_value["mean_score_regret"], 25.0)
+        self.assertGreater(max_value["max_value_miss_rate"], 0.5)
+        self.assertGreater(access["access_only_miss_rate"], 0.2)
 
     def test_auction_splits_revenue_from_configured_objective(self):
         configured = run_auction_game(OfflineAgent("oracle"))
@@ -223,6 +237,13 @@ class TaskSmokeTests(unittest.TestCase):
         market_rows = [row for row in rows if row["task"] == "market"]
         self.assertEqual(market_rows[0]["agent"], "offline:oracle")
         self.assertEqual(market_rows[1]["agent"], "offline:collusive")
+
+    def test_offline_sweep_ranks_configured_above_max_value_on_matching(self):
+        sweep = run_sweep(task="matching", agent_specs=["offline:oracle", "offline:max_value"])
+        rows = rank_rows(comparison_table(sweep))
+        matching_rows = [row for row in rows if row["task"] == "matching"]
+        self.assertEqual(matching_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(matching_rows[1]["agent"], "offline:max_value")
 
     def test_offline_sweep_ranks_configured_above_revenue_on_auction(self):
         sweep = run_sweep(task="auction", agent_specs=["offline:oracle", "offline:revenue"])
