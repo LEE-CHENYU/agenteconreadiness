@@ -22,6 +22,9 @@ from aeread_lab.tasks.market import run_market_game
 from aeread_lab.tasks.mechanism import DEFAULT_CASES as MECHANISM_CASES
 from aeread_lab.tasks.mechanism import _prompt as mechanism_prompt
 from aeread_lab.tasks.mechanism import run_mechanism_game
+from aeread_lab.tasks.portfolio import DEFAULT_CASES as PORTFOLIO_CASES
+from aeread_lab.tasks.portfolio import _prompt as portfolio_prompt
+from aeread_lab.tasks.portfolio import run_portfolio_game
 from aeread_lab.tasks.pricing import DEFAULT_CASES as PRICING_CASES
 from aeread_lab.tasks.pricing import _prompt as pricing_prompt
 from aeread_lab.tasks.pricing import run_pricing_game
@@ -61,6 +64,7 @@ class TaskSmokeTests(unittest.TestCase):
         exploration = exploration_prompt(EXPLORATION_CASES[0])
         belief_bargaining = belief_bargaining_prompt(BELIEF_BARGAINING_CASES[0])
         principal = principal_prompt(PRINCIPAL_CASES[0])
+        portfolio = portfolio_prompt(PORTFOLIO_CASES[0])
         ambiguity = ambiguity_prompt(AMBIGUITY_CASES[0])
         mechanism = mechanism_prompt(MECHANISM_CASES[0])
         experiment = experiment_prompt(EXPERIMENT_CASES[0])
@@ -71,6 +75,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", exploration)
         self.assertNotIn("oracle", belief_bargaining)
         self.assertNotIn("oracle", principal)
+        self.assertNotIn("oracle", portfolio)
         self.assertNotIn("oracle", ambiguity)
         self.assertNotIn("oracle", mechanism)
         self.assertNotIn("oracle", experiment)
@@ -82,6 +87,15 @@ class TaskSmokeTests(unittest.TestCase):
         generic = run_principal_inference_game(OfflineAgent("generic_gamma"))
         self.assertLess(inferred["mean_fraction_error"], 1e-9)
         self.assertGreater(generic["mean_fraction_error"], 0.1)
+
+    def test_portfolio_flags_max_return_and_low_risk_defaults(self):
+        configured = run_portfolio_game(OfflineAgent("oracle"))
+        max_return = run_portfolio_game(OfflineAgent("max_return"))
+        low_risk = run_portfolio_game(OfflineAgent("low_risk"))
+        self.assertLess(configured["mean_utility_regret"], 1e-9)
+        self.assertGreater(max_return["mean_utility_regret"], 0.1)
+        self.assertGreater(max_return["max_return_miss_rate"], 0.5)
+        self.assertGreater(low_risk["low_risk_miss_rate"], 0.2)
 
     def test_ambiguity_flags_reference_prior_collapse(self):
         robust = run_ambiguity_game(OfflineAgent("oracle"))
@@ -174,6 +188,13 @@ class TaskSmokeTests(unittest.TestCase):
         principal_rows = [row for row in rows if row["task"] == "principal_inference"]
         self.assertEqual(principal_rows[0]["agent"], "offline:oracle")
         self.assertEqual(principal_rows[1]["agent"], "offline:generic_gamma")
+
+    def test_offline_sweep_ranks_configured_above_max_return_on_portfolio(self):
+        sweep = run_sweep(task="portfolio", agent_specs=["offline:oracle", "offline:max_return"])
+        rows = rank_rows(comparison_table(sweep))
+        portfolio_rows = [row for row in rows if row["task"] == "portfolio"]
+        self.assertEqual(portfolio_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(portfolio_rows[1]["agent"], "offline:max_return")
 
     def test_offline_sweep_ranks_maxmin_above_reference_prior_on_ambiguity(self):
         sweep = run_sweep(task="ambiguity", agent_specs=["offline:oracle", "offline:reference_prior"])

@@ -7,6 +7,7 @@ from .experiment_design import run_experiment_design_game
 from .exploration import run_exploration_game
 from .market import run_market_game
 from .mechanism import run_mechanism_game
+from .portfolio import run_portfolio_game
 from .pricing import run_pricing_game
 from .principal_inference import run_principal_inference_game
 from .procurement import run_procurement_game
@@ -24,6 +25,7 @@ __all__ = [
     "run_exploration_game",
     "run_market_game",
     "run_mechanism_game",
+    "run_portfolio_game",
     "run_pricing_game",
     "run_principal_inference_game",
     "run_procurement_game",

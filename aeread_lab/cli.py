@@ -14,6 +14,7 @@ from aeread_lab.runner import run_sweep, run_tasks
 TASKS = (
     "regime",
     "principal_inference",
+    "portfolio",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -120,6 +121,14 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"{_fmt(result['mean_fraction_error'])} "
                 f"ci95={_fmt_ci(result.get('mean_fraction_error_ci95'))} "
                 f"generic_gap={_fmt(result['generic_mean_fraction_gap'])}"
+            )
+        elif task == "portfolio":
+            print(
+                f"portfolio: n={result['n_trials']} utility_regret="
+                f"{_fmt(result['mean_utility_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_utility_regret_ci95'))} "
+                f"return_miss={result['max_return_miss_rate']:.2f} "
+                f"low_risk_miss={result['low_risk_miss_rate']:.2f}"
             )
         elif task == "ambiguity":
             print(

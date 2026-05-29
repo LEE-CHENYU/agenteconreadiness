@@ -12,6 +12,7 @@ only.
 |---|---|---|
 | `regime` | Four-regime utility battery: EV single-shot, Kelly compounding, CVaR under ruin, configured-principal CRRA. This is the re-centered regime-appropriateness axis. | `python -m aeread_lab.cli --task regime --agent offline:oracle` |
 | `principal_inference` | Grade-side revealed-preference task: infer a principal's CRRA risk parameter from prior choices before allocating in a new scenario. | `python -m aeread_lab.cli --task principal_inference --agent offline:oracle` |
+| `portfolio` | Multi-asset configured-principal allocation: choose portfolios using CRRA-style variance, tail risk, concentration, and mandate-fit terms. | `python -m aeread_lab.cli --task portfolio --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: choose maxmin-robust actions across plausible priors instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from noisy cues before pricing. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -57,6 +58,8 @@ The sweep runner compares agents on the primary mechanical metric for each task:
 - `regime`: lower mean absolute error to the regime-correct oracle is better.
 - `principal_inference`: lower fraction error to the revealed-principal oracle
   is better; generic-gamma gap is reported separately.
+- `portfolio`: lower configured-principal utility regret is better; max-return
+  and low-risk miss rates are reported separately.
 - `ambiguity`: lower robust maxmin regret is better; reference-prior miss rate
   is reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -110,8 +113,8 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
 1. Broaden the `regime` battery to more gamble families and explicit barrier states.
 2. Run cached model-version sweeps for alignment-shift diagnostics across
    `gpt-5.5`, `mini`, and `nano`.
-3. Broaden `principal_inference` from CRRA allocation to real 13F-style
-   revealed-preference traces.
+3. Broaden `portfolio` from candidate portfolios to real 13F-style
+   revealed-preference traces and continuous allocation.
 4. Broaden `ambiguity` into maxmin/alpha-maxmin and multiple-prior updates.
 5. Broaden the `bargaining` wrapper from take-it-or-leave-it offers to
    alternating-offer and hidden-reservation variants.

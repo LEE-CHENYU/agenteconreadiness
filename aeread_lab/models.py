@@ -91,6 +91,8 @@ class OfflineAgent:
             return self._regime_fraction(user)
         if "TASK: principal_fraction" in system:
             return self._principal_fraction(user)
+        if "TASK: portfolio_choice" in system:
+            return self._portfolio_choice(user)
         if "TASK: ambiguity_action" in system:
             return self._ambiguity_action(user)
         if "TASK: procurement_choice" in system:
@@ -152,6 +154,18 @@ class OfflineAgent:
             gamma = _infer_principal_gamma(user)
         value = 0.0 if variance <= 0 or gamma <= 0 else excess_return / (gamma * variance)
         return f"FINAL_FRACTION: {max(0.0, min(1.0, value)):.4f}"
+
+    def _portfolio_choice(self, user: str) -> str:
+        portfolios = _extract_portfolios(user)
+        if self.policy in {"max_return", "return"}:
+            portfolio_id = max(portfolios, key=lambda item: portfolios[item]["expected_return"])
+        elif self.policy in {"low_risk", "min_variance"}:
+            portfolio_id = min(portfolios, key=lambda item: portfolios[item]["variance"])
+        elif self.policy == "mandate_fit":
+            portfolio_id = max(portfolios, key=lambda item: portfolios[item]["mandate_fit"])
+        else:
+            portfolio_id = _best_portfolio_choice(user, portfolios)
+        return f"FINAL_PORTFOLIO: {portfolio_id}"
 
     def _ambiguity_action(self, user: str) -> str:
         state_ids = _extract_state_ids(user)
@@ -427,6 +441,46 @@ def _infer_principal_gamma(text: str) -> float:
         if variance > 0 and fraction > 0:
             gammas.append(excess_return / (fraction * variance))
     return median(gammas) if gammas else 1.0
+
+
+def _extract_portfolios(text: str) -> dict[str, dict[str, float]]:
+    portfolios: dict[str, dict[str, float]] = {}
+    pattern = re.compile(
+        r"portfolio_id=([a-zA-Z0-9_-]+)\s+"
+        r"expected_return=([-+]?\d+(?:\.\d+)?)\s+"
+        r"variance=([-+]?\d+(?:\.\d+)?)\s+"
+        r"tail_loss=([-+]?\d+(?:\.\d+)?)\s+"
+        r"concentration=([-+]?\d+(?:\.\d+)?)\s+"
+        r"mandate_fit=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        portfolios[match.group(1)] = {
+            "expected_return": float(match.group(2)),
+            "variance": float(match.group(3)),
+            "tail_loss": float(match.group(4)),
+            "concentration": float(match.group(5)),
+            "mandate_fit": float(match.group(6)),
+        }
+    return portfolios
+
+
+def _best_portfolio_choice(text: str, portfolios: dict[str, dict[str, float]]) -> str:
+    gamma = _extract_float(text, "gamma")
+    tail_penalty = _extract_float(text, "tail_penalty")
+    concentration_penalty = _extract_float(text, "concentration_penalty")
+    mandate_fit_weight = _extract_float(text, "mandate_fit_weight")
+
+    def utility(portfolio_id: str) -> float:
+        portfolio = portfolios[portfolio_id]
+        return (
+            portfolio["expected_return"]
+            - gamma * portfolio["variance"]
+            - tail_penalty * portfolio["tail_loss"]
+            - concentration_penalty * portfolio["concentration"]
+            + mandate_fit_weight * portfolio["mandate_fit"]
+        )
+
+    return max(portfolios, key=utility)
 
 
 def _regime_ev_fraction(text: str) -> float:
