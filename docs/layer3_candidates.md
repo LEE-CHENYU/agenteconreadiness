@@ -145,6 +145,15 @@ If we add cases after shipping v0 (C2 ProductProcurementGame + C8 SimplePricingG
 | 11 | F15 | Market-Bench wrap (procurement + retail + supply-chain) | Published competitor benchmark; direct overlap with AERead economic-agent framing — same wrap pattern as TERMS-Bench / EconEvals |
 | 12 | F16 | PolyBench live prediction-market forecasting + trading | Contamination-resistant; clean Bayes-optimal oracle; pairs with Axis 5 calibration + C1 financial-decision framing |
 
+**Open-source availability of wrap candidates (checked 2026-05-29)** — determines wrap cost: **wrap** (code public, lift the harness) vs **cite-and-compute** (run the AERead diagnostic lens on the benchmark's *published* results; no code to lift):
+- ✅ **EconEvals** (A1/A2) — code public on GitHub → **wrap**.
+- ✅ **γ-Bench / GAMA-Bench** (C5; multi-agent game-theory) — [github.com/CUHK-ARISE/GAMABench](https://github.com/CUHK-ARISE/GAMABench) → **wrap**.
+- ⚠️ **TERMS-Bench** (D2) — live leaderboard, no code repo found yet → **cite-and-compute** (the gate-saturation + Opus-version-shift reads are already computed from its published leaderboard).
+- ❌ **Vending-Bench** (F12) — Andon's official code is closed (community "open-vending-bench" re-impls exist) → **cite**; re-implement only if a specific axis needs a knob.
+- ⚠️ **Market-Bench** (F15) — arxiv only, no repo found → **cite**.
+
+Strategy: borrow substrate from the open ones, cite-and-compute on the closed ones, and reserve AERead-native builds for the controllable-knob axes no existing benchmark exposes (persona-configuration, regime-injection, adversarial belief-manipulation). The contribution is the cross-benchmark diagnostic lens, not the wrapping (avoid the derivative-wrap trap). See `2026-05-29-recentering-decision.md` §10.
+
 **Tier S → A → B → C → D mapping**:
 - **S (v0, shipping)**: C2 ProductProcurementGame + C8 SimplePricingGame (the two v0 first-paper games — action-space-distinct: discrete + continuous)
 - **A (v0.5, ~3-4 months post-launch)**: D2 TERMS-Bench wrap + C1 persona-fit (Layer 2 case) + A1 EconEvals procurement + A2 EconEvals pricing + B1 collusion + F15 Market-Bench + F16 PolyBench. NegotiationGame + PricingCompetitionGame are NOT v0.5 — they land in the separate post-v0-paper substrate follow-up paper per [`aeread_env_design.md`](aeread_env_design.md).
