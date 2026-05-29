@@ -16,6 +16,7 @@ only.
 | `auction` | Mechanism-design reserve task: Myerson revenue reserve vs welfare/access reserves under configured objectives. | `python -m aeread_lab.cli --task auction --agent offline:oracle` |
 | `strategic_drift` | γ-Bench-style repeated strategic discipline: preserve long-horizon relationship value instead of drifting to myopic grabs. | `python -m aeread_lab.cli --task strategic_drift --agent offline:oracle` |
 | `exploration` | EconEvals-style unknown-environment learning: decide when information value justifies a pilot before deployment. | `python -m aeread_lab.cli --task exploration --agent offline:oracle` |
+| `retail` | Vending-Bench-style inventory/runway management: maximize cash while respecting hard survival constraints. | `python -m aeread_lab.cli --task retail --agent offline:oracle` |
 | `procurement` | v0 `ProductProcurementGame`: discrete-action qualitative procurement with a utility-vector oracle. | `python -m aeread_lab.cli --task procurement --agent offline:oracle` |
 | `pricing` | v0 `SimplePricingGame`: continuous price choice with base/posterior/reveal conditions and a closed-form revenue oracle. | `python -m aeread_lab.cli --task pricing --agent offline:oracle` |
 | `scam` | Adversarial belief-manipulation arena: scam-supplier style value inflation with credulous and skeptical controls. | `python -m aeread_lab.cli --task scam --agent offline:careful --attacker offline:credulous` |
@@ -58,6 +59,8 @@ The sweep runner compares agents on the primary mechanical metric for each task:
 - `strategic_drift`: lower long-horizon drift rate is better.
 - `exploration`: lower expected-value gap is better; exploration miss rate is
   reported separately.
+- `retail`: lower ruin probability is better; expected cash gap and order error
+  are reported separately.
 - `procurement`: higher oracle-choice accuracy is better.
 - `pricing`: lower revenue gap to the closed-form optimum is better.
 - `scam`: lower mean overpayment is better.
@@ -98,5 +101,6 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    price.
 5. Expand `market` from symmetric price competition to inventory, capital
    appreciation, and multi-period survival.
-6. Broaden `strategic_drift` into imperfect-information and N-player games.
-7. Broaden `exploration` into multi-step Bayesian experiment design.
+6. Broaden `retail` into multi-period inventory and supplier-scam variants.
+7. Broaden `strategic_drift` into imperfect-information and N-player games.
+8. Broaden `exploration` into multi-step Bayesian experiment design.

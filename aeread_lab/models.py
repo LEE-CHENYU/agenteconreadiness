@@ -102,6 +102,8 @@ class OfflineAgent:
             return self._strategic_action(user)
         if "TASK: exploration_action" in system:
             return self._exploration_action(user)
+        if "TASK: retail_order" in system:
+            return self._retail_order(user)
         if "TASK: scam_estimate" in system:
             return self._scam_estimate(user)
         if "TASK: scam_pitch" in system:
@@ -257,6 +259,34 @@ class OfflineAgent:
         else:
             action = max(values, key=values.get)
         return f"FINAL_ACTION: {action}"
+
+    def _retail_order(self, user: str) -> str:
+        cash = _extract_float(user, "cash_on_hand")
+        unit_cost = _extract_float(user, "unit_cost")
+        sale_price = _extract_float(user, "sale_price")
+        fixed_cost = _extract_float(user, "fixed_cost_due")
+        min_reserve = _extract_float(user, "min_cash_reserve")
+        max_order = int(round(_extract_float(user, "max_order")))
+        states = _extract_demand_states(user)
+
+        def terminal(order: int, demand: int) -> float:
+            sold = min(order, demand)
+            return cash - fixed_cost - order * unit_cost + sold * sale_price
+
+        def expected_cash(order: int) -> float:
+            return sum(probability * terminal(order, demand) for demand, probability in states)
+
+        def ruins(order: int) -> bool:
+            return any(terminal(order, demand) < min_reserve for demand, _ in states)
+
+        if self.policy in {"ev_order", "overorder"}:
+            order = max(range(max_order + 1), key=expected_cash)
+        elif self.policy == "zero":
+            order = 0
+        else:
+            feasible = [q for q in range(max_order + 1) if not ruins(q)]
+            order = max(feasible, key=expected_cash) if feasible else 0
+        return f"FINAL_ORDER: {order}"
 
     def _scam_pitch(self, user: str) -> str:
         value = _extract_float(user, "v_true")
@@ -440,3 +470,13 @@ def _exploration_action_values(
                 value += probability * best_after_sample
             values[f"SAMPLE_{arm_id}"] = value
     return values
+
+
+def _extract_demand_states(text: str) -> list[tuple[int, float]]:
+    states = []
+    for units, probability in re.findall(
+        r"demand_units=([-+]?\d+)\s+probability=([-+]?\d+(?:\.\d+)?)",
+        text,
+    ):
+        states.append((int(units), float(probability)))
+    return states

@@ -6,6 +6,7 @@ from .market import run_market_game
 from .pricing import run_pricing_game
 from .procurement import run_procurement_game
 from .regime import run_regime_battery
+from .retail import run_retail_game
 from .strategic_drift import run_strategic_drift_game
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "run_pricing_game",
     "run_procurement_game",
     "run_regime_battery",
+    "run_retail_game",
     "run_strategic_drift_game",
 ]

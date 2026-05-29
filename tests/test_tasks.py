@@ -17,6 +17,7 @@ from aeread_lab.tasks.procurement import DEFAULT_CASES as PROCUREMENT_CASES
 from aeread_lab.tasks.procurement import _prompt as procurement_prompt
 from aeread_lab.tasks.procurement import run_procurement_game
 from aeread_lab.tasks.regime import DEFAULT_GAMBLES, _prompt as regime_prompt
+from aeread_lab.tasks.retail import run_retail_game
 from aeread_lab.tasks.strategic_drift import DEFAULT_CASES as DRIFT_CASES
 from aeread_lab.tasks.strategic_drift import _prompt as strategic_prompt
 from aeread_lab.tasks.strategic_drift import run_strategic_drift_game
@@ -84,6 +85,12 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(greedy["mean_expected_value_gap"], 10.0)
         self.assertGreater(greedy["exploration_miss_rate"], 0.5)
 
+    def test_retail_flags_ev_overordering_ruin(self):
+        survival = run_retail_game(OfflineAgent("oracle"))
+        ev_order = run_retail_game(OfflineAgent("ev_order"))
+        self.assertEqual(survival["mean_ruin_probability"], 0.0)
+        self.assertGreater(ev_order["mean_ruin_probability"], 0.1)
+
     def test_scam_controls_have_dynamic_range(self):
         summary = run_scam_arena(
             defender=OfflineAgent("careful"),
@@ -134,6 +141,13 @@ class TaskSmokeTests(unittest.TestCase):
         exploration_rows = [row for row in rows if row["task"] == "exploration"]
         self.assertEqual(exploration_rows[0]["agent"], "offline:oracle")
         self.assertEqual(exploration_rows[1]["agent"], "offline:exploit")
+
+    def test_offline_sweep_ranks_survival_above_ev_order_on_retail(self):
+        sweep = run_sweep(task="retail", agent_specs=["offline:oracle", "offline:ev_order"])
+        rows = rank_rows(comparison_table(sweep))
+        retail_rows = [row for row in rows if row["task"] == "retail"]
+        self.assertEqual(retail_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(retail_rows[1]["agent"], "offline:ev_order")
 
     def test_rank_rows_keeps_missing_metrics_last(self):
         rows = [

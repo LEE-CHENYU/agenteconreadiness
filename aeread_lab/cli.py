@@ -18,6 +18,7 @@ TASKS = (
     "auction",
     "strategic_drift",
     "exploration",
+    "retail",
     "procurement",
     "pricing",
     "scam",
@@ -147,6 +148,14 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"ev_gap={_fmt(result['mean_expected_value_gap'])} "
                 f"ci95={_fmt_ci(result.get('mean_expected_value_gap_ci95'))} "
                 f"miss={result['exploration_miss_rate']:.2f}"
+            )
+        elif task == "retail":
+            print(
+                f"retail: n={result['n_trials']} cash_gap="
+                f"{_fmt(result['mean_expected_cash_gap'])} "
+                f"order_error={_fmt(result['mean_order_error'])} "
+                f"ruin_prob={_fmt(result['mean_ruin_probability'])} "
+                f"ruin_ci={_fmt_ci(result.get('mean_ruin_probability_ci95'))}"
             )
         elif task == "procurement":
             print(
