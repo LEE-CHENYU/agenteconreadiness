@@ -13,6 +13,7 @@ PRIMARY_METRICS = {
     "market": ("mean_equilibrium_price_gap", "lower"),
     "matching": ("mean_score_regret", "lower"),
     "screening": ("mean_score_regret", "lower"),
+    "moral_hazard": ("mean_profit_regret", "lower"),
     "auction": ("mean_reserve_error", "lower"),
     "mechanism": ("mean_score_regret", "lower"),
     "strategic_drift": ("drift_rate", "lower"),

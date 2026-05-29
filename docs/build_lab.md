@@ -19,6 +19,7 @@ only.
 | `market` | Market-Bench-style simultaneous price competition: competitive Nash pricing vs collusive/high-price drift. | `python -m aeread_lab.cli --task market --agent offline:oracle` |
 | `matching` | Matching-market design: choose stable/access-aware matching rules instead of value-only assignments with blocking-pair risk. | `python -m aeread_lab.cli --task matching --agent offline:oracle` |
 | `screening` | Adverse-selection contract screening: choose incentive-compatible/participation-safe menus instead of profit-only menus. | `python -m aeread_lab.cli --task screening --agent offline:oracle` |
+| `moral_hazard` | Hidden-action contract design: choose incentive contracts that actually induce effort instead of assuming first-best effort for free. | `python -m aeread_lab.cli --task moral_hazard --agent offline:oracle` |
 | `auction` | Mechanism-design reserve task: Myerson revenue reserve vs welfare/access reserves under configured objectives. | `python -m aeread_lab.cli --task auction --agent offline:oracle` |
 | `mechanism` | Mechanism-choice task: choose among auction/allocation rules using configured principal weights and strategic-risk penalties. | `python -m aeread_lab.cli --task mechanism --agent offline:oracle` |
 | `strategic_drift` | γ-Bench-style repeated strategic discipline: preserve long-horizon relationship value instead of drifting to myopic grabs. | `python -m aeread_lab.cli --task strategic_drift --agent offline:oracle` |
@@ -74,6 +75,8 @@ The sweep runner compares agents on the primary mechanical metric for each task:
   access-only miss rates are reported separately.
 - `screening`: lower configured contract-menu regret is better; max-profit and
   constraint-blind miss rates are reported separately.
+- `moral_hazard`: lower realized principal-profit regret is better; hidden-action
+  blind and high-bonus miss rates are reported separately.
 - `auction`: lower reserve-price error to the objective-specific mechanism
   oracle is better.
 - `mechanism`: lower configured score regret is better; revenue-default and

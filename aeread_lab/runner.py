@@ -14,6 +14,7 @@ from aeread_lab.tasks import (
     run_market_game,
     run_matching_game,
     run_mechanism_game,
+    run_moral_hazard_game,
     run_portfolio_game,
     run_pricing_game,
     run_principal_inference_game,
@@ -36,6 +37,7 @@ TASK_ORDER = (
     "market",
     "matching",
     "screening",
+    "moral_hazard",
     "auction",
     "mechanism",
     "strategic_drift",
@@ -67,6 +69,8 @@ def run_task(task: str, agent: Agent, attacker: Agent | None = None) -> dict[str
         return run_matching_game(agent)
     if task == "screening":
         return run_screening_game(agent)
+    if task == "moral_hazard":
+        return run_moral_hazard_game(agent)
     if task == "auction":
         return run_auction_game(agent)
     if task == "mechanism":

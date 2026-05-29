@@ -21,6 +21,7 @@ TASKS = (
     "market",
     "matching",
     "screening",
+    "moral_hazard",
     "auction",
     "mechanism",
     "strategic_drift",
@@ -177,6 +178,14 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"ci95={_fmt_ci(result.get('mean_score_regret_ci95'))} "
                 f"profit_miss={result['max_profit_miss_rate']:.2f} "
                 f"constraint_miss={result['constraint_blind_miss_rate']:.2f}"
+            )
+        elif task == "moral_hazard":
+            print(
+                f"moral_hazard: n={result['n_trials']} profit_regret="
+                f"{_fmt(result['mean_profit_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_profit_regret_ci95'))} "
+                f"hidden_action_miss={result['hidden_action_blind_miss_rate']:.2f} "
+                f"bonus_miss={result['high_bonus_miss_rate']:.2f}"
             )
         elif task == "auction":
             print(

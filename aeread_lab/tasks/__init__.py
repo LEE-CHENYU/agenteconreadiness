@@ -8,6 +8,7 @@ from .exploration import run_exploration_game
 from .market import run_market_game
 from .matching import run_matching_game
 from .mechanism import run_mechanism_game
+from .moral_hazard import run_moral_hazard_game
 from .portfolio import run_portfolio_game
 from .pricing import run_pricing_game
 from .principal_inference import run_principal_inference_game
@@ -28,6 +29,7 @@ __all__ = [
     "run_market_game",
     "run_matching_game",
     "run_mechanism_game",
+    "run_moral_hazard_game",
     "run_portfolio_game",
     "run_pricing_game",
     "run_principal_inference_game",

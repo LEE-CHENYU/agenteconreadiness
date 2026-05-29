@@ -113,6 +113,8 @@ class OfflineAgent:
             return self._matching_choice(user)
         if "TASK: screening_choice" in system:
             return self._screening_choice(user)
+        if "TASK: moral_hazard_contract" in system:
+            return self._moral_hazard_contract(user)
         if "TASK: strategic_action" in system:
             return self._strategic_action(user)
         if "TASK: exploration_action" in system:
@@ -342,6 +344,19 @@ class OfflineAgent:
         else:
             menu_id = _best_screening_menu(user, types, menus, constraint_blind=False)
         return f"FINAL_MENU: {menu_id}"
+
+    def _moral_hazard_contract(self, user: str) -> str:
+        efforts = _extract_moral_hazard_efforts(user)
+        contracts = _extract_moral_hazard_contracts(user)
+        if self.policy in {"hidden_action_blind", "first_best"}:
+            contract_id = _best_moral_hazard_contract(user, efforts, contracts, assume_high_effort=True)
+        elif self.policy in {"high_bonus", "bonus"}:
+            contract_id = max(contracts, key=lambda item: contracts[item]["high_output_bonus"])
+        elif self.policy in {"fixed", "cheap_fixed"}:
+            contract_id = min(contracts, key=lambda item: contracts[item]["high_output_bonus"])
+        else:
+            contract_id = _best_moral_hazard_contract(user, efforts, contracts, assume_high_effort=False)
+        return f"FINAL_CONTRACT: {contract_id}"
 
     def _strategic_action(self, user: str) -> str:
         if self.policy in {"myopic", "grab"}:
@@ -939,6 +954,99 @@ def _best_screening_menu(
         )
 
     return max(menus, key=score)
+
+
+def _extract_moral_hazard_efforts(text: str) -> dict[str, dict[str, float]]:
+    efforts: dict[str, dict[str, float]] = {}
+    pattern = re.compile(
+        r"effort_id=([a-zA-Z0-9_-]+)\s+"
+        r"high_output_probability=([-+]?\d+(?:\.\d+)?)\s+"
+        r"effort_cost=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        efforts[match.group(1)] = {
+            "high_output_probability": float(match.group(2)),
+            "effort_cost": float(match.group(3)),
+        }
+    return efforts
+
+
+def _extract_moral_hazard_contracts(text: str) -> dict[str, dict[str, float]]:
+    contracts: dict[str, dict[str, float]] = {}
+    pattern = re.compile(
+        r"contract_id=([a-zA-Z0-9_-]+)\s+"
+        r"base_pay=([-+]?\d+(?:\.\d+)?)\s+"
+        r"high_output_bonus=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        contracts[match.group(1)] = {
+            "base_pay": float(match.group(2)),
+            "high_output_bonus": float(match.group(3)),
+        }
+    return contracts
+
+
+def _moral_hazard_expected_output_value(text: str, effort: dict[str, float]) -> float:
+    p_high = effort["high_output_probability"]
+    return p_high * _extract_float(text, "high_output_value") + (1.0 - p_high) * _extract_float(
+        text, "low_output_value"
+    )
+
+
+def _moral_hazard_expected_wage(contract: dict[str, float], effort: dict[str, float]) -> float:
+    return contract["base_pay"] + effort["high_output_probability"] * contract["high_output_bonus"]
+
+
+def _moral_hazard_wage_variance(contract: dict[str, float], effort: dict[str, float]) -> float:
+    p_high = effort["high_output_probability"]
+    return p_high * (1.0 - p_high) * contract["high_output_bonus"] ** 2
+
+
+def _moral_hazard_worker_utility(
+    text: str,
+    contract: dict[str, float],
+    effort: dict[str, float],
+) -> float:
+    return (
+        _moral_hazard_expected_wage(contract, effort)
+        - effort["effort_cost"]
+        - _extract_float(text, "worker_risk_penalty") * _moral_hazard_wage_variance(contract, effort)
+    )
+
+
+def _moral_hazard_contract_profit(
+    text: str,
+    efforts: dict[str, dict[str, float]],
+    contract: dict[str, float],
+    *,
+    assume_high_effort: bool,
+) -> float:
+    if assume_high_effort:
+        effort = max(efforts.values(), key=lambda item: item["high_output_probability"])
+    else:
+        effort = max(efforts.values(), key=lambda item: _moral_hazard_worker_utility(text, contract, item))
+    utility = _moral_hazard_worker_utility(text, contract, effort)
+    if utility < _extract_float(text, "worker_outside_option"):
+        return -1e9
+    return _moral_hazard_expected_output_value(text, effort) - _moral_hazard_expected_wage(contract, effort)
+
+
+def _best_moral_hazard_contract(
+    text: str,
+    efforts: dict[str, dict[str, float]],
+    contracts: dict[str, dict[str, float]],
+    *,
+    assume_high_effort: bool,
+) -> str:
+    return max(
+        contracts,
+        key=lambda contract_id: _moral_hazard_contract_profit(
+            text,
+            efforts,
+            contracts[contract_id],
+            assume_high_effort=assume_high_effort,
+        ),
+    )
 
 
 def _extract_state_ids(text: str) -> list[str]:
