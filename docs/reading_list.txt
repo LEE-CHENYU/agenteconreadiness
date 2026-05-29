@@ -403,6 +403,25 @@ adversarial-context for v2 D1; judge-free methodology for §1.5.7).
        moral principles, effectively acting as if nearly optimizing a utility
        function." Empirical support for AERead's Layer 1 existence claim.
 
+[T2] Vending-Bench: A Benchmark for Long-Term Coherence of Autonomous Agents
+     [AXIS-1; AXIS-2; AXIS-4] Petersson & Backlund — Andon Labs
+     arxiv 2502.15840 (https://arxiv.org/abs/2502.15840) (Feb 2025)
+     → Agent manages a vending machine business over 20M+ token horizons
+       (inventory, pricing, supplier selection, profit). Failure modes map
+       directly onto AERead's 5-axis taxonomy: (1) "fell for scam suppliers"
+       = Information axis failure (ignores available credibility signals);
+       (2) "rewrote strategy notes ~100× per run" = Consistency axis failure
+       (non-convergent, intransitive planning); (3) price comparison failures
+       = Computational floor axis. Key finding: Opus 4.8 shows "better
+       alignment, worse economic performance" — safety alignment training
+       trades off against economic rationality. This is the phenomenon AERead
+       provides structural diagnosis for. Vending-Bench measures task outcomes
+       (profit); AERead measures axiom compliance (does a rationalizing utility
+       exist?). Cite in AERead motivation: empirical evidence frontier models
+       fail economically in realistic deployment.
+     See also: Andon Labs blog "Opus 4.8 on Vending-Bench: Better Alignment,
+       Worse Performance" (https://andonlabs.com/blog/opus-4-8-vending-bench)
+
 
 TIER 3 — BACKGROUND / SPECIFIC CONTEXT (~18 papers)
 ------------------------------------------------------------------------------
