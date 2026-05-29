@@ -94,6 +94,8 @@ class OfflineAgent:
             return self._pricing_price(user)
         if "TASK: bargaining_offer" in system:
             return self._bargaining_offer(user)
+        if "TASK: belief_bargain_price" in system:
+            return self._belief_bargain_price(user)
         if "TASK: market_price" in system:
             return self._market_price(user)
         if "TASK: auction_reserve" in system:
@@ -193,6 +195,16 @@ class OfflineAgent:
             price = buyer_wtp - 0.75 * surplus
         else:
             price = buyer_wtp - max(0.0, min(1.0, target_share)) * surplus
+        return f"FINAL_PRICE: {price:.2f}"
+
+    def _belief_bargain_price(self, user: str) -> str:
+        seller_cost = _extract_float(user, "seller_cost")
+        states = _extract_buyer_states(user)
+        use_posterior = self.policy not in {"prior", "ignore_cue"}
+        if self.policy in {"high_anchor", "max_wtp"}:
+            price = max(state["buyer_wtp"] for state in states)
+        else:
+            price = _belief_best_price(seller_cost, states, use_posterior=use_posterior)
         return f"FINAL_PRICE: {price:.2f}"
 
     def _market_price(self, user: str) -> str:
@@ -480,3 +492,50 @@ def _extract_demand_states(text: str) -> list[tuple[int, float]]:
     ):
         states.append((int(units), float(probability)))
     return states
+
+
+def _extract_buyer_states(text: str) -> list[dict[str, float]]:
+    states = []
+    pattern = re.compile(
+        r"state_id=([a-zA-Z0-9_-]+)\s+"
+        r"buyer_wtp=([-+]?\d+(?:\.\d+)?)\s+"
+        r"prior_probability=([-+]?\d+(?:\.\d+)?)\s+"
+        r"likelihood_of_observed_cue=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        states.append(
+            {
+                "buyer_wtp": float(match.group(2)),
+                "prior": float(match.group(3)),
+                "likelihood": float(match.group(4)),
+            }
+        )
+    return states
+
+
+def _belief_best_price(
+    seller_cost: float,
+    states: list[dict[str, float]],
+    *,
+    use_posterior: bool,
+) -> float:
+    if not states:
+        return seller_cost
+    if use_posterior:
+        weights = [state["prior"] * state["likelihood"] for state in states]
+        total = sum(weights)
+        probabilities = [weight / total for weight in weights] if total > 0 else [state["prior"] for state in states]
+    else:
+        probabilities = [state["prior"] for state in states]
+
+    def expected_surplus(price: float) -> float:
+        if price < seller_cost:
+            return 0.0
+        return sum(
+            probability * (price - seller_cost)
+            for probability, state in zip(probabilities, states)
+            if price <= state["buyer_wtp"]
+        )
+
+    candidates = sorted({seller_cost, *(state["buyer_wtp"] for state in states)})
+    return max(candidates, key=expected_surplus)

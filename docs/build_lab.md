@@ -12,6 +12,7 @@ only.
 |---|---|---|
 | `regime` | Four-regime utility battery: EV single-shot, Kelly compounding, CVaR under ruin, configured-principal CRRA. This is the re-centered regime-appropriateness axis. | `python -m aeread_lab.cli --task regime --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
+| `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from noisy cues before pricing. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
 | `market` | Market-Bench-style simultaneous price competition: competitive Nash pricing vs collusive/high-price drift. | `python -m aeread_lab.cli --task market --agent offline:oracle` |
 | `auction` | Mechanism-design reserve task: Myerson revenue reserve vs welfare/access reserves under configured objectives. | `python -m aeread_lab.cli --task auction --agent offline:oracle` |
 | `strategic_drift` | γ-Bench-style repeated strategic discipline: preserve long-horizon relationship value instead of drifting to myopic grabs. | `python -m aeread_lab.cli --task strategic_drift --agent offline:oracle` |
@@ -52,6 +53,8 @@ The sweep runner compares agents on the primary mechanical metric for each task:
 - `regime`: lower mean absolute error to the regime-correct oracle is better.
 - `bargaining`: lower configured-principal grade error is better; generic gate
   surplus gap is reported separately.
+- `belief_bargaining`: lower posterior expected-surplus gap is better; cue
+  switch miss rate is reported separately.
 - `market`: lower competitive-equilibrium price gap is better; collusion index
   and collusion rate are reported separately.
 - `auction`: lower reserve-price error to the objective-specific mechanism
@@ -97,10 +100,11 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    `gpt-5.5`, `mini`, and `nano`.
 3. Broaden the `bargaining` wrapper from take-it-or-leave-it offers to
    alternating-offer and hidden-reservation variants.
-4. Expand `auction` to multi-objective mechanism selection, not just reserve
+4. Broaden `belief_bargaining` into multi-turn opponent modeling.
+5. Expand `auction` to multi-objective mechanism selection, not just reserve
    price.
-5. Expand `market` from symmetric price competition to inventory, capital
+6. Expand `market` from symmetric price competition to inventory, capital
    appreciation, and multi-period survival.
-6. Broaden `retail` into multi-period inventory and supplier-scam variants.
-7. Broaden `strategic_drift` into imperfect-information and N-player games.
-8. Broaden `exploration` into multi-step Bayesian experiment design.
+7. Broaden `retail` into multi-period inventory and supplier-scam variants.
+8. Broaden `strategic_drift` into imperfect-information and N-player games.
+9. Broaden `exploration` into multi-step Bayesian experiment design.

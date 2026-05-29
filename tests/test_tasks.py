@@ -6,6 +6,9 @@ from aeread_lab.runner import run_sweep
 from aeread_lab.tasks.adversarial import run_scam_arena
 from aeread_lab.tasks.auction import run_auction_game
 from aeread_lab.tasks.bargaining import run_bargaining_game
+from aeread_lab.tasks.belief_bargaining import DEFAULT_CASES as BELIEF_BARGAINING_CASES
+from aeread_lab.tasks.belief_bargaining import _prompt as belief_bargaining_prompt
+from aeread_lab.tasks.belief_bargaining import run_belief_bargaining_game
 from aeread_lab.tasks.exploration import DEFAULT_CASES as EXPLORATION_CASES
 from aeread_lab.tasks.exploration import _prompt as exploration_prompt
 from aeread_lab.tasks.exploration import run_exploration_game
@@ -44,11 +47,13 @@ class TaskSmokeTests(unittest.TestCase):
         pricing = pricing_prompt(PRICING_CASES[0], "reveal")
         strategic = strategic_prompt(DRIFT_CASES[0], 1, [])
         exploration = exploration_prompt(EXPLORATION_CASES[0])
+        belief_bargaining = belief_bargaining_prompt(BELIEF_BARGAINING_CASES[0])
         self.assertNotIn("oracle", regime)
         self.assertNotIn("oracle", procurement)
         self.assertNotIn("oracle", pricing)
         self.assertNotIn("oracle", strategic)
         self.assertNotIn("oracle", exploration)
+        self.assertNotIn("oracle", belief_bargaining)
         self.assertNotIn("kelly_fraction", regime)
         self.assertNotIn("oracle_price", pricing)
 
@@ -58,6 +63,13 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertLess(grade_summary["mean_grade_error"], 1e-9)
         self.assertEqual(gate_summary["mean_gate_surplus_gap"], 0.0)
         self.assertGreater(gate_summary["mean_grade_error"], 0.1)
+
+    def test_belief_bargaining_flags_ignored_cues(self):
+        calibrated = run_belief_bargaining_game(OfflineAgent("oracle"))
+        prior = run_belief_bargaining_game(OfflineAgent("prior"))
+        self.assertLess(calibrated["mean_expected_surplus_gap"], 1e-9)
+        self.assertGreater(prior["mean_expected_surplus_gap"], 1.0)
+        self.assertGreater(prior["cue_switch_miss_rate"], 0.5)
 
     def test_market_flags_collusive_price_drift(self):
         competitive = run_market_game(OfflineAgent("oracle"))
@@ -113,6 +125,13 @@ class TaskSmokeTests(unittest.TestCase):
         bargaining_rows = [row for row in rows if row["task"] == "bargaining"]
         self.assertEqual(bargaining_rows[0]["agent"], "offline:oracle")
         self.assertEqual(bargaining_rows[1]["agent"], "offline:gate")
+
+    def test_offline_sweep_ranks_calibrated_above_prior_on_belief_bargaining(self):
+        sweep = run_sweep(task="belief_bargaining", agent_specs=["offline:oracle", "offline:prior"])
+        rows = rank_rows(comparison_table(sweep))
+        belief_rows = [row for row in rows if row["task"] == "belief_bargaining"]
+        self.assertEqual(belief_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(belief_rows[1]["agent"], "offline:prior")
 
     def test_offline_sweep_ranks_competitive_above_collusive_on_market(self):
         sweep = run_sweep(task="market", agent_specs=["offline:oracle", "offline:collusive"])

@@ -14,6 +14,7 @@ from aeread_lab.runner import run_sweep, run_tasks
 TASKS = (
     "regime",
     "bargaining",
+    "belief_bargaining",
     "market",
     "auction",
     "strategic_drift",
@@ -116,6 +117,13 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"{_fmt(result['mean_grade_error'])} "
                 f"ci95={_fmt_ci(result.get('mean_grade_error_ci95'))} "
                 f"gate_gap={_fmt(result['mean_gate_surplus_gap'])}"
+            )
+        elif task == "belief_bargaining":
+            print(
+                f"belief_bargaining: n={result['n_trials']} surplus_gap="
+                f"{_fmt(result['mean_expected_surplus_gap'])} "
+                f"ci95={_fmt_ci(result.get('mean_expected_surplus_gap_ci95'))} "
+                f"cue_miss={result['cue_switch_miss_rate']:.2f}"
             )
         elif task == "market":
             print(

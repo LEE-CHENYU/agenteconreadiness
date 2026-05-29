@@ -7,6 +7,7 @@ from aeread_lab.models import Agent, build_agent
 from aeread_lab.tasks import (
     run_auction_game,
     run_bargaining_game,
+    run_belief_bargaining_game,
     run_exploration_game,
     run_market_game,
     run_pricing_game,
@@ -21,6 +22,7 @@ from aeread_lab.tasks import (
 TASK_ORDER = (
     "regime",
     "bargaining",
+    "belief_bargaining",
     "market",
     "auction",
     "strategic_drift",
@@ -37,6 +39,8 @@ def run_task(task: str, agent: Agent, attacker: Agent | None = None) -> dict[str
         return run_regime_battery(agent)
     if task == "bargaining":
         return run_bargaining_game(agent)
+    if task == "belief_bargaining":
+        return run_belief_bargaining_game(agent)
     if task == "market":
         return run_market_game(agent)
     if task == "auction":
