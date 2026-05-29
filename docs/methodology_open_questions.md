@@ -1,6 +1,6 @@
 # AERead methodology — open methodological questions (Q&A)
 
-> Working positions on the 10 open methodological questions for major-lab adoption + methodology-paper acceptance. **Not closed claims** — engagement invited on all ten. Topic-index table for navigation; bodies below; "Open:" line ends each Q.
+> Working positions on the 13 open methodological questions for major-lab adoption + methodology-paper acceptance. **Not closed claims** — engagement invited on all thirteen. Topic-index table for navigation; bodies below; "Open:" line ends each Q.
 >
 > Framework descriptions (3-layer pipeline + 5-axis taxonomy + OracleDecomposable + methodological commitments) are in [`methodology.md`](methodology.md).
 
@@ -19,6 +19,8 @@
 | **Q9** | Operational emergence definition | Conservative 5-criterion test for emergence claims (addresses Schaeffer-Krueger 2023 critique) |
 | **Q10** | Training-signal validation (scorer vs validated signal) | v0 ships a scorer + observational evidence; causal claim requires training experiment. Three options pending checkpoint. |
 | **Q11** | Gate vs grade: rationality and persona-fidelity — one problem or two? | One pipeline, gate → grade; two scored stages, explicit dependency. Rationality (gate) is a floor for frontier models; persona-fidelity (grade) is the discriminator + alignment-relevant signal. Separate scoring forced by opposite failure-sign. Falsifiable. |
+| **Q12** | Operationalizing stress as a cross-cutting axis | Keep the decomposition; add stress orthogonally; report a degradation curve + cliff edge, not pass/fail; co-measure gate+grade per (persona, stress) condition. Saturation is conditional (benign-only) — Andon falsifies "gate is a structural floor". |
+| **Q13** | Adversarial co-evolution as judge-free stress-discovery | Yes — attacker discovers defender-degrading scenarios, frozen into a corpus (generation, not runtime); reward oracle-computed not LLM-judged (→ OracleDecomposable); Persona-Collapse Arena first; v0.5+/substrate. |
 
 ---
 
@@ -245,6 +247,37 @@ Schaeffer-Krueger 2023 argued that some apparent emergence is an artifact of dis
 - Is the unified gate→grade framing stronger than a standalone steerability paper aimed squarely at the safety audience? (Positioning trade-off: integration + deployment-verdict framing vs faster single-audience hit.)
 - Is persona separation (threshold spread) the right grade metric, or must the per-persona fidelity score (which penalizes over-steering) be the headline? Multi-seed CIs required either way.
 - Does the "persona collapse under rationality pressure" finding replicate on the named-principal (13F-style) instrument, not just synthetic personas?
+
+### Q12 — How should stress be operationalized as a cross-cutting axis?
+
+**Working position**: rationality is a floor *at rest* but a cliff *under load*. **Keep the 3-layer decomposition; add stress as a dimension orthogonal to the layers** — do not restructure. For each (model, task), report a **degradation curve** (gate-compliance + grade-fidelity vs stress level) and a **cliff edge**, not a pass/fail point.
+
+Stress dimensions with direct evidence the gate degrades:
+
+| Stress | Evidence |
+|---|---|
+| Long horizon | [Andon Vending-Bench](https://andonlabs.com/blog/opus-4-8-vending-bench): Opus 4.8 scam-supplier / non-convergent-loop / price-comparison failures at 20M tokens |
+| Compute budget | pricing toy at constrained reasoning budget → collapse; at adequate budget → near-oracle |
+| Multi-agent / strategic | repeated-pricing control-gap collapse (fails to sustain cooperation) |
+| Sequential-inference load | multi-period posterior-integration gap |
+| Adversarial / meta-framing | meta-guidance (axiom prompt, population prior) degrading behavior; [Tak et al. 2026](https://arxiv.org/abs/2601.22329) — rationality "reversible under sufficient adversarial pressure" |
+| Persona-conditioning | [Wen 2025](https://arxiv.org/abs/2501.18190) — personas degrade GARP |
+
+**Why keep, not restructure**: saturation is conditional (benign-only) — Andon falsifies "the gate is a structural floor." Removing the gate discards the detector for the most deployment-relevant failure (Andon's result IS a gate failure under horizon stress). **Protocol consequence**: because persona-conditioning (the grade manipulation) can itself break the gate, co-measure gate + grade under the same (persona, stress) condition, not gate-once-at-baseline. Stress-degradation does not decay with capability — the cliff edge moves further out but does not vanish — converting the otherwise-saturating gate into a moving-frontier measurement.
+
+**Open**: which stress dimensions are v0 vs roadmap; how to define the "cliff edge" metric (threshold-crossing vs curve-AUC); whether a grade-side "safety" axis (deception / power-seeking, per Andon) is a distinct axis or folds into steerability.
+
+### Q13 — Can adversarial co-evolution discover stress scenarios judge-free?
+
+**Working position**: yes — adversarial games are the **generator** for the stress axis. An attacker LLM searches for the scenarios that most degrade a defender (the system-under-test, optionally persona-configured); discovered exploits are frozen into the stress battery. This is **test-generation, not a new scoring paradigm**.
+
+Two validity constraints:
+1. **Judge-free → must be OracleDecomposable.** The attacker's reward must be mechanically/oracle-computed (surplus extracted, GARP-violations induced, persona-drift via implied-utility-fit, posterior distance) — never an LLM judgment, per the judge-free commitment — so adversarial games must themselves be OracleDecomposable.
+2. **Test-generation, not runtime.** Freeze discovered exploits into a static corpus → deterministic replay at benchmark time (no attacker in the loop) → reproducibility.
+
+Attack-objective taxonomy (each discovers a different stress): persona-collapse induction (grade) / money-pump induction (gate Axis 2) / bilateral exploitation (strategic) / belief-manipulation (gate Axis 1). Bonus: clustering discovered exploits induces stress *dimensions*, not just instances (taxonomy induction). First build: **Persona-Collapse Arena** (attacker tries to make a persona-configured defender accept a persona-violating deal; reward = persona-drift, oracle = the persona rule). Anchor: [Tak et al. 2026](https://arxiv.org/abs/2601.22329) (rationality reversible under adversarial pressure). Scope: multi-agent + co-evolutionary → v0.5+/substrate; connects to the bargaining + agentic-marketplace candidates and the planned v2 adversarial-robustness dimension. Strongest safety framing: automated red-teaming of whether a deployed economic agent can be made to betray its configured principal.
+
+**Open**: attacker-capability ceiling (how strong an attacker; co-evolve vs fixed); overfitting to one attacker's style (multiple / held-out attackers + an exploit-diversity metric); whether clustering discovered exploits reliably induces named stress dimensions.
 
 ---
 
