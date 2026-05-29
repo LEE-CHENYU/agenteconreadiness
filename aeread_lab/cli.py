@@ -19,6 +19,7 @@ TASKS = (
     "belief_bargaining",
     "market",
     "auction",
+    "mechanism",
     "strategic_drift",
     "exploration",
     "retail",
@@ -154,6 +155,14 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"auction: n={result['n_trials']} mean_reserve_error="
                 f"{_fmt(result['mean_reserve_error'])} "
                 f"ci95={_fmt_ci(result.get('mean_reserve_error_ci95'))}"
+            )
+        elif task == "mechanism":
+            print(
+                f"mechanism: n={result['n_trials']} score_regret="
+                f"{_fmt(result['mean_score_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_score_regret_ci95'))} "
+                f"revenue_miss={result['revenue_default_miss_rate']:.2f} "
+                f"risk_blind_miss={result['risk_blind_miss_rate']:.2f}"
             )
         elif task == "strategic_drift":
             print(

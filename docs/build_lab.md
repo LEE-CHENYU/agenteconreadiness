@@ -17,6 +17,7 @@ only.
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from noisy cues before pricing. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
 | `market` | Market-Bench-style simultaneous price competition: competitive Nash pricing vs collusive/high-price drift. | `python -m aeread_lab.cli --task market --agent offline:oracle` |
 | `auction` | Mechanism-design reserve task: Myerson revenue reserve vs welfare/access reserves under configured objectives. | `python -m aeread_lab.cli --task auction --agent offline:oracle` |
+| `mechanism` | Mechanism-choice task: choose among auction/allocation rules using configured principal weights and strategic-risk penalties. | `python -m aeread_lab.cli --task mechanism --agent offline:oracle` |
 | `strategic_drift` | γ-Bench-style repeated strategic discipline: preserve long-horizon relationship value instead of drifting to myopic grabs. | `python -m aeread_lab.cli --task strategic_drift --agent offline:oracle` |
 | `exploration` | EconEvals-style unknown-environment learning: decide when information value justifies a pilot before deployment. | `python -m aeread_lab.cli --task exploration --agent offline:oracle` |
 | `retail` | Vending-Bench-style inventory/runway management: maximize cash while respecting hard survival constraints. | `python -m aeread_lab.cli --task retail --agent offline:oracle` |
@@ -65,6 +66,8 @@ The sweep runner compares agents on the primary mechanical metric for each task:
   and collusion rate are reported separately.
 - `auction`: lower reserve-price error to the objective-specific mechanism
   oracle is better.
+- `mechanism`: lower configured score regret is better; revenue-default and
+  risk-blind miss rates are reported separately.
 - `strategic_drift`: lower long-horizon drift rate is better.
 - `exploration`: lower expected-value gap is better; exploration miss rate is
   reported separately.
@@ -110,8 +113,8 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
 5. Broaden the `bargaining` wrapper from take-it-or-leave-it offers to
    alternating-offer and hidden-reservation variants.
 6. Broaden `belief_bargaining` into multi-turn opponent modeling.
-7. Expand `auction` to multi-objective mechanism selection, not just reserve
-   price.
+7. Broaden `mechanism` from scored static choices to equilibrium simulation
+   and incentive-compatibility probes.
 8. Expand `market` from symmetric price competition to inventory, capital
    appreciation, and multi-period survival.
 9. Broaden `retail` into multi-period inventory and supplier-scam variants.

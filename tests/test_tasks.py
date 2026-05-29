@@ -16,6 +16,9 @@ from aeread_lab.tasks.exploration import DEFAULT_CASES as EXPLORATION_CASES
 from aeread_lab.tasks.exploration import _prompt as exploration_prompt
 from aeread_lab.tasks.exploration import run_exploration_game
 from aeread_lab.tasks.market import run_market_game
+from aeread_lab.tasks.mechanism import DEFAULT_CASES as MECHANISM_CASES
+from aeread_lab.tasks.mechanism import _prompt as mechanism_prompt
+from aeread_lab.tasks.mechanism import run_mechanism_game
 from aeread_lab.tasks.pricing import DEFAULT_CASES as PRICING_CASES
 from aeread_lab.tasks.pricing import _prompt as pricing_prompt
 from aeread_lab.tasks.pricing import run_pricing_game
@@ -56,6 +59,7 @@ class TaskSmokeTests(unittest.TestCase):
         belief_bargaining = belief_bargaining_prompt(BELIEF_BARGAINING_CASES[0])
         principal = principal_prompt(PRINCIPAL_CASES[0])
         ambiguity = ambiguity_prompt(AMBIGUITY_CASES[0])
+        mechanism = mechanism_prompt(MECHANISM_CASES[0])
         self.assertNotIn("oracle", regime)
         self.assertNotIn("oracle", procurement)
         self.assertNotIn("oracle", pricing)
@@ -64,6 +68,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", belief_bargaining)
         self.assertNotIn("oracle", principal)
         self.assertNotIn("oracle", ambiguity)
+        self.assertNotIn("oracle", mechanism)
         self.assertNotIn("kelly_fraction", regime)
         self.assertNotIn("oracle_price", pricing)
 
@@ -106,6 +111,15 @@ class TaskSmokeTests(unittest.TestCase):
         revenue = run_auction_game(OfflineAgent("revenue"))
         self.assertLess(configured["mean_reserve_error"], 1e-9)
         self.assertGreater(revenue["mean_reserve_error"], 0.1)
+
+    def test_mechanism_splits_revenue_and_risk_blind_defaults(self):
+        configured = run_mechanism_game(OfflineAgent("oracle"))
+        revenue = run_mechanism_game(OfflineAgent("revenue"))
+        risk_blind = run_mechanism_game(OfflineAgent("risk_blind"))
+        self.assertLess(configured["mean_score_regret"], 1e-9)
+        self.assertGreater(revenue["mean_score_regret"], 25.0)
+        self.assertGreater(revenue["revenue_default_miss_rate"], 0.5)
+        self.assertGreater(risk_blind["risk_blind_miss_rate"], 0.2)
 
     def test_strategic_drift_flags_myopic_grabs(self):
         disciplined = run_strategic_drift_game(OfflineAgent("oracle"))
@@ -183,6 +197,13 @@ class TaskSmokeTests(unittest.TestCase):
         auction_rows = [row for row in rows if row["task"] == "auction"]
         self.assertEqual(auction_rows[0]["agent"], "offline:oracle")
         self.assertEqual(auction_rows[1]["agent"], "offline:revenue")
+
+    def test_offline_sweep_ranks_configured_above_revenue_on_mechanism(self):
+        sweep = run_sweep(task="mechanism", agent_specs=["offline:oracle", "offline:revenue"])
+        rows = rank_rows(comparison_table(sweep))
+        mechanism_rows = [row for row in rows if row["task"] == "mechanism"]
+        self.assertEqual(mechanism_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(mechanism_rows[1]["agent"], "offline:revenue")
 
     def test_offline_sweep_ranks_disciplined_above_myopic_on_strategic_drift(self):
         sweep = run_sweep(task="strategic_drift", agent_specs=["offline:oracle", "offline:myopic"])

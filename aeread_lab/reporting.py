@@ -11,6 +11,7 @@ PRIMARY_METRICS = {
     "belief_bargaining": ("mean_expected_surplus_gap", "lower"),
     "market": ("mean_equilibrium_price_gap", "lower"),
     "auction": ("mean_reserve_error", "lower"),
+    "mechanism": ("mean_score_regret", "lower"),
     "strategic_drift": ("drift_rate", "lower"),
     "exploration": ("mean_expected_value_gap", "lower"),
     "retail": ("mean_ruin_probability", "lower"),

@@ -105,6 +105,8 @@ class OfflineAgent:
             return self._market_price(user)
         if "TASK: auction_reserve" in system:
             return self._auction_reserve(user)
+        if "TASK: mechanism_choice" in system:
+            return self._mechanism_choice(user)
         if "TASK: strategic_action" in system:
             return self._strategic_action(user)
         if "TASK: exploration_action" in system:
@@ -276,6 +278,19 @@ class OfflineAgent:
         else:
             reserve = welfare
         return f"FINAL_RESERVE: {reserve:.2f}"
+
+    def _mechanism_choice(self, user: str) -> str:
+        mechanisms = _extract_mechanisms(user)
+        if self.policy == "revenue":
+            mechanism_id = max(mechanisms, key=lambda item: mechanisms[item]["revenue"])
+        elif self.policy == "welfare":
+            mechanism_id = max(mechanisms, key=lambda item: mechanisms[item]["welfare"])
+        elif self.policy == "access":
+            mechanism_id = max(mechanisms, key=lambda item: mechanisms[item]["access"])
+        else:
+            risk_blind = self.policy in {"risk_blind", "strategy_blind"}
+            mechanism_id = _best_mechanism_choice(user, mechanisms, risk_blind=risk_blind)
+        return f"FINAL_MECHANISM: {mechanism_id}"
 
     def _strategic_action(self, user: str) -> str:
         if self.policy in {"myopic", "grab"}:
@@ -589,6 +604,48 @@ def _belief_best_price(
 
     candidates = sorted({seller_cost, *(state["buyer_wtp"] for state in states)})
     return max(candidates, key=expected_surplus)
+
+
+def _extract_mechanisms(text: str) -> dict[str, dict[str, float]]:
+    mechanisms: dict[str, dict[str, float]] = {}
+    pattern = re.compile(
+        r"mechanism_id=([a-zA-Z0-9_-]+)\s+"
+        r"revenue=([-+]?\d+(?:\.\d+)?)\s+"
+        r"welfare=([-+]?\d+(?:\.\d+)?)\s+"
+        r"access=([-+]?\d+(?:\.\d+)?)\s+"
+        r"strategic_risk=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        mechanisms[match.group(1)] = {
+            "revenue": float(match.group(2)),
+            "welfare": float(match.group(3)),
+            "access": float(match.group(4)),
+            "strategic_risk": float(match.group(5)),
+        }
+    return mechanisms
+
+
+def _best_mechanism_choice(
+    text: str,
+    mechanisms: dict[str, dict[str, float]],
+    *,
+    risk_blind: bool,
+) -> str:
+    revenue_weight = _extract_float(text, "revenue_weight")
+    welfare_weight = _extract_float(text, "welfare_weight")
+    access_weight = _extract_float(text, "access_weight")
+    risk_penalty = 0.0 if risk_blind else _extract_float(text, "strategic_risk_penalty")
+
+    def score(mechanism_id: str) -> float:
+        mechanism = mechanisms[mechanism_id]
+        return (
+            revenue_weight * mechanism["revenue"]
+            + welfare_weight * mechanism["welfare"]
+            + access_weight * mechanism["access"]
+            - risk_penalty * mechanism["strategic_risk"]
+        )
+
+    return max(mechanisms, key=score)
 
 
 def _extract_state_ids(text: str) -> list[str]:
