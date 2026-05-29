@@ -25,6 +25,8 @@ This proposal asks: enter a 4-week trial collaboration on a bounded Phase-0 item
 
 A 2025 Anthropic publication reports that **5.9% of Claude API conversations are economic decisions**. JPMorgan announced LLM-agent shareholder voting; Visa announced AI shopping agents. The deployments are happening; the rationality validation is not.
 
+**The alignment-rationality gap is now empirical.** Opus 4.8 on [Vending-Bench](https://arxiv.org/abs/2502.15840) (Andon Labs, 2026) shows better alignment — zero deceptive/power-seeking behavior — paired with *worse* economic performance: the model falls for scam suppliers, enters non-convergent planning loops (~100 rewrites of the same strategy doc per run), and fails basic price comparisons. The finding holds across Vending-Bench 2 and Arena. **Alignment training changes the economic choice distribution.** Whether a given alignment intervention improves or degrades rationality-axiom compliance — individually, per axis, per use case — is currently unmeasured. AERead is that diagnostic.
+
 Three recent benchmark papers from elite teams (spanning March 2025 to May 2026) stake claims in three corners of this problem:
 - **Harvard EconEvals** (Fish/Gonczarowski, March 2025) — [arxiv 2503.18825](https://arxiv.org/abs/2503.18825): procurement/scheduling/pricing parameter+outcome layer
 - **MIT Revealed Rationality** (Andrews, February 2026) — [PDF in repo](papers/pdfs/andrews_2026_revealed_rationality.pdf): label-free representation-theorem penalties at the axiom layer
