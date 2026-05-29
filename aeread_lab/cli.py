@@ -13,6 +13,7 @@ from aeread_lab.runner import run_sweep, run_tasks
 
 TASKS = (
     "regime",
+    "principal_inference",
     "bargaining",
     "belief_bargaining",
     "market",
@@ -110,6 +111,13 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"destroy_ci={_fmt_ci(row.get('wealth_destruction_ci95'))} "
                     f"case={row['real_case']}"
                 )
+        elif task == "principal_inference":
+            print(
+                f"principal_inference: n={result['n_trials']} fraction_error="
+                f"{_fmt(result['mean_fraction_error'])} "
+                f"ci95={_fmt_ci(result.get('mean_fraction_error_ci95'))} "
+                f"generic_gap={_fmt(result['generic_mean_fraction_gap'])}"
+            )
         elif task == "bargaining":
             print(
                 f"bargaining: n={result['n_trials']} agreement="

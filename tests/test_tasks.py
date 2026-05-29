@@ -16,6 +16,9 @@ from aeread_lab.tasks.market import run_market_game
 from aeread_lab.tasks.pricing import DEFAULT_CASES as PRICING_CASES
 from aeread_lab.tasks.pricing import _prompt as pricing_prompt
 from aeread_lab.tasks.pricing import run_pricing_game
+from aeread_lab.tasks.principal_inference import DEFAULT_CASES as PRINCIPAL_CASES
+from aeread_lab.tasks.principal_inference import _prompt as principal_prompt
+from aeread_lab.tasks.principal_inference import run_principal_inference_game
 from aeread_lab.tasks.procurement import DEFAULT_CASES as PROCUREMENT_CASES
 from aeread_lab.tasks.procurement import _prompt as procurement_prompt
 from aeread_lab.tasks.procurement import run_procurement_game
@@ -48,14 +51,22 @@ class TaskSmokeTests(unittest.TestCase):
         strategic = strategic_prompt(DRIFT_CASES[0], 1, [])
         exploration = exploration_prompt(EXPLORATION_CASES[0])
         belief_bargaining = belief_bargaining_prompt(BELIEF_BARGAINING_CASES[0])
+        principal = principal_prompt(PRINCIPAL_CASES[0])
         self.assertNotIn("oracle", regime)
         self.assertNotIn("oracle", procurement)
         self.assertNotIn("oracle", pricing)
         self.assertNotIn("oracle", strategic)
         self.assertNotIn("oracle", exploration)
         self.assertNotIn("oracle", belief_bargaining)
+        self.assertNotIn("oracle", principal)
         self.assertNotIn("kelly_fraction", regime)
         self.assertNotIn("oracle_price", pricing)
+
+    def test_principal_inference_flags_generic_gamma(self):
+        inferred = run_principal_inference_game(OfflineAgent("oracle"))
+        generic = run_principal_inference_game(OfflineAgent("generic_gamma"))
+        self.assertLess(inferred["mean_fraction_error"], 1e-9)
+        self.assertGreater(generic["mean_fraction_error"], 0.1)
 
     def test_bargaining_splits_gate_from_grade(self):
         grade_summary = run_bargaining_game(OfflineAgent("oracle"))
@@ -118,6 +129,13 @@ class TaskSmokeTests(unittest.TestCase):
         regime_rows = [row for row in rows if row["task"] == "regime"]
         self.assertEqual(regime_rows[0]["agent"], "offline:oracle")
         self.assertEqual(regime_rows[1]["agent"], "offline:ev")
+
+    def test_offline_sweep_ranks_inferred_above_generic_on_principal(self):
+        sweep = run_sweep(task="principal_inference", agent_specs=["offline:oracle", "offline:generic_gamma"])
+        rows = rank_rows(comparison_table(sweep))
+        principal_rows = [row for row in rows if row["task"] == "principal_inference"]
+        self.assertEqual(principal_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(principal_rows[1]["agent"], "offline:generic_gamma")
 
     def test_offline_sweep_ranks_oracle_above_gate_on_bargaining_grade(self):
         sweep = run_sweep(task="bargaining", agent_specs=["offline:oracle", "offline:gate"])

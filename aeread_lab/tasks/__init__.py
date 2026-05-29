@@ -5,6 +5,7 @@ from .auction import run_auction_game
 from .exploration import run_exploration_game
 from .market import run_market_game
 from .pricing import run_pricing_game
+from .principal_inference import run_principal_inference_game
 from .procurement import run_procurement_game
 from .regime import run_regime_battery
 from .retail import run_retail_game
@@ -18,6 +19,7 @@ __all__ = [
     "run_exploration_game",
     "run_market_game",
     "run_pricing_game",
+    "run_principal_inference_game",
     "run_procurement_game",
     "run_regime_battery",
     "run_retail_game",

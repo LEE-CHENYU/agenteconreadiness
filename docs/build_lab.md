@@ -11,6 +11,7 @@ only.
 | Build | Why it matters | Command |
 |---|---|---|
 | `regime` | Four-regime utility battery: EV single-shot, Kelly compounding, CVaR under ruin, configured-principal CRRA. This is the re-centered regime-appropriateness axis. | `python -m aeread_lab.cli --task regime --agent offline:oracle` |
+| `principal_inference` | Grade-side revealed-preference task: infer a principal's CRRA risk parameter from prior choices before allocating in a new scenario. | `python -m aeread_lab.cli --task principal_inference --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from noisy cues before pricing. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
 | `market` | Market-Bench-style simultaneous price competition: competitive Nash pricing vs collusive/high-price drift. | `python -m aeread_lab.cli --task market --agent offline:oracle` |
@@ -51,6 +52,8 @@ There is no Anthropic/OpenRouter path in this build lab.
 The sweep runner compares agents on the primary mechanical metric for each task:
 
 - `regime`: lower mean absolute error to the regime-correct oracle is better.
+- `principal_inference`: lower fraction error to the revealed-principal oracle
+  is better; generic-gamma gap is reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
   surplus gap is reported separately.
 - `belief_bargaining`: lower posterior expected-surplus gap is better; cue
@@ -98,13 +101,15 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
 1. Broaden the `regime` battery to more gamble families and explicit barrier states.
 2. Run cached model-version sweeps for alignment-shift diagnostics across
    `gpt-5.5`, `mini`, and `nano`.
-3. Broaden the `bargaining` wrapper from take-it-or-leave-it offers to
+3. Broaden `principal_inference` from CRRA allocation to real 13F-style
+   revealed-preference traces.
+4. Broaden the `bargaining` wrapper from take-it-or-leave-it offers to
    alternating-offer and hidden-reservation variants.
-4. Broaden `belief_bargaining` into multi-turn opponent modeling.
-5. Expand `auction` to multi-objective mechanism selection, not just reserve
+5. Broaden `belief_bargaining` into multi-turn opponent modeling.
+6. Expand `auction` to multi-objective mechanism selection, not just reserve
    price.
-6. Expand `market` from symmetric price competition to inventory, capital
+7. Expand `market` from symmetric price competition to inventory, capital
    appreciation, and multi-period survival.
-7. Broaden `retail` into multi-period inventory and supplier-scam variants.
-8. Broaden `strategic_drift` into imperfect-information and N-player games.
-9. Broaden `exploration` into multi-step Bayesian experiment design.
+8. Broaden `retail` into multi-period inventory and supplier-scam variants.
+9. Broaden `strategic_drift` into imperfect-information and N-player games.
+10. Broaden `exploration` into multi-step Bayesian experiment design.

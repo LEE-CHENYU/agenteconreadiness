@@ -11,6 +11,7 @@ from aeread_lab.tasks import (
     run_exploration_game,
     run_market_game,
     run_pricing_game,
+    run_principal_inference_game,
     run_procurement_game,
     run_regime_battery,
     run_retail_game,
@@ -21,6 +22,7 @@ from aeread_lab.tasks import (
 
 TASK_ORDER = (
     "regime",
+    "principal_inference",
     "bargaining",
     "belief_bargaining",
     "market",
@@ -37,6 +39,8 @@ TASK_ORDER = (
 def run_task(task: str, agent: Agent, attacker: Agent | None = None) -> dict[str, Any]:
     if task == "regime":
         return run_regime_battery(agent)
+    if task == "principal_inference":
+        return run_principal_inference_game(agent)
     if task == "bargaining":
         return run_bargaining_game(agent)
     if task == "belief_bargaining":

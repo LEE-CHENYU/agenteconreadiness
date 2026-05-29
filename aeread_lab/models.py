@@ -4,6 +4,7 @@ import math
 import os
 import re
 from dataclasses import dataclass
+from statistics import median
 from typing import Protocol
 
 
@@ -88,6 +89,8 @@ class OfflineAgent:
     def complete(self, system: str, user: str) -> str:
         if "TASK: regime_fraction" in system:
             return self._regime_fraction(user)
+        if "TASK: principal_fraction" in system:
+            return self._principal_fraction(user)
         if "TASK: procurement_choice" in system:
             return self._procurement_choice(user)
         if "TASK: pricing_price" in system:
@@ -129,6 +132,20 @@ class OfflineAgent:
         else:
             value = oracle
         return f"FINAL_FRACTION: {value:.4f}"
+
+    def _principal_fraction(self, user: str) -> str:
+        excess_return = _extract_float(user, "new_excess_return")
+        variance = _extract_float(user, "new_variance")
+        if self.policy in {"generic_gamma", "gamma1"}:
+            gamma = 1.0
+        elif self.policy == "risk_averse":
+            gamma = 4.0
+        elif self.policy == "risk_seeking":
+            gamma = 0.8
+        else:
+            gamma = _infer_principal_gamma(user)
+        value = 0.0 if variance <= 0 or gamma <= 0 else excess_return / (gamma * variance)
+        return f"FINAL_FRACTION: {max(0.0, min(1.0, value)):.4f}"
 
     def _procurement_choice(self, user: str) -> str:
         if self.policy == "first":
@@ -348,6 +365,23 @@ def _extract_uniform_bounds(text: str) -> tuple[float, float]:
     if not match:
         return 0.0, 1.0
     return float(match.group(1)), float(match.group(2))
+
+
+def _infer_principal_gamma(text: str) -> float:
+    gammas = []
+    pattern = re.compile(
+        r"scenario_id=[a-zA-Z0-9_-]+\s+"
+        r"excess_return=([-+]?\d+(?:\.\d+)?)\s+"
+        r"variance=([-+]?\d+(?:\.\d+)?)\s+"
+        r"chosen_fraction=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        excess_return = float(match.group(1))
+        variance = float(match.group(2))
+        fraction = float(match.group(3))
+        if variance > 0 and fraction > 0:
+            gammas.append(excess_return / (fraction * variance))
+    return median(gammas) if gammas else 1.0
 
 
 def _regime_ev_fraction(text: str) -> float:
