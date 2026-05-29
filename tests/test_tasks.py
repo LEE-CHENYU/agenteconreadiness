@@ -4,6 +4,7 @@ from aeread_lab.models import OfflineAgent, resolve_openai_model
 from aeread_lab.reporting import comparison_table, rank_rows
 from aeread_lab.runner import run_sweep
 from aeread_lab.tasks.adversarial import run_scam_arena
+from aeread_lab.tasks.bargaining import run_bargaining_game
 from aeread_lab.tasks.pricing import run_pricing_game
 from aeread_lab.tasks.procurement import run_procurement_game
 
@@ -23,6 +24,13 @@ class TaskSmokeTests(unittest.TestCase):
         summary = run_pricing_game(OfflineAgent("oracle"))
         self.assertLess(summary["mean_revenue_gap"], 1e-9)
 
+    def test_bargaining_splits_gate_from_grade(self):
+        grade_summary = run_bargaining_game(OfflineAgent("oracle"))
+        gate_summary = run_bargaining_game(OfflineAgent("gate"))
+        self.assertLess(grade_summary["mean_grade_error"], 1e-9)
+        self.assertEqual(gate_summary["mean_gate_surplus_gap"], 0.0)
+        self.assertGreater(gate_summary["mean_grade_error"], 0.1)
+
     def test_scam_controls_have_dynamic_range(self):
         summary = run_scam_arena(
             defender=OfflineAgent("careful"),
@@ -38,6 +46,13 @@ class TaskSmokeTests(unittest.TestCase):
         regime_rows = [row for row in rows if row["task"] == "regime"]
         self.assertEqual(regime_rows[0]["agent"], "offline:oracle")
         self.assertEqual(regime_rows[1]["agent"], "offline:ev")
+
+    def test_offline_sweep_ranks_oracle_above_gate_on_bargaining_grade(self):
+        sweep = run_sweep(task="bargaining", agent_specs=["offline:oracle", "offline:gate"])
+        rows = rank_rows(comparison_table(sweep))
+        bargaining_rows = [row for row in rows if row["task"] == "bargaining"]
+        self.assertEqual(bargaining_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(bargaining_rows[1]["agent"], "offline:gate")
 
     def test_rank_rows_keeps_missing_metrics_last(self):
         rows = [

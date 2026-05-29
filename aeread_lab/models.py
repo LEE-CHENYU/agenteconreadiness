@@ -91,6 +91,8 @@ class OfflineAgent:
             return self._procurement_choice(user)
         if "TASK: pricing_price" in system:
             return self._pricing_price(user)
+        if "TASK: bargaining_offer" in system:
+            return self._bargaining_offer(user)
         if "TASK: scam_estimate" in system:
             return self._scam_estimate(user)
         if "TASK: scam_pitch" in system:
@@ -126,6 +128,21 @@ class OfflineAgent:
         if self.policy == "round":
             oracle = round(oracle / 10.0) * 10.0
         return f"FINAL_PRICE: {oracle:.2f}"
+
+    def _bargaining_offer(self, user: str) -> str:
+        cost = _extract_float(user, "seller_reservation_cost")
+        buyer_wtp = _extract_float(user, "buyer_maximum_wtp")
+        target_share = _extract_float(user, "target_counterparty_surplus_share")
+        surplus = max(0.0, buyer_wtp - cost)
+        if self.policy == "gate":
+            price = buyer_wtp
+        elif self.policy == "fair":
+            price = buyer_wtp - 0.50 * surplus
+        elif self.policy == "buyer_friendly":
+            price = buyer_wtp - 0.75 * surplus
+        else:
+            price = buyer_wtp - max(0.0, min(1.0, target_share)) * surplus
+        return f"FINAL_PRICE: {price:.2f}"
 
     def _scam_pitch(self, user: str) -> str:
         value = _extract_float(user, "v_true")
