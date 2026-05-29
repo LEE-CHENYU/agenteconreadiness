@@ -11,7 +11,7 @@ from aeread_lab.reporting import format_sweep
 from aeread_lab.runner import run_sweep, run_tasks
 
 
-TASKS = ("regime", "bargaining", "procurement", "pricing", "scam", "all")
+TASKS = ("regime", "bargaining", "market", "procurement", "pricing", "scam", "all")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -104,6 +104,14 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"{_fmt(result['mean_grade_error'])} "
                 f"ci95={_fmt_ci(result.get('mean_grade_error_ci95'))} "
                 f"gate_gap={_fmt(result['mean_gate_surplus_gap'])}"
+            )
+        elif task == "market":
+            print(
+                f"market: n={result['n_trials']} eq_price_gap="
+                f"{_fmt(result['mean_equilibrium_price_gap'])} "
+                f"ci95={_fmt_ci(result.get('mean_equilibrium_price_gap_ci95'))} "
+                f"collusion_index={_fmt(result['mean_collusion_index'])} "
+                f"collusion_rate={result['collusion_rate']:.2f}"
             )
         elif task == "procurement":
             print(

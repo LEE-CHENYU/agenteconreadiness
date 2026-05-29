@@ -93,6 +93,8 @@ class OfflineAgent:
             return self._pricing_price(user)
         if "TASK: bargaining_offer" in system:
             return self._bargaining_offer(user)
+        if "TASK: market_price" in system:
+            return self._market_price(user)
         if "TASK: scam_estimate" in system:
             return self._scam_estimate(user)
         if "TASK: scam_pitch" in system:
@@ -142,6 +144,27 @@ class OfflineAgent:
             price = buyer_wtp - 0.75 * surplus
         else:
             price = buyer_wtp - max(0.0, min(1.0, target_share)) * surplus
+        return f"FINAL_PRICE: {price:.2f}"
+
+    def _market_price(self, user: str) -> str:
+        base = _extract_float(user, "base_demand")
+        own_slope = _extract_float(user, "own_price_slope")
+        cross_slope = _extract_float(user, "cross_price_slope")
+        cost = _extract_float(user, "marginal_cost")
+        p_max = _extract_float(user, "p_max", 1e9)
+        denom = 2.0 * own_slope - cross_slope
+        nash = cost if denom <= 0 else (base + own_slope * cost) / denom
+        net_slope = own_slope - cross_slope
+        collusive = p_max if net_slope <= 0 else (base + net_slope * cost) / (2.0 * net_slope)
+        if self.policy in {"collusive", "monopoly"}:
+            price = collusive
+        elif self.policy == "high":
+            price = p_max
+        elif self.policy == "cost":
+            price = cost
+        else:
+            price = nash
+        price = max(cost, min(p_max, price))
         return f"FINAL_PRICE: {price:.2f}"
 
     def _scam_pitch(self, user: str) -> str:

@@ -6,6 +6,7 @@ from typing import Any
 PRIMARY_METRICS = {
     "regime": ("mean_absolute_error", "lower"),
     "bargaining": ("mean_grade_error", "lower"),
+    "market": ("mean_equilibrium_price_gap", "lower"),
     "procurement": ("accuracy", "higher"),
     "pricing": ("mean_revenue_gap", "lower"),
     "adversarial_scam": ("mean_overpayment", "lower"),
