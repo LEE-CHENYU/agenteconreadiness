@@ -6,6 +6,7 @@ from typing import Any
 from aeread_lab.models import Agent, build_agent
 from aeread_lab.tasks import (
     run_auction_game,
+    run_ambiguity_game,
     run_bargaining_game,
     run_belief_bargaining_game,
     run_exploration_game,
@@ -23,6 +24,7 @@ from aeread_lab.tasks import (
 TASK_ORDER = (
     "regime",
     "principal_inference",
+    "ambiguity",
     "bargaining",
     "belief_bargaining",
     "market",
@@ -41,6 +43,8 @@ def run_task(task: str, agent: Agent, attacker: Agent | None = None) -> dict[str
         return run_regime_battery(agent)
     if task == "principal_inference":
         return run_principal_inference_game(agent)
+    if task == "ambiguity":
+        return run_ambiguity_game(agent)
     if task == "bargaining":
         return run_bargaining_game(agent)
     if task == "belief_bargaining":

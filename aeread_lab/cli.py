@@ -14,6 +14,7 @@ from aeread_lab.runner import run_sweep, run_tasks
 TASKS = (
     "regime",
     "principal_inference",
+    "ambiguity",
     "bargaining",
     "belief_bargaining",
     "market",
@@ -117,6 +118,13 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"{_fmt(result['mean_fraction_error'])} "
                 f"ci95={_fmt_ci(result.get('mean_fraction_error_ci95'))} "
                 f"generic_gap={_fmt(result['generic_mean_fraction_gap'])}"
+            )
+        elif task == "ambiguity":
+            print(
+                f"ambiguity: n={result['n_trials']} robust_regret="
+                f"{_fmt(result['mean_robust_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_robust_regret_ci95'))} "
+                f"reference_miss={result['reference_prior_miss_rate']:.2f}"
             )
         elif task == "bargaining":
             print(

@@ -4,6 +4,9 @@ from aeread_lab.models import OfflineAgent, resolve_openai_model
 from aeread_lab.reporting import comparison_table, rank_rows
 from aeread_lab.runner import run_sweep
 from aeread_lab.tasks.adversarial import run_scam_arena
+from aeread_lab.tasks.ambiguity import DEFAULT_CASES as AMBIGUITY_CASES
+from aeread_lab.tasks.ambiguity import _prompt as ambiguity_prompt
+from aeread_lab.tasks.ambiguity import run_ambiguity_game
 from aeread_lab.tasks.auction import run_auction_game
 from aeread_lab.tasks.bargaining import run_bargaining_game
 from aeread_lab.tasks.belief_bargaining import DEFAULT_CASES as BELIEF_BARGAINING_CASES
@@ -52,6 +55,7 @@ class TaskSmokeTests(unittest.TestCase):
         exploration = exploration_prompt(EXPLORATION_CASES[0])
         belief_bargaining = belief_bargaining_prompt(BELIEF_BARGAINING_CASES[0])
         principal = principal_prompt(PRINCIPAL_CASES[0])
+        ambiguity = ambiguity_prompt(AMBIGUITY_CASES[0])
         self.assertNotIn("oracle", regime)
         self.assertNotIn("oracle", procurement)
         self.assertNotIn("oracle", pricing)
@@ -59,6 +63,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", exploration)
         self.assertNotIn("oracle", belief_bargaining)
         self.assertNotIn("oracle", principal)
+        self.assertNotIn("oracle", ambiguity)
         self.assertNotIn("kelly_fraction", regime)
         self.assertNotIn("oracle_price", pricing)
 
@@ -67,6 +72,13 @@ class TaskSmokeTests(unittest.TestCase):
         generic = run_principal_inference_game(OfflineAgent("generic_gamma"))
         self.assertLess(inferred["mean_fraction_error"], 1e-9)
         self.assertGreater(generic["mean_fraction_error"], 0.1)
+
+    def test_ambiguity_flags_reference_prior_collapse(self):
+        robust = run_ambiguity_game(OfflineAgent("oracle"))
+        reference = run_ambiguity_game(OfflineAgent("reference_prior"))
+        self.assertLess(robust["mean_robust_regret"], 1e-9)
+        self.assertGreater(reference["mean_robust_regret"], 10.0)
+        self.assertGreater(reference["reference_prior_miss_rate"], 0.5)
 
     def test_bargaining_splits_gate_from_grade(self):
         grade_summary = run_bargaining_game(OfflineAgent("oracle"))
@@ -136,6 +148,13 @@ class TaskSmokeTests(unittest.TestCase):
         principal_rows = [row for row in rows if row["task"] == "principal_inference"]
         self.assertEqual(principal_rows[0]["agent"], "offline:oracle")
         self.assertEqual(principal_rows[1]["agent"], "offline:generic_gamma")
+
+    def test_offline_sweep_ranks_maxmin_above_reference_prior_on_ambiguity(self):
+        sweep = run_sweep(task="ambiguity", agent_specs=["offline:oracle", "offline:reference_prior"])
+        rows = rank_rows(comparison_table(sweep))
+        ambiguity_rows = [row for row in rows if row["task"] == "ambiguity"]
+        self.assertEqual(ambiguity_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(ambiguity_rows[1]["agent"], "offline:reference_prior")
 
     def test_offline_sweep_ranks_oracle_above_gate_on_bargaining_grade(self):
         sweep = run_sweep(task="bargaining", agent_specs=["offline:oracle", "offline:gate"])

@@ -91,6 +91,8 @@ class OfflineAgent:
             return self._regime_fraction(user)
         if "TASK: principal_fraction" in system:
             return self._principal_fraction(user)
+        if "TASK: ambiguity_action" in system:
+            return self._ambiguity_action(user)
         if "TASK: procurement_choice" in system:
             return self._procurement_choice(user)
         if "TASK: pricing_price" in system:
@@ -146,6 +148,20 @@ class OfflineAgent:
             gamma = _infer_principal_gamma(user)
         value = 0.0 if variance <= 0 or gamma <= 0 else excess_return / (gamma * variance)
         return f"FINAL_FRACTION: {max(0.0, min(1.0, value)):.4f}"
+
+    def _ambiguity_action(self, user: str) -> str:
+        state_ids = _extract_state_ids(user)
+        priors = _extract_ambiguity_priors(user, state_ids)
+        actions = _extract_ambiguity_actions(user, state_ids)
+        if self.policy in {"reference_prior", "single_prior"}:
+            reference_id = _extract_word(user, "reference_prior_id")
+            selected_priors = {reference_id: priors[reference_id]} if reference_id in priors else priors
+            action = _best_expected_action(actions, selected_priors)
+        elif self.policy == "optimistic":
+            action = _best_optimistic_action(actions, priors)
+        else:
+            action = _best_maxmin_action(actions, priors)
+        return f"FINAL_ACTION: {action}"
 
     def _procurement_choice(self, user: str) -> str:
         if self.policy == "first":
@@ -573,3 +589,59 @@ def _belief_best_price(
 
     candidates = sorted({seller_cost, *(state["buyer_wtp"] for state in states)})
     return max(candidates, key=expected_surplus)
+
+
+def _extract_state_ids(text: str) -> list[str]:
+    match = re.search(r"states=([a-zA-Z0-9_,-]+)", text)
+    return match.group(1).split(",") if match else []
+
+
+def _extract_ambiguity_priors(text: str, state_ids: list[str]) -> dict[str, list[float]]:
+    priors: dict[str, list[float]] = {}
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("prior_id="):
+            continue
+        prior_id = _extract_word(stripped, "prior_id")
+        priors[prior_id] = [_extract_float(stripped, state) for state in state_ids]
+    return priors
+
+
+def _extract_ambiguity_actions(text: str, state_ids: list[str]) -> dict[str, list[float]]:
+    actions: dict[str, list[float]] = {}
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("action_id="):
+            continue
+        action_id = _extract_word(stripped, "action_id")
+        actions[action_id] = [_extract_float(stripped, state) for state in state_ids]
+    return actions
+
+
+def _action_expected_value(payoffs: list[float], probabilities: list[float]) -> float:
+    return sum(payoff * probability for payoff, probability in zip(payoffs, probabilities))
+
+
+def _best_expected_action(actions: dict[str, list[float]], priors: dict[str, list[float]]) -> str:
+    probabilities = next(iter(priors.values())) if priors else []
+    return max(actions, key=lambda action_id: _action_expected_value(actions[action_id], probabilities))
+
+
+def _best_optimistic_action(actions: dict[str, list[float]], priors: dict[str, list[float]]) -> str:
+    return max(
+        actions,
+        key=lambda action_id: max(
+            _action_expected_value(actions[action_id], probabilities)
+            for probabilities in priors.values()
+        ),
+    )
+
+
+def _best_maxmin_action(actions: dict[str, list[float]], priors: dict[str, list[float]]) -> str:
+    return max(
+        actions,
+        key=lambda action_id: min(
+            _action_expected_value(actions[action_id], probabilities)
+            for probabilities in priors.values()
+        ),
+    )

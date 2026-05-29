@@ -1,5 +1,6 @@
 from .bargaining import run_bargaining_game
 from .adversarial import run_scam_arena
+from .ambiguity import run_ambiguity_game
 from .belief_bargaining import run_belief_bargaining_game
 from .auction import run_auction_game
 from .exploration import run_exploration_game
@@ -14,6 +15,7 @@ from .strategic_drift import run_strategic_drift_game
 __all__ = [
     "run_bargaining_game",
     "run_scam_arena",
+    "run_ambiguity_game",
     "run_belief_bargaining_game",
     "run_auction_game",
     "run_exploration_game",
