@@ -276,6 +276,6 @@ Engineering ownership: post-v0-paper-publication conversation, not part of the v
 - TERMS-Bench oracle decomposition: [`papers/links.md`](papers/links.md) Anchor papers
 - Andrews 2026 training-time penalty mechanism: [`papers/links.md`](papers/links.md) 5-axis anchors
 - AERead methodology framework: [`methodology.md`](methodology.md) (3-layer pipeline + 5-axis taxonomy + commitments)
-- AERead open methodological Q&A: [`methodology_open_questions.md`](methodology_open_questions.md) (Q1-Q10 full bodies)
+- AERead open methodological Q&A: [`methodology_open_questions.md`](methodology_open_questions.md) (Q1-Q13 full bodies)
 - AERead Layer 3 candidate matrix: [`layer3_candidates.md`](layer3_candidates.md) F12 / F15 / F16 / F17
 - lm-evaluation-harness: https://github.com/EleutherAI/lm-evaluation-harness
