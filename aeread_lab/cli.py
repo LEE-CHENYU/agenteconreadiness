@@ -11,7 +11,18 @@ from aeread_lab.reporting import format_sweep
 from aeread_lab.runner import run_sweep, run_tasks
 
 
-TASKS = ("regime", "bargaining", "market", "auction", "procurement", "pricing", "scam", "all")
+TASKS = (
+    "regime",
+    "bargaining",
+    "market",
+    "auction",
+    "strategic_drift",
+    "exploration",
+    "procurement",
+    "pricing",
+    "scam",
+    "all",
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -118,6 +129,24 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"auction: n={result['n_trials']} mean_reserve_error="
                 f"{_fmt(result['mean_reserve_error'])} "
                 f"ci95={_fmt_ci(result.get('mean_reserve_error_ci95'))}"
+            )
+        elif task == "strategic_drift":
+            print(
+                f"strategic_drift: n={result['n_trials']} drift_rate="
+                f"{_fmt(result['drift_rate'])} "
+                f"ci95={_fmt_ci(result.get('drift_rate_ci95'))}"
+            )
+            for key, row in result["by_case"].items():
+                print(
+                    f"  {key:<24} drift={row['drift_rate']:.2f} "
+                    f"first_drift={row['first_drift_round']} case={row['real_case']}"
+                )
+        elif task == "exploration":
+            print(
+                f"exploration: n={result['n_trials']} accuracy={result['accuracy']:.2f} "
+                f"ev_gap={_fmt(result['mean_expected_value_gap'])} "
+                f"ci95={_fmt_ci(result.get('mean_expected_value_gap_ci95'))} "
+                f"miss={result['exploration_miss_rate']:.2f}"
             )
         elif task == "procurement":
             print(

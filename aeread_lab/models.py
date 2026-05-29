@@ -98,6 +98,10 @@ class OfflineAgent:
             return self._market_price(user)
         if "TASK: auction_reserve" in system:
             return self._auction_reserve(user)
+        if "TASK: strategic_action" in system:
+            return self._strategic_action(user)
+        if "TASK: exploration_action" in system:
+            return self._exploration_action(user)
         if "TASK: scam_estimate" in system:
             return self._scam_estimate(user)
         if "TASK: scam_pitch" in system:
@@ -225,6 +229,34 @@ class OfflineAgent:
         else:
             reserve = welfare
         return f"FINAL_RESERVE: {reserve:.2f}"
+
+    def _strategic_action(self, user: str) -> str:
+        if self.policy in {"myopic", "grab"}:
+            return "FINAL_ACTION: GRAB"
+        if self.policy == "drift":
+            round_index = _extract_float(user, "round_index")
+            horizon = _extract_float(user, "horizon")
+            return "FINAL_ACTION: GRAB" if round_index > 0.5 * horizon else "FINAL_ACTION: HONOR"
+        honor = _extract_float(user, "honor_payoff")
+        grab = _extract_float(user, "grab_payoff")
+        penalty = _extract_float(user, "audit_penalty_if_grab")
+        future_loss = _extract_float(user, "relationship_loss_per_future_round_if_grab")
+        future_rounds = _extract_float(user, "remaining_rounds_after_this")
+        grab_net = grab - penalty - future_rounds * future_loss
+        action = "GRAB" if grab_net > honor else "HONOR"
+        return f"FINAL_ACTION: {action}"
+
+    def _exploration_action(self, user: str) -> str:
+        arms = _extract_exploration_arms(user)
+        sample_cost = _extract_float(user, "sample_cost")
+        units = _extract_float(user, "deployment_units")
+        values = _exploration_action_values(arms, units, sample_cost)
+        if self.policy in {"exploit", "greedy"}:
+            deploy_values = {key: value for key, value in values.items() if key.startswith("DEPLOY_")}
+            action = max(deploy_values, key=deploy_values.get)
+        else:
+            action = max(values, key=values.get)
+        return f"FINAL_ACTION: {action}"
 
     def _scam_pitch(self, user: str) -> str:
         value = _extract_float(user, "v_true")
@@ -371,3 +403,40 @@ def _pricing_prompt_parameters(text: str) -> tuple[float, float]:
             alpha = y_bar + beta * x_bar
             return alpha, beta
     return 1.0, 1.0
+
+
+def _extract_exploration_arms(text: str) -> dict[str, list[tuple[float, float]]]:
+    arms: dict[str, list[tuple[float, float]]] = {}
+    for arm_id, states_blob in re.findall(r"arm_id=([a-zA-Z0-9_-]+)\s+states=([0-9@.,+-]+)", text):
+        states = []
+        for item in states_blob.split(","):
+            if "@" not in item:
+                continue
+            payoff, probability = item.split("@", 1)
+            states.append((float(payoff), float(probability)))
+        if states:
+            arms[arm_id] = states
+    return arms
+
+
+def _exploration_action_values(
+    arms: dict[str, list[tuple[float, float]]],
+    units: float,
+    sample_cost: float,
+) -> dict[str, float]:
+    def expected_payoff(arm_id: str) -> float:
+        return sum(payoff * probability for payoff, probability in arms[arm_id])
+
+    values: dict[str, float] = {}
+    for arm_id, states in arms.items():
+        values[f"DEPLOY_{arm_id}"] = units * expected_payoff(arm_id)
+        if len(states) > 1:
+            other_arm_ids = [candidate for candidate in arms if candidate != arm_id]
+            value = -sample_cost
+            for payoff, probability in states:
+                best_after_sample = max(
+                    [units * payoff] + [units * expected_payoff(candidate) for candidate in other_arm_ids]
+                )
+                value += probability * best_after_sample
+            values[f"SAMPLE_{arm_id}"] = value
+    return values

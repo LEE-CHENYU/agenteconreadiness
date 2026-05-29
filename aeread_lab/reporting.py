@@ -8,6 +8,8 @@ PRIMARY_METRICS = {
     "bargaining": ("mean_grade_error", "lower"),
     "market": ("mean_equilibrium_price_gap", "lower"),
     "auction": ("mean_reserve_error", "lower"),
+    "strategic_drift": ("drift_rate", "lower"),
+    "exploration": ("mean_expected_value_gap", "lower"),
     "procurement": ("accuracy", "higher"),
     "pricing": ("mean_revenue_gap", "lower"),
     "adversarial_scam": ("mean_overpayment", "lower"),

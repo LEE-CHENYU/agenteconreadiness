@@ -6,6 +6,9 @@ from aeread_lab.runner import run_sweep
 from aeread_lab.tasks.adversarial import run_scam_arena
 from aeread_lab.tasks.auction import run_auction_game
 from aeread_lab.tasks.bargaining import run_bargaining_game
+from aeread_lab.tasks.exploration import DEFAULT_CASES as EXPLORATION_CASES
+from aeread_lab.tasks.exploration import _prompt as exploration_prompt
+from aeread_lab.tasks.exploration import run_exploration_game
 from aeread_lab.tasks.market import run_market_game
 from aeread_lab.tasks.pricing import DEFAULT_CASES as PRICING_CASES
 from aeread_lab.tasks.pricing import _prompt as pricing_prompt
@@ -14,6 +17,9 @@ from aeread_lab.tasks.procurement import DEFAULT_CASES as PROCUREMENT_CASES
 from aeread_lab.tasks.procurement import _prompt as procurement_prompt
 from aeread_lab.tasks.procurement import run_procurement_game
 from aeread_lab.tasks.regime import DEFAULT_GAMBLES, _prompt as regime_prompt
+from aeread_lab.tasks.strategic_drift import DEFAULT_CASES as DRIFT_CASES
+from aeread_lab.tasks.strategic_drift import _prompt as strategic_prompt
+from aeread_lab.tasks.strategic_drift import run_strategic_drift_game
 
 
 class TaskSmokeTests(unittest.TestCase):
@@ -35,9 +41,13 @@ class TaskSmokeTests(unittest.TestCase):
         regime = regime_prompt(DEFAULT_GAMBLES[0], "kelly")
         procurement = procurement_prompt(PROCUREMENT_CASES[0])
         pricing = pricing_prompt(PRICING_CASES[0], "reveal")
+        strategic = strategic_prompt(DRIFT_CASES[0], 1, [])
+        exploration = exploration_prompt(EXPLORATION_CASES[0])
         self.assertNotIn("oracle", regime)
         self.assertNotIn("oracle", procurement)
         self.assertNotIn("oracle", pricing)
+        self.assertNotIn("oracle", strategic)
+        self.assertNotIn("oracle", exploration)
         self.assertNotIn("kelly_fraction", regime)
         self.assertNotIn("oracle_price", pricing)
 
@@ -60,6 +70,19 @@ class TaskSmokeTests(unittest.TestCase):
         revenue = run_auction_game(OfflineAgent("revenue"))
         self.assertLess(configured["mean_reserve_error"], 1e-9)
         self.assertGreater(revenue["mean_reserve_error"], 0.1)
+
+    def test_strategic_drift_flags_myopic_grabs(self):
+        disciplined = run_strategic_drift_game(OfflineAgent("oracle"))
+        myopic = run_strategic_drift_game(OfflineAgent("myopic"))
+        self.assertEqual(disciplined["drift_rate"], 0.0)
+        self.assertGreater(myopic["drift_rate"], 0.9)
+
+    def test_exploration_flags_greedy_exploitation(self):
+        exploratory = run_exploration_game(OfflineAgent("oracle"))
+        greedy = run_exploration_game(OfflineAgent("exploit"))
+        self.assertLess(exploratory["mean_expected_value_gap"], 1e-9)
+        self.assertGreater(greedy["mean_expected_value_gap"], 10.0)
+        self.assertGreater(greedy["exploration_miss_rate"], 0.5)
 
     def test_scam_controls_have_dynamic_range(self):
         summary = run_scam_arena(
@@ -97,6 +120,20 @@ class TaskSmokeTests(unittest.TestCase):
         auction_rows = [row for row in rows if row["task"] == "auction"]
         self.assertEqual(auction_rows[0]["agent"], "offline:oracle")
         self.assertEqual(auction_rows[1]["agent"], "offline:revenue")
+
+    def test_offline_sweep_ranks_disciplined_above_myopic_on_strategic_drift(self):
+        sweep = run_sweep(task="strategic_drift", agent_specs=["offline:oracle", "offline:myopic"])
+        rows = rank_rows(comparison_table(sweep))
+        drift_rows = [row for row in rows if row["task"] == "strategic_drift"]
+        self.assertEqual(drift_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(drift_rows[1]["agent"], "offline:myopic")
+
+    def test_offline_sweep_ranks_exploration_above_exploit(self):
+        sweep = run_sweep(task="exploration", agent_specs=["offline:oracle", "offline:exploit"])
+        rows = rank_rows(comparison_table(sweep))
+        exploration_rows = [row for row in rows if row["task"] == "exploration"]
+        self.assertEqual(exploration_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(exploration_rows[1]["agent"], "offline:exploit")
 
     def test_rank_rows_keeps_missing_metrics_last(self):
         rows = [
