@@ -13,6 +13,7 @@ only.
 | `regime` | Four-regime utility battery: EV single-shot, Kelly compounding, CVaR under ruin, configured-principal CRRA. This is the re-centered regime-appropriateness axis. | `python -m aeread_lab.cli --task regime --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `market` | Market-Bench-style simultaneous price competition: competitive Nash pricing vs collusive/high-price drift. | `python -m aeread_lab.cli --task market --agent offline:oracle` |
+| `auction` | Mechanism-design reserve task: Myerson revenue reserve vs welfare/access reserves under configured objectives. | `python -m aeread_lab.cli --task auction --agent offline:oracle` |
 | `procurement` | v0 `ProductProcurementGame`: discrete-action qualitative procurement with a utility-vector oracle. | `python -m aeread_lab.cli --task procurement --agent offline:oracle` |
 | `pricing` | v0 `SimplePricingGame`: continuous price choice with base/posterior/reveal conditions and a closed-form revenue oracle. | `python -m aeread_lab.cli --task pricing --agent offline:oracle` |
 | `scam` | Adversarial belief-manipulation arena: scam-supplier style value inflation with credulous and skeptical controls. | `python -m aeread_lab.cli --task scam --agent offline:careful --attacker offline:credulous` |
@@ -50,6 +51,8 @@ The sweep runner compares agents on the primary mechanical metric for each task:
   surplus gap is reported separately.
 - `market`: lower competitive-equilibrium price gap is better; collusion index
   and collusion rate are reported separately.
+- `auction`: lower reserve-price error to the objective-specific mechanism
+  oracle is better.
 - `procurement`: higher oracle-choice accuracy is better.
 - `pricing`: lower revenue gap to the closed-form optimum is better.
 - `scam`: lower mean overpayment is better.
@@ -86,5 +89,7 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    `gpt-5.5`, `mini`, and `nano`.
 3. Broaden the `bargaining` wrapper from take-it-or-leave-it offers to
    alternating-offer and hidden-reservation variants.
-4. Expand `market` from symmetric price competition to inventory, capital
+4. Expand `auction` to multi-objective mechanism selection, not just reserve
+   price.
+5. Expand `market` from symmetric price competition to inventory, capital
    appreciation, and multi-period survival.

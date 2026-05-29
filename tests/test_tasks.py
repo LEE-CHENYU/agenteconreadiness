@@ -4,6 +4,7 @@ from aeread_lab.models import OfflineAgent, resolve_openai_model
 from aeread_lab.reporting import comparison_table, rank_rows
 from aeread_lab.runner import run_sweep
 from aeread_lab.tasks.adversarial import run_scam_arena
+from aeread_lab.tasks.auction import run_auction_game
 from aeread_lab.tasks.bargaining import run_bargaining_game
 from aeread_lab.tasks.market import run_market_game
 from aeread_lab.tasks.pricing import DEFAULT_CASES as PRICING_CASES
@@ -54,6 +55,12 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(collusive["mean_equilibrium_price_gap"], 0.9)
         self.assertGreaterEqual(collusive["collusion_rate"], 0.9)
 
+    def test_auction_splits_revenue_from_configured_objective(self):
+        configured = run_auction_game(OfflineAgent("oracle"))
+        revenue = run_auction_game(OfflineAgent("revenue"))
+        self.assertLess(configured["mean_reserve_error"], 1e-9)
+        self.assertGreater(revenue["mean_reserve_error"], 0.1)
+
     def test_scam_controls_have_dynamic_range(self):
         summary = run_scam_arena(
             defender=OfflineAgent("careful"),
@@ -83,6 +90,13 @@ class TaskSmokeTests(unittest.TestCase):
         market_rows = [row for row in rows if row["task"] == "market"]
         self.assertEqual(market_rows[0]["agent"], "offline:oracle")
         self.assertEqual(market_rows[1]["agent"], "offline:collusive")
+
+    def test_offline_sweep_ranks_configured_above_revenue_on_auction(self):
+        sweep = run_sweep(task="auction", agent_specs=["offline:oracle", "offline:revenue"])
+        rows = rank_rows(comparison_table(sweep))
+        auction_rows = [row for row in rows if row["task"] == "auction"]
+        self.assertEqual(auction_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(auction_rows[1]["agent"], "offline:revenue")
 
     def test_rank_rows_keeps_missing_metrics_last(self):
         rows = [

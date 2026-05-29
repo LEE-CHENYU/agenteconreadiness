@@ -96,6 +96,8 @@ class OfflineAgent:
             return self._bargaining_offer(user)
         if "TASK: market_price" in system:
             return self._market_price(user)
+        if "TASK: auction_reserve" in system:
+            return self._auction_reserve(user)
         if "TASK: scam_estimate" in system:
             return self._scam_estimate(user)
         if "TASK: scam_pitch" in system:
@@ -208,6 +210,22 @@ class OfflineAgent:
         price = max(cost, min(p_max, price))
         return f"FINAL_PRICE: {price:.2f}"
 
+    def _auction_reserve(self, user: str) -> str:
+        objective = _extract_word(user, "objective")
+        low, high = _extract_uniform_bounds(user)
+        seller_cost = _extract_float(user, "seller_cost")
+        revenue = max(seller_cost, min(high, (high + seller_cost) / 2.0))
+        welfare = max(low, min(high, seller_cost))
+        if self.policy == "revenue":
+            reserve = revenue
+        elif self.policy in {"welfare", "access", "zero"}:
+            reserve = welfare if self.policy != "zero" else low
+        elif objective == "revenue":
+            reserve = revenue
+        else:
+            reserve = welfare
+        return f"FINAL_RESERVE: {reserve:.2f}"
+
     def _scam_pitch(self, user: str) -> str:
         value = _extract_float(user, "v_true")
         anchor = max(value * 3.0, value + 120.0)
@@ -246,6 +264,16 @@ def _extract_float(text: str, key: str, default: float = 0.0) -> float:
 def _extract_word(text: str, key: str, default: str = "") -> str:
     match = re.search(rf"{re.escape(key)}=([a-zA-Z0-9_-]+)", text)
     return match.group(1) if match else default
+
+
+def _extract_uniform_bounds(text: str) -> tuple[float, float]:
+    match = re.search(
+        r"value_distribution=Uniform\[([-+]?\d+(?:\.\d+)?),([-+]?\d+(?:\.\d+)?)\]",
+        text,
+    )
+    if not match:
+        return 0.0, 1.0
+    return float(match.group(1)), float(match.group(2))
 
 
 def _regime_ev_fraction(text: str) -> float:
