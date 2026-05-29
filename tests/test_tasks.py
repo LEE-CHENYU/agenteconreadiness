@@ -1,6 +1,6 @@
 import unittest
 
-from aeread_lab.models import OfflineAgent, resolve_openai_model
+from aeread_lab.models import OfflineAgent, OpenAIResponsesAgent, resolve_openai_model
 from aeread_lab.reporting import comparison_table, rank_rows
 from aeread_lab.runner import run_sweep
 from aeread_lab.tasks.adversarial import run_scam_arena
@@ -60,6 +60,12 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(resolve_openai_model("nano"), "gpt-5.4-nano")
         with self.assertRaises(ValueError):
             resolve_openai_model("anthropic/claude-sonnet-4.6")
+
+    def test_openai_agent_defaults_are_eval_safe(self):
+        agent = OpenAIResponsesAgent(model="gpt-5.5")
+        self.assertEqual(agent.max_output_tokens, 800)
+        self.assertEqual(agent.reasoning_effort, "low")
+        self.assertEqual(agent.text_verbosity, "low")
 
     def test_procurement_oracle_offline(self):
         summary = run_procurement_game(OfflineAgent("oracle"))

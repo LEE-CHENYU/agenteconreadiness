@@ -38,7 +38,9 @@ class OpenAIResponsesAgent:
     """
 
     model: str = "nano"
-    max_output_tokens: int = 400
+    max_output_tokens: int = 800
+    reasoning_effort: str = "low"
+    text_verbosity: str = "low"
     name: str = "openai"
 
     def __post_init__(self) -> None:
@@ -62,7 +64,16 @@ class OpenAIResponsesAgent:
                 {"role": "user", "content": user},
             ],
             max_output_tokens=self.max_output_tokens,
+            reasoning={"effort": self.reasoning_effort},
+            text={"verbosity": self.text_verbosity},
+            store=False,
         )
+        status = getattr(response, "status", None)
+        if status == "incomplete":
+            details = getattr(response, "incomplete_details", None)
+            reason = getattr(details, "reason", None) or str(details)
+            raise RuntimeError(f"OpenAI response incomplete: {reason}")
+
         text = getattr(response, "output_text", None)
         if text:
             return str(text)
@@ -71,9 +82,12 @@ class OpenAIResponsesAgent:
         for item in getattr(response, "output", []) or []:
             for content in getattr(item, "content", []) or []:
                 value = getattr(content, "text", None)
-                if value:
-                    chunks.append(str(value))
-        return "\n".join(chunks).strip()
+            if value:
+                chunks.append(str(value))
+        output = "\n".join(chunks).strip()
+        if not output:
+            raise RuntimeError("OpenAI response contained no text output")
+        return output
 
 
 @dataclass
