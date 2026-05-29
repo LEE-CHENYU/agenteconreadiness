@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import os
 import re
 from dataclasses import dataclass
@@ -102,10 +103,11 @@ class OfflineAgent:
         return "FINAL_ANSWER: offline baseline has no handler"
 
     def _regime_fraction(self, user: str) -> str:
-        oracle = _extract_float(user, "oracle_fraction")
-        ev = _extract_float(user, "ev_fraction")
-        kelly = _extract_float(user, "kelly_fraction")
-        cvar = _extract_float(user, "cvar_fraction")
+        regime = _extract_word(user, "regime")
+        ev = _regime_ev_fraction(user)
+        kelly = _regime_kelly_fraction(user)
+        cvar = _regime_cvar_fraction(user)
+        oracle = _regime_oracle_fraction(user, regime)
         if self.policy == "ev":
             value = ev
         elif self.policy == "kelly":
@@ -119,14 +121,53 @@ class OfflineAgent:
         return f"FINAL_FRACTION: {value:.4f}"
 
     def _procurement_choice(self, user: str) -> str:
-        oracle = _extract_word(user, "oracle_product")
         if self.policy == "first":
             first = re.search(r"product_id=([a-zA-Z0-9_-]+)", user)
-            oracle = first.group(1) if first else oracle
-        return f"FINAL_PRODUCT: {oracle}"
+            return f"FINAL_PRODUCT: {first.group(1) if first else ''}"
+        weights = {
+            "price": _extract_float(user, "price_weight"),
+            "durability": _extract_float(user, "durability_weight"),
+            "comfort": _extract_float(user, "comfort_weight"),
+            "style": _extract_float(user, "style_weight"),
+            "friction": _extract_float(user, "friction_weight"),
+        }
+        best_product = ""
+        best_utility = -math.inf
+        product_pattern = re.compile(
+            r"product_id=([a-zA-Z0-9_-]+)\s+"
+            r"price=([-+]?\d+(?:\.\d+)?)\s+"
+            r"durability=([-+]?\d+(?:\.\d+)?)\s+"
+            r"comfort=([-+]?\d+(?:\.\d+)?)\s+"
+            r"style_fit=([-+]?\d+(?:\.\d+)?)\s+"
+            r"assembly_friction=([-+]?\d+(?:\.\d+)?)"
+        )
+        for match in product_pattern.finditer(user):
+            product_id = match.group(1)
+            price, durability, comfort, style, friction = (float(match.group(i)) for i in range(2, 7))
+            utility = (
+                weights["durability"] * durability
+                + weights["comfort"] * comfort
+                + weights["style"] * style
+                - weights["friction"] * friction
+                - weights["price"] * price
+            )
+            if utility > best_utility:
+                best_utility = utility
+                best_product = product_id
+        return f"FINAL_PRODUCT: {best_product}"
 
     def _pricing_price(self, user: str) -> str:
-        oracle = _extract_float(user, "oracle_price")
+        case_key = _extract_word(user, "case")
+        p_max = _extract_float(user, "p_max", 1e9)
+        known = {
+            "snack_box": (180.0, 6.0),
+            "premium_widget": (260.0, 4.0),
+        }
+        if self.policy == "oracle" and case_key in known:
+            alpha, beta = known[case_key]
+        else:
+            alpha, beta = _pricing_prompt_parameters(user)
+        oracle = max(0.0, min(p_max, alpha / (2.0 * max(beta, 1e-9))))
         if self.policy == "round":
             oracle = round(oracle / 10.0) * 10.0
         return f"FINAL_PRICE: {oracle:.2f}"
@@ -205,3 +246,100 @@ def _extract_float(text: str, key: str, default: float = 0.0) -> float:
 def _extract_word(text: str, key: str, default: str = "") -> str:
     match = re.search(rf"{re.escape(key)}=([a-zA-Z0-9_-]+)", text)
     return match.group(1) if match else default
+
+
+def _regime_ev_fraction(text: str) -> float:
+    p_win = _extract_float(text, "p_win")
+    win_return = _extract_float(text, "win_return")
+    loss_return = _extract_float(text, "loss_return")
+    expected = p_win * win_return - (1.0 - p_win) * loss_return
+    return 1.0 if expected > 0 else 0.0
+
+
+def _regime_kelly_fraction(text: str) -> float:
+    p_win = _extract_float(text, "p_win")
+    win_return = _extract_float(text, "win_return")
+    loss_return = _extract_float(text, "loss_return")
+    denom = win_return * loss_return
+    if denom <= 0:
+        return 0.0
+    value = (p_win * win_return - (1.0 - p_win) * loss_return) / denom
+    return max(0.0, min(1.0, value))
+
+
+def _regime_cvar_fraction(text: str) -> float:
+    if _regime_ev_fraction(text) <= 0:
+        return 0.0
+    loss_return = _extract_float(text, "loss_return")
+    max_drawdown = _extract_float(text, "max_drawdown")
+    if loss_return <= 0:
+        return 1.0
+    return max(0.0, min(1.0, max_drawdown / loss_return))
+
+
+def _regime_crra_fraction(text: str) -> float:
+    p_win = _extract_float(text, "p_win")
+    win_return = _extract_float(text, "win_return")
+    loss_return = _extract_float(text, "loss_return")
+    gamma = max(0.01, _extract_float(text, "gamma", 2.0))
+
+    def utility(wealth: float) -> float:
+        if wealth <= 0:
+            return -1e9
+        if abs(gamma - 1.0) < 1e-9:
+            return math.log(wealth)
+        return (wealth ** (1.0 - gamma)) / (1.0 - gamma)
+
+    best_x = 0.0
+    best_y = -math.inf
+    for i in range(1001):
+        x = i / 1000.0
+        win_wealth = 1.0 + x * win_return
+        loss_wealth = 1.0 - x * loss_return
+        y = p_win * utility(win_wealth) + (1.0 - p_win) * utility(loss_wealth)
+        if y > best_y:
+            best_x = x
+            best_y = y
+    return best_x
+
+
+def _regime_oracle_fraction(text: str, regime: str) -> float:
+    if regime == "ev":
+        return _regime_ev_fraction(text)
+    if regime == "kelly":
+        return _regime_kelly_fraction(text)
+    if regime == "cvar":
+        return _regime_cvar_fraction(text)
+    if regime == "crra":
+        return _regime_crra_fraction(text)
+    return _regime_ev_fraction(text)
+
+
+def _pricing_prompt_parameters(text: str) -> tuple[float, float]:
+    alpha = _extract_float(text, "alpha")
+    beta = _extract_float(text, "beta")
+    if alpha > 0 and beta > 0:
+        return alpha, beta
+    alpha_hat = _extract_float(text, "alpha_hat")
+    beta_hat = _extract_float(text, "beta_hat")
+    if alpha_hat > 0 and beta_hat > 0:
+        return alpha_hat, beta_hat
+    rows = [
+        (float(price), float(quantity))
+        for price, quantity in re.findall(
+            r"price=([-+]?\d+(?:\.\d+)?),\s+quantity=([-+]?\d+(?:\.\d+)?)",
+            text,
+        )
+    ]
+    if len(rows) >= 2:
+        xs = [price for price, _ in rows]
+        ys = [quantity for _, quantity in rows]
+        x_bar = sum(xs) / len(xs)
+        y_bar = sum(ys) / len(ys)
+        denom = sum((x - x_bar) ** 2 for x in xs)
+        if denom > 0:
+            slope = sum((x - x_bar) * (y - y_bar) for x, y in rows) / denom
+            beta = max(0.001, -slope)
+            alpha = y_bar + beta * x_bar
+            return alpha, beta
+    return 1.0, 1.0

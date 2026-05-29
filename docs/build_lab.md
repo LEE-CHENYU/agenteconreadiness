@@ -2,8 +2,9 @@
 
 This copy contains a runnable research scaffold for the current AERead direction.
 It is deliberately small and judge-free: task generators expose symbolic ground
-truth, scoring is mechanical, and live API use is restricted to OpenAI model
-aliases only.
+truth to the harness, model-visible prompts do not expose oracle answers,
+scoring is mechanical, and live API use is restricted to OpenAI model aliases
+only.
 
 ## What is implemented
 

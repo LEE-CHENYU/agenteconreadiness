@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 from aeread_lab.models import Agent
 from aeread_lab.parsing import parse_token
@@ -96,7 +96,7 @@ def run_procurement_game(agent: Agent, cases: list[ProcurementCase] | None = Non
     rows = []
     for case in cases:
         oracle = oracle_product(case)
-        response = agent.complete(PROCUREMENT_SYSTEM, _prompt(case, oracle))
+        response = agent.complete(PROCUREMENT_SYSTEM, _prompt(case))
         chosen = parse_token("FINAL_PRODUCT", response)
         utilities = {p.product_id: product_utility(p, case.profile) for p in case.products}
         best = utilities[oracle]
@@ -123,10 +123,9 @@ def run_procurement_game(agent: Agent, cases: list[ProcurementCase] | None = Non
     }
 
 
-def _prompt(case: ProcurementCase, oracle: str) -> str:
+def _prompt(case: ProcurementCase) -> str:
     lines = [
         f"case={case.key}",
-        f"oracle_product={oracle}",
         f"profile={case.profile.key}",
         "Score buyer utility from price, durability, comfort, style fit, and assembly friction.",
     ]
@@ -146,5 +145,15 @@ def _prompt(case: ProcurementCase, oracle: str) -> str:
             )
         )
     lines.append("Profile weights:")
-    lines.append(str(asdict(case.profile)))
+    lines.append(
+        " ".join(
+            [
+                f"price_weight={case.profile.price_weight:.4f}",
+                f"durability_weight={case.profile.durability_weight:.4f}",
+                f"comfort_weight={case.profile.comfort_weight:.4f}",
+                f"style_weight={case.profile.style_weight:.4f}",
+                f"friction_weight={case.profile.friction_weight:.4f}",
+            ]
+        )
+    )
     return "\n".join(lines)

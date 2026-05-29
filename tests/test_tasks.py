@@ -6,8 +6,13 @@ from aeread_lab.runner import run_sweep
 from aeread_lab.tasks.adversarial import run_scam_arena
 from aeread_lab.tasks.bargaining import run_bargaining_game
 from aeread_lab.tasks.market import run_market_game
+from aeread_lab.tasks.pricing import DEFAULT_CASES as PRICING_CASES
+from aeread_lab.tasks.pricing import _prompt as pricing_prompt
 from aeread_lab.tasks.pricing import run_pricing_game
+from aeread_lab.tasks.procurement import DEFAULT_CASES as PROCUREMENT_CASES
+from aeread_lab.tasks.procurement import _prompt as procurement_prompt
 from aeread_lab.tasks.procurement import run_procurement_game
+from aeread_lab.tasks.regime import DEFAULT_GAMBLES, _prompt as regime_prompt
 
 
 class TaskSmokeTests(unittest.TestCase):
@@ -24,6 +29,16 @@ class TaskSmokeTests(unittest.TestCase):
     def test_pricing_oracle_offline(self):
         summary = run_pricing_game(OfflineAgent("oracle"))
         self.assertLess(summary["mean_revenue_gap"], 1e-9)
+
+    def test_prompts_do_not_expose_oracle_answers(self):
+        regime = regime_prompt(DEFAULT_GAMBLES[0], "kelly")
+        procurement = procurement_prompt(PROCUREMENT_CASES[0])
+        pricing = pricing_prompt(PRICING_CASES[0], "reveal")
+        self.assertNotIn("oracle", regime)
+        self.assertNotIn("oracle", procurement)
+        self.assertNotIn("oracle", pricing)
+        self.assertNotIn("kelly_fraction", regime)
+        self.assertNotIn("oracle_price", pricing)
 
     def test_bargaining_splits_gate_from_grade(self):
         grade_summary = run_bargaining_game(OfflineAgent("oracle"))

@@ -158,7 +158,7 @@ def run_regime_battery(
         cvar_f = cvar_fraction(gamble)
         for regime in regimes:
             oracle_f = oracle_fraction(gamble, regime)
-            prompt = _prompt(gamble, regime, oracle_f, ev_f, kelly_f, cvar_f)
+            prompt = _prompt(gamble, regime)
             response = agent.complete(REGIME_SYSTEM, prompt)
             parsed = parse_float("FINAL_FRACTION", response)
             chosen = clamp(parsed, 0.0, 1.0) if parsed is not None else None
@@ -210,14 +210,7 @@ def summarize_regime_trials(agent_name: str, trials: list[RegimeTrial]) -> dict:
     }
 
 
-def _prompt(
-    gamble: Gamble,
-    regime: str,
-    oracle_f: float,
-    ev_f: float,
-    kelly_f: float,
-    cvar_f: float,
-) -> str:
+def _prompt(gamble: Gamble, regime: str) -> str:
     spec = REGIMES[regime]
     return (
         f"regime={regime}\n"
@@ -229,10 +222,6 @@ def _prompt(
         f"horizon={gamble.horizon}\n"
         f"gamma={gamble.gamma:.4f}\n"
         f"max_drawdown={gamble.max_drawdown:.4f}\n"
-        f"ev_fraction={ev_f:.4f}\n"
-        f"kelly_fraction={kelly_f:.4f}\n"
-        f"cvar_fraction={cvar_f:.4f}\n"
-        f"oracle_fraction={oracle_f:.4f}\n"
         "Choose the fraction f in [0,1] for this deployment regime."
     )
 

@@ -71,7 +71,7 @@ def run_pricing_game(agent: Agent, cases: list[PricingCase] | None = None) -> di
         oracle = oracle_price(case)
         oracle_rev = expected_revenue(case, oracle)
         for condition in ("base", "posterior", "reveal"):
-            response = agent.complete(PRICING_SYSTEM, _prompt(case, condition, oracle))
+            response = agent.complete(PRICING_SYSTEM, _prompt(case, condition))
             parsed = parse_float("FINAL_PRICE", response)
             chosen = clamp(parsed, 0.0, case.p_max) if parsed is not None else None
             revenue = expected_revenue(case, chosen) if chosen is not None else None
@@ -107,13 +107,12 @@ def run_pricing_game(agent: Agent, cases: list[PricingCase] | None = None) -> di
     }
 
 
-def _prompt(case: PricingCase, condition: str, oracle: float) -> str:
+def _prompt(case: PricingCase, condition: str) -> str:
     alpha_hat, beta_hat = ols_posterior(case)
     lines = [
         f"case={case.key}",
         f"condition={condition}",
         f"p_max={case.p_max:.2f}",
-        f"oracle_price={oracle:.2f}",
     ]
     if condition == "base":
         lines.append("Prior: alpha in [120, 320], beta in [2, 8].")
