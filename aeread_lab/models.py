@@ -107,6 +107,8 @@ class OfflineAgent:
             return self._market_price(user)
         if "TASK: auction_reserve" in system:
             return self._auction_reserve(user)
+        if "TASK: common_value_bid" in system:
+            return self._common_value_bid(user)
         if "TASK: mechanism_choice" in system:
             return self._mechanism_choice(user)
         if "TASK: matching_choice" in system:
@@ -301,6 +303,18 @@ class OfflineAgent:
             reserve = welfare
         return f"FINAL_RESERVE: {reserve:.2f}"
 
+    def _common_value_bid(self, user: str) -> str:
+        bids = _extract_common_value_bids(user)
+        if self.policy in {"private_value", "winner_curse_blind", "signal_bid"}:
+            bid_id = _best_common_value_bid(user, bids, winner_curse_aware=False)
+        elif self.policy in {"aggressive", "max_win"}:
+            bid_id = max(bids, key=lambda item: bids[item]["win_probability"])
+        elif self.policy in {"safe", "low_bid"}:
+            bid_id = min(bids, key=lambda item: bids[item]["bid"])
+        else:
+            bid_id = _best_common_value_bid(user, bids, winner_curse_aware=True)
+        return f"FINAL_BID: {bid_id}"
+
     def _mechanism_choice(self, user: str) -> str:
         mechanisms = _extract_mechanisms(user)
         if self.policy == "revenue":
@@ -474,6 +488,45 @@ def _extract_uniform_bounds(text: str) -> tuple[float, float]:
     if not match:
         return 0.0, 1.0
     return float(match.group(1)), float(match.group(2))
+
+
+def _extract_common_value_bids(text: str) -> dict[str, dict[str, float]]:
+    bids: dict[str, dict[str, float]] = {}
+    pattern = re.compile(
+        r"bid_id=([a-zA-Z0-9_-]+)\s+"
+        r"bid=([-+]?\d+(?:\.\d+)?)\s+"
+        r"win_probability=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        bids[match.group(1)] = {
+            "bid": float(match.group(2)),
+            "win_probability": float(match.group(3)),
+        }
+    return bids
+
+
+def _common_value_expected_profit(
+    text: str,
+    bid: dict[str, float],
+    *,
+    winner_curse_aware: bool,
+) -> float:
+    value = _extract_float(text, "internal_appraisal_value")
+    if winner_curse_aware:
+        value += _extract_float(text, "historical_realized_value_gap_for_winning_bids")
+    return bid["win_probability"] * (value - bid["bid"])
+
+
+def _best_common_value_bid(
+    text: str,
+    bids: dict[str, dict[str, float]],
+    *,
+    winner_curse_aware: bool,
+) -> str:
+    return max(
+        bids,
+        key=lambda item: _common_value_expected_profit(text, bids[item], winner_curse_aware=winner_curse_aware),
+    )
 
 
 def _infer_principal_gamma(text: str) -> float:

@@ -15,6 +15,7 @@ PRIMARY_METRICS = {
     "screening": ("mean_score_regret", "lower"),
     "moral_hazard": ("mean_profit_regret", "lower"),
     "auction": ("mean_reserve_error", "lower"),
+    "common_value": ("mean_profit_regret", "lower"),
     "mechanism": ("mean_score_regret", "lower"),
     "strategic_drift": ("drift_rate", "lower"),
     "exploration": ("mean_expected_value_gap", "lower"),

@@ -9,6 +9,7 @@ from aeread_lab.tasks import (
     run_ambiguity_game,
     run_bargaining_game,
     run_belief_bargaining_game,
+    run_common_value_game,
     run_experiment_design_game,
     run_exploration_game,
     run_market_game,
@@ -39,6 +40,7 @@ TASK_ORDER = (
     "screening",
     "moral_hazard",
     "auction",
+    "common_value",
     "mechanism",
     "strategic_drift",
     "exploration",
@@ -73,6 +75,8 @@ def run_task(task: str, agent: Agent, attacker: Agent | None = None) -> dict[str
         return run_moral_hazard_game(agent)
     if task == "auction":
         return run_auction_game(agent)
+    if task == "common_value":
+        return run_common_value_game(agent)
     if task == "mechanism":
         return run_mechanism_game(agent)
     if task == "strategic_drift":

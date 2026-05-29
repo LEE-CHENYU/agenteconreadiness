@@ -12,6 +12,9 @@ from aeread_lab.tasks.bargaining import run_bargaining_game
 from aeread_lab.tasks.belief_bargaining import DEFAULT_CASES as BELIEF_BARGAINING_CASES
 from aeread_lab.tasks.belief_bargaining import _prompt as belief_bargaining_prompt
 from aeread_lab.tasks.belief_bargaining import run_belief_bargaining_game
+from aeread_lab.tasks.common_value import DEFAULT_CASES as COMMON_VALUE_CASES
+from aeread_lab.tasks.common_value import _prompt as common_value_prompt
+from aeread_lab.tasks.common_value import run_common_value_game
 from aeread_lab.tasks.experiment_design import DEFAULT_CASES as EXPERIMENT_CASES
 from aeread_lab.tasks.experiment_design import _prompt as experiment_prompt
 from aeread_lab.tasks.experiment_design import run_experiment_design_game
@@ -79,6 +82,7 @@ class TaskSmokeTests(unittest.TestCase):
         matching = matching_prompt(MATCHING_CASES[0])
         screening = screening_prompt(SCREENING_CASES[0])
         moral_hazard = moral_hazard_prompt(MORAL_HAZARD_CASES[0])
+        common_value = common_value_prompt(COMMON_VALUE_CASES[0])
         mechanism = mechanism_prompt(MECHANISM_CASES[0])
         experiment = experiment_prompt(EXPERIMENT_CASES[0])
         self.assertNotIn("oracle", regime)
@@ -93,6 +97,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", matching)
         self.assertNotIn("oracle", screening)
         self.assertNotIn("oracle", moral_hazard)
+        self.assertNotIn("oracle", common_value)
         self.assertNotIn("oracle", mechanism)
         self.assertNotIn("oracle", experiment)
         self.assertNotIn("kelly_fraction", regime)
@@ -173,6 +178,16 @@ class TaskSmokeTests(unittest.TestCase):
         revenue = run_auction_game(OfflineAgent("revenue"))
         self.assertLess(configured["mean_reserve_error"], 1e-9)
         self.assertGreater(revenue["mean_reserve_error"], 0.1)
+
+    def test_common_value_flags_winner_curse_blind_bids(self):
+        configured = run_common_value_game(OfflineAgent("oracle"))
+        blind = run_common_value_game(OfflineAgent("winner_curse_blind"))
+        aggressive = run_common_value_game(OfflineAgent("aggressive"))
+        self.assertLess(configured["mean_profit_regret"], 1e-9)
+        self.assertGreater(blind["mean_profit_regret"], 10.0)
+        self.assertGreater(blind["winner_curse_miss_rate"], 0.5)
+        self.assertGreater(blind["negative_expected_profit_rate"], 0.5)
+        self.assertGreater(aggressive["negative_expected_profit_rate"], 0.5)
 
     def test_mechanism_splits_revenue_and_risk_blind_defaults(self):
         configured = run_mechanism_game(OfflineAgent("oracle"))
@@ -294,6 +309,13 @@ class TaskSmokeTests(unittest.TestCase):
         auction_rows = [row for row in rows if row["task"] == "auction"]
         self.assertEqual(auction_rows[0]["agent"], "offline:oracle")
         self.assertEqual(auction_rows[1]["agent"], "offline:revenue")
+
+    def test_offline_sweep_ranks_adjusted_above_winner_curse_blind_on_common_value(self):
+        sweep = run_sweep(task="common_value", agent_specs=["offline:oracle", "offline:winner_curse_blind"])
+        rows = rank_rows(comparison_table(sweep))
+        common_value_rows = [row for row in rows if row["task"] == "common_value"]
+        self.assertEqual(common_value_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(common_value_rows[1]["agent"], "offline:winner_curse_blind")
 
     def test_offline_sweep_ranks_configured_above_revenue_on_mechanism(self):
         sweep = run_sweep(task="mechanism", agent_specs=["offline:oracle", "offline:revenue"])

@@ -23,6 +23,7 @@ TASKS = (
     "screening",
     "moral_hazard",
     "auction",
+    "common_value",
     "mechanism",
     "strategic_drift",
     "exploration",
@@ -192,6 +193,14 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"auction: n={result['n_trials']} mean_reserve_error="
                 f"{_fmt(result['mean_reserve_error'])} "
                 f"ci95={_fmt_ci(result.get('mean_reserve_error_ci95'))}"
+            )
+        elif task == "common_value":
+            print(
+                f"common_value: n={result['n_trials']} profit_regret="
+                f"{_fmt(result['mean_profit_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_profit_regret_ci95'))} "
+                f"winner_curse_miss={result['winner_curse_miss_rate']:.2f} "
+                f"negative_profit={result['negative_expected_profit_rate']:.2f}"
             )
         elif task == "mechanism":
             print(
