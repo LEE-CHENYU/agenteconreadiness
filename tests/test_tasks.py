@@ -7,7 +7,7 @@ from aeread_lab.models import (
     _extract_openai_response_text,
     resolve_openai_model,
 )
-from aeread_lab.reporting import comparison_table, rank_rows
+from aeread_lab.reporting import comparison_table, parse_rate, rank_rows
 from aeread_lab.runner import run_sweep
 from aeread_lab.tasks.adversarial import run_scam_arena
 from aeread_lab.tasks.ambiguity import DEFAULT_CASES as AMBIGUITY_CASES
@@ -402,6 +402,22 @@ class TaskSmokeTests(unittest.TestCase):
         ]
         ranked = rank_rows(rows)
         self.assertEqual([row["agent"] for row in ranked], ["high", "low", "missing"])
+
+    def test_parse_rate_counts_scoreable_chosen_fields(self):
+        result = {
+            "task": "procurement",
+            "trials": [
+                {"chosen_product": "a", "chosen_revenue": None},
+                {"chosen_product": None, "chosen_revenue": None},
+                {"raw_response": "no final answer"},
+            ],
+        }
+        self.assertEqual(parse_rate(result), 0.5)
+
+    def test_sweep_table_surfaces_parse_rate(self):
+        sweep = run_sweep(task="procurement", agent_specs=["offline:oracle"])
+        rows = comparison_table(sweep)
+        self.assertEqual(rows[0]["parse_rate"], 1.0)
 
 
 if __name__ == "__main__":

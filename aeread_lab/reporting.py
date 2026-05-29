@@ -47,9 +47,35 @@ def comparison_table(sweep: dict[str, Any]) -> list[dict[str, Any]]:
                     "direction": direction,
                     "value": value,
                     "n_trials": result.get("n_trials"),
+                    "parse_rate": parse_rate(result),
                 }
             )
     return rows
+
+
+def parse_rate(result: dict[str, Any]) -> float | None:
+    if "parse_rate" in result:
+        return result["parse_rate"]
+    trials = result.get("trials")
+    if not isinstance(trials, list) or not trials:
+        return None
+    total = 0
+    parsed = 0
+    for trial in trials:
+        if not isinstance(trial, dict):
+            continue
+        chosen_keys = [
+            key
+            for key in trial
+            if key.startswith("chosen_")
+            and key not in {"chosen_revenue", "chosen_expected_profit", "chosen_surplus"}
+        ]
+        if not chosen_keys:
+            continue
+        total += 1
+        if any(trial.get(key) is not None for key in chosen_keys):
+            parsed += 1
+    return parsed / total if total else None
 
 
 def rank_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -73,14 +99,16 @@ def format_sweep(sweep: dict[str, Any]) -> str:
     lines = [
         f"AERead model sweep: task={sweep['task']} agents={', '.join(sweep['agents'])}",
         "=" * 88,
-        f"{'task':<18} {'rank':>4} {'agent':<18} {'metric':<24} {'value':>12} {'direction':<7}",
+        f"{'task':<18} {'rank':>4} {'agent':<18} {'metric':<24} "
+        f"{'value':>12} {'parse':>6} {'direction':<7}",
         "-" * 88,
     ]
     for row in rows:
         value = "n/a" if row["value"] is None else f"{row['value']:.6g}"
+        parse = "n/a" if row["parse_rate"] is None else f"{row['parse_rate']:.2f}"
         lines.append(
             f"{row['task']:<18} {row['rank']:>4} {row['agent']:<18} "
-            f"{row['metric']:<24} {value:>12} {row['direction']:<7}"
+            f"{row['metric']:<24} {value:>12} {parse:>6} {row['direction']:<7}"
         )
     lines.append("=" * 88)
     return "\n".join(lines)

@@ -62,6 +62,9 @@ instead of silently scoring blank model outputs.
 ## Sweep runner and cache
 
 The sweep runner compares agents on the primary mechanical metric for each task:
+it also reports `parse`, the fraction of trials with a valid task-specific
+`FINAL_*` answer. Treat low parse rate as an eval-format failure before
+interpreting the economic metric.
 
 - `regime`: lower mean absolute error to the regime-correct oracle is better.
 - `principal_inference`: lower fraction error to the revealed-principal oracle
