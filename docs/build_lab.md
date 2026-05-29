@@ -36,8 +36,8 @@ The only live API adapter is `aeread_lab.models.OpenAIResponsesAgent`. It accept
 only these aliases:
 
 - `gpt-5.5`
-- `mini` (defaults to `gpt-5.5-mini`; override with `AEREAD_OPENAI_MODEL_MINI`)
-- `nano` (defaults to `gpt-5.5-nano`; override with `AEREAD_OPENAI_MODEL_NANO`)
+- `mini` (defaults to `gpt-5.4-mini`; override with `AEREAD_OPENAI_MODEL_MINI`)
+- `nano` (defaults to `gpt-5.4-nano`; override with `AEREAD_OPENAI_MODEL_NANO`)
 
 Example:
 

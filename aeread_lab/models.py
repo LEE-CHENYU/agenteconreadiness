@@ -10,8 +10,8 @@ from typing import Protocol
 
 ALLOWED_OPENAI_ALIASES = {
     "gpt-5.5": "gpt-5.5",
-    "mini": os.environ.get("AEREAD_OPENAI_MODEL_MINI", "gpt-5.5-mini"),
-    "nano": os.environ.get("AEREAD_OPENAI_MODEL_NANO", "gpt-5.5-nano"),
+    "mini": os.environ.get("AEREAD_OPENAI_MODEL_MINI", "gpt-5.4-mini"),
+    "nano": os.environ.get("AEREAD_OPENAI_MODEL_NANO", "gpt-5.4-nano"),
 }
 
 

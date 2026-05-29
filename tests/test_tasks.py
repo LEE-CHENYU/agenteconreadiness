@@ -53,7 +53,8 @@ from aeread_lab.tasks.strategic_drift import run_strategic_drift_game
 class TaskSmokeTests(unittest.TestCase):
     def test_openai_aliases_are_restricted(self):
         self.assertEqual(resolve_openai_model("gpt-5.5"), "gpt-5.5")
-        self.assertIn("gpt-5.5", resolve_openai_model("mini"))
+        self.assertEqual(resolve_openai_model("mini"), "gpt-5.4-mini")
+        self.assertEqual(resolve_openai_model("nano"), "gpt-5.4-nano")
         with self.assertRaises(ValueError):
             resolve_openai_model("anthropic/claude-sonnet-4.6")
 
