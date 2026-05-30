@@ -1157,6 +1157,15 @@ ai_agents_exploration:
 # ============================================================================
 
 alignment_values:
+  - title: "Cooperative Inverse Reinforcement Learning"
+    authors: [Hadfield-Menell, Russell, Abbeel, Dragan]
+    year: 2016
+    venue: "NeurIPS 2016"
+    arxiv: "1606.03137"
+    cited_by: [AERead]
+    relevance: T1
+    note: "CIRL: human+robot jointly optimize a shared reward; robot is uncertain about theta and updates via Bayes; human teaches. Formal backbone for (a) the configured-principal grade (act under uncertainty about the principal's utility), (b) the Q14 alignment-safe training target (maximize-under-reward-uncertainty + corrigibility, not point-estimate surplus), (c) the inversion-problem / teaching-vs-demonstrating caveat on C1 (13F holdings are demonstrations, not theta). Covered in CS329H (Truong/Haupt/Koyejo 2025) §4.8."
+
   - title: "Axioms for AI alignment from human feedback"
     authors: [Ge, Halpern, Micha, Procaccia, Shapira, Vorobeychik, Wu]
     year: 2024

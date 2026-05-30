@@ -43,6 +43,7 @@ One-stop lookup for every paper cited in this repo's docs. Every entry has eithe
 | Raman et al. 2024 — STEER | https://arxiv.org/abs/2402.09552 | — |
 | Echenique, Saito 2015 — SARSEU | https://doi.org/10.3982/QE418 | — |
 | Ross, Kim, Lo 2024 — LLM Economicus | https://arxiv.org/abs/2408.02784 | — |
+| Hadfield-Menell et al. 2016 — Cooperative Inverse RL (CIRL) | https://arxiv.org/abs/1606.03137 | — |
 | Kahneman, Tversky 1979 — Prospect theory | https://doi.org/10.2307/1914185 | — |
 | Tversky, Kahneman 1992 — Cumulative prospect theory | https://doi.org/10.1007/BF00122574 | — |
 
