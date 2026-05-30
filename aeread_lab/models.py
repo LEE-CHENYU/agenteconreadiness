@@ -141,7 +141,10 @@ class OfflineAgent:
             return self._market_trace_inventory_price(user)
         if "TASK: market_trace_markdown_prices" in system:
             return self._market_trace_markdown_prices(user)
-        if "TASK: market_trace_replenishment_plan" in system:
+        if (
+            "TASK: market_trace_replenishment_plan" in system
+            or "TASK: market_trace_replenishment_natural_plan" in system
+        ):
             return self._market_trace_replenishment_plan(user)
         if "TASK: auction_reserve" in system:
             return self._auction_reserve(user)
@@ -1343,9 +1346,37 @@ def _extract_openai_response_text(response) -> str:
     return output
 
 
+_FLOAT_ALIASES = {
+    "base_demand": ("base_customer_flow",),
+    "demand_shock": ("demand_adjustment",),
+    "own_price_slope": ("own_price_sensitivity",),
+    "cross_price_slope": ("rival_price_lift",),
+    "marginal_cost": ("sellable_unit_cost",),
+    "p_max": ("posted_price_ceiling",),
+    "horizon": ("selling_windows",),
+    "starting_inventory": ("starting_units",),
+    "starting_cash": ("cash_on_hand",),
+    "fixed_obligation": ("cash_commitment",),
+    "min_terminal_cash": ("cash_reserve_floor",),
+    "carrying_cost_per_unsold": ("shelf_cost_per_unsold",),
+    "terminal_inventory_value": ("leftover_unit_credit",),
+    "replenishment_unit_cost": ("restock_unit_cost",),
+    "replenishment_setup_cost": ("restock_setup_fee",),
+    "max_replenishment_units": ("restock_unit_limit",),
+    "replenishment_storage_capacity": ("storage_ceiling",),
+}
+
+_FLOAT_LIST_ALIASES = {
+    "demand_shocks": ("window_demand_adjustments",),
+}
+
+
 def _extract_float(text: str, key: str, default: float = 0.0) -> float:
-    match = re.search(rf"{re.escape(key)}=([-+]?\d+(?:\.\d+)?)", text)
-    return float(match.group(1)) if match else default
+    for candidate in (key, *_FLOAT_ALIASES.get(key, ())):
+        match = re.search(rf"{re.escape(candidate)}=([-+]?\d+(?:\.\d+)?)", text)
+        if match:
+            return float(match.group(1))
+    return default
 
 
 def _extract_word(text: str, key: str, default: str = "") -> str:
@@ -2041,24 +2072,32 @@ def _market_policy_opponent_price(text: str) -> float:
 def _extract_market_trace_prices(text: str) -> list[float]:
     prices = []
     for line in text.splitlines():
-        if "trace period=" not in line or "opponent_price=" not in line:
-            continue
-        prices.append(_extract_float(line, "opponent_price"))
+        if "trace period=" in line and "opponent_price=" in line:
+            prices.append(_extract_float(line, "opponent_price"))
+        elif "rival_observation" in line and "rival_ticket=" in line:
+            prices.append(_extract_float(line, "rival_ticket"))
     return prices
 
 
 def _extract_market_trace_points(text: str) -> list[tuple[float, float, float]]:
     points = []
     for line in text.splitlines():
-        if "trace period=" not in line or "opponent_price=" not in line:
-            continue
-        points.append(
-            (
-                _extract_float(line, "opponent_price"),
-                _extract_float(line, "opponent_fill_rate", 1.0),
-                _extract_float(line, "opponent_remaining_inventory_share", 0.0),
+        if "trace period=" in line and "opponent_price=" in line:
+            points.append(
+                (
+                    _extract_float(line, "opponent_price"),
+                    _extract_float(line, "opponent_fill_rate", 1.0),
+                    _extract_float(line, "opponent_remaining_inventory_share", 0.0),
+                )
             )
-        )
+        elif "rival_observation" in line and "rival_ticket=" in line:
+            points.append(
+                (
+                    _extract_float(line, "rival_ticket"),
+                    _extract_float(line, "sell_through", 1.0),
+                    _extract_float(line, "shelf_left", 0.0),
+                )
+            )
     return points
 
 
@@ -3429,10 +3468,11 @@ def _belief_likelihood_product(state: dict[str, float], *, signal_count: int | N
 
 
 def _extract_float_list(text: str, key: str) -> list[float]:
-    match = re.search(rf"{re.escape(key)}=([-+0-9.,]+)", text)
-    if not match:
-        return []
-    return [float(value) for value in match.group(1).split(",") if value]
+    for candidate in (key, *_FLOAT_LIST_ALIASES.get(key, ())):
+        match = re.search(rf"{re.escape(candidate)}=([-+0-9.,]+)", text)
+        if match:
+            return [float(value) for value in match.group(1).split(",") if value]
+    return []
 
 
 def _extract_mechanisms(text: str) -> dict[str, dict[str, float]]:

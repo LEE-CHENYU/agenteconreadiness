@@ -58,6 +58,16 @@ MARKET_TRACE_REPLENISHMENT_SYSTEM = (
     "FINAL_REPLENISH_UNITS: <number>."
 )
 
+MARKET_TRACE_REPLENISHMENT_NATURAL_SYSTEM = (
+    "TASK: market_trace_replenishment_natural_plan\n"
+    "You are one firm in a repeated price-setting market with finite stock, "
+    "a cash reserve target, and an optional restock before the late selling window. "
+    "Read the rival shelf observations, then choose early and late non-collusive "
+    "prices and how many units to restock. Return exactly three final lines: "
+    "FINAL_PRICE_EARLY: <number>, FINAL_PRICE_LATE: <number>, and "
+    "FINAL_REPLENISH_UNITS: <number>."
+)
+
 
 @dataclass(frozen=True)
 class MarketCase:
@@ -1004,6 +1014,36 @@ def run_market_trace_replenishment_game(
     agent: Agent,
     cases: list[TraceInventoryMarketCase] | None = None,
 ) -> dict:
+    return _run_market_trace_replenishment_game(
+        agent,
+        cases,
+        system=MARKET_TRACE_REPLENISHMENT_SYSTEM,
+        prompt_fn=_trace_replenishment_prompt,
+        task_name="market_trace_replenishment",
+    )
+
+
+def run_market_trace_replenishment_natural_game(
+    agent: Agent,
+    cases: list[TraceInventoryMarketCase] | None = None,
+) -> dict:
+    return _run_market_trace_replenishment_game(
+        agent,
+        cases,
+        system=MARKET_TRACE_REPLENISHMENT_NATURAL_SYSTEM,
+        prompt_fn=_trace_replenishment_natural_prompt,
+        task_name="market_trace_replenishment_natural",
+    )
+
+
+def _run_market_trace_replenishment_game(
+    agent: Agent,
+    cases: list[TraceInventoryMarketCase] | None,
+    *,
+    system: str,
+    prompt_fn,
+    task_name: str,
+) -> dict:
     cases = cases or TRACE_REPLENISHMENT_CASES
     trials: list[TraceReplenishmentMarketTrial] = []
     for case in cases:
@@ -1019,8 +1059,8 @@ def run_market_trace_replenishment_game(
             forced_replenishment=case.max_replenishment_units,
         )
         response = agent.complete(
-            MARKET_TRACE_REPLENISHMENT_SYSTEM,
-            _trace_replenishment_prompt(case),
+            system,
+            prompt_fn(case),
         )
         chosen = _parse_trace_replenishment_decision(response, case)
         oracle_cash = trace_replenishment_terminal_cash(
@@ -1102,7 +1142,7 @@ def run_market_trace_replenishment_game(
                 raw_response=response,
             )
         )
-    return summarize_market_trace_replenishment_trials(agent.name, trials)
+    return summarize_market_trace_replenishment_trials(agent.name, trials, task_name=task_name)
 
 
 def summarize_market_trials(agent_name: str, trials: list[MarketTrial]) -> dict:
@@ -1343,6 +1383,8 @@ def summarize_market_trace_markdown_trials(
 def summarize_market_trace_replenishment_trials(
     agent_name: str,
     trials: list[TraceReplenishmentMarketTrial],
+    *,
+    task_name: str = "market_trace_replenishment",
 ) -> dict:
     regrets = [
         trial.constrained_terminal_cash_regret
@@ -1383,7 +1425,7 @@ def summarize_market_trace_replenishment_trials(
         >= 5.0
     ]
     return {
-        "task": "market_trace_replenishment",
+        "task": task_name,
         "agent": agent_name,
         "n_trials": len(trials),
         "mean_constrained_terminal_cash_regret": mean(regrets),
@@ -2012,6 +2054,55 @@ def _trace_replenishment_prompt(case: TraceInventoryMarketCase) -> str:
             "If replenishment units are ordered, they arrive before the late window, cost the unit cost plus the setup cost, and cannot push on-hand inventory above storage capacity.",
             "Choose early and late posted prices plus replenishment units to maximize terminal cash while meeting the terminal cash reserve.",
             "A no-replenishment plan can stock out, but a blind replenishment plan can overbuy into a clearance market.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _trace_replenishment_natural_prompt(case: TraceInventoryMarketCase) -> str:
+    switch_period = max(1, case.horizon // 2)
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"base_customer_flow={case.base_demand:.4f}",
+        f"demand_adjustment={case.demand_shock:.4f}",
+        f"own_price_sensitivity={case.own_price_slope:.4f}",
+        f"rival_price_lift={case.cross_price_slope:.4f}",
+        f"sellable_unit_cost={case.marginal_cost:.4f}",
+        f"posted_price_ceiling={case.p_max:.4f}",
+        f"selling_windows={case.horizon}",
+        f"early_window=1_to_{switch_period}",
+        f"late_window={switch_period + 1}_to_{case.horizon}",
+        f"restock_arrives_before_window={switch_period + 1}",
+        f"starting_units={case.starting_inventory:.4f}",
+        f"cash_on_hand={case.starting_cash:.4f}",
+        f"cash_commitment={case.fixed_obligation:.4f}",
+        f"cash_reserve_floor={case.min_terminal_cash:.4f}",
+        f"shelf_cost_per_unsold={case.carrying_cost_per_unsold:.4f}",
+        f"leftover_unit_credit={case.terminal_inventory_value:.4f}",
+        f"restock_unit_cost={case.replenishment_unit_cost:.4f}",
+        f"restock_setup_fee={case.replenishment_setup_cost:.4f}",
+        f"restock_unit_limit={case.max_replenishment_units:.4f}",
+        f"storage_ceiling={case.replenishment_storage_capacity:.4f}",
+        f"window_demand_adjustments={','.join(f'{shock:.4f}' for shock in case.demand_shocks)}",
+        "Recent rival shelf observations:",
+    ]
+    for point in case.trace:
+        lines.append(
+            f"  rival_observation window={point.period} "
+            f"rival_ticket={point.opponent_price:.4f} "
+            f"sell_through={point.opponent_fill_rate:.4f} "
+            f"shelf_left={point.opponent_remaining_inventory_share:.4f}"
+        )
+    lines.extend(
+        [
+            "Higher own prices reduce your unit sales; higher rival tickets raise your unit sales.",
+            "Use sell-through and shelf-left patterns to judge whether the rival is clearing stock, "
+            "running out of capacity, or likely to move the next ticket up.",
+            "A restock arrives before the late window and costs the per-unit restock cost plus "
+            "the setup fee, subject to the unit limit and storage ceiling.",
+            "Choose early and late prices plus restock units to maximize ending cash while keeping "
+            "the cash reserve floor; no restock can stock out, while blind restock can overbuy.",
         ]
     )
     return "\n".join(lines)
