@@ -277,7 +277,8 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"experiment_design: n={result['n_trials']} ev_gap="
                 f"{_fmt(result['mean_expected_value_gap'])} "
                 f"ci95={_fmt_ci(result.get('mean_expected_value_gap_ci95'))} "
-                f"miss={result['experiment_miss_rate']:.2f}"
+                f"miss={result['experiment_miss_rate']:.2f} "
+                f"multi_step_miss={result.get('multi_step_miss_rate', 0.0):.2f}"
             )
         elif task == "retail":
             print(

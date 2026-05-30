@@ -375,6 +375,15 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(greedy["mean_expected_value_gap"], 10.0)
         self.assertGreater(greedy["experiment_miss_rate"], 0.5)
 
+    def test_experiment_design_flags_single_step_adaptation_miss(self):
+        designed = run_experiment_design_game(OfflineAgent("oracle"))
+        single_step = run_experiment_design_game(OfflineAgent("single_step"))
+        case_keys = {trial["case"]["key"] for trial in designed["trials"]}
+        self.assertIn("adaptive_segment_screen", case_keys)
+        self.assertEqual(designed["multi_step_miss_rate"], 0.0)
+        self.assertGreater(single_step["mean_expected_value_gap"], 10.0)
+        self.assertEqual(single_step["multi_step_miss_rate"], 1.0)
+
     def test_retail_flags_ev_overordering_ruin(self):
         survival = run_retail_game(OfflineAgent("oracle"))
         ev_order = run_retail_game(OfflineAgent("ev_order"))
@@ -539,11 +548,12 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(exploration_rows[1]["agent"], "offline:exploit")
 
     def test_offline_sweep_ranks_experiment_design_above_greedy(self):
-        sweep = run_sweep(task="experiment_design", agent_specs=["offline:oracle", "offline:greedy"])
+        sweep = run_sweep(task="experiment_design", agent_specs=["offline:oracle", "offline:single_step", "offline:greedy"])
         rows = rank_rows(comparison_table(sweep))
         experiment_rows = [row for row in rows if row["task"] == "experiment_design"]
         self.assertEqual(experiment_rows[0]["agent"], "offline:oracle")
-        self.assertEqual(experiment_rows[1]["agent"], "offline:greedy")
+        self.assertEqual(experiment_rows[1]["agent"], "offline:single_step")
+        self.assertEqual(experiment_rows[2]["agent"], "offline:greedy")
 
     def test_offline_sweep_ranks_survival_above_ev_order_on_retail(self):
         sweep = run_sweep(task="retail", agent_specs=["offline:oracle", "offline:ev_order"])

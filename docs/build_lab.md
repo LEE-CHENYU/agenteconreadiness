@@ -33,7 +33,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `mechanism` | Mechanism-choice task: choose among auction/allocation rules using configured principal weights, strategic-risk penalties, and incentive-compatibility checks. | `python -m aeread_lab.cli --task mechanism --agent offline:oracle` |
 | `strategic_drift` | γ-Bench-style repeated strategic discipline: preserve long-horizon relationship value under deterministic, imperfect-information, and N-player stress instead of drifting to myopic grabs. | `python -m aeread_lab.cli --task strategic_drift --agent offline:oracle` |
 | `exploration` | EconEvals-style unknown-environment learning: decide when information value justifies a pilot before deployment. | `python -m aeread_lab.cli --task exploration --agent offline:oracle` |
-| `experiment_design` | Imperfect-signal experiment design: choose whether and how to run a noisy experiment before deployment, then update by Bayes rule. | `python -m aeread_lab.cli --task experiment_design --agent offline:oracle` |
+| `experiment_design` | Imperfect-signal experiment design: choose whether and how to run one-step or adaptive two-step noisy experiments before deployment, then update by Bayes rule. | `python -m aeread_lab.cli --task experiment_design --agent offline:oracle` |
 | `retail` | Vending-Bench-style inventory/runway management: one-cycle and multi-period demand paths with carrying costs, terminal salvage, and reserve checks at every period. | `python -m aeread_lab.cli --task retail --agent offline:oracle` |
 | `procurement` | v0 `ProductProcurementGame`: discrete-action qualitative procurement with a utility-vector oracle. | `python -m aeread_lab.cli --task procurement --agent offline:oracle` |
 | `pricing` | v0 `SimplePricingGame`: continuous price choice with base/posterior/reveal conditions and a closed-form revenue oracle. | `python -m aeread_lab.cli --task pricing --agent offline:oracle` |
@@ -111,8 +111,8 @@ interpreting the economic metric.
   N-player cases.
 - `exploration`: lower expected-value gap is better; exploration miss rate is
   reported separately.
-- `experiment_design`: lower expected-value gap is better; experiment miss
-  rate is reported separately.
+- `experiment_design`: lower expected-value gap is better; experiment miss and
+  multi-step adaptation miss rates are reported separately.
 - `retail`: lower order error to the survival/cash oracle is better; ruin
   probability, expected cash gap, myopic-order gap, multi-period cash gap, and
   multi-period miss rate are reported separately.
@@ -160,10 +160,11 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
 
 1. Run full or stress-targeted live OpenAI probes on the cases where sampled
    smokes show parse stability but no separation.
-2. Broaden `experiment_design` into multi-step adaptive tests.
-3. Extend mechanism/market probes toward repeated-policy or opponent-policy
+2. Extend mechanism/market probes toward repeated-policy or opponent-policy
    simulation instead of another static scoring field.
-4. Add adaptive vendor-reputation updates to `supplier_scam` instead of another
+3. Add adaptive vendor-reputation updates to `supplier_scam` instead of another
    static supplier option list.
-5. Replace the stylized revealed-allocation traces with real 13F-style
+4. Replace the stylized revealed-allocation traces with real 13F-style
    holdings-derived traces once a clean data source is selected.
+5. Run full or stress-targeted live OpenAI probes where new stress cases parse
+   cleanly but show only small separation.

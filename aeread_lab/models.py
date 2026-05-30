@@ -466,7 +466,7 @@ class OfflineAgent:
         return f"FINAL_ACTION: {action}"
 
     def _experiment_action(self, user: str) -> str:
-        values = _experiment_action_values(user)
+        values = _experiment_action_values(user, allow_followup=self.policy not in {"single_step", "one_step"})
         if self.policy in {"exploit", "greedy"}:
             deploy_values = {key: value for key, value in values.items() if key.startswith("DEPLOY_")}
             action = max(deploy_values, key=deploy_values.get)
@@ -1181,24 +1181,28 @@ def _extract_experiment_arms(text: str) -> dict[str, tuple[float, float]]:
     return arms
 
 
-def _extract_experiments(text: str) -> dict[str, tuple[float, float]]:
-    experiments: dict[str, tuple[float, float]] = {}
-    pattern = re.compile(
-        r"experiment_id=([a-zA-Z0-9_-]+)\s+"
-        r"cost=([-+]?\d+(?:\.\d+)?)\s+"
-        r"accuracy=([-+]?\d+(?:\.\d+)?)"
-    )
-    for match in pattern.finditer(text):
-        experiments[match.group(1)] = (float(match.group(2)), float(match.group(3)))
+def _extract_experiments(text: str) -> dict[str, tuple[float, float, float, float]]:
+    experiments: dict[str, tuple[float, float, float, float]] = {}
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line.startswith("experiment_id="):
+            continue
+        experiment_id = _extract_word(line, "experiment_id")
+        experiments[experiment_id] = (
+            _extract_float(line, "cost"),
+            _extract_float(line, "accuracy"),
+            _extract_float(line, "followup_cost", 0.0),
+            _extract_float(line, "followup_accuracy", 0.0),
+        )
     return experiments
 
 
 def _extract_experiment_cost(text: str, experiment_id: str) -> float:
     experiments = _extract_experiments(text)
-    return experiments.get(experiment_id, (math.inf, 0.0))[0]
+    return experiments.get(experiment_id, (math.inf, 0.0, 0.0, 0.0))[0]
 
 
-def _experiment_action_values(text: str) -> dict[str, float]:
+def _experiment_action_values(text: str, *, allow_followup: bool = True) -> dict[str, float]:
     units = _extract_float(text, "deployment_units")
     p_high = _extract_float(text, "high_state_probability")
     arms = _extract_experiment_arms(text)
@@ -1209,16 +1213,41 @@ def _experiment_action_values(text: str) -> dict[str, float]:
         return units * (high_probability * high + (1.0 - high_probability) * low)
 
     values = {f"DEPLOY_{arm_id}": deploy_value(arm_id, p_high) for arm_id in arms}
-    for experiment_id, (cost, accuracy) in experiments.items():
-        p_low = 1.0 - p_high
-        p_signal_high = p_high * accuracy + p_low * (1.0 - accuracy)
-        p_signal_low = p_high * (1.0 - accuracy) + p_low * accuracy
-        posterior_high_given_high_signal = (p_high * accuracy) / p_signal_high if p_signal_high > 0 else p_high
-        posterior_high_given_low_signal = (
-            (p_high * (1.0 - accuracy)) / p_signal_low if p_signal_low > 0 else p_high
+    def posterior_after_signal(prior: float, accuracy: float, signal_high: bool) -> tuple[float, float]:
+        p_low = 1.0 - prior
+        if signal_high:
+            p_signal = prior * accuracy + p_low * (1.0 - accuracy)
+            posterior = (prior * accuracy) / p_signal if p_signal > 0 else prior
+        else:
+            p_signal = prior * (1.0 - accuracy) + p_low * accuracy
+            posterior = (prior * (1.0 - accuracy)) / p_signal if p_signal > 0 else prior
+        return p_signal, posterior
+
+    def followup_value(prior: float, followup_cost: float, followup_accuracy: float) -> float:
+        if followup_accuracy <= 0:
+            return -math.inf
+        p_signal_high, posterior_high = posterior_after_signal(prior, followup_accuracy, True)
+        p_signal_low, posterior_low = posterior_after_signal(prior, followup_accuracy, False)
+        return (
+            -followup_cost
+            + p_signal_high * max(deploy_value(arm_id, posterior_high) for arm_id in arms)
+            + p_signal_low * max(deploy_value(arm_id, posterior_low) for arm_id in arms)
         )
+
+    for experiment_id, (cost, accuracy, followup_cost, followup_accuracy) in experiments.items():
+        p_signal_high, posterior_high_given_high_signal = posterior_after_signal(p_high, accuracy, True)
+        p_signal_low, posterior_high_given_low_signal = posterior_after_signal(p_high, accuracy, False)
         best_after_high_signal = max(deploy_value(arm_id, posterior_high_given_high_signal) for arm_id in arms)
         best_after_low_signal = max(deploy_value(arm_id, posterior_high_given_low_signal) for arm_id in arms)
+        if allow_followup:
+            best_after_high_signal = max(
+                best_after_high_signal,
+                followup_value(posterior_high_given_high_signal, followup_cost, followup_accuracy),
+            )
+            best_after_low_signal = max(
+                best_after_low_signal,
+                followup_value(posterior_high_given_low_signal, followup_cost, followup_accuracy),
+            )
         values[f"EXPERIMENT_{experiment_id}"] = (
             -cost + p_signal_high * best_after_high_signal + p_signal_low * best_after_low_signal
         )

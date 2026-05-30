@@ -26,6 +26,8 @@ class Experiment:
     experiment_id: str
     cost: float
     accuracy: float
+    followup_cost: float = 0.0
+    followup_accuracy: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -43,6 +45,7 @@ class ExperimentTrial:
     case: ExperimentCase
     best_action: str
     greedy_action: str
+    single_step_action: str
     chosen_action: str | None
     expected_value_gap: float | None
     raw_response: str
@@ -105,6 +108,20 @@ DEFAULT_CASES = [
             Experiment("live_market_test", 45.0, 0.88),
         ),
     ),
+    ExperimentCase(
+        key="adaptive_segment_screen",
+        real_case="adaptive two-stage market test where a cheap screen can justify a confirmatory pilot",
+        deployment_units=20,
+        high_state_probability=0.25,
+        arms=(
+            ExperimentArm("known_segment", 50.0, 50.0),
+            ExperimentArm("new_segment", 0.0, 140.0),
+        ),
+        experiments=(
+            Experiment("cheap_screen", 10.0, 0.62, followup_cost=45.0, followup_accuracy=0.90),
+            Experiment("direct_pilot", 80.0, 0.86),
+        ),
+    ),
 ]
 
 
@@ -114,33 +131,79 @@ def deploy_value(case: ExperimentCase, arm: ExperimentArm, high_probability: flo
     return case.deployment_units * expected_payoff
 
 
-def experiment_value(case: ExperimentCase, experiment: Experiment) -> float:
+def posterior_after_signal(prior_high: float, accuracy: float, *, signal_high: bool) -> tuple[float, float]:
+    p_low = 1.0 - prior_high
+    if signal_high:
+        p_signal = prior_high * accuracy + p_low * (1.0 - accuracy)
+        posterior = (prior_high * accuracy) / p_signal if p_signal > 0 else prior_high
+    else:
+        p_signal = prior_high * (1.0 - accuracy) + p_low * accuracy
+        posterior = (prior_high * (1.0 - accuracy)) / p_signal if p_signal > 0 else prior_high
+    return p_signal, posterior
+
+
+def best_deploy_value(case: ExperimentCase, high_probability: float) -> float:
+    return max(deploy_value(case, arm, high_probability) for arm in case.arms)
+
+
+def followup_value(case: ExperimentCase, experiment: Experiment, high_probability: float) -> float:
+    if experiment.followup_accuracy <= 0.0:
+        return float("-inf")
+    p_signal_high, posterior_high = posterior_after_signal(
+        high_probability,
+        experiment.followup_accuracy,
+        signal_high=True,
+    )
+    p_signal_low, posterior_low = posterior_after_signal(
+        high_probability,
+        experiment.followup_accuracy,
+        signal_high=False,
+    )
+    return (
+        -experiment.followup_cost
+        + p_signal_high * best_deploy_value(case, posterior_high)
+        + p_signal_low * best_deploy_value(case, posterior_low)
+    )
+
+
+def experiment_value(case: ExperimentCase, experiment: Experiment, *, allow_followup: bool = True) -> float:
     p_high = case.high_state_probability
     p_low = 1.0 - p_high
     accuracy = experiment.accuracy
 
-    p_signal_high = p_high * accuracy + p_low * (1.0 - accuracy)
-    p_signal_low = p_high * (1.0 - accuracy) + p_low * accuracy
-    posterior_high_given_high_signal = (p_high * accuracy) / p_signal_high if p_signal_high > 0 else p_high
-    posterior_high_given_low_signal = (
-        (p_high * (1.0 - accuracy)) / p_signal_low if p_signal_low > 0 else p_high
+    p_signal_high, posterior_high_given_high_signal = posterior_after_signal(
+        p_high,
+        accuracy,
+        signal_high=True,
+    )
+    p_signal_low, posterior_high_given_low_signal = posterior_after_signal(
+        p_high,
+        accuracy,
+        signal_high=False,
     )
 
-    best_after_high_signal = max(
-        deploy_value(case, arm, posterior_high_given_high_signal)
-        for arm in case.arms
-    )
-    best_after_low_signal = max(
-        deploy_value(case, arm, posterior_high_given_low_signal)
-        for arm in case.arms
-    )
+    best_after_high_signal = best_deploy_value(case, posterior_high_given_high_signal)
+    best_after_low_signal = best_deploy_value(case, posterior_high_given_low_signal)
+    if allow_followup:
+        best_after_high_signal = max(
+            best_after_high_signal,
+            followup_value(case, experiment, posterior_high_given_high_signal),
+        )
+        best_after_low_signal = max(
+            best_after_low_signal,
+            followup_value(case, experiment, posterior_high_given_low_signal),
+        )
     return -experiment.cost + p_signal_high * best_after_high_signal + p_signal_low * best_after_low_signal
 
 
-def action_values(case: ExperimentCase) -> dict[str, float]:
+def action_values(case: ExperimentCase, *, allow_followup: bool = True) -> dict[str, float]:
     values = {f"DEPLOY_{arm.arm_id}": deploy_value(case, arm) for arm in case.arms}
     for experiment in case.experiments:
-        values[f"EXPERIMENT_{experiment.experiment_id}"] = experiment_value(case, experiment)
+        values[f"EXPERIMENT_{experiment.experiment_id}"] = experiment_value(
+            case,
+            experiment,
+            allow_followup=allow_followup,
+        )
     return values
 
 
@@ -155,6 +218,11 @@ def greedy_action(case: ExperimentCase) -> str:
     return max(deploy_values, key=deploy_values.get)
 
 
+def single_step_action(case: ExperimentCase) -> str:
+    values = action_values(case, allow_followup=False)
+    return max(values, key=values.get)
+
+
 def run_experiment_design_game(agent: Agent, cases: list[ExperimentCase] | None = None) -> dict:
     cases = cases or DEFAULT_CASES
     trials: list[ExperimentTrial] = []
@@ -162,6 +230,7 @@ def run_experiment_design_game(agent: Agent, cases: list[ExperimentCase] | None 
         values = action_values(case)
         best = best_action(case)
         greedy = greedy_action(case)
+        single_step = single_step_action(case)
         response = agent.complete(EXPERIMENT_SYSTEM, _prompt(case))
         chosen = parse_token("FINAL_ACTION", response)
         chosen = chosen if chosen in values else None
@@ -171,6 +240,7 @@ def run_experiment_design_game(agent: Agent, cases: list[ExperimentCase] | None 
                 case=case,
                 best_action=best,
                 greedy_action=greedy,
+                single_step_action=single_step,
                 chosen_action=chosen,
                 expected_value_gap=gap,
                 raw_response=response,
@@ -186,6 +256,13 @@ def summarize_experiment_trials(agent_name: str, trials: list[ExperimentTrial]) 
         trial.chosen_action is not None and not trial.chosen_action.startswith("EXPERIMENT_")
         for trial in experiment_required
     )
+    multi_step_required = [
+        trial for trial in trials if trial.best_action != trial.single_step_action
+    ]
+    multi_step_misses = sum(
+        trial.chosen_action is not None and trial.chosen_action != trial.best_action
+        for trial in multi_step_required
+    )
     return {
         "task": "experiment_design",
         "agent": agent_name,
@@ -193,6 +270,9 @@ def summarize_experiment_trials(agent_name: str, trials: list[ExperimentTrial]) 
         "mean_expected_value_gap": mean(gaps),
         "mean_expected_value_gap_ci95": bootstrap_mean_ci(gaps),
         "experiment_miss_rate": missed / len(experiment_required) if experiment_required else 0.0,
+        "multi_step_miss_rate": (
+            multi_step_misses / len(multi_step_required) if multi_step_required else 0.0
+        ),
         "trials": [_trial_json(trial) for trial in trials],
     }
 
@@ -222,9 +302,14 @@ def _prompt(case: ExperimentCase) -> str:
             "  "
             f"experiment_id={experiment.experiment_id} "
             f"cost={experiment.cost:.2f} "
-            f"accuracy={experiment.accuracy:.4f}"
+            f"accuracy={experiment.accuracy:.4f} "
+            f"followup_cost={experiment.followup_cost:.2f} "
+            f"followup_accuracy={experiment.followup_accuracy:.4f}"
         )
-    lines.append("Choose the first action with the highest expected total payoff net of experiment cost.")
+    lines.append(
+        "If followup_accuracy > 0, the first experiment can be followed by that second test before deployment when the posterior makes it worthwhile."
+    )
+    lines.append("Choose the first action with the highest expected total payoff net of experiment costs.")
     return "\n".join(lines)
 
 
