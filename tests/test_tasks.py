@@ -82,10 +82,13 @@ from aeread_lab.tasks.portfolio import _prompt as portfolio_prompt
 from aeread_lab.tasks.portfolio import run_portfolio_game
 from aeread_lab.tasks.pricing import COUNTERFACTUAL_SETS as PRICING_COUNTERFACTUAL_SETS
 from aeread_lab.tasks.pricing import DEFAULT_CASES as PRICING_CASES
+from aeread_lab.tasks.pricing import DEFAULT_LAW_CASES as PRICING_LAW_CASES
 from aeread_lab.tasks.pricing import _counterfactual_prompt as pricing_counterfactual_prompt
+from aeread_lab.tasks.pricing import _law_audit_prompt as pricing_law_audit_prompt
 from aeread_lab.tasks.pricing import _prompt as pricing_prompt
 from aeread_lab.tasks.pricing import run_pricing_counterfactual_game
 from aeread_lab.tasks.pricing import run_pricing_game
+from aeread_lab.tasks.pricing import run_pricing_law_audit_game
 from aeread_lab.tasks.principal_inference import DEFAULT_CASES as PRINCIPAL_CASES
 from aeread_lab.tasks.principal_inference import _prompt as principal_prompt
 from aeread_lab.tasks.principal_inference import run_principal_inference_game
@@ -212,6 +215,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 2)
         self.assertEqual(results[0]["counterfactual_shift_miss_rate"], 0.0)
 
+    def test_sample_limit_slices_pricing_law_audit_cases(self):
+        results = run_tasks("pricing_law_audit", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertEqual(results[0]["accuracy"], 1.0)
+
     def test_sample_limit_slices_forecast_aggregate_cases(self):
         results = run_tasks("forecast_aggregate", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
@@ -299,6 +307,20 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(stale["counterfactual_shift_miss_rate"], 1.0)
         self.assertEqual(stale["sticky_base_price_rate"], 1.0)
 
+    def test_pricing_law_audit_flags_invalid_acceptance(self):
+        configured = run_pricing_law_audit_game(OfflineAgent("oracle"))
+        accept = run_pricing_law_audit_game(OfflineAgent("law_accept"))
+        reject = run_pricing_law_audit_game(OfflineAgent("law_reject"))
+        inverted = run_pricing_law_audit_game(OfflineAgent("law_invert"))
+        self.assertEqual(configured["task"], "pricing_law_audit")
+        self.assertEqual(configured["n_trials"], len(PRICING_LAW_CASES))
+        self.assertEqual(configured["accuracy"], 1.0)
+        self.assertEqual(configured["invalid_accept_rate"], 0.0)
+        self.assertEqual(configured["valid_reject_rate"], 0.0)
+        self.assertGreater(accept["invalid_accept_rate"], 0.9)
+        self.assertGreater(reject["valid_reject_rate"], 0.9)
+        self.assertEqual(inverted["accuracy"], 0.0)
+
     def test_prompts_do_not_expose_oracle_answers(self):
         regime = regime_prompt(DEFAULT_GAMBLES[0], "kelly")
         regime_relationship = regime_relationship_prompt(DEFAULT_RELATIONSHIP_GAMBLES[0], "kelly")
@@ -312,6 +334,7 @@ class TaskSmokeTests(unittest.TestCase):
             PRICING_COUNTERFACTUAL_SETS[0].perturbed,
             "perturbed",
         )
+        pricing_law_audit = pricing_law_audit_prompt(PRICING_LAW_CASES[0])
         strategic = strategic_prompt(DRIFT_CASES[0], 1, [])
         forecast = forecast_prompt(FORECAST_CASES[0])
         forecast_aggregate = forecast_aggregate_prompt(FORECAST_AGGREGATE_CASES[0])
@@ -354,6 +377,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", procurement_counterfactual)
         self.assertNotIn("oracle", pricing)
         self.assertNotIn("oracle", pricing_counterfactual)
+        self.assertNotIn("oracle", pricing_law_audit)
         self.assertNotIn("oracle", strategic)
         self.assertNotIn("oracle", forecast)
         self.assertNotIn("oracle", forecast_aggregate)
@@ -388,6 +412,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("kelly_fraction", regime_law_audit)
         self.assertNotIn("oracle_price", pricing)
         self.assertNotIn("oracle_price", pricing_counterfactual)
+        self.assertNotIn("oracle_price", pricing_law_audit)
         self.assertNotIn("raw_mean_probability", forecast_curve_natural)
         self.assertNotIn("observed_event_count", forecast_curve_natural)
         self.assertNotIn("first_period_revenue", mechanism_repeated_natural)
@@ -905,6 +930,13 @@ class TaskSmokeTests(unittest.TestCase):
         sweep = run_sweep(task="regime_law_audit", agent_specs=["offline:oracle", "offline:law_accept"])
         rows = rank_rows(comparison_table(sweep))
         audit_rows = [row for row in rows if row["task"] == "regime_law_audit"]
+        self.assertEqual(audit_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(audit_rows[1]["agent"], "offline:law_accept")
+
+    def test_offline_sweep_ranks_oracle_above_law_accept_on_pricing_law_audit(self):
+        sweep = run_sweep(task="pricing_law_audit", agent_specs=["offline:oracle", "offline:law_accept"])
+        rows = rank_rows(comparison_table(sweep))
+        audit_rows = [row for row in rows if row["task"] == "pricing_law_audit"]
         self.assertEqual(audit_rows[0]["agent"], "offline:oracle")
         self.assertEqual(audit_rows[1]["agent"], "offline:law_accept")
 

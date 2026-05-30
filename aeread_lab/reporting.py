@@ -43,6 +43,7 @@ PRIMARY_METRICS = {
     "procurement_counterfactual": ("accuracy", "higher"),
     "pricing": ("mean_revenue_gap", "lower"),
     "pricing_counterfactual": ("mean_absolute_price_error", "lower"),
+    "pricing_law_audit": ("accuracy", "higher"),
     "adversarial_scam": ("mean_overpayment", "lower"),
     "supplier_scam": ("mean_constrained_final_cash_regret", "lower"),
 }

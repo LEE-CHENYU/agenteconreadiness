@@ -100,6 +100,8 @@ class OfflineAgent:
             return self._procurement_choice(user)
         if "TASK: pricing_price" in system:
             return self._pricing_price(user)
+        if "TASK: pricing_law_label" in system:
+            return self._pricing_law_label(user)
         if "TASK: bargaining_offer" in system:
             return self._bargaining_offer(user)
         if "TASK: belief_bargain_price" in system:
@@ -345,6 +347,18 @@ class OfflineAgent:
         if self.policy == "round":
             oracle = round(oracle / 10.0) * 10.0
         return f"FINAL_PRICE: {oracle:.2f}"
+
+    def _pricing_law_label(self, user: str) -> str:
+        oracle = _pricing_law_label(user)
+        if self.policy in {"law_accept", "pricing_law_accept", "always_valid"}:
+            label = "valid"
+        elif self.policy in {"law_reject", "pricing_law_reject", "always_invalid"}:
+            label = "invalid"
+        elif self.policy in {"law_invert", "pricing_law_invert"}:
+            label = "invalid" if oracle == "valid" else "valid"
+        else:
+            label = oracle
+        return f"FINAL_LABEL: {label}"
 
     def _bargaining_offer(self, user: str) -> str:
         if self.policy == "gate":
@@ -1481,6 +1495,23 @@ def _pricing_prompt_parameters(text: str) -> tuple[float, float]:
             alpha = y_bar + beta * x_bar
             return alpha, beta
     return 1.0, 1.0
+
+
+def _pricing_law_label(text: str) -> str:
+    base_alpha = _extract_float(text, "base_alpha")
+    base_beta = max(1e-9, _extract_float(text, "base_beta"))
+    base_p_max = _extract_float(text, "base_p_max")
+    new_alpha = _extract_float(text, "new_alpha")
+    new_beta = max(1e-9, _extract_float(text, "new_beta"))
+    new_p_max = _extract_float(text, "new_p_max")
+    relation = _extract_word(text, "relation")
+    base_price = max(0.0, min(base_p_max, base_alpha / (2.0 * base_beta)))
+    new_price = max(0.0, min(new_p_max, new_alpha / (2.0 * new_beta)))
+    if relation == "new_gt_base":
+        return "valid" if new_price > base_price + 1e-9 else "invalid"
+    if relation == "new_le_base":
+        return "valid" if new_price <= base_price + 1e-9 else "invalid"
+    return "valid" if new_price + 1e-9 >= base_price else "invalid"
 
 
 def _extract_exploration_arms(text: str) -> dict[str, list[tuple[float, float]]]:

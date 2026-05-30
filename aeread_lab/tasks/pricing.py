@@ -4,12 +4,18 @@ import random
 from dataclasses import dataclass
 
 from aeread_lab.models import Agent
-from aeread_lab.parsing import clamp, parse_float
+from aeread_lab.parsing import clamp, parse_float, parse_token
 
 
 PRICING_SYSTEM = (
     "TASK: pricing_price\n"
     "Choose a price. Return one final line only: FINAL_PRICE: <number>."
+)
+
+PRICING_LAW_SYSTEM = (
+    "TASK: pricing_law_label\n"
+    "You are verifying a proposed comparative-static claim about the revenue-maximizing price. "
+    "Return one final line only: FINAL_LABEL: valid or FINAL_LABEL: invalid."
 )
 
 
@@ -38,9 +44,149 @@ class PricingCounterfactualSet:
     perturbed: PricingEvidenceCase
 
 
+@dataclass(frozen=True)
+class PricingLawCase:
+    key: str
+    base_alpha: float
+    base_beta: float
+    base_p_max: float
+    new_alpha: float
+    new_beta: float
+    new_p_max: float
+    relation: str
+    law_family: str
+
+
+@dataclass
+class PricingLawTrial:
+    case: PricingLawCase
+    base_price: float
+    new_price: float
+    oracle_label: str
+    chosen_label: str | None
+    correct: bool
+    invalid_accept: bool
+    valid_reject: bool
+    raw_response: str
+
+
 DEFAULT_CASES = [
     PricingCase("snack_box", alpha=180.0, beta=6.0, sigma=4.0, p_max=30.0, seed=11),
     PricingCase("premium_widget", alpha=260.0, beta=4.0, sigma=6.0, p_max=55.0, seed=29),
+]
+
+
+DEFAULT_LAW_CASES = [
+    PricingLawCase(
+        "intercept_up_unconstrained",
+        base_alpha=180.0,
+        base_beta=6.0,
+        base_p_max=40.0,
+        new_alpha=216.0,
+        new_beta=6.0,
+        new_p_max=40.0,
+        relation="new_ge_base",
+        law_family="intercept_up",
+    ),
+    PricingLawCase(
+        "intercept_down_unconstrained",
+        base_alpha=240.0,
+        base_beta=5.0,
+        base_p_max=60.0,
+        new_alpha=192.0,
+        new_beta=5.0,
+        new_p_max=60.0,
+        relation="new_ge_base",
+        law_family="intercept_down",
+    ),
+    PricingLawCase(
+        "slope_up_unconstrained",
+        base_alpha=220.0,
+        base_beta=4.0,
+        base_p_max=70.0,
+        new_alpha=220.0,
+        new_beta=5.5,
+        new_p_max=70.0,
+        relation="new_ge_base",
+        law_family="slope_up",
+    ),
+    PricingLawCase(
+        "slope_down_unconstrained",
+        base_alpha=180.0,
+        base_beta=6.0,
+        base_p_max=50.0,
+        new_alpha=180.0,
+        new_beta=4.5,
+        new_p_max=50.0,
+        relation="new_ge_base",
+        law_family="slope_down",
+    ),
+    PricingLawCase(
+        "cap_raise_binding",
+        base_alpha=260.0,
+        base_beta=4.0,
+        base_p_max=26.0,
+        new_alpha=260.0,
+        new_beta=4.0,
+        new_p_max=34.0,
+        relation="new_ge_base",
+        law_family="cap_raise",
+    ),
+    PricingLawCase(
+        "cap_cut_binding",
+        base_alpha=260.0,
+        base_beta=4.0,
+        base_p_max=34.0,
+        new_alpha=260.0,
+        new_beta=4.0,
+        new_p_max=26.0,
+        relation="new_ge_base",
+        law_family="cap_cut",
+    ),
+    PricingLawCase(
+        "intercept_up_cap_binding_equal",
+        base_alpha=260.0,
+        base_beta=4.0,
+        base_p_max=24.0,
+        new_alpha=300.0,
+        new_beta=4.0,
+        new_p_max=24.0,
+        relation="new_gt_base",
+        law_family="cap_binding_equal",
+    ),
+    PricingLawCase(
+        "demand_mix_price_down",
+        base_alpha=240.0,
+        base_beta=4.0,
+        base_p_max=80.0,
+        new_alpha=252.0,
+        new_beta=5.6,
+        new_p_max=80.0,
+        relation="new_ge_base",
+        law_family="mixed_shift",
+    ),
+    PricingLawCase(
+        "demand_mix_price_up",
+        base_alpha=220.0,
+        base_beta=6.0,
+        base_p_max=70.0,
+        new_alpha=250.0,
+        new_beta=5.0,
+        new_p_max=70.0,
+        relation="new_ge_base",
+        law_family="mixed_shift",
+    ),
+    PricingLawCase(
+        "small_intercept_up_valid",
+        base_alpha=150.0,
+        base_beta=5.0,
+        base_p_max=50.0,
+        new_alpha=160.0,
+        new_beta=5.0,
+        new_p_max=50.0,
+        relation="new_gt_base",
+        law_family="intercept_up",
+    ),
 ]
 
 COUNTERFACTUAL_SETS = [
@@ -173,6 +319,22 @@ def evidence_oracle_price(case: PricingEvidenceCase) -> float:
 def evidence_revenue(case: PricingEvidenceCase, price: float) -> float:
     alpha_hat, beta_hat = evidence_posterior(case)
     return price * max(0.0, alpha_hat - beta_hat * price)
+
+
+def param_oracle_price(alpha: float, beta: float, p_max: float) -> float:
+    return clamp(alpha / (2.0 * beta), 0.0, p_max)
+
+
+def pricing_law_label(case: PricingLawCase, eps: float = 1e-9) -> str:
+    base = param_oracle_price(case.base_alpha, case.base_beta, case.base_p_max)
+    new = param_oracle_price(case.new_alpha, case.new_beta, case.new_p_max)
+    if case.relation == "new_ge_base":
+        return "valid" if new + eps >= base else "invalid"
+    if case.relation == "new_gt_base":
+        return "valid" if new > base + eps else "invalid"
+    if case.relation == "new_le_base":
+        return "valid" if new <= base + eps else "invalid"
+    raise ValueError(f"Unsupported relation: {case.relation}")
 
 
 def _ols_fit(rows: list[tuple[float, float]]) -> tuple[float, float]:
@@ -311,6 +473,62 @@ def run_pricing_counterfactual_game(
     }
 
 
+def run_pricing_law_audit_game(agent: Agent, cases: list[PricingLawCase] | None = None) -> dict:
+    cases = cases or DEFAULT_LAW_CASES
+    rows: list[PricingLawTrial] = []
+    for case in cases:
+        base_price = param_oracle_price(case.base_alpha, case.base_beta, case.base_p_max)
+        new_price = param_oracle_price(case.new_alpha, case.new_beta, case.new_p_max)
+        oracle_label = pricing_law_label(case)
+        response = agent.complete(PRICING_LAW_SYSTEM, _law_audit_prompt(case))
+        parsed = parse_token("FINAL_LABEL", response)
+        chosen = parsed.lower() if parsed and parsed.lower() in {"valid", "invalid"} else None
+        correct = chosen == oracle_label
+        rows.append(
+            PricingLawTrial(
+                case=case,
+                base_price=base_price,
+                new_price=new_price,
+                oracle_label=oracle_label,
+                chosen_label=chosen,
+                correct=correct,
+                invalid_accept=oracle_label == "invalid" and chosen == "valid",
+                valid_reject=oracle_label == "valid" and chosen == "invalid",
+                raw_response=response,
+            )
+        )
+    return summarize_pricing_law_trials(agent.name, rows)
+
+
+def summarize_pricing_law_trials(agent_name: str, trials: list[PricingLawTrial]) -> dict:
+    parsed = [trial for trial in trials if trial.chosen_label is not None]
+    correct = sum(trial.correct for trial in trials)
+    invalid_trials = [trial for trial in trials if trial.oracle_label == "invalid"]
+    valid_trials = [trial for trial in trials if trial.oracle_label == "valid"]
+    invalid_accepts = sum(trial.invalid_accept for trial in invalid_trials)
+    valid_rejects = sum(trial.valid_reject for trial in valid_trials)
+    by_family: dict[str, dict] = {}
+    for family in sorted({trial.case.law_family for trial in trials}):
+        subset = [trial for trial in trials if trial.case.law_family == family]
+        by_family[family] = {
+            "n_trials": len(subset),
+            "accuracy": sum(trial.correct for trial in subset) / len(subset) if subset else 0.0,
+            "valid_count": sum(trial.oracle_label == "valid" for trial in subset),
+            "invalid_count": sum(trial.oracle_label == "invalid" for trial in subset),
+        }
+    return {
+        "task": "pricing_law_audit",
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "accuracy": correct / len(trials) if trials else 0.0,
+        "parse_rate": len(parsed) / len(trials) if trials else 0.0,
+        "invalid_accept_rate": invalid_accepts / len(invalid_trials) if invalid_trials else 0.0,
+        "valid_reject_rate": valid_rejects / len(valid_trials) if valid_trials else 0.0,
+        "by_family": by_family,
+        "trials": [_pricing_law_trial_json(trial) for trial in trials],
+    }
+
+
 def _prompt(case: PricingCase, condition: str) -> str:
     alpha_hat, beta_hat = ols_posterior(case)
     lines = [
@@ -342,3 +560,48 @@ def _counterfactual_prompt(case: PricingEvidenceCase, variant: str) -> str:
     lines.extend(f"  price={p:.2f}, quantity={q:.2f}" for p, q in case.observations)
     lines.append("Fit a linear demand curve quantity = alpha - beta * price, then choose the revenue-maximizing price.")
     return "\n".join(lines)
+
+
+def _law_audit_prompt(case: PricingLawCase) -> str:
+    relation_text = {
+        "new_ge_base": "new optimal price >= base optimal price",
+        "new_gt_base": "new optimal price > base optimal price",
+        "new_le_base": "new optimal price <= base optimal price",
+    }[case.relation]
+    lines = [
+        f"case={case.key}",
+        "Demand is quantity = alpha - beta * price.",
+        "Choose the price that maximizes price * quantity, capped by p_max.",
+        f"base_alpha={case.base_alpha:.4f}",
+        f"base_beta={case.base_beta:.4f}",
+        f"base_p_max={case.base_p_max:.4f}",
+        f"new_alpha={case.new_alpha:.4f}",
+        f"new_beta={case.new_beta:.4f}",
+        f"new_p_max={case.new_p_max:.4f}",
+        f"relation={case.relation}",
+        f"Claim: {relation_text}.",
+        "Decide whether the claim is valid or invalid for this generated pricing case.",
+    ]
+    return "\n".join(lines)
+
+
+def _pricing_law_trial_json(trial: PricingLawTrial) -> dict:
+    return {
+        "case": trial.case.key,
+        "law_family": trial.case.law_family,
+        "base_alpha": trial.case.base_alpha,
+        "base_beta": trial.case.base_beta,
+        "base_p_max": trial.case.base_p_max,
+        "new_alpha": trial.case.new_alpha,
+        "new_beta": trial.case.new_beta,
+        "new_p_max": trial.case.new_p_max,
+        "relation": trial.case.relation,
+        "base_price": trial.base_price,
+        "new_price": trial.new_price,
+        "oracle_label": trial.oracle_label,
+        "chosen_label": trial.chosen_label,
+        "correct": trial.correct,
+        "invalid_accept": trial.invalid_accept,
+        "valid_reject": trial.valid_reject,
+        "raw_response": trial.raw_response,
+    }
