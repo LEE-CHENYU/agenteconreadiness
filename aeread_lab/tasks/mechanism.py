@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, replace
 
 from aeread_lab.models import Agent
 from aeread_lab.parsing import parse_token
@@ -55,6 +55,13 @@ MECHANISM_TRACE_EQUILIBRIUM_NATURAL_SYSTEM = (
     "TASK: mechanism_trace_equilibrium_natural\n"
     "Choose the rule for the remaining program rounds after reading pilot outcome traces "
     "and stable participant behavior. Return one final line only: "
+    "FINAL_MECHANISM: <mechanism_id>."
+)
+
+MECHANISM_TRACE_EQUILIBRIUM_NOISY_SYSTEM = (
+    "TASK: mechanism_trace_equilibrium_noisy\n"
+    "Choose the rule for the remaining program rounds after reading noisy local pilot "
+    "outcome traces and stable participant behavior. Return one final line only: "
     "FINAL_MECHANISM: <mechanism_id>."
 )
 
@@ -1456,6 +1463,90 @@ TRACE_EQUILIBRIUM_CASES = [
 ]
 
 
+def _trace_equilibrium_noisy_case(
+    case: TraceEquilibriumMechanismCase,
+    *,
+    participant_offsets: tuple[tuple[float, ...], ...],
+    strategic_offsets: tuple[tuple[float, ...], ...],
+) -> TraceEquilibriumMechanismCase:
+    mechanisms: list[TraceEquilibriumMechanismOption] = []
+    for mechanism_idx, mechanism in enumerate(case.mechanisms):
+        trace = tuple(
+            InteractionTracePoint(
+                point.round_id,
+                max(1.0, point.active_participants + participant_offsets[mechanism_idx][point_idx]),
+                max(
+                    0.0,
+                    min(0.95, point.strategic_share + strategic_offsets[mechanism_idx][point_idx]),
+                ),
+            )
+            for point_idx, point in enumerate(mechanism.trace)
+        )
+        mechanisms.append(replace(mechanism, trace=trace))
+    return replace(
+        case,
+        key=f"noisy_{case.key}",
+        real_case=f"noisy local pilot sheets around {case.real_case}",
+        mechanisms=tuple(mechanisms),
+    )
+
+
+TRACE_EQUILIBRIUM_NOISY_CASES = [
+    _trace_equilibrium_noisy_case(
+        TRACE_EQUILIBRIUM_CASES[0],
+        participant_offsets=(
+            (18.0, -12.0, 24.0),
+            (-15.0, 20.0, -18.0),
+            (10.0, -14.0, 16.0),
+        ),
+        strategic_offsets=(
+            (0.010, -0.008, 0.016),
+            (-0.006, 0.010, -0.004),
+            (0.004, -0.006, 0.008),
+        ),
+    ),
+    _trace_equilibrium_noisy_case(
+        TRACE_EQUILIBRIUM_CASES[1],
+        participant_offsets=(
+            (-20.0, 16.0, -26.0),
+            (14.0, -18.0, 20.0),
+            (-12.0, 10.0, -16.0),
+        ),
+        strategic_offsets=(
+            (-0.008, 0.014, -0.012),
+            (0.006, -0.008, 0.010),
+            (-0.004, 0.006, -0.006),
+        ),
+    ),
+    _trace_equilibrium_noisy_case(
+        TRACE_EQUILIBRIUM_CASES[2],
+        participant_offsets=(
+            (16.0, -10.0, 22.0),
+            (-12.0, 18.0, -15.0),
+            (9.0, -11.0, 14.0),
+        ),
+        strategic_offsets=(
+            (0.008, -0.006, 0.014),
+            (-0.005, 0.008, -0.004),
+            (0.004, -0.005, 0.006),
+        ),
+    ),
+    _trace_equilibrium_noisy_case(
+        TRACE_EQUILIBRIUM_CASES[3],
+        participant_offsets=(
+            (-28.0, 22.0, -30.0),
+            (18.0, -20.0, 24.0),
+            (-16.0, 12.0, -18.0),
+        ),
+        strategic_offsets=(
+            (-0.010, 0.016, -0.014),
+            (0.006, -0.008, 0.012),
+            (-0.004, 0.006, -0.006),
+        ),
+    ),
+]
+
+
 def incentive_violation(mechanism: MechanismOption) -> float:
     return sum(
         max(0.0, check.best_deviation_utility - check.truthful_utility) * max(0.0, check.probability)
@@ -2258,6 +2349,19 @@ def run_mechanism_trace_equilibrium_natural_game(
     )
 
 
+def run_mechanism_trace_equilibrium_noisy_game(
+    agent: Agent,
+    cases: list[TraceEquilibriumMechanismCase] | None = None,
+) -> dict:
+    return _run_trace_equilibrium_mechanism_game(
+        agent,
+        cases or TRACE_EQUILIBRIUM_NOISY_CASES,
+        system=MECHANISM_TRACE_EQUILIBRIUM_NOISY_SYSTEM,
+        prompt_fn=_trace_equilibrium_noisy_prompt,
+        task_name="mechanism_trace_equilibrium_noisy",
+    )
+
+
 def _run_trace_equilibrium_mechanism_game(
     agent: Agent,
     cases: list[TraceEquilibriumMechanismCase] | None,
@@ -2990,6 +3094,54 @@ def _trace_equilibrium_natural_prompt(case: TraceEquilibriumMechanismCase) -> st
             "Then estimate the stable share of participants who keep optimizing around the rule, "
             "using private pull, copycat pressure, review deterrence, review consequence, "
             "recent pilot movement, and adaptation speed.",
+            "Future active-pool retention falls as the stable flagged share rises.",
+            "Pick the rule with the best repeated program value, not the highest launch take, "
+            "a straight-line pilot projection, or the first-wave flagged-share read.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _trace_equilibrium_noisy_prompt(case: TraceEquilibriumMechanismCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"future_rounds_to_score={case.forecast_horizon}",
+        f"revenue_weight={case.revenue_weight:.4f}",
+        f"participant_value_weight={case.participant_value_weight:.4f}",
+        f"access_weight={case.access_weight:.4f}",
+        f"manipulation_penalty={case.manipulation_penalty:.4f}",
+        "Noisy local pilot outcome sheets for candidate rules:",
+    ]
+    for mechanism in case.mechanisms:
+        lines.append(
+            "  "
+            f"option_id={mechanism.mechanism_id} "
+            f"launch_take={mechanism.sponsor_take:.2f} "
+            f"participant_outcome={mechanism.participant_value:.2f} "
+            f"access_reach={mechanism.access_quality:.4f} "
+            f"gaming_damage={mechanism.manipulation_harm:.2f} "
+            f"oversight_cost={mechanism.review_cost:.2f} "
+            f"ordinary_stay={mechanism.base_stay_rate:.4f} "
+            f"departure_pressure={mechanism.exit_sensitivity:.4f} "
+            f"private_strategy_pull={mechanism.strategic_gain:.4f} "
+            f"copycat_pressure={mechanism.peer_contagion:.4f} "
+            f"review_deterrence={mechanism.audit_strength:.4f} "
+            f"review_consequence={mechanism.detection_cost:.4f} "
+            f"adaptation_speed={mechanism.response_update_rate:.4f}"
+        )
+        for point in mechanism.trace:
+            lines.append(
+                "    "
+                f"pilot option_id={mechanism.mechanism_id} "
+                f"wave={point.round_id} "
+                f"active_pool={point.active_participants:.2f} "
+                f"flagged_share={point.strategic_share:.4f}"
+            )
+    lines.extend(
+        [
+            "Treat any single local pilot row as noisy; use the direction across waves "
+            "and the rule-specific behavior parameters to estimate the stable strategic share.",
             "Future active-pool retention falls as the stable flagged share rises.",
             "Pick the rule with the best repeated program value, not the highest launch take, "
             "a straight-line pilot projection, or the first-wave flagged-share read.",

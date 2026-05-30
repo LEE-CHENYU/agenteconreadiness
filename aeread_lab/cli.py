@@ -47,6 +47,7 @@ TASKS = (
     "mechanism_interaction_trace",
     "mechanism_trace_equilibrium",
     "mechanism_trace_equilibrium_natural",
+    "mechanism_trace_equilibrium_noisy",
     "strategic_drift",
     "forecast_calibration",
     "forecast_aggregate",
@@ -427,7 +428,11 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"one_period_miss={result['one_period_miss_rate']:.2f} "
                 f"{blind_label}={blind_value:.2f}"
             )
-        elif task in {"mechanism_trace_equilibrium", "mechanism_trace_equilibrium_natural"}:
+        elif task in {
+            "mechanism_trace_equilibrium",
+            "mechanism_trace_equilibrium_natural",
+            "mechanism_trace_equilibrium_noisy",
+        }:
             print(
                 f"{task}: n={result['n_trials']} score_regret="
                 f"{_fmt(result['mean_score_regret'])} "
