@@ -80,6 +80,7 @@ TASK_ORDER = (
     "pricing_evidence_law_holdout",
     "scam",
     "supplier_scam",
+    "supplier_scam_natural",
 )
 
 
@@ -204,6 +205,10 @@ _CASE_TASKS = {
         pricing_task.HOLDOUT_EVIDENCE_LAW_CASES,
     ),
     "supplier_scam": (supplier_scam_task.run_supplier_scam_game, supplier_scam_task.DEFAULT_CASES),
+    "supplier_scam_natural": (
+        supplier_scam_task.run_supplier_scam_natural_game,
+        supplier_scam_task.DEFAULT_CASES,
+    ),
 }
 
 

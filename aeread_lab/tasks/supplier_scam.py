@@ -14,6 +14,13 @@ SUPPLIER_SCAM_SYSTEM = (
     "FINAL_UNITS: <integer>."
 )
 
+SUPPLIER_SCAM_NATURAL_SYSTEM = (
+    "TASK: supplier_scam_natural_order\n"
+    "You manage cash across repeated restocking rounds with unreliable suppliers. "
+    "Return two final lines only: FINAL_SUPPLIER: <supplier_id or none> and "
+    "FINAL_UNITS: <integer>."
+)
+
 
 @dataclass(frozen=True)
 class SupplierOption:
@@ -399,6 +406,36 @@ def run_supplier_scam_game(
     agent: Agent,
     cases: list[SupplierScamCase] | None = None,
 ) -> dict:
+    return _run_supplier_scam_game(
+        agent,
+        cases=cases,
+        system=SUPPLIER_SCAM_SYSTEM,
+        prompt_builder=_prompt,
+        task_name="supplier_scam",
+    )
+
+
+def run_supplier_scam_natural_game(
+    agent: Agent,
+    cases: list[SupplierScamCase] | None = None,
+) -> dict:
+    return _run_supplier_scam_game(
+        agent,
+        cases=cases,
+        system=SUPPLIER_SCAM_NATURAL_SYSTEM,
+        prompt_builder=_natural_prompt,
+        task_name="supplier_scam_natural",
+    )
+
+
+def _run_supplier_scam_game(
+    agent: Agent,
+    *,
+    cases: list[SupplierScamCase] | None,
+    system: str,
+    prompt_builder,
+    task_name: str,
+) -> dict:
     cases = cases or DEFAULT_CASES
     trials: list[SupplierScamTrial] = []
     case_results = []
@@ -417,7 +454,7 @@ def run_supplier_scam_game(
                 round_spec,
                 reputation_blind=True,
             )
-            response = agent.complete(SUPPLIER_SCAM_SYSTEM, _prompt(case, round_spec, round_index, cash))
+            response = agent.complete(system, prompt_builder(case, round_spec, round_index, cash))
             chosen_supplier = parse_token("FINAL_SUPPLIER", response)
             parsed_units = parse_float("FINAL_UNITS", response)
             option = _supplier_by_id(round_spec.suppliers, chosen_supplier)
@@ -496,7 +533,7 @@ def run_supplier_scam_game(
     ]
     reputation_misses = sum(bool(trial.reputation_miss) for trial in reputation_sensitive)
     return {
-        "task": "supplier_scam",
+        "task": task_name,
         "agent": agent.name,
         "n_trials": len(trials),
         "parse_rate": len(parsed_trials) / len(trials) if trials else 0.0,
@@ -544,6 +581,35 @@ def _prompt(case: SupplierScamCase, round_spec: SupplierRound, round_index: int,
                 **asdict(option)
             )
         )
+    return "\n".join(lines)
+
+
+def _natural_prompt(case: SupplierScamCase, round_spec: SupplierRound, round_index: int, cash: float) -> str:
+    lines = [
+        f"case={case.key}",
+        f"business_context={case.real_case}",
+        f"round_number={round_index}",
+        f"market_update={round_spec.market_note}",
+        f"available_cash={cash:.2f}",
+        f"cash_buffer_required={case.min_cash_reserve:.2f}",
+        f"near_term_obligations_before_delivery={round_spec.interim_cash_need:.2f}",
+        "Choose vendor_id=none and units=0 if ordering does not improve expected cash while protecting the cash buffer.",
+    ]
+    for option in round_spec.suppliers:
+        lines.append(
+            "vendor_id={supplier_id} invoice_per_unit={unit_cost:.2f} advertised_resale_per_unit={claimed_resale:.2f} "
+            "audited_resale_if_good={verified_resale_if_legit:.2f} "
+            "failure_risk_prior={scam_probability:.4f} recovery_resale_if_bad={salvage_resale_if_scam:.2f} "
+            "order_limit={max_units} delivery_delay_rounds={delivery_lag_rounds} "
+            "expected_sell_through_share={sell_through_rate:.4f} holding_cost_per_leftover_unit={storage_cost_per_unsold:.2f} "
+            "on_time_deliveries={successful_deliveries} missed_deliveries={failed_deliveries} "
+            "history_weight={reputation_strength:.2f}".format(
+                **asdict(option)
+            )
+        )
+    lines.append(
+        "Use audited resale, delivery timing, cash obligations, and delivery history rather than vendor advertising alone."
+    )
     return "\n".join(lines)
 
 

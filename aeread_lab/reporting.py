@@ -51,6 +51,7 @@ PRIMARY_METRICS = {
     "pricing_evidence_law_holdout": ("accuracy", "higher"),
     "adversarial_scam": ("mean_overpayment", "lower"),
     "supplier_scam": ("mean_constrained_final_cash_regret", "lower"),
+    "supplier_scam_natural": ("mean_constrained_final_cash_regret", "lower"),
 }
 
 

@@ -63,6 +63,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `pricing_evidence_law_holdout` | Generated evidence-law holdout: a larger neutral-ID family of sales-row pricing-law claims with intercept, slope, cap, mixed, and intervention cases. | `python -m aeread_lab.cli --task pricing_evidence_law_holdout --agent offline:oracle` |
 | `scam` | Adversarial belief-manipulation arena: scam-supplier style value inflation with credulous and skeptical controls. | `python -m aeread_lab.cli --task scam --agent offline:careful --attacker offline:credulous` |
 | `supplier_scam` | Long-horizon supplier-scam stress: repeated restocking under cash/runway constraints, where inflated claims, delayed-inventory lockups, and degraded supplier reputation must be discounted. | `python -m aeread_lab.cli --task supplier_scam --agent offline:oracle` |
+| `supplier_scam_natural` | Natural-label supplier stress: same long-horizon trust/cash oracle as `supplier_scam`, but vendor rows use business-language risk, audit, timing, and delivery-history labels. | `python -m aeread_lab.cli --task supplier_scam_natural --agent offline:oracle` |
 
 ## OpenAI-only API path
 
@@ -219,6 +220,9 @@ interpreting the economic metric.
 - `supplier_scam`: lower constrained final-cash regret is better; raw final-cash
   regret, reserve violation, scam-supplier rate, and timing-reserve violation
   and reputation-update miss rates are reported separately.
+- `supplier_scam_natural`: lower constrained final-cash regret is better under
+  natural vendor labels; the same reserve, timing, scam-supplier, and
+  reputation-update diagnostics are reported.
 
 Offline comparison example:
 

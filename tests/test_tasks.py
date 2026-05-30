@@ -136,8 +136,10 @@ from aeread_lab.tasks.strategic_drift import DEFAULT_CASES as DRIFT_CASES
 from aeread_lab.tasks.strategic_drift import _prompt as strategic_prompt
 from aeread_lab.tasks.strategic_drift import run_strategic_drift_game
 from aeread_lab.tasks.supplier_scam import DEFAULT_CASES as SUPPLIER_SCAM_CASES
+from aeread_lab.tasks.supplier_scam import _natural_prompt as supplier_scam_natural_prompt
 from aeread_lab.tasks.supplier_scam import _prompt as supplier_scam_prompt
 from aeread_lab.tasks.supplier_scam import run_supplier_scam_game
+from aeread_lab.tasks.supplier_scam import run_supplier_scam_natural_game
 
 
 class TaskSmokeTests(unittest.TestCase):
@@ -318,6 +320,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_score_regret"], 1e-9)
 
+    def test_sample_limit_slices_supplier_scam_natural_cases(self):
+        results = run_tasks("supplier_scam_natural", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], len(SUPPLIER_SCAM_CASES[0].rounds))
+        self.assertLess(results[0]["mean_constrained_final_cash_regret"], 1e-9)
+
     def test_procurement_oracle_offline(self):
         summary = run_procurement_game(OfflineAgent("oracle"))
         self.assertEqual(summary["accuracy"], 1.0)
@@ -475,6 +482,12 @@ class TaskSmokeTests(unittest.TestCase):
             1,
             SUPPLIER_SCAM_CASES[0].initial_cash,
         )
+        supplier_scam_natural = supplier_scam_natural_prompt(
+            SUPPLIER_SCAM_CASES[0],
+            SUPPLIER_SCAM_CASES[0].rounds[0],
+            1,
+            SUPPLIER_SCAM_CASES[0].initial_cash,
+        )
         self.assertNotIn("oracle", regime)
         self.assertNotIn("oracle", regime_relationship)
         self.assertNotIn("oracle", regime_holdout)
@@ -518,6 +531,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", experiment)
         self.assertNotIn("oracle", retail)
         self.assertNotIn("oracle", supplier_scam)
+        self.assertNotIn("oracle", supplier_scam_natural)
         self.assertNotIn("kelly_fraction", regime)
         self.assertNotIn("kelly_fraction", regime_relationship)
         self.assertNotIn("kelly_fraction", regime_holdout)
@@ -1020,6 +1034,16 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(reputation_blind["reputation_miss_rate"], 1.0)
         self.assertGreater(reputation_blind["mean_constrained_final_cash_regret"], 20.0)
 
+    def test_supplier_scam_natural_flags_reputation_blind_updates(self):
+        oracle = run_supplier_scam_natural_game(OfflineAgent("oracle"))
+        reputation_blind = run_supplier_scam_natural_game(OfflineAgent("reputation_blind"))
+        case_keys = {row["case"] for row in oracle["cases"]}
+        self.assertIn("adaptive_vendor_reputation", case_keys)
+        self.assertEqual(oracle["task"], "supplier_scam_natural")
+        self.assertEqual(oracle["reputation_miss_rate"], 0.0)
+        self.assertEqual(reputation_blind["reputation_miss_rate"], 1.0)
+        self.assertGreater(reputation_blind["mean_constrained_final_cash_regret"], 20.0)
+
     def test_scam_controls_have_dynamic_range(self):
         summary = run_scam_arena(
             defender=OfflineAgent("careful"),
@@ -1294,6 +1318,16 @@ class TaskSmokeTests(unittest.TestCase):
         retail_rows = [row for row in rows if row["task"] == "retail"]
         self.assertEqual(retail_rows[0]["agent"], "offline:oracle")
         self.assertEqual(retail_rows[1]["agent"], "offline:single_cycle")
+
+    def test_offline_sweep_ranks_oracle_above_reputation_blind_on_supplier_scam_natural(self):
+        sweep = run_sweep(
+            task="supplier_scam_natural",
+            agent_specs=["offline:oracle", "offline:reputation_blind"],
+        )
+        rows = rank_rows(comparison_table(sweep))
+        supplier_rows = [row for row in rows if row["task"] == "supplier_scam_natural"]
+        self.assertEqual(supplier_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(supplier_rows[1]["agent"], "offline:reputation_blind")
 
     def test_rank_rows_keeps_missing_metrics_last(self):
         rows = [

@@ -152,6 +152,8 @@ class OfflineAgent:
             return self._retail_order(user)
         if "TASK: supplier_scam_order" in system:
             return self._supplier_scam_order(user)
+        if "TASK: supplier_scam_natural_order" in system:
+            return self._supplier_scam_order(user)
         if "TASK: scam_estimate" in system:
             return self._scam_estimate(user)
         if "TASK: scam_pitch" in system:
@@ -849,10 +851,14 @@ class OfflineAgent:
         return f"FINAL_ORDER: {order}"
 
     def _supplier_scam_order(self, user: str) -> str:
-        cash = _extract_float(user, "current_cash")
-        reserve = _extract_float(user, "min_cash_reserve")
-        interim_cash_need = _extract_float(user, "interim_cash_need")
-        suppliers = _extract_supplier_options(user)
+        cash = _extract_float(user, "current_cash", _extract_float(user, "available_cash"))
+        reserve = _extract_float(user, "min_cash_reserve", _extract_float(user, "cash_buffer_required"))
+        interim_cash_need = _extract_float(
+            user,
+            "interim_cash_need",
+            _extract_float(user, "near_term_obligations_before_delivery"),
+        )
+        suppliers = _extract_supplier_options(user) or _extract_supplier_natural_options(user)
         credulous = self.policy in {"credulous", "claimed", "high_anchor"}
         timing_blind = self.policy in {"timing_blind", "delay_blind"}
         reputation_blind = self.policy in {"reputation_blind", "history_blind"}
@@ -1969,6 +1975,31 @@ def _extract_supplier_options(text: str) -> list[dict[str, float | int | str]]:
                 "successful_deliveries": int(round(_extract_float(line, "successful_deliveries", 0.0))),
                 "failed_deliveries": int(round(_extract_float(line, "failed_deliveries", 0.0))),
                 "reputation_strength": _extract_float(line, "reputation_strength", 2.0),
+            }
+        )
+    return suppliers
+
+
+def _extract_supplier_natural_options(text: str) -> list[dict[str, float | int | str]]:
+    suppliers = []
+    for line in text.splitlines():
+        if not line.startswith("vendor_id="):
+            continue
+        suppliers.append(
+            {
+                "supplier_id": _extract_word(line, "vendor_id"),
+                "unit_cost": _extract_float(line, "invoice_per_unit"),
+                "claimed_resale": _extract_float(line, "advertised_resale_per_unit"),
+                "verified_resale_if_legit": _extract_float(line, "audited_resale_if_good"),
+                "scam_probability": _extract_float(line, "failure_risk_prior"),
+                "salvage_resale_if_scam": _extract_float(line, "recovery_resale_if_bad"),
+                "max_units": int(round(_extract_float(line, "order_limit"))),
+                "delivery_lag_rounds": int(round(_extract_float(line, "delivery_delay_rounds", 0.0))),
+                "sell_through_rate": _extract_float(line, "expected_sell_through_share", 1.0),
+                "storage_cost_per_unsold": _extract_float(line, "holding_cost_per_leftover_unit", 0.0),
+                "successful_deliveries": int(round(_extract_float(line, "on_time_deliveries", 0.0))),
+                "failed_deliveries": int(round(_extract_float(line, "missed_deliveries", 0.0))),
+                "reputation_strength": _extract_float(line, "history_weight", 2.0),
             }
         )
     return suppliers
