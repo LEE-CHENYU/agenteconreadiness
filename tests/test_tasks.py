@@ -301,6 +301,13 @@ class _AlternatingTradeAgent:
         return f"FINAL_TRADE: {trade_id}"
 
 
+class _WrongTradeAgent:
+    name = "offline:wrong_trade"
+
+    def complete(self, system: str, user: str) -> str:
+        return "FINAL_TRADE: t2"
+
+
 class TaskSmokeTests(unittest.TestCase):
     def test_openai_aliases_are_restricted(self):
         self.assertEqual(resolve_openai_model("gpt-5.5"), "gpt-5.5")
@@ -421,7 +428,12 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertLess(payload["primary_range"], 1e-9)
         self.assertEqual(payload["parse_rate_min"], 1.0)
         self.assertEqual(payload["unstable_case_rate"], 0.0)
+        self.assertEqual(payload["case_status_counts"], {"stable_oracle": 1})
+        self.assertEqual(payload["stable_oracle_case_rate"], 1.0)
+        self.assertEqual(payload["mean_case_oracle_hit_rate"], 1.0)
+        self.assertEqual(payload["case_stability"][0]["status"], "stable_oracle")
         self.assertEqual(payload["case_stability"][0]["unique_choice_count"], 1)
+        self.assertEqual(payload["case_stability"][0]["parse_fail_rate"], 0.0)
         self.assertGreater(payload["case_stability"][0]["oracle_margin"], 0.05)
 
     def test_stability_probe_detects_choice_instability(self):
@@ -434,8 +446,26 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(payload["repeat_count"], 4)
         self.assertGreater(payload["primary_range"], 0.0)
         self.assertEqual(payload["unstable_case_rate"], 1.0)
+        self.assertEqual(payload["unstable_oracle_modal_case_rate"], 1.0)
+        self.assertEqual(payload["case_status_counts"], {"unstable_oracle_modal": 1})
+        self.assertEqual(payload["mean_case_oracle_hit_rate"], 0.5)
+        self.assertEqual(payload["case_stability"][0]["status"], "unstable_oracle_modal")
         self.assertEqual(payload["case_stability"][0]["unique_choice_count"], 2)
         self.assertGreater(payload["case_stability"][0]["oracle_margin"], 0.05)
+
+    def test_stability_probe_detects_stable_wrong_choice(self):
+        payload = run_stability_probe(
+            task="principal_holding_prediction_blind_notes",
+            agent=_WrongTradeAgent(),
+            repeat_count=3,
+            sample_limit=1,
+        )
+        self.assertEqual(payload["unstable_case_rate"], 0.0)
+        self.assertEqual(payload["stable_non_oracle_case_rate"], 1.0)
+        self.assertEqual(payload["case_status_counts"], {"stable_non_oracle": 1})
+        self.assertEqual(payload["mean_case_oracle_hit_rate"], 0.0)
+        self.assertEqual(payload["case_stability"][0]["status"], "stable_non_oracle")
+        self.assertEqual(payload["case_stability"][0]["unique_choice_count"], 1)
 
     def test_sample_limit_slices_pricing_cross_elasticity_cases(self):
         results = run_tasks("pricing_cross_elasticity", OfflineAgent("oracle"), sample_limit=1)

@@ -28,6 +28,13 @@ def summarize_stability_runs(
         if isinstance(result.get("accuracy"), (int, float))
     ]
     case_stability = _case_stability(results)
+    case_status_counts = Counter(row["status"] for row in case_stability)
+    case_count = len(case_stability)
+    oracle_hit_rates = [
+        row["oracle_hit_rate"]
+        for row in case_stability
+        if isinstance(row.get("oracle_hit_rate"), (int, float))
+    ]
 
     return {
         "task": task,
@@ -55,6 +62,21 @@ def summarize_stability_runs(
             max(accuracy_values) - min(accuracy_values) if len(accuracy_values) >= 2 else 0.0
         ),
         "unstable_case_rate": _unstable_case_rate(case_stability),
+        "case_status_counts": dict(sorted(case_status_counts.items())),
+        "stable_oracle_case_rate": _case_status_rate(
+            case_status_counts, case_count, "stable_oracle"
+        ),
+        "stable_non_oracle_case_rate": _case_status_rate(
+            case_status_counts, case_count, "stable_non_oracle"
+        ),
+        "unstable_oracle_modal_case_rate": _case_status_rate(
+            case_status_counts, case_count, "unstable_oracle_modal"
+        ),
+        "unstable_non_oracle_modal_case_rate": _case_status_rate(
+            case_status_counts, case_count, "unstable_non_oracle_modal"
+        ),
+        "parse_modal_case_rate": _case_status_rate(case_status_counts, case_count, "parse_modal"),
+        "mean_case_oracle_hit_rate": mean(oracle_hit_rates),
         "case_stability": case_stability,
         "runs": results,
     }
@@ -92,6 +114,12 @@ def _case_stability(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
         counts = Counter(choices)
         modal_choice, modal_count = counts.most_common(1)[0]
         oracle_choice = oracle_by_case.get(case_key)
+        parse_fail_rate = counts.get("PARSE_FAIL", 0) / len(choices)
+        oracle_hit_rate = (
+            sum(choice == oracle_choice for choice in choices) / len(choices)
+            if oracle_choice is not None
+            else None
+        )
         rows.append(
             {
                 "case_key": case_key,
@@ -101,14 +129,33 @@ def _case_stability(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "modal_choice_rate": modal_count / len(choices),
                 "oracle_choice": oracle_choice,
                 "oracle_margin": margin_by_case.get(case_key),
-                "oracle_hit_rate": (
-                    sum(choice == oracle_choice for choice in choices) / len(choices)
-                    if oracle_choice is not None
-                    else None
+                "oracle_hit_rate": oracle_hit_rate,
+                "parse_fail_rate": parse_fail_rate,
+                "status": _case_status(
+                    unique_choice_count=len(counts),
+                    modal_choice=modal_choice,
+                    oracle_choice=oracle_choice,
+                    parse_fail_rate=parse_fail_rate,
                 ),
             }
         )
     return rows
+
+
+def _case_status(
+    *,
+    unique_choice_count: int,
+    modal_choice: str,
+    oracle_choice: str | None,
+    parse_fail_rate: float,
+) -> str:
+    if modal_choice == "PARSE_FAIL" and parse_fail_rate >= 0.5:
+        return "parse_modal"
+    if oracle_choice is None:
+        return "unstable_unscored" if unique_choice_count > 1 else "stable_unscored"
+    if unique_choice_count == 1:
+        return "stable_oracle" if modal_choice == oracle_choice else "stable_non_oracle"
+    return "unstable_oracle_modal" if modal_choice == oracle_choice else "unstable_non_oracle_modal"
 
 
 def _trial_case_key(trial: dict[str, Any], idx: int) -> str:
@@ -182,3 +229,9 @@ def _unstable_case_rate(case_stability: list[dict[str, Any]]) -> float | None:
         return None
     unstable = sum(row["unique_choice_count"] > 1 for row in case_stability)
     return unstable / len(case_stability)
+
+
+def _case_status_rate(status_counts: Counter, case_count: int, status: str) -> float | None:
+    if case_count == 0:
+        return None
+    return status_counts.get(status, 0) / case_count

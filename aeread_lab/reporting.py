@@ -211,19 +211,36 @@ def format_stability(stability: dict[str, Any]) -> str:
         )
     if stability.get("unstable_case_rate") is not None:
         lines.append(f"unstable_case_rate={_fmt(stability.get('unstable_case_rate'))}")
+    if stability.get("case_status_counts"):
+        lines.append(
+            "case_status_counts="
+            + ", ".join(
+                f"{status}:{count}"
+                for status, count in sorted(stability["case_status_counts"].items())
+            )
+        )
+        lines.append(
+            "case_outcomes "
+            f"stable_oracle={_fmt(stability.get('stable_oracle_case_rate'))} "
+            f"stable_non_oracle={_fmt(stability.get('stable_non_oracle_case_rate'))} "
+            f"unstable_oracle_modal={_fmt(stability.get('unstable_oracle_modal_case_rate'))} "
+            f"unstable_non_oracle_modal={_fmt(stability.get('unstable_non_oracle_modal_case_rate'))} "
+            f"parse_modal={_fmt(stability.get('parse_modal_case_rate'))} "
+            f"mean_oracle_hit={_fmt(stability.get('mean_case_oracle_hit_rate'))}"
+        )
     case_rows = stability.get("case_stability") or []
     if case_rows:
         lines.append("-" * 88)
         lines.append(
-            f"{'case':<32} {'unique':>6} {'margin':>10} {'modal':<20} "
-            f"{'modal_rate':>10} {'oracle_hit':>10}"
+            f"{'case':<28} {'status':<26} {'unique':>6} {'margin':>10} "
+            f"{'modal':<18} {'oracle_hit':>10}"
         )
         for row in case_rows:
             oracle_hit = row.get("oracle_hit_rate")
             lines.append(
-                f"{row['case_key']:<32.32} {row['unique_choice_count']:>6} "
-                f"{_fmt(row.get('oracle_margin')):>10} {row['modal_choice']:<20.20} "
-                f"{_fmt(row['modal_choice_rate']):>10} {_fmt(oracle_hit):>10}"
+                f"{row['case_key']:<28.28} {row.get('status', 'n/a'):<26.26} "
+                f"{row['unique_choice_count']:>6} {_fmt(row.get('oracle_margin')):>10} "
+                f"{row['modal_choice']:<18.18} {_fmt(oracle_hit):>10}"
             )
     lines.append("=" * 88)
     return "\n".join(lines)

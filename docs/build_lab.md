@@ -382,8 +382,11 @@ interpreting the economic metric.
 Use `--repeat N --no-cache` when the question is run-to-run stability rather
 than another task variant. This repeats one explicit task against fresh model
 calls and reports the primary-metric range, parse-rate range, optional accuracy
-range, unstable-case rate, oracle margin when available, and per-case modal
-choice.
+range, unstable-case rate, case-outcome status counts, oracle margin when
+available, and per-case modal choice. Case statuses distinguish
+`stable_oracle`, `stable_non_oracle`, `unstable_oracle_modal`,
+`unstable_non_oracle_modal`, and parse-modal failures, so a repeat run can tell
+whether the issue is sampling noise, persistent wrong behavior, or parsing.
 
 Example:
 
@@ -446,8 +449,9 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    cross-domain verifier tasks.
 4. Use the stability probe on C1 before adding more C1 variants. PR 105 showed
    that `principal_holding_prediction_blind_notes` is sample-unstable for live
-   `nano`, so the depth question is repeat reliability on label-blind prompts
-   and replacement with real 13F-style holdings-derived traces once a clean data
-   source is selected.
+   `nano`; PRs 106-108 turn that into repeat reliability, target-margin, and
+   case-outcome attribution. The remaining C1 depth question is replacement
+   with real 13F-style holdings-derived traces once a clean data source is
+   selected.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.
