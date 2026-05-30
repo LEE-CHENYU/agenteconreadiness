@@ -141,7 +141,7 @@ A traction analysis of 25 benchmarks (in the master plan) identified the cross-p
 ## 6. Why now (the timing window)
 
 - Three recent benchmark papers (March 2025 – May 2026) establish the field is forming
-- TERMS-Bench code is not yet released (their repo is 404); first-mover on the integrated benchmark is open for the next 3-6 months
+- TERMS-Bench code is not yet released (their repo is 404); first-mover on the **diagnostic lens across these environments** (gate→grade + the headline axes, with the integrated substrate as the cheap enabler) is open for the next 3-6 months
 - LLM frontier labs are deploying agents in economic tasks faster than evaluation infrastructure can characterize them
 - Open Philanthropy is funding AI evaluation infrastructure in 2026
 - The traction analysis exemplar (Utility Engineering, 15-month adoption arc) suggests a 6-9 month window from preprint to model-card adoption for benchmarks that ship with the right architecture
