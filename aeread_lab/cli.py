@@ -31,6 +31,7 @@ TASKS = (
     "market_trace_markdown",
     "market_trace_replenishment",
     "market_trace_replenishment_natural",
+    "market_trace_replenishment_noisy",
     "matching",
     "screening",
     "moral_hazard",
@@ -332,7 +333,11 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"trace_blind_miss={result['trace_blind_miss_rate']:.2f} "
                 f"inventory_blind_miss={result['inventory_blind_miss_rate']:.2f}"
             )
-        elif task in {"market_trace_replenishment", "market_trace_replenishment_natural"}:
+        elif task in {
+            "market_trace_replenishment",
+            "market_trace_replenishment_natural",
+            "market_trace_replenishment_noisy",
+        }:
             print(
                 f"{task}: n={result['n_trials']} cash_regret="
                 f"{_fmt(result['mean_constrained_terminal_cash_regret'])} "

@@ -23,6 +23,7 @@ PRIMARY_METRICS = {
     "market_trace_markdown": ("mean_constrained_terminal_cash_regret", "lower"),
     "market_trace_replenishment": ("mean_constrained_terminal_cash_regret", "lower"),
     "market_trace_replenishment_natural": ("mean_constrained_terminal_cash_regret", "lower"),
+    "market_trace_replenishment_noisy": ("mean_constrained_terminal_cash_regret", "lower"),
     "matching": ("mean_score_regret", "lower"),
     "screening": ("mean_score_regret", "lower"),
     "moral_hazard": ("mean_profit_regret", "lower"),

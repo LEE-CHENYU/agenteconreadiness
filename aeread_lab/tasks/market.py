@@ -68,6 +68,16 @@ MARKET_TRACE_REPLENISHMENT_NATURAL_SYSTEM = (
     "FINAL_REPLENISH_UNITS: <number>."
 )
 
+MARKET_TRACE_REPLENISHMENT_NOISY_SYSTEM = (
+    "TASK: market_trace_replenishment_noisy_plan\n"
+    "You are one firm in a repeated price-setting market with finite stock, "
+    "a cash reserve target, and an optional restock before the late selling window. "
+    "Read the lumpy regional rival shelf observations, then choose early and late "
+    "non-collusive prices and how many units to restock. Return exactly three "
+    "final lines: FINAL_PRICE_EARLY: <number>, FINAL_PRICE_LATE: <number>, and "
+    "FINAL_REPLENISH_UNITS: <number>."
+)
+
 
 @dataclass(frozen=True)
 class MarketCase:
@@ -602,6 +612,58 @@ TRACE_REPLENISHMENT_CASES = [
 ]
 
 
+def _trace_replenishment_noisy_case(
+    case: TraceInventoryMarketCase,
+    *,
+    price_offsets: tuple[float, ...],
+    fill_offsets: tuple[float, ...],
+    shelf_offsets: tuple[float, ...],
+) -> TraceInventoryMarketCase:
+    trace = tuple(
+        MarketTracePoint(
+            point.period,
+            clamp(point.opponent_price + price_offsets[idx], case.marginal_cost, case.p_max),
+            clamp(point.opponent_fill_rate + fill_offsets[idx], 0.02, 0.99),
+            clamp(point.opponent_remaining_inventory_share + shelf_offsets[idx], 0.02, 0.98),
+        )
+        for idx, point in enumerate(case.trace)
+    )
+    return replace(
+        case,
+        key=f"noisy_{case.key}",
+        real_case=f"lumpy regional shelf readings around {case.real_case}",
+        trace=trace,
+    )
+
+
+TRACE_REPLENISHMENT_NOISY_CASES = [
+    _trace_replenishment_noisy_case(
+        TRACE_REPLENISHMENT_CASES[0],
+        price_offsets=(1.0, -2.0, 3.0),
+        fill_offsets=(0.03, -0.04, 0.05),
+        shelf_offsets=(-0.02, 0.04, -0.03),
+    ),
+    _trace_replenishment_noisy_case(
+        TRACE_REPLENISHMENT_CASES[1],
+        price_offsets=(-2.0, 4.0, -3.0),
+        fill_offsets=(-0.05, 0.06, -0.04),
+        shelf_offsets=(0.04, -0.03, 0.05),
+    ),
+    _trace_replenishment_noisy_case(
+        TRACE_REPLENISHMENT_CASES[2],
+        price_offsets=(3.0, -4.0, 5.0),
+        fill_offsets=(0.04, -0.06, 0.05),
+        shelf_offsets=(-0.05, 0.03, -0.04),
+    ),
+    _trace_replenishment_noisy_case(
+        TRACE_REPLENISHMENT_CASES[3],
+        price_offsets=(-1.0, 3.0, -2.0),
+        fill_offsets=(-0.03, 0.05, -0.06),
+        shelf_offsets=(0.03, -0.04, 0.02),
+    ),
+]
+
+
 def nash_price(case: MarketCase) -> float:
     denom = 2.0 * case.own_price_slope - case.cross_price_slope
     if denom <= 0:
@@ -1033,6 +1095,19 @@ def run_market_trace_replenishment_natural_game(
         system=MARKET_TRACE_REPLENISHMENT_NATURAL_SYSTEM,
         prompt_fn=_trace_replenishment_natural_prompt,
         task_name="market_trace_replenishment_natural",
+    )
+
+
+def run_market_trace_replenishment_noisy_game(
+    agent: Agent,
+    cases: list[TraceInventoryMarketCase] | None = None,
+) -> dict:
+    return _run_market_trace_replenishment_game(
+        agent,
+        cases or TRACE_REPLENISHMENT_NOISY_CASES,
+        system=MARKET_TRACE_REPLENISHMENT_NOISY_SYSTEM,
+        prompt_fn=_trace_replenishment_noisy_prompt,
+        task_name="market_trace_replenishment_noisy",
     )
 
 
@@ -2099,6 +2174,55 @@ def _trace_replenishment_natural_prompt(case: TraceInventoryMarketCase) -> str:
             "Higher own prices reduce your unit sales; higher rival tickets raise your unit sales.",
             "Use sell-through and shelf-left patterns to judge whether the rival is clearing stock, "
             "running out of capacity, or likely to move the next ticket up.",
+            "A restock arrives before the late window and costs the per-unit restock cost plus "
+            "the setup fee, subject to the unit limit and storage ceiling.",
+            "Choose early and late prices plus restock units to maximize ending cash while keeping "
+            "the cash reserve floor; no restock can stock out, while blind restock can overbuy.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _trace_replenishment_noisy_prompt(case: TraceInventoryMarketCase) -> str:
+    switch_period = max(1, case.horizon // 2)
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"base_customer_flow={case.base_demand:.4f}",
+        f"demand_adjustment={case.demand_shock:.4f}",
+        f"own_price_sensitivity={case.own_price_slope:.4f}",
+        f"rival_price_lift={case.cross_price_slope:.4f}",
+        f"sellable_unit_cost={case.marginal_cost:.4f}",
+        f"posted_price_ceiling={case.p_max:.4f}",
+        f"selling_windows={case.horizon}",
+        f"early_window=1_to_{switch_period}",
+        f"late_window={switch_period + 1}_to_{case.horizon}",
+        f"restock_arrives_before_window={switch_period + 1}",
+        f"starting_units={case.starting_inventory:.4f}",
+        f"cash_on_hand={case.starting_cash:.4f}",
+        f"cash_commitment={case.fixed_obligation:.4f}",
+        f"cash_reserve_floor={case.min_terminal_cash:.4f}",
+        f"shelf_cost_per_unsold={case.carrying_cost_per_unsold:.4f}",
+        f"leftover_unit_credit={case.terminal_inventory_value:.4f}",
+        f"restock_unit_cost={case.replenishment_unit_cost:.4f}",
+        f"restock_setup_fee={case.replenishment_setup_cost:.4f}",
+        f"restock_unit_limit={case.max_replenishment_units:.4f}",
+        f"storage_ceiling={case.replenishment_storage_capacity:.4f}",
+        f"window_demand_adjustments={','.join(f'{shock:.4f}' for shock in case.demand_shocks)}",
+        "Lumpy regional rival shelf observations:",
+    ]
+    for point in case.trace:
+        lines.append(
+            f"  rival_observation window={point.period} "
+            f"rival_ticket={point.opponent_price:.4f} "
+            f"sell_through={point.opponent_fill_rate:.4f} "
+            f"shelf_left={point.opponent_remaining_inventory_share:.4f}"
+        )
+    lines.extend(
+        [
+            "Treat any single regional row as noisy; use the direction across ticket, "
+            "sell-through, and shelf-left readings to infer whether the rival is clearing, "
+            "rationing capacity, or likely to move the next ticket up.",
             "A restock arrives before the late window and costs the per-unit restock cost plus "
             "the setup fee, subject to the unit limit and storage ceiling.",
             "Choose early and late prices plus restock units to maximize ending cash while keeping "

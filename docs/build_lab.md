@@ -35,6 +35,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `market_trace_markdown` | Trace-based staged inventory pricing: infer competitor next price from market trace rows, then choose early and late prices across the inventory horizon. | `python -m aeread_lab.cli --task market_trace_markdown --agent offline:oracle` |
 | `market_trace_replenishment` | Trace-based replenishment planning: infer competitor next price from market trace rows, then choose early/late prices and whether to buy inventory before the late window. | `python -m aeread_lab.cli --task market_trace_replenishment --agent offline:oracle` |
 | `market_trace_replenishment_natural` | Natural-label trace replenishment planning: preserve the same price/order oracle while presenting rival shelf observations, cash floors, and restock limits in business language. | `python -m aeread_lab.cli --task market_trace_replenishment_natural --agent offline:oracle` |
+| `market_trace_replenishment_noisy` | Noisy trace replenishment planning: infer rival next price from lumpy regional shelf observations, then choose early/late prices and restock units under cash and storage limits. | `python -m aeread_lab.cli --task market_trace_replenishment_noisy --agent offline:oracle` |
 | `matching` | Matching-market design: choose stable/access-aware matching rules instead of value-only assignments with blocking-pair risk. | `python -m aeread_lab.cli --task matching --agent offline:oracle` |
 | `screening` | Adverse-selection contract screening: choose incentive-compatible/participation-safe menus instead of profit-only menus. | `python -m aeread_lab.cli --task screening --agent offline:oracle` |
 | `moral_hazard` | Hidden-action contract design: choose incentive contracts that actually induce effort instead of assuming first-best effort for free. | `python -m aeread_lab.cli --task moral_hazard --agent offline:oracle` |
@@ -173,6 +174,10 @@ interpreting the economic metric.
 - `market_trace_replenishment_natural`: lower constrained terminal-cash regret
   is better under natural rival shelf/restock labels; decision L1 error,
   reserve-violation, no-replenishment, one-price, trace-blind, and
+  replenishment-blind miss rates are reported separately.
+- `market_trace_replenishment_noisy`: lower constrained terminal-cash regret is
+  better under lumpy regional rival shelf/restock observations; decision L1
+  error, reserve-violation, no-replenishment, one-price, trace-blind, and
   replenishment-blind miss rates are reported separately.
 - `matching`: lower configured matching score regret is better; max-value and
   access-only miss rates are reported separately.

@@ -147,6 +147,7 @@ class OfflineAgent:
         if (
             "TASK: market_trace_replenishment_plan" in system
             or "TASK: market_trace_replenishment_natural_plan" in system
+            or "TASK: market_trace_replenishment_noisy_plan" in system
         ):
             return self._market_trace_replenishment_plan(user)
         if "TASK: auction_reserve" in system:

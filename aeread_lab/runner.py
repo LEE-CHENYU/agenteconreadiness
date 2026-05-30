@@ -52,6 +52,7 @@ TASK_ORDER = (
     "market_trace_markdown",
     "market_trace_replenishment",
     "market_trace_replenishment_natural",
+    "market_trace_replenishment_noisy",
     "matching",
     "screening",
     "moral_hazard",
@@ -151,6 +152,10 @@ _CASE_TASKS = {
     "market_trace_replenishment_natural": (
         market_task.run_market_trace_replenishment_natural_game,
         market_task.TRACE_REPLENISHMENT_CASES,
+    ),
+    "market_trace_replenishment_noisy": (
+        market_task.run_market_trace_replenishment_noisy_game,
+        market_task.TRACE_REPLENISHMENT_NOISY_CASES,
     ),
     "matching": (matching_task.run_matching_game, matching_task.DEFAULT_CASES),
     "screening": (screening_task.run_screening_game, screening_task.DEFAULT_CASES),
