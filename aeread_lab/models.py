@@ -220,6 +220,7 @@ class OfflineAgent:
     def _ambiguity_action(self, user: str) -> str:
         state_ids = _extract_state_ids(user)
         priors = _extract_ambiguity_priors(user, state_ids)
+        priors = _update_ambiguity_priors(priors, _extract_ambiguity_signal(user, state_ids))
         actions = _extract_ambiguity_actions(user, state_ids)
         if self.policy in {"reference_prior", "single_prior"}:
             reference_id = _extract_word(user, "reference_prior_id")
@@ -227,8 +228,14 @@ class OfflineAgent:
             action = _best_expected_action(actions, selected_priors)
         elif self.policy == "optimistic":
             action = _best_optimistic_action(actions, priors)
-        else:
+        elif self.policy == "maxmin":
             action = _best_maxmin_action(actions, priors)
+        else:
+            action = _best_alpha_maxmin_action(
+                actions,
+                priors,
+                alpha=_extract_float(user, "ambiguity_alpha", 1.0),
+            )
         return f"FINAL_ACTION: {action}"
 
     def _procurement_choice(self, user: str) -> str:
@@ -1359,6 +1366,28 @@ def _extract_ambiguity_priors(text: str, state_ids: list[str]) -> dict[str, list
     return priors
 
 
+def _extract_ambiguity_signal(text: str, state_ids: list[str]) -> list[float] | None:
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("observed_signal_likelihoods"):
+            return [_extract_float(stripped, state) for state in state_ids]
+    return None
+
+
+def _update_ambiguity_priors(
+    priors: dict[str, list[float]],
+    signal: list[float] | None,
+) -> dict[str, list[float]]:
+    if signal is None:
+        return priors
+    updated: dict[str, list[float]] = {}
+    for prior_id, probabilities in priors.items():
+        weighted = [probability * likelihood for probability, likelihood in zip(probabilities, signal)]
+        total = sum(weighted)
+        updated[prior_id] = [value / total for value in weighted] if total > 0 else probabilities
+    return updated
+
+
 def _extract_ambiguity_actions(text: str, state_ids: list[str]) -> dict[str, list[float]]:
     actions: dict[str, list[float]] = {}
     for line in text.splitlines():
@@ -1397,3 +1426,21 @@ def _best_maxmin_action(actions: dict[str, list[float]], priors: dict[str, list[
             for probabilities in priors.values()
         ),
     )
+
+
+def _best_alpha_maxmin_action(
+    actions: dict[str, list[float]],
+    priors: dict[str, list[float]],
+    *,
+    alpha: float,
+) -> str:
+    alpha = max(0.0, min(1.0, alpha))
+
+    def value(action_id: str) -> float:
+        expected_values = [
+            _action_expected_value(actions[action_id], probabilities)
+            for probabilities in priors.values()
+        ]
+        return alpha * min(expected_values) + (1.0 - alpha) * max(expected_values)
+
+    return max(actions, key=value)

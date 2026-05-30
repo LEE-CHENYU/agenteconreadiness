@@ -15,7 +15,7 @@ only.
 | `principal_inference` | Grade-side revealed-preference task: infer a principal's CRRA risk parameter from prior choices before allocating in a new scenario. | `python -m aeread_lab.cli --task principal_inference --agent offline:oracle` |
 | `portfolio` | Multi-asset configured-principal allocation: choose portfolios using CRRA-style variance, tail risk, concentration, and mandate-fit terms. | `python -m aeread_lab.cli --task portfolio --agent offline:oracle` |
 | `revealed_allocation` | Stylized 13F-style revealed-preference allocation: infer risk preference from historical portfolio choices, then output continuous target weights. | `python -m aeread_lab.cli --task revealed_allocation --agent offline:oracle` |
-| `ambiguity` | Knightian uncertainty task: choose maxmin-robust actions across plausible priors instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
+| `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from noisy cues before pricing. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
 | `market` | Market-Bench-style simultaneous price competition: competitive Nash pricing vs collusive/high-price drift. | `python -m aeread_lab.cli --task market --agent offline:oracle` |
@@ -78,8 +78,8 @@ interpreting the economic metric.
   and low-risk miss rates are reported separately.
 - `revealed_allocation`: lower utility regret and lower weight L1 error to the
   revealed-principal allocation are better.
-- `ambiguity`: lower robust maxmin regret is better; reference-prior miss rate
-  is reported separately.
+- `ambiguity`: lower configured ambiguity regret is better; reference-prior,
+  pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
   surplus gap is reported separately.
 - `belief_bargaining`: lower posterior expected-surplus gap is better; cue
@@ -153,14 +153,13 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    once an API key is available in the shell.
 3. Replace the stylized revealed-allocation traces with real 13F-style
    holdings-derived traces once a clean data source is selected.
-4. Broaden `ambiguity` into maxmin/alpha-maxmin and multiple-prior updates.
-5. Broaden the `bargaining` wrapper from take-it-or-leave-it offers to
+4. Broaden the `bargaining` wrapper from take-it-or-leave-it offers to
    alternating-offer and hidden-reservation variants.
-6. Broaden `belief_bargaining` into multi-turn opponent modeling.
-7. Broaden `mechanism` from scored static choices to equilibrium simulation
+5. Broaden `belief_bargaining` into multi-turn opponent modeling.
+6. Broaden `mechanism` from scored static choices to equilibrium simulation
    and incentive-compatibility probes.
-8. Expand `market` from symmetric price competition to inventory, capital
+7. Expand `market` from symmetric price competition to inventory, capital
    appreciation, and multi-period survival.
-9. Broaden `retail` into multi-period inventory and supplier-scam variants.
-10. Broaden `strategic_drift` into imperfect-information and N-player games.
-11. Broaden `experiment_design` into multi-step adaptive tests.
+8. Broaden `retail` into multi-period inventory and supplier-scam variants.
+9. Broaden `strategic_drift` into imperfect-information and N-player games.
+10. Broaden `experiment_design` into multi-step adaptive tests.

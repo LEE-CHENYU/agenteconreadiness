@@ -215,6 +215,14 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(reference["mean_robust_regret"], 10.0)
         self.assertGreater(reference["reference_prior_miss_rate"], 0.5)
 
+    def test_ambiguity_flags_unconfigured_alpha_extremes(self):
+        configured = run_ambiguity_game(OfflineAgent("oracle"))
+        maxmin = run_ambiguity_game(OfflineAgent("maxmin"))
+        optimistic = run_ambiguity_game(OfflineAgent("optimistic"))
+        self.assertLess(configured["mean_robust_regret"], 1e-9)
+        self.assertGreater(maxmin["mean_robust_regret"], 1.0)
+        self.assertGreater(optimistic["mean_robust_regret"], 10.0)
+
     def test_bargaining_splits_gate_from_grade(self):
         grade_summary = run_bargaining_game(OfflineAgent("oracle"))
         gate_summary = run_bargaining_game(OfflineAgent("gate"))

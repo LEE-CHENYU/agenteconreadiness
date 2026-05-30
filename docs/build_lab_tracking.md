@@ -68,6 +68,7 @@ judge-free, and API-testable while staying OpenAI-only.
 | 28 | `review/28-supplier-scam` | long-horizon supplier-scam stress task | oracle final-cash regret 0; credulous regret 551.97 and scam-supplier rate 1.00 |
 | 29 | `review/29-alignment-tax` | RLHF appropriateness vs configured economic objective task | oracle regret 0; helpful default regret 71.725 and overconcession rate 1.00 |
 | 30 | `review/30-revealed-allocation` | stylized 13F-style revealed-preference allocation | oracle regret 0; max-return regret 0.0693568; low-risk regret 0.0504201 |
+| 31 | `review/31-alpha-maxmin-ambiguity` | alpha-maxmin ambiguity plus signal-updated priors | oracle regret 0; maxmin regret 2.32038; optimistic regret 14.5817 |
 
 ## Task result ledger
 
@@ -81,7 +82,7 @@ explicitly marked as historical/upstream.
 | `principal_inference` | infer configured principal CRRA parameter | oracle error 0; generic-gamma error 0.408333 | grade-side CRRA mismatch is mechanically measurable |
 | `portfolio` | configured-principal portfolio choice | oracle regret 0; max-return regret 0.599325; low-risk regret 0.0241 | separates return-chasing from configured utility |
 | `revealed_allocation` | stylized 13F-style revealed-preference continuous allocation | oracle utility regret 0; max-return regret 0.0693568; low-risk regret 0.0504201; equal-weight regret 0.0182864; parse 1.00 | first continuous allocation version of the configured-principal grade; still synthetic traces |
-| `ambiguity` | maxmin under Knightian ambiguity | oracle robust regret 0; reference-prior regret 17.9167 | exposes collapse to one prior |
+| `ambiguity` | maxmin/alpha-maxmin under Knightian ambiguity | oracle configured regret 0 across 5 cases; reference-prior regret 11.5796; pure-maxmin regret 2.32038; optimistic regret 14.5817 | now includes signal-updated priors and configured alpha; exposes both single-prior collapse and wrong ambiguity-attitude extremes |
 | `bargaining` | D2/TERMS-style gate plus grade | oracle grade error 0; generic gate baseline grade error 0.4375 | confirms "gate-only surplus extraction" is not grade fidelity |
 | `belief_bargaining` | cue use and posterior bargaining | oracle surplus gap 0; prior baseline gap 8.84271 | high-anchor baseline ties primary metric in current cases; keep prior baseline as main failure mode |
 | `market` | simultaneous price competition | oracle equilibrium gap 0.000179; collusive gap 1.0001; cost/high worse | gate under competition is measurable; parse is n/a for this aggregate result |
@@ -108,17 +109,20 @@ run on `review/26-regime-breadth`; PR 27-specific checks were run on
 `review/27-sampled-runs`; PR 28-specific checks were run on
 `review/28-supplier-scam`; PR 29-specific checks were run on
 `review/29-alignment-tax`; PR 30-specific checks were run on
-`review/30-revealed-allocation`.
+`review/30-revealed-allocation`; PR 31-specific checks were run on
+`review/31-alpha-maxmin-ambiguity`.
 
 | Check | Command | Result |
 |---|---|---|
-| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 60 tests passed after PR 30 |
+| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 61 tests passed after PR 31 |
 | Full offline oracle task pass | `python3 -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 23 task runners executed; oracle errors/regrets zero or expected near-zero; scam control `instrument_fires=True`; supplier-scam final-cash regret 0; alignment-tax regret 0; revealed-allocation regret 0 |
 | Regime differential sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev,offline:kelly,offline:cvar,offline:half --no-cache` | oracle rank 1; EV baseline error 0.586033; CVaR/Kelly baselines error 0.224185; half baseline error 0.429783; parse 1.00 for all rows |
 | Alignment-tax differential sweep | `python3 -m aeread_lab.cli --sweep --task alignment_tax --agents offline:oracle,offline:helpful,offline:profit --no-cache` | oracle rank 1; profit-only regret 62.35; helpful regret 71.725; parse 1.00 |
 | Alignment-tax helpful smoke | `python3 -m aeread_lab.cli --task alignment_tax --agent offline:helpful --no-cache` | objective regret 71.725; overconcession 1.00; helpful-default match 1.00 |
 | Revealed-allocation differential sweep | `python3 -m aeread_lab.cli --sweep --task revealed_allocation --agents offline:oracle,offline:max_return,offline:low_risk,offline:equal --no-cache` | oracle rank 1; equal regret 0.0182864; low-risk regret 0.0504201; max-return regret 0.0693568; parse 1.00 |
 | Revealed-allocation oracle JSON smoke | `python3 -m aeread_lab.cli --task revealed_allocation --agent offline:oracle --no-cache --json` | 3 trials; inferred gammas 2.56, 0.10, 1.53; oracle utility regret 0 and weight L1 error 0 |
+| Alpha-maxmin ambiguity sweep | `python3 -m aeread_lab.cli --sweep --task ambiguity --agents offline:oracle,offline:reference_prior,offline:maxmin,offline:optimistic --no-cache` | oracle rank 1; maxmin regret 2.32038; reference-prior regret 11.5796; optimistic regret 14.5817; parse 1.00 |
+| Ambiguity maxmin/optimistic smokes | `python3 -m aeread_lab.cli --task ambiguity --agent offline:maxmin --no-cache` and `python3 -m aeread_lab.cli --task ambiguity --agent offline:optimistic --no-cache` | maxmin misses the configured-alpha case; optimistic miss rate 1.00 where optimism differs from oracle |
 | Regime oracle/barrier smoke | `python3 -m aeread_lab.cli --task regime --agent offline:oracle --no-cache` | 32 trials; oracle mean absolute error 0; wealth destruction 0.00; CVaR drawdown violation 0.00 |
 | Sampled regime sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev --limit 1 --no-cache` | 4 regime trials from one gamble; oracle rank 1; parse 1.00 |
 | Sampled all-task oracle smoke | `python3 -m aeread_lab.cli --task all --agent offline:oracle --limit 1 --no-cache` | all 23 task runners execute with first deterministic case/gamble only; scam remains instrumented |
@@ -190,6 +194,6 @@ build lab should not depend on `.playwright-mcp/` logs or the local
    chat-completions-specific behavior.
 6. The refocus-doc priorities now have first runnable probes: broader
    regime-appropriateness, sampled live-smoke control, long-horizon scam stress,
-   and RLHF-appropriateness/alignment-tax. Next work should either run sampled
-   OpenAI validation when a key is available or deepen one of these axes, not
-   invent another headline.
+   RLHF-appropriateness/alignment-tax, revealed allocation, and alpha-maxmin
+   ambiguity. Next work should either run sampled OpenAI validation when a key is
+   available or deepen one of these axes, not invent another headline.

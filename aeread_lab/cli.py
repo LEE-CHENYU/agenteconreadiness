@@ -168,7 +168,9 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"ambiguity: n={result['n_trials']} robust_regret="
                 f"{_fmt(result['mean_robust_regret'])} "
                 f"ci95={_fmt_ci(result.get('mean_robust_regret_ci95'))} "
-                f"reference_miss={result['reference_prior_miss_rate']:.2f}"
+                f"reference_miss={result['reference_prior_miss_rate']:.2f} "
+                f"maxmin_miss={result.get('maxmin_miss_rate', 0.0):.2f} "
+                f"optimistic_miss={result.get('optimistic_miss_rate', 0.0):.2f}"
             )
         elif task == "bargaining":
             print(
