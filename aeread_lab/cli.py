@@ -14,6 +14,7 @@ from aeread_lab.runner import run_sweep, run_tasks
 TASKS = (
     "regime",
     "regime_relationship",
+    "regime_holdout",
     "alignment_tax",
     "principal_inference",
     "portfolio",
@@ -149,9 +150,9 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"drawdown_violate={row.get('drawdown_violation_rate', 0.0):.2f} "
                     f"case={row['real_case']}"
                 )
-        elif task == "regime_relationship":
+        elif task in {"regime_relationship", "regime_holdout"}:
             print(
-                f"regime_relationship: groups={result['n_groups']} n={result['n_trials']} "
+                f"{task}: groups={result['n_groups']} n={result['n_trials']} "
                 f"mean_abs_error={_fmt(result['mean_absolute_error'])} "
                 f"ci95={_fmt_ci(result.get('mean_absolute_error_ci95'))} "
                 f"law_violate={result.get('relationship_violation_rate', 0.0):.2f} "

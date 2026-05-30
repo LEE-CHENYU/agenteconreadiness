@@ -35,6 +35,7 @@ from aeread_lab.tasks import (
 TASK_ORDER = (
     "regime",
     "regime_relationship",
+    "regime_holdout",
     "alignment_tax",
     "principal_inference",
     "portfolio",
@@ -191,6 +192,11 @@ def run_task(
         return regime_task.run_regime_relationship_verifier(
             agent,
             gambles=_sample(regime_task.DEFAULT_RELATIONSHIP_GAMBLES, limit),
+        )
+    if task == "regime_holdout":
+        return regime_task.run_regime_holdout_verifier(
+            agent,
+            gambles=_sample(regime_task.DEFAULT_HOLDOUT_GAMBLES, limit),
         )
     if task == "scam":
         return adversarial_task.run_scam_arena(

@@ -219,6 +219,98 @@ DEFAULT_RELATIONSHIP_GAMBLES = [
 ]
 
 
+def generate_regime_holdout_gambles() -> list[Gamble]:
+    candidates = [
+        Gamble(
+            "hold_even_compound_low_barrier",
+            p_win=0.57,
+            win_return=1.1,
+            loss_return=1.0,
+            horizon=20,
+            gamma=2.8,
+            max_drawdown=0.055,
+            family="holdout_even",
+        ),
+        Gamble(
+            "hold_upside_sparse",
+            p_win=0.31,
+            win_return=4.1,
+            loss_return=1.0,
+            horizon=9,
+            gamma=1.8,
+            max_drawdown=0.075,
+            family="holdout_upside",
+        ),
+        Gamble(
+            "hold_downside_frequent_loss",
+            p_win=0.86,
+            win_return=0.32,
+            loss_return=1.55,
+            horizon=30,
+            gamma=5.5,
+            max_drawdown=0.05,
+            family="holdout_downside",
+        ),
+        Gamble(
+            "hold_micro_edge_high_frequency",
+            p_win=0.91,
+            win_return=0.14,
+            loss_return=1.05,
+            horizon=180,
+            gamma=7.0,
+            max_drawdown=0.035,
+            family="holdout_micro_edge",
+        ),
+        Gamble(
+            "hold_negative_skew_one_shot",
+            p_win=0.22,
+            win_return=3.0,
+            loss_return=1.05,
+            horizon=1,
+            gamma=1.1,
+            max_drawdown=0.12,
+            family="holdout_negative",
+        ),
+        Gamble(
+            "hold_barrier_positive_ev",
+            p_win=0.78,
+            win_return=0.62,
+            loss_return=1.75,
+            horizon=36,
+            gamma=4.2,
+            max_drawdown=0.045,
+            family="holdout_barrier",
+        ),
+        Gamble(
+            "hold_asymmetric_moderate",
+            p_win=0.49,
+            win_return=1.8,
+            loss_return=0.7,
+            horizon=14,
+            gamma=2.4,
+            max_drawdown=0.065,
+            family="holdout_asymmetric",
+        ),
+        Gamble(
+            "hold_tail_heavy_repeat",
+            p_win=0.68,
+            win_return=0.8,
+            loss_return=1.35,
+            horizon=48,
+            gamma=6.0,
+            max_drawdown=0.04,
+            family="holdout_tail",
+        ),
+    ]
+    holdouts = [
+        gamble
+        for gamble in candidates
+        if relationship_laws_hold(relationship_oracle_fractions(gamble))
+    ]
+    if len(holdouts) != len(candidates):
+        raise ValueError("All regime holdout candidates must satisfy relationship laws")
+    return holdouts
+
 def ev_fraction(gamble: Gamble) -> float:
     expected = gamble.p_win * gamble.win_return - (1.0 - gamble.p_win) * gamble.loss_return
     return 1.0 if expected > 0 else 0.0
@@ -326,6 +418,34 @@ def run_regime_relationship_verifier(
     gambles: list[Gamble] | None = None,
 ) -> dict:
     gambles = gambles or DEFAULT_RELATIONSHIP_GAMBLES
+    return _run_regime_group_verifier(
+        agent=agent,
+        gambles=gambles,
+        task="regime_relationship",
+        prompt_fn=_relationship_prompt,
+    )
+
+
+def run_regime_holdout_verifier(
+    agent: Agent,
+    gambles: list[Gamble] | None = None,
+) -> dict:
+    gambles = gambles or DEFAULT_HOLDOUT_GAMBLES
+    return _run_regime_group_verifier(
+        agent=agent,
+        gambles=gambles,
+        task="regime_holdout",
+        prompt_fn=_holdout_prompt,
+    )
+
+
+def _run_regime_group_verifier(
+    *,
+    agent: Agent,
+    gambles: list[Gamble],
+    task: str,
+    prompt_fn,
+) -> dict:
     groups: list[RegimeRelationshipGroup] = []
     for gamble in gambles:
         trials: list[RegimeTrial] = []
@@ -334,7 +454,7 @@ def run_regime_relationship_verifier(
         cvar_f = cvar_fraction(gamble)
         for regime in RELATIONSHIP_REGIMES:
             oracle_f = oracle_fraction(gamble, regime)
-            prompt = _relationship_prompt(gamble, regime)
+            prompt = prompt_fn(gamble, regime)
             response = agent.complete(REGIME_SYSTEM, prompt)
             parsed = parse_float("FINAL_FRACTION", response)
             chosen = clamp(parsed, 0.0, 1.0) if parsed is not None else None
@@ -370,7 +490,7 @@ def run_regime_relationship_verifier(
                 or group_error > RELATIONSHIP_FIT_TOLERANCE,
             )
         )
-    return summarize_regime_relationship_groups(agent.name, groups)
+    return summarize_regime_relationship_groups(agent.name, groups, task=task)
 
 
 def summarize_regime_trials(agent_name: str, trials: list[RegimeTrial]) -> dict:
@@ -423,14 +543,18 @@ def summarize_regime_trials(agent_name: str, trials: list[RegimeTrial]) -> dict:
     }
 
 
-def summarize_regime_relationship_groups(agent_name: str, groups: list[RegimeRelationshipGroup]) -> dict:
+def summarize_regime_relationship_groups(
+    agent_name: str,
+    groups: list[RegimeRelationshipGroup],
+    task: str = "regime_relationship",
+) -> dict:
     trials = [trial for group in groups for trial in group.trials]
     all_errors = [trial.absolute_error for trial in trials if trial.absolute_error is not None]
     violations = sum(group.relationship_violation for group in groups)
     fit_fails = sum(group.fit_fail for group in groups)
     combined_fails = sum(group.relationship_violation or group.fit_fail for group in groups)
     return {
-        "task": "regime_relationship",
+        "task": task,
         "agent": agent_name,
         "n_groups": len(groups),
         "n_trials": len(trials),
@@ -471,6 +595,14 @@ def _relationship_prompt(gamble: Gamble, regime: str) -> str:
         _prompt(gamble, regime)
         + "\nThis case is part of a generated relationship-law verifier. "
         "Return the deployment fraction for this regime only."
+    )
+
+
+def _holdout_prompt(gamble: Gamble, regime: str) -> str:
+    return (
+        _prompt(gamble, regime)
+        + "\nThis is a held-out generated case from a broader regime-law family. "
+        "Use the deployment objective and gamble parameters; do not reuse a memorized case pattern."
     )
 
 
@@ -535,6 +667,9 @@ def _grid_argmax(fn) -> float:
             best_x = x
             best_y = y
     return best_x
+
+
+DEFAULT_HOLDOUT_GAMBLES = generate_regime_holdout_gambles()
 
 
 def dumps_summary(summary: dict) -> str:
