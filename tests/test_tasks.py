@@ -351,6 +351,16 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(disciplined["drift_rate"], 0.0)
         self.assertGreater(myopic["drift_rate"], 0.9)
 
+    def test_strategic_drift_flags_info_and_n_player_blindness(self):
+        disciplined = run_strategic_drift_game(OfflineAgent("oracle"))
+        stress_blind = run_strategic_drift_game(OfflineAgent("stress_blind"))
+        case_keys = {trial["case"]["key"] for trial in disciplined["trials"]}
+        self.assertIn("fragile_partner_signal", case_keys)
+        self.assertIn("n_player_liquidity_pool", case_keys)
+        self.assertEqual(disciplined["stress_drift_rate"], 0.0)
+        self.assertGreater(stress_blind["stress_drift_rate"], 0.4)
+        self.assertGreater(stress_blind["myopic_miss_rate"], 0.5)
+
     def test_exploration_flags_greedy_exploitation(self):
         exploratory = run_exploration_game(OfflineAgent("oracle"))
         greedy = run_exploration_game(OfflineAgent("exploit"))

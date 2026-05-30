@@ -253,12 +253,17 @@ def _print_human(payload: dict[str, Any]) -> None:
             print(
                 f"strategic_drift: n={result['n_trials']} drift_rate="
                 f"{_fmt(result['drift_rate'])} "
-                f"ci95={_fmt_ci(result.get('drift_rate_ci95'))}"
+                f"ci95={_fmt_ci(result.get('drift_rate_ci95'))} "
+                f"stress_drift={_fmt(result.get('stress_drift_rate'))} "
+                f"myopic_miss={result.get('myopic_miss_rate', 0.0):.2f}"
             )
             for key, row in result["by_case"].items():
                 print(
                     f"  {key:<24} drift={row['drift_rate']:.2f} "
-                    f"first_drift={row['first_drift_round']} case={row['real_case']}"
+                    f"first_drift={row['first_drift_round']} "
+                    f"posterior={row.get('posterior_fragile_probability', 0.0):.2f} "
+                    f"loss={_fmt(row.get('expected_future_loss_per_round'))} "
+                    f"case={row['real_case']}"
                 )
         elif task == "exploration":
             print(

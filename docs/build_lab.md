@@ -6,10 +6,11 @@ truth to the harness, model-visible prompts do not expose oracle answers,
 scoring is mechanical, and live API use is restricted to OpenAI model aliases
 only.
 
-Current source-doc alignment: the 2026-05-30 refocus sharpening says
+Current source-doc alignment: the 2026-05-30 refocus/methodology sharpening says
 saturation is a `(primitive x regime)` property and tracks oracle availability
-under stress, not agent count. The lab therefore keeps v0 single-agent axes
-while making horizon, framing, reserve, and belief stresses less oracle-obvious.
+under stress, not agent count. Where omniscient optima are not a fair agent bar,
+the lab scores against accessible posterior/control targets, local oracles,
+proper scoring, bounds, and revealed-preference fit.
 
 ## What is implemented
 
@@ -30,7 +31,7 @@ while making horizon, framing, reserve, and belief stresses less oracle-obvious.
 | `auction` | Mechanism-design reserve task: Myerson revenue reserve vs welfare/access reserves under configured objectives. | `python -m aeread_lab.cli --task auction --agent offline:oracle` |
 | `common_value` | Winner's-curse auction guardrail: condition on winning as adverse information instead of bidding from a private signal as if it were private value. Live smoke: smaller OpenAI models miss; `gpt-5.5` solves. | `python -m aeread_lab.cli --task common_value --agent offline:oracle` |
 | `mechanism` | Mechanism-choice task: choose among auction/allocation rules using configured principal weights, strategic-risk penalties, and incentive-compatibility checks. | `python -m aeread_lab.cli --task mechanism --agent offline:oracle` |
-| `strategic_drift` | γ-Bench-style repeated strategic discipline: preserve long-horizon relationship value instead of drifting to myopic grabs. | `python -m aeread_lab.cli --task strategic_drift --agent offline:oracle` |
+| `strategic_drift` | γ-Bench-style repeated strategic discipline: preserve long-horizon relationship value under deterministic, imperfect-information, and N-player stress instead of drifting to myopic grabs. | `python -m aeread_lab.cli --task strategic_drift --agent offline:oracle` |
 | `exploration` | EconEvals-style unknown-environment learning: decide when information value justifies a pilot before deployment. | `python -m aeread_lab.cli --task exploration --agent offline:oracle` |
 | `experiment_design` | Imperfect-signal experiment design: choose whether and how to run a noisy experiment before deployment, then update by Bayes rule. | `python -m aeread_lab.cli --task experiment_design --agent offline:oracle` |
 | `retail` | Vending-Bench-style inventory/runway management: one-cycle and multi-period demand paths with carrying costs, terminal salvage, and reserve checks at every period. | `python -m aeread_lab.cli --task retail --agent offline:oracle` |
@@ -105,7 +106,9 @@ interpreting the economic metric.
   and negative-profit rates are reported separately.
 - `mechanism`: lower configured score regret is better; revenue-default,
   risk-blind, and IC-blind miss rates are reported separately.
-- `strategic_drift`: lower long-horizon drift rate is better.
+- `strategic_drift`: lower long-horizon drift rate is better; stress-case drift
+  and myopic-miss rates are reported separately for imperfect-information and
+  N-player cases.
 - `exploration`: lower expected-value gap is better; exploration miss rate is
   reported separately.
 - `experiment_design`: lower expected-value gap is better; experiment miss
@@ -157,9 +160,10 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
 
 1. Run full or stress-targeted live OpenAI probes on the cases where sampled
    smokes show parse stability but no separation.
-2. Broaden `strategic_drift` into imperfect-information and N-player games.
-3. Broaden `experiment_design` into multi-step adaptive tests.
-4. Extend mechanism/market probes toward repeated-policy or opponent-policy
+2. Broaden `experiment_design` into multi-step adaptive tests.
+3. Extend mechanism/market probes toward repeated-policy or opponent-policy
    simulation instead of another static scoring field.
+4. Add adaptive vendor-reputation updates to `supplier_scam` instead of another
+   static supplier option list.
 5. Replace the stylized revealed-allocation traces with real 13F-style
    holdings-derived traces once a clean data source is selected.

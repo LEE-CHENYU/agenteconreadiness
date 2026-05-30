@@ -437,6 +437,17 @@ class OfflineAgent:
         grab = _extract_float(user, "grab_payoff")
         penalty = _extract_float(user, "audit_penalty_if_grab")
         future_loss = _extract_float(user, "relationship_loss_per_future_round_if_grab")
+        if self.policy not in {"stress_blind", "one_player", "info_blind"}:
+            future_loss += _strategic_fragile_posterior(user) * _extract_float(
+                user,
+                "fragile_extra_loss_per_future_round",
+            )
+            n_players = _extract_float(user, "n_players", 1.0)
+            future_loss += (
+                max(0.0, n_players - 1.0)
+                * _extract_float(user, "expected_peer_grab_rate")
+                * _extract_float(user, "peer_externality_loss_per_future_round")
+            )
         future_rounds = _extract_float(user, "remaining_rounds_after_this")
         grab_net = grab - penalty - future_rounds * future_loss
         action = "GRAB" if grab_net > honor else "HONOR"
@@ -1222,6 +1233,18 @@ def _extract_demand_states(text: str) -> list[tuple[int, float]]:
     ):
         states.append((int(units), float(probability)))
     return states
+
+
+def _strategic_fragile_posterior(text: str) -> float:
+    prior = max(0.0, min(1.0, _extract_float(text, "fragile_prior")))
+    signal = _extract_word(text, "stress_signal", "none")
+    if signal == "none":
+        return prior
+    likelihood_fragile = _extract_float(text, "signal_likelihood_if_fragile")
+    likelihood_resilient = _extract_float(text, "signal_likelihood_if_resilient")
+    numerator = prior * likelihood_fragile
+    denominator = numerator + (1.0 - prior) * likelihood_resilient
+    return numerator / denominator if denominator > 0 else prior
 
 
 def _extract_retail_periods(text: str) -> list[tuple[float, list[tuple[int, float]]]]:
