@@ -33,6 +33,7 @@ TASKS = (
     "mechanism_repeated_natural",
     "mechanism_participant_response",
     "mechanism_elasticity_inference",
+    "mechanism_strategic_response",
     "strategic_drift",
     "forecast_calibration",
     "forecast_aggregate",
@@ -298,7 +299,11 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"one_period_miss={result['one_period_miss_rate']:.2f} "
                 f"risk_blind_miss={result['risk_blind_miss_rate']:.2f}"
             )
-        elif task in {"mechanism_participant_response", "mechanism_elasticity_inference"}:
+        elif task in {
+            "mechanism_participant_response",
+            "mechanism_elasticity_inference",
+            "mechanism_strategic_response",
+        }:
             print(
                 f"{task}: n={result['n_trials']} score_regret="
                 f"{_fmt(result['mean_score_regret'])} "

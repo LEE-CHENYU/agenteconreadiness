@@ -26,6 +26,12 @@ MECHANISM_PARTICIPANT_RESPONSE_SYSTEM = (
     "Return one final line only: FINAL_MECHANISM: <mechanism_id>."
 )
 
+MECHANISM_STRATEGIC_RESPONSE_SYSTEM = (
+    "TASK: mechanism_strategic_response\n"
+    "Choose the mechanism for a repeated program with strategic multi-participant response. "
+    "Return one final line only: FINAL_MECHANISM: <mechanism_id>."
+)
+
 
 @dataclass(frozen=True)
 class IncentiveCheck:
@@ -137,6 +143,49 @@ class ParticipantResponseMechanismCase:
 @dataclass
 class ParticipantResponseMechanismTrial:
     case: ParticipantResponseMechanismCase
+    best_mechanism: str
+    revenue_mechanism: str
+    one_period_mechanism: str
+    response_blind_mechanism: str
+    chosen_mechanism: str | None
+    score_regret: float | None
+    raw_response: str
+
+
+@dataclass(frozen=True)
+class StrategicResponseMechanismOption:
+    mechanism_id: str
+    participant_count: float
+    sponsor_take: float
+    participant_value: float
+    access_quality: float
+    base_stay_rate: float
+    exit_sensitivity: float
+    initial_strategic_share: float
+    strategic_gain: float
+    peer_contagion: float
+    audit_strength: float
+    detection_cost: float
+    manipulation_harm: float
+    response_update_rate: float
+    review_cost: float
+
+
+@dataclass(frozen=True)
+class StrategicResponseMechanismCase:
+    key: str
+    real_case: str
+    horizon: int
+    revenue_weight: float
+    participant_value_weight: float
+    access_weight: float
+    manipulation_penalty: float
+    mechanisms: tuple[StrategicResponseMechanismOption, ...]
+
+
+@dataclass
+class StrategicResponseMechanismTrial:
+    case: StrategicResponseMechanismCase
     best_mechanism: str
     revenue_mechanism: str
     one_period_mechanism: str
@@ -552,6 +601,258 @@ PARTICIPANT_RESPONSE_CASES = [
 ]
 
 
+STRATEGIC_RESPONSE_CASES = [
+    StrategicResponseMechanismCase(
+        key="creator_market_peer_gaming",
+        real_case="creator marketplace where open ranking makes strategic gaming contagious across creators",
+        horizon=5,
+        revenue_weight=1.00,
+        participant_value_weight=0.40,
+        access_weight=25.00,
+        manipulation_penalty=8.00,
+        mechanisms=(
+            StrategicResponseMechanismOption(
+                "open_rank_auction",
+                1000.0,
+                70.0,
+                55.0,
+                0.45,
+                0.930,
+                0.450,
+                0.120,
+                0.90,
+                1.40,
+                0.15,
+                2.00,
+                18.0,
+                0.080,
+                220.0,
+            ),
+            StrategicResponseMechanismOption(
+                "audited_score_market",
+                950.0,
+                28.0,
+                78.0,
+                0.75,
+                0.960,
+                0.180,
+                0.050,
+                0.45,
+                0.45,
+                0.75,
+                2.20,
+                8.0,
+                0.060,
+                520.0,
+            ),
+            StrategicResponseMechanismOption(
+                "community_rotation",
+                900.0,
+                16.0,
+                72.0,
+                0.95,
+                0.975,
+                0.100,
+                0.040,
+                0.25,
+                0.25,
+                0.55,
+                2.00,
+                5.0,
+                0.050,
+                430.0,
+            ),
+        ),
+    ),
+    StrategicResponseMechanismCase(
+        key="procurement_bidder_contagion",
+        real_case="repeat procurement where self-certification makes bid shading spread among vendors",
+        horizon=5,
+        revenue_weight=0.70,
+        participant_value_weight=0.50,
+        access_weight=30.00,
+        manipulation_penalty=7.00,
+        mechanisms=(
+            StrategicResponseMechanismOption(
+                "self_certified_low_bid",
+                720.0,
+                85.0,
+                50.0,
+                0.42,
+                0.900,
+                0.480,
+                0.150,
+                0.85,
+                1.50,
+                0.12,
+                2.00,
+                20.0,
+                0.080,
+                120.0,
+            ),
+            StrategicResponseMechanismOption(
+                "audited_score_auction",
+                690.0,
+                28.0,
+                84.0,
+                0.72,
+                0.955,
+                0.160,
+                0.060,
+                0.40,
+                0.40,
+                0.80,
+                2.40,
+                7.0,
+                0.060,
+                470.0,
+            ),
+            StrategicResponseMechanismOption(
+                "supplier_rotation_pool",
+                650.0,
+                17.0,
+                76.0,
+                0.92,
+                0.965,
+                0.100,
+                0.040,
+                0.22,
+                0.20,
+                0.55,
+                2.10,
+                5.0,
+                0.050,
+                390.0,
+            ),
+        ),
+    ),
+    StrategicResponseMechanismCase(
+        key="grant_applicant_peer_effects",
+        real_case="public grants portal where pay-to-rank induces copycat strategic applications",
+        horizon=4,
+        revenue_weight=0.20,
+        participant_value_weight=0.55,
+        access_weight=45.00,
+        manipulation_penalty=5.00,
+        mechanisms=(
+            StrategicResponseMechanismOption(
+                "pay_to_rank_fast",
+                850.0,
+                90.0,
+                52.0,
+                0.40,
+                0.900,
+                0.420,
+                0.140,
+                0.75,
+                1.20,
+                0.10,
+                1.80,
+                16.0,
+                0.080,
+                130.0,
+            ),
+            StrategicResponseMechanismOption(
+                "audited_deliberation",
+                820.0,
+                18.0,
+                80.0,
+                0.82,
+                0.970,
+                0.140,
+                0.050,
+                0.32,
+                0.30,
+                0.70,
+                2.00,
+                6.0,
+                0.060,
+                420.0,
+            ),
+            StrategicResponseMechanismOption(
+                "rotating_access_pool",
+                790.0,
+                8.0,
+                66.0,
+                0.97,
+                0.980,
+                0.080,
+                0.040,
+                0.20,
+                0.15,
+                0.45,
+                1.80,
+                4.0,
+                0.050,
+                350.0,
+            ),
+        ),
+    ),
+    StrategicResponseMechanismCase(
+        key="creator_feed_copycat_manipulation",
+        real_case="creator feed mechanism where visible gaming success causes copycat manipulation",
+        horizon=6,
+        revenue_weight=0.85,
+        participant_value_weight=0.40,
+        access_weight=20.00,
+        manipulation_penalty=8.00,
+        mechanisms=(
+            StrategicResponseMechanismOption(
+                "viral_rank_auction",
+                1200.0,
+                75.0,
+                70.0,
+                0.58,
+                0.940,
+                0.400,
+                0.100,
+                0.80,
+                1.60,
+                0.12,
+                1.80,
+                18.0,
+                0.080,
+                230.0,
+            ),
+            StrategicResponseMechanismOption(
+                "audited_pacing_rule",
+                1120.0,
+                30.0,
+                88.0,
+                0.76,
+                0.960,
+                0.150,
+                0.040,
+                0.35,
+                0.35,
+                0.80,
+                2.10,
+                6.0,
+                0.060,
+                560.0,
+            ),
+            StrategicResponseMechanismOption(
+                "community_lottery",
+                1080.0,
+                16.0,
+                74.0,
+                0.95,
+                0.975,
+                0.080,
+                0.030,
+                0.18,
+                0.20,
+                0.50,
+                1.80,
+                4.0,
+                0.050,
+                480.0,
+            ),
+        ),
+    ),
+]
+
+
 def incentive_violation(mechanism: MechanismOption) -> float:
     return sum(
         max(0.0, check.best_deviation_utility - check.truthful_utility) * max(0.0, check.probability)
@@ -739,6 +1040,73 @@ def _clamp_participant_stay(value: float) -> float:
     return min(0.99, max(0.05, value))
 
 
+def strategic_response_mechanism_score(
+    case: StrategicResponseMechanismCase,
+    mechanism: StrategicResponseMechanismOption,
+    *,
+    one_period: bool = False,
+    response_blind: bool = False,
+) -> float:
+    participants = mechanism.participant_count
+    strategic_share = mechanism.initial_strategic_share
+    total = 0.0
+    horizon = 1 if one_period else case.horizon
+    for _period in range(horizon):
+        total += (
+            participants
+            * (
+                case.revenue_weight * mechanism.sponsor_take
+                + case.participant_value_weight * mechanism.participant_value
+                + case.access_weight * mechanism.access_quality
+                - case.manipulation_penalty * mechanism.manipulation_harm * strategic_share
+            )
+            - mechanism.review_cost
+        )
+        if not response_blind:
+            payoff_advantage = (
+                mechanism.strategic_gain
+                + mechanism.peer_contagion * strategic_share
+                - mechanism.audit_strength * mechanism.detection_cost
+            )
+            strategic_share = _clamp_strategic_share(
+                strategic_share + mechanism.response_update_rate * payoff_advantage
+            )
+        stay_rate = _clamp_participant_stay(
+            mechanism.base_stay_rate - mechanism.exit_sensitivity * strategic_share
+        )
+        participants *= stay_rate
+    return total
+
+
+def best_strategic_response_mechanism(case: StrategicResponseMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: strategic_response_mechanism_score(case, mechanism),
+    ).mechanism_id
+
+
+def revenue_strategic_response_mechanism(case: StrategicResponseMechanismCase) -> str:
+    return max(case.mechanisms, key=lambda mechanism: mechanism.sponsor_take).mechanism_id
+
+
+def one_period_strategic_response_mechanism(case: StrategicResponseMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: strategic_response_mechanism_score(case, mechanism, one_period=True),
+    ).mechanism_id
+
+
+def response_blind_strategic_response_mechanism(case: StrategicResponseMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: strategic_response_mechanism_score(case, mechanism, response_blind=True),
+    ).mechanism_id
+
+
+def _clamp_strategic_share(value: float) -> float:
+    return min(0.95, max(0.0, value))
+
+
 def run_mechanism_repeated_game(
     agent: Agent,
     cases: list[RepeatedMechanismCase] | None = None,
@@ -878,6 +1246,42 @@ def run_mechanism_elasticity_inference_game(
     )
 
 
+def run_mechanism_strategic_response_game(
+    agent: Agent,
+    cases: list[StrategicResponseMechanismCase] | None = None,
+) -> dict:
+    cases = cases or STRATEGIC_RESPONSE_CASES
+    trials: list[StrategicResponseMechanismTrial] = []
+    for case in cases:
+        best = best_strategic_response_mechanism(case)
+        revenue = revenue_strategic_response_mechanism(case)
+        one_period = one_period_strategic_response_mechanism(case)
+        response_blind = response_blind_strategic_response_mechanism(case)
+        response = agent.complete(MECHANISM_STRATEGIC_RESPONSE_SYSTEM, _strategic_response_prompt(case))
+        chosen = parse_token("FINAL_MECHANISM", response)
+        mechanism_by_id = {mechanism.mechanism_id: mechanism for mechanism in case.mechanisms}
+        chosen = chosen if chosen in mechanism_by_id else None
+        regret = (
+            strategic_response_mechanism_score(case, mechanism_by_id[best])
+            - strategic_response_mechanism_score(case, mechanism_by_id[chosen])
+            if chosen is not None
+            else None
+        )
+        trials.append(
+            StrategicResponseMechanismTrial(
+                case=case,
+                best_mechanism=best,
+                revenue_mechanism=revenue,
+                one_period_mechanism=one_period,
+                response_blind_mechanism=response_blind,
+                chosen_mechanism=chosen,
+                score_regret=regret,
+                raw_response=response,
+            )
+        )
+    return summarize_strategic_response_mechanism_trials(agent.name, trials)
+
+
 def summarize_mechanism_trials(agent_name: str, trials: list[MechanismTrial]) -> dict:
     regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
     revenue_missable = [trial for trial in trials if trial.revenue_mechanism != trial.best_mechanism]
@@ -989,6 +1393,52 @@ def summarize_participant_response_mechanism_trials(
             else 0.0
         ),
         "trials": [_participant_response_trial_json(trial) for trial in trials],
+    }
+
+
+def summarize_strategic_response_mechanism_trials(
+    agent_name: str,
+    trials: list[StrategicResponseMechanismTrial],
+) -> dict:
+    regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
+    revenue_missable = [trial for trial in trials if trial.revenue_mechanism != trial.best_mechanism]
+    one_period_missable = [
+        trial for trial in trials if trial.one_period_mechanism != trial.best_mechanism
+    ]
+    response_blind_missable = [
+        trial for trial in trials if trial.response_blind_mechanism != trial.best_mechanism
+    ]
+    return {
+        "task": "mechanism_strategic_response",
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "mean_score_regret": mean(regrets),
+        "mean_score_regret_ci95": bootstrap_mean_ci(regrets),
+        "revenue_default_miss_rate": (
+            sum(trial.chosen_mechanism == trial.revenue_mechanism for trial in revenue_missable)
+            / len(revenue_missable)
+            if revenue_missable
+            else 0.0
+        ),
+        "one_period_miss_rate": (
+            sum(
+                trial.chosen_mechanism == trial.one_period_mechanism
+                for trial in one_period_missable
+            )
+            / len(one_period_missable)
+            if one_period_missable
+            else 0.0
+        ),
+        "response_blind_miss_rate": (
+            sum(
+                trial.chosen_mechanism == trial.response_blind_mechanism
+                for trial in response_blind_missable
+            )
+            / len(response_blind_missable)
+            if response_blind_missable
+            else 0.0
+        ),
+        "trials": [_strategic_response_trial_json(trial) for trial in trials],
     }
 
 
@@ -1191,6 +1641,49 @@ def _participant_elasticity_prompt(case: ParticipantResponseMechanismCase) -> st
     return "\n".join(lines)
 
 
+def _strategic_response_prompt(case: StrategicResponseMechanismCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"horizon={case.horizon}",
+        f"revenue_weight={case.revenue_weight:.4f}",
+        f"participant_value_weight={case.participant_value_weight:.4f}",
+        f"access_weight={case.access_weight:.4f}",
+        f"manipulation_penalty={case.manipulation_penalty:.4f}",
+        "Candidate mechanisms with strategic participant response:",
+    ]
+    for mechanism in case.mechanisms:
+        lines.append(
+            "  "
+            f"mechanism_id={mechanism.mechanism_id} "
+            f"participant_count={mechanism.participant_count:.2f} "
+            f"sponsor_take={mechanism.sponsor_take:.2f} "
+            f"participant_value={mechanism.participant_value:.2f} "
+            f"access_quality={mechanism.access_quality:.4f} "
+            f"base_stay_rate={mechanism.base_stay_rate:.4f} "
+            f"exit_sensitivity={mechanism.exit_sensitivity:.4f} "
+            f"initial_strategic_share={mechanism.initial_strategic_share:.4f} "
+            f"strategic_gain={mechanism.strategic_gain:.4f} "
+            f"peer_contagion={mechanism.peer_contagion:.4f} "
+            f"audit_strength={mechanism.audit_strength:.4f} "
+            f"detection_cost={mechanism.detection_cost:.4f} "
+            f"manipulation_harm={mechanism.manipulation_harm:.2f} "
+            f"response_update_rate={mechanism.response_update_rate:.4f} "
+            f"review_cost={mechanism.review_cost:.2f}"
+        )
+    lines.extend(
+        [
+            "Simulate the strategic participant share over the full horizon.",
+            "Strategic behavior becomes more attractive when private gain and peer contagion "
+            "exceed expected audit deterrence.",
+            "Higher strategic share creates manipulation harm and lowers later participant retention.",
+            "Pick the mechanism with the best total program value, not the mechanism with the "
+            "largest launch-period take or a fixed initial strategic-share assumption.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _trial_json(trial: MechanismTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
@@ -1204,6 +1697,12 @@ def _repeated_trial_json(trial: RepeatedMechanismTrial) -> dict:
 
 
 def _participant_response_trial_json(trial: ParticipantResponseMechanismTrial) -> dict:
+    data = asdict(trial)
+    data["case"] = asdict(trial.case)
+    return data
+
+
+def _strategic_response_trial_json(trial: StrategicResponseMechanismTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
     return data
