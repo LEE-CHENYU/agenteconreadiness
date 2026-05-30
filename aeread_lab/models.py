@@ -302,6 +302,10 @@ class OfflineAgent:
                 "snack_demand_downshift_perturbed": 15.0,
                 "premium_demand_upswing_base": 20.0,
                 "premium_demand_upswing_perturbed": 20.0,
+                "noisy_snack_downshift_base": 20.50,
+                "noisy_snack_downshift_perturbed": 20.50,
+                "noisy_enterprise_upswing_base": 22.76,
+                "noisy_enterprise_upswing_perturbed": 22.76,
             }
             if case_key in stale_prices:
                 return f"FINAL_PRICE: {stale_prices[case_key]:.2f}"

@@ -74,6 +74,64 @@ COUNTERFACTUAL_SETS = [
             observations=((20.0, 180.0), (25.0, 160.0), (30.0, 140.0), (35.0, 120.0), (40.0, 100.0)),
         ),
     ),
+    PricingCounterfactualSet(
+        key="noisy_snack_downshift",
+        base=PricingEvidenceCase(
+            key="noisy_snack_downshift_base",
+            p_max=35.0,
+            scenario_note="Base evidence: sales are noisy but suggest a moderate weekday demand curve.",
+            observations=(
+                (12.0, 153.0),
+                (16.0, 132.0),
+                (20.0, 106.0),
+                (24.0, 92.0),
+                (28.0, 67.0),
+                (32.0, 48.0),
+            ),
+        ),
+        perturbed=PricingEvidenceCase(
+            key="noisy_snack_downshift_perturbed",
+            p_max=35.0,
+            scenario_note="Perturbed evidence: the same SKU faces noisier demand after a substitute launch.",
+            observations=(
+                (10.0, 124.0),
+                (14.0, 96.0),
+                (18.0, 62.0),
+                (22.0, 40.0),
+                (26.0, 13.0),
+                (30.0, 0.0),
+            ),
+        ),
+    ),
+    PricingCounterfactualSet(
+        key="noisy_enterprise_upswing",
+        base=PricingEvidenceCase(
+            key="noisy_enterprise_upswing_base",
+            p_max=60.0,
+            scenario_note="Base evidence: premium demand is noisy and only moderately price tolerant.",
+            observations=(
+                (18.0, 122.0),
+                (22.0, 105.0),
+                (26.0, 84.0),
+                (30.0, 70.0),
+                (34.0, 50.0),
+                (38.0, 34.0),
+            ),
+        ),
+        perturbed=PricingEvidenceCase(
+            key="noisy_enterprise_upswing_perturbed",
+            p_max=60.0,
+            scenario_note="Perturbed evidence: enterprise buyers arrive, with noisy but less price-sensitive demand.",
+            observations=(
+                (18.0, 190.0),
+                (24.0, 166.0),
+                (30.0, 141.0),
+                (36.0, 121.0),
+                (42.0, 91.0),
+                (48.0, 77.0),
+            ),
+        ),
+    ),
 ]
 
 
