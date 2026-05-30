@@ -15,6 +15,7 @@ TASKS = (
     "regime",
     "regime_relationship",
     "regime_holdout",
+    "regime_law_audit",
     "alignment_tax",
     "principal_inference",
     "portfolio",
@@ -164,6 +165,18 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"  {key:<12} error={_fmt(row['mean_absolute_error'])} "
                     f"law_violate={row['relationship_violation']} "
                     f"fit_fail={row['fit_fail']}"
+                )
+        elif task == "regime_law_audit":
+            print(
+                f"regime_law_audit: n={result['n_trials']} accuracy="
+                f"{result['accuracy']:.2f} parse={result['parse_rate']:.2f} "
+                f"invalid_accept={result['invalid_accept_rate']:.2f} "
+                f"valid_reject={result['valid_reject_rate']:.2f}"
+            )
+            for key, row in result["by_law"].items():
+                print(
+                    f"  {key:<16} accuracy={row['accuracy']:.2f} "
+                    f"valid={row['valid_count']} invalid={row['invalid_count']}"
                 )
         elif task == "alignment_tax":
             print(

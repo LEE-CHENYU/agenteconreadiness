@@ -5,7 +5,7 @@ import math
 from dataclasses import dataclass, asdict
 
 from aeread_lab.models import Agent
-from aeread_lab.parsing import clamp, parse_float
+from aeread_lab.parsing import clamp, parse_float, parse_token
 from aeread_lab.stats import bootstrap_mean_ci, mean, wilson_ci
 
 
@@ -13,6 +13,12 @@ REGIME_SYSTEM = (
     "TASK: regime_fraction\n"
     "You are choosing a fraction f in [0,1]. Return one final line only: "
     "FINAL_FRACTION: <number>."
+)
+
+REGIME_LAW_SYSTEM = (
+    "TASK: regime_law_label\n"
+    "You are verifying a proposed relationship between deployment fractions. "
+    "Return one final line only: FINAL_LABEL: valid or FINAL_LABEL: invalid."
 )
 
 
@@ -58,6 +64,26 @@ class RegimeRelationshipGroup:
     mean_absolute_error: float | None
     relationship_violation: bool
     fit_fail: bool
+
+
+@dataclass(frozen=True)
+class RegimeLawCase:
+    key: str
+    gamble: Gamble
+    left_regime: str
+    relation: str
+    right_regime: str
+
+
+@dataclass
+class RegimeLawTrial:
+    case: RegimeLawCase
+    oracle_label: str
+    chosen_label: str | None
+    correct: bool
+    invalid_accept: bool
+    valid_reject: bool
+    raw_response: str
 
 
 REGIMES = {
@@ -311,6 +337,29 @@ def generate_regime_holdout_gambles() -> list[Gamble]:
         raise ValueError("All regime holdout candidates must satisfy relationship laws")
     return holdouts
 
+
+def generate_regime_law_audit_cases(gambles: list[Gamble] | None = None) -> list[RegimeLawCase]:
+    gambles = gambles or generate_regime_holdout_gambles()
+    templates = (
+        ("ev_ge_kelly", "ev", "ge", "kelly"),
+        ("kelly_ge_cvar", "kelly", "ge", "cvar"),
+        ("kelly_ge_crra", "kelly", "ge", "crra"),
+        ("cvar_ge_crra", "cvar", "ge", "crra"),
+        ("cvar_ge_kelly", "cvar", "ge", "kelly"),
+    )
+    return [
+        RegimeLawCase(
+            key=f"{gamble.key}_{law_key}",
+            gamble=gamble,
+            left_regime=left_regime,
+            relation=relation,
+            right_regime=right_regime,
+        )
+        for gamble in gambles
+        for law_key, left_regime, relation, right_regime in templates
+    ]
+
+
 def ev_fraction(gamble: Gamble) -> float:
     expected = gamble.p_win * gamble.win_return - (1.0 - gamble.p_win) * gamble.loss_return
     return 1.0 if expected > 0 else 0.0
@@ -437,6 +486,33 @@ def run_regime_holdout_verifier(
         task="regime_holdout",
         prompt_fn=_holdout_prompt,
     )
+
+
+def run_regime_law_audit_game(
+    agent: Agent,
+    cases: list[RegimeLawCase] | None = None,
+) -> dict:
+    cases = cases or DEFAULT_LAW_AUDIT_CASES
+    trials: list[RegimeLawTrial] = []
+    for case in cases:
+        oracle_label = regime_law_label(case)
+        prompt = _law_audit_prompt(case)
+        response = agent.complete(REGIME_LAW_SYSTEM, prompt)
+        parsed = parse_token("FINAL_LABEL", response)
+        chosen = parsed.lower() if parsed and parsed.lower() in {"valid", "invalid"} else None
+        correct = chosen == oracle_label
+        trials.append(
+            RegimeLawTrial(
+                case=case,
+                oracle_label=oracle_label,
+                chosen_label=chosen,
+                correct=correct,
+                invalid_accept=oracle_label == "invalid" and chosen == "valid",
+                valid_reject=oracle_label == "valid" and chosen == "invalid",
+                raw_response=response,
+            )
+        )
+    return summarize_regime_law_trials(agent.name, trials)
 
 
 def _run_regime_group_verifier(
@@ -573,6 +649,41 @@ def summarize_regime_relationship_groups(
     }
 
 
+def summarize_regime_law_trials(agent_name: str, trials: list[RegimeLawTrial]) -> dict:
+    parsed = [trial for trial in trials if trial.chosen_label is not None]
+    correct = sum(trial.correct for trial in trials)
+    invalid_trials = [trial for trial in trials if trial.oracle_label == "invalid"]
+    valid_trials = [trial for trial in trials if trial.oracle_label == "valid"]
+    invalid_accepts = sum(trial.invalid_accept for trial in invalid_trials)
+    valid_rejects = sum(trial.valid_reject for trial in valid_trials)
+    by_law: dict[str, dict] = {}
+    for law_key in sorted({law_case_key(trial.case) for trial in trials}):
+        subset = [trial for trial in trials if law_case_key(trial.case) == law_key]
+        by_law[law_key] = {
+            "n_trials": len(subset),
+            "accuracy": sum(trial.correct for trial in subset) / len(subset) if subset else 0.0,
+            "parse_rate": sum(trial.chosen_label is not None for trial in subset) / len(subset)
+            if subset
+            else 0.0,
+            "valid_count": sum(trial.oracle_label == "valid" for trial in subset),
+            "invalid_count": sum(trial.oracle_label == "invalid" for trial in subset),
+        }
+    return {
+        "task": "regime_law_audit",
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "accuracy": correct / len(trials) if trials else 0.0,
+        "accuracy_ci95": wilson_ci(correct, len(trials)),
+        "parse_rate": len(parsed) / len(trials) if trials else 0.0,
+        "invalid_accept_rate": invalid_accepts / len(invalid_trials) if invalid_trials else 0.0,
+        "invalid_accept_ci95": wilson_ci(invalid_accepts, len(invalid_trials)),
+        "valid_reject_rate": valid_rejects / len(valid_trials) if valid_trials else 0.0,
+        "valid_reject_ci95": wilson_ci(valid_rejects, len(valid_trials)),
+        "by_law": by_law,
+        "trials": [_law_trial_json(trial) for trial in trials],
+    }
+
+
 def _prompt(gamble: Gamble, regime: str) -> str:
     spec = REGIMES[regime]
     return (
@@ -606,6 +717,32 @@ def _holdout_prompt(gamble: Gamble, regime: str) -> str:
     )
 
 
+def _law_audit_prompt(case: RegimeLawCase) -> str:
+    gamble = case.gamble
+    relation_text = ">=" if case.relation == "ge" else "<="
+    return (
+        "Generated gamble parameters:\n"
+        f"gamble_family={gamble.family}\n"
+        f"p_win={gamble.p_win:.4f}\n"
+        f"win_return={gamble.win_return:.4f}\n"
+        f"loss_return={gamble.loss_return:.4f}\n"
+        f"horizon={gamble.horizon}\n"
+        f"gamma={gamble.gamma:.4f}\n"
+        f"max_drawdown={gamble.max_drawdown:.4f}\n"
+        "Regime definitions:\n"
+        "ev: maximize expected additive payoff.\n"
+        "kelly: maximize expected log growth over repeated multiplicative wealth.\n"
+        "cvar: maximize return subject to the stated hard drawdown bound.\n"
+        "crra: maximize configured-principal utility with the stated gamma.\n"
+        f"left_regime={case.left_regime}\n"
+        f"relation={case.relation}\n"
+        f"right_regime={case.right_regime}\n"
+        f"Claim: deployment_fraction({case.left_regime}) {relation_text} "
+        f"deployment_fraction({case.right_regime}) for this generated gamble.\n"
+        "Decide whether the claim is valid or invalid for this case."
+    )
+
+
 def relationship_laws_hold(fractions: dict[str, float | None], eps: float = 1e-9) -> bool:
     required = RELATIONSHIP_REGIMES
     if any(fractions.get(regime) is None for regime in required):
@@ -619,6 +756,16 @@ def relationship_laws_hold(fractions: dict[str, float | None], eps: float = 1e-9
 
 def relationship_oracle_fractions(gamble: Gamble) -> dict[str, float]:
     return {regime: oracle_fraction(gamble, regime) for regime in RELATIONSHIP_REGIMES}
+
+
+def regime_law_label(case: RegimeLawCase, eps: float = 1e-9) -> str:
+    left = oracle_fraction(case.gamble, case.left_regime)
+    right = oracle_fraction(case.gamble, case.right_regime)
+    if case.relation == "ge":
+        return "valid" if left + eps >= right else "invalid"
+    if case.relation == "le":
+        return "valid" if left <= right + eps else "invalid"
+    raise ValueError(f"Unsupported relation: {case.relation}")
 
 
 def _relationship_group_json(group: RegimeRelationshipGroup) -> dict:
@@ -635,6 +782,26 @@ def _relationship_group_json(group: RegimeRelationshipGroup) -> dict:
         "chosen_fractions": chosen,
         "laws": _relationship_law_report(chosen),
     }
+
+
+def _law_trial_json(trial: RegimeLawTrial) -> dict:
+    return {
+        "case": trial.case.key,
+        "gamble": asdict(trial.case.gamble),
+        "left_regime": trial.case.left_regime,
+        "relation": trial.case.relation,
+        "right_regime": trial.case.right_regime,
+        "oracle_label": trial.oracle_label,
+        "chosen_label": trial.chosen_label,
+        "correct": trial.correct,
+        "invalid_accept": trial.invalid_accept,
+        "valid_reject": trial.valid_reject,
+        "raw_response": trial.raw_response,
+    }
+
+
+def law_case_key(case: RegimeLawCase) -> str:
+    return f"{case.left_regime}_{case.relation}_{case.right_regime}"
 
 
 def _relationship_law_report(fractions: dict[str, float | None]) -> dict[str, bool]:
@@ -670,6 +837,7 @@ def _grid_argmax(fn) -> float:
 
 
 DEFAULT_HOLDOUT_GAMBLES = generate_regime_holdout_gambles()
+DEFAULT_LAW_AUDIT_CASES = generate_regime_law_audit_cases(DEFAULT_HOLDOUT_GAMBLES)
 
 
 def dumps_summary(summary: dict) -> str:

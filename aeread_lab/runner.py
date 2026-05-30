@@ -36,6 +36,7 @@ TASK_ORDER = (
     "regime",
     "regime_relationship",
     "regime_holdout",
+    "regime_law_audit",
     "alignment_tax",
     "principal_inference",
     "portfolio",
@@ -197,6 +198,11 @@ def run_task(
         return regime_task.run_regime_holdout_verifier(
             agent,
             gambles=_sample(regime_task.DEFAULT_HOLDOUT_GAMBLES, limit),
+        )
+    if task == "regime_law_audit":
+        return regime_task.run_regime_law_audit_game(
+            agent,
+            cases=_sample(regime_task.DEFAULT_LAW_AUDIT_CASES, limit),
         )
     if task == "scam":
         return adversarial_task.run_scam_arena(

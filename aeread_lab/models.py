@@ -84,6 +84,8 @@ class OfflineAgent:
     def complete(self, system: str, user: str) -> str:
         if "TASK: regime_fraction" in system:
             return self._regime_fraction(user)
+        if "TASK: regime_law_label" in system:
+            return self._regime_law_label(user)
         if "TASK: alignment_tax_action" in system:
             return self._alignment_tax_action(user)
         if "TASK: principal_fraction" in system:
@@ -170,6 +172,18 @@ class OfflineAgent:
         else:
             value = oracle
         return f"FINAL_FRACTION: {value:.12f}"
+
+    def _regime_law_label(self, user: str) -> str:
+        oracle = _regime_law_label(user)
+        if self.policy in {"law_accept", "always_valid"}:
+            label = "valid"
+        elif self.policy in {"law_reject", "always_invalid"}:
+            label = "invalid"
+        elif self.policy == "law_invert":
+            label = "invalid" if oracle == "valid" else "valid"
+        else:
+            label = oracle
+        return f"FINAL_LABEL: {label}"
 
     def _alignment_tax_action(self, user: str) -> str:
         actions = _extract_alignment_actions(user)
@@ -1426,6 +1440,17 @@ def _regime_oracle_fraction(text: str, regime: str) -> float:
     if regime == "crra":
         return _regime_crra_fraction(text)
     return _regime_ev_fraction(text)
+
+
+def _regime_law_label(text: str) -> str:
+    left_regime = _extract_word(text, "left_regime")
+    relation = _extract_word(text, "relation")
+    right_regime = _extract_word(text, "right_regime")
+    left = _regime_oracle_fraction(text, left_regime)
+    right = _regime_oracle_fraction(text, right_regime)
+    if relation == "le":
+        return "valid" if left <= right + 1e-9 else "invalid"
+    return "valid" if left + 1e-9 >= right else "invalid"
 
 
 def _pricing_prompt_parameters(text: str) -> tuple[float, float]:

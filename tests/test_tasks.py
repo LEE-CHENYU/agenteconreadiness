@@ -97,11 +97,14 @@ from aeread_lab.tasks.procurement import run_procurement_game
 from aeread_lab.tasks.regime import (
     DEFAULT_GAMBLES,
     DEFAULT_HOLDOUT_GAMBLES,
+    DEFAULT_LAW_AUDIT_CASES,
     DEFAULT_RELATIONSHIP_GAMBLES,
     _holdout_prompt as regime_holdout_prompt,
+    _law_audit_prompt as regime_law_audit_prompt,
     _prompt as regime_prompt,
     _relationship_prompt as regime_relationship_prompt,
     run_regime_holdout_verifier,
+    run_regime_law_audit_game,
     run_regime_relationship_verifier,
 )
 from aeread_lab.tasks.revealed_allocation import DEFAULT_CASES as REVEALED_ALLOCATION_CASES
@@ -184,6 +187,13 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(sweep["sample_limit"], 1)
         self.assertEqual(result["n_groups"], 1)
         self.assertEqual(result["n_trials"], 4)
+
+    def test_sample_limit_slices_regime_law_audit_cases(self):
+        sweep = run_sweep(task="regime_law_audit", agent_specs=["offline:oracle"], sample_limit=1)
+        result = sweep["runs"][0]["results"][0]
+        self.assertEqual(sweep["sample_limit"], 1)
+        self.assertEqual(result["n_trials"], 1)
+        self.assertEqual(result["accuracy"], 1.0)
 
     def test_sample_limit_slices_task_cases(self):
         results = run_tasks("procurement", OfflineAgent("oracle"), sample_limit=1)
@@ -293,6 +303,7 @@ class TaskSmokeTests(unittest.TestCase):
         regime = regime_prompt(DEFAULT_GAMBLES[0], "kelly")
         regime_relationship = regime_relationship_prompt(DEFAULT_RELATIONSHIP_GAMBLES[0], "kelly")
         regime_holdout = regime_holdout_prompt(DEFAULT_HOLDOUT_GAMBLES[0], "kelly")
+        regime_law_audit = regime_law_audit_prompt(DEFAULT_LAW_AUDIT_CASES[0])
         alignment_tax = alignment_tax_prompt(ALIGNMENT_CASES[0])
         procurement = procurement_prompt(PROCUREMENT_CASES[0])
         procurement_counterfactual = procurement_prompt(COUNTERFACTUAL_SETS[0].preference_flip)
@@ -337,6 +348,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", regime)
         self.assertNotIn("oracle", regime_relationship)
         self.assertNotIn("oracle", regime_holdout)
+        self.assertNotIn("oracle", regime_law_audit)
         self.assertNotIn("oracle", alignment_tax)
         self.assertNotIn("oracle", procurement)
         self.assertNotIn("oracle", procurement_counterfactual)
@@ -373,6 +385,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("kelly_fraction", regime)
         self.assertNotIn("kelly_fraction", regime_relationship)
         self.assertNotIn("kelly_fraction", regime_holdout)
+        self.assertNotIn("kelly_fraction", regime_law_audit)
         self.assertNotIn("oracle_price", pricing)
         self.assertNotIn("oracle_price", pricing_counterfactual)
         self.assertNotIn("raw_mean_probability", forecast_curve_natural)
@@ -410,6 +423,20 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(half["relationship_violation_rate"], 0.0)
         self.assertEqual(half["fit_fail_rate"], 1.0)
         self.assertGreater(wrong["relationship_violation_rate"], 0.75)
+
+    def test_regime_law_audit_flags_invalid_acceptance(self):
+        configured = run_regime_law_audit_game(OfflineAgent("oracle"))
+        accept = run_regime_law_audit_game(OfflineAgent("law_accept"))
+        reject = run_regime_law_audit_game(OfflineAgent("law_reject"))
+        inverted = run_regime_law_audit_game(OfflineAgent("law_invert"))
+        self.assertEqual(configured["task"], "regime_law_audit")
+        self.assertEqual(configured["n_trials"], len(DEFAULT_LAW_AUDIT_CASES))
+        self.assertEqual(configured["accuracy"], 1.0)
+        self.assertEqual(configured["invalid_accept_rate"], 0.0)
+        self.assertEqual(configured["valid_reject_rate"], 0.0)
+        self.assertGreater(accept["invalid_accept_rate"], 0.9)
+        self.assertGreater(reject["valid_reject_rate"], 0.9)
+        self.assertEqual(inverted["accuracy"], 0.0)
 
     def test_principal_inference_flags_generic_gamma(self):
         inferred = run_principal_inference_game(OfflineAgent("oracle"))
@@ -873,6 +900,13 @@ class TaskSmokeTests(unittest.TestCase):
         holdout_rows = [row for row in rows if row["task"] == "regime_holdout"]
         self.assertEqual(holdout_rows[0]["agent"], "offline:oracle")
         self.assertEqual(holdout_rows[1]["agent"], "offline:ev")
+
+    def test_offline_sweep_ranks_oracle_above_law_accept_on_regime_law_audit(self):
+        sweep = run_sweep(task="regime_law_audit", agent_specs=["offline:oracle", "offline:law_accept"])
+        rows = rank_rows(comparison_table(sweep))
+        audit_rows = [row for row in rows if row["task"] == "regime_law_audit"]
+        self.assertEqual(audit_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(audit_rows[1]["agent"], "offline:law_accept")
 
     def test_offline_sweep_ranks_configured_above_helpful_on_alignment_tax(self):
         sweep = run_sweep(task="alignment_tax", agent_specs=["offline:oracle", "offline:helpful"])
