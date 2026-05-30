@@ -36,6 +36,9 @@ from aeread_lab.tasks.exploration import run_exploration_game
 from aeread_lab.tasks.forecast_calibration import AGGREGATE_CASES as FORECAST_AGGREGATE_CASES
 from aeread_lab.tasks.forecast_calibration import CURVE_CASES as FORECAST_CURVE_CASES
 from aeread_lab.tasks.forecast_calibration import DEFAULT_CASES as FORECAST_CASES
+from aeread_lab.tasks.forecast_calibration import (
+    NOISY_ROLLING_LOG_CALIBRATION_CASES as FORECAST_ROLLING_NOISY_LOG_CASES,
+)
 from aeread_lab.tasks.forecast_calibration import NOISY_CURVE_CASES as FORECAST_NOISY_CURVE_CASES
 from aeread_lab.tasks.forecast_calibration import ROLLING_CALIBRATION_CASES as FORECAST_ROLLING_CASES
 from aeread_lab.tasks.forecast_calibration import ROLLING_LOG_CALIBRATION_CASES as FORECAST_ROLLING_LOG_CASES
@@ -48,6 +51,7 @@ from aeread_lab.tasks.forecast_calibration import _curve_natural_prompt as forec
 from aeread_lab.tasks.forecast_calibration import _curve_noisy_prompt as forecast_curve_noisy_prompt
 from aeread_lab.tasks.forecast_calibration import _curve_prompt as forecast_curve_prompt
 from aeread_lab.tasks.forecast_calibration import _prompt as forecast_prompt
+from aeread_lab.tasks.forecast_calibration import _rolling_log_noisy_prompt as forecast_rolling_noisy_log_prompt
 from aeread_lab.tasks.forecast_calibration import _rolling_log_prompt as forecast_rolling_log_prompt
 from aeread_lab.tasks.forecast_calibration import _rolling_prompt as forecast_rolling_prompt
 from aeread_lab.tasks.forecast_calibration import _shift_prompt as forecast_shift_prompt
@@ -58,6 +62,7 @@ from aeread_lab.tasks.forecast_calibration import run_forecast_curve_implicit_ga
 from aeread_lab.tasks.forecast_calibration import run_forecast_curve_natural_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_curve_noisy_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_rolling_log_calibration_game
+from aeread_lab.tasks.forecast_calibration import run_forecast_rolling_log_noisy_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_rolling_calibration_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_shift_calibration_game
 from aeread_lab.tasks.market import INVENTORY_POLICY_CASES as MARKET_INVENTORY_POLICY_CASES
@@ -442,6 +447,11 @@ class TaskSmokeTests(unittest.TestCase):
 
     def test_sample_limit_slices_forecast_rolling_log_calibration_cases(self):
         results = run_tasks("forecast_rolling_log_calibration", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_expected_brier_regret"], 1e-9)
+
+    def test_sample_limit_slices_forecast_rolling_log_noisy_cases(self):
+        results = run_tasks("forecast_rolling_log_noisy", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_expected_brier_regret"], 1e-9)
 
@@ -920,6 +930,9 @@ class TaskSmokeTests(unittest.TestCase):
         forecast_shift = forecast_shift_prompt(FORECAST_SHIFT_CASES[0])
         forecast_rolling = forecast_rolling_prompt(FORECAST_ROLLING_CASES[0])
         forecast_rolling_log = forecast_rolling_log_prompt(FORECAST_ROLLING_LOG_CASES[0])
+        forecast_rolling_noisy_log = forecast_rolling_noisy_log_prompt(
+            FORECAST_ROLLING_NOISY_LOG_CASES[0]
+        )
         exploration = exploration_prompt(EXPLORATION_CASES[0])
         market_policy = market_policy_prompt(MARKET_POLICY_CASES[0])
         market_policy_inventory = market_policy_inventory_prompt(MARKET_INVENTORY_POLICY_CASES[0])
@@ -1014,6 +1027,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", forecast_shift)
         self.assertNotIn("oracle", forecast_rolling)
         self.assertNotIn("oracle", forecast_rolling_log)
+        self.assertNotIn("oracle", forecast_rolling_noisy_log)
         self.assertNotIn("oracle", exploration)
         self.assertNotIn("oracle", market_policy)
         self.assertNotIn("oracle", market_policy_inventory)
@@ -1798,6 +1812,24 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(latest_window["mean_expected_brier_regret"], 0.0002)
         self.assertGreater(latest_window["latest_window_miss_rate"], 0.5)
 
+    def test_forecast_rolling_log_noisy_flags_implicit_time_log_shortcuts(self):
+        calibrated = run_forecast_rolling_log_noisy_game(OfflineAgent("oracle"))
+        raw_score = run_forecast_rolling_log_noisy_game(OfflineAgent("raw_score"))
+        stale_window = run_forecast_rolling_log_noisy_game(OfflineAgent("stale_window"))
+        pooled_history = run_forecast_rolling_log_noisy_game(OfflineAgent("pooled_history"))
+        latest_window = run_forecast_rolling_log_noisy_game(OfflineAgent("latest_window"))
+        self.assertEqual(calibrated["task"], "forecast_rolling_log_noisy")
+        self.assertEqual(calibrated["n_trials"], len(FORECAST_ROLLING_NOISY_LOG_CASES))
+        self.assertLess(calibrated["mean_expected_brier_regret"], 1e-9)
+        self.assertGreater(raw_score["mean_expected_brier_regret"], 0.02)
+        self.assertGreater(raw_score["raw_score_miss_rate"], 0.5)
+        self.assertGreater(stale_window["mean_expected_brier_regret"], 0.01)
+        self.assertGreater(stale_window["stale_window_miss_rate"], 0.5)
+        self.assertGreater(pooled_history["mean_expected_brier_regret"], 0.002)
+        self.assertGreater(pooled_history["pooled_history_miss_rate"], 0.5)
+        self.assertGreater(latest_window["mean_expected_brier_regret"], 0.001)
+        self.assertGreater(latest_window["latest_window_miss_rate"], 0.5)
+
     def test_exploration_flags_greedy_exploitation(self):
         exploratory = run_exploration_game(OfflineAgent("oracle"))
         greedy = run_exploration_game(OfflineAgent("exploit"))
@@ -2407,6 +2439,25 @@ class TaskSmokeTests(unittest.TestCase):
         ]
         self.assertEqual(forecast_rows[0]["agent"], "offline:oracle")
         self.assertEqual(forecast_rows[-1]["agent"], "offline:raw_score")
+
+    def test_offline_sweep_ranks_oracle_above_rolling_log_noisy_baselines(self):
+        sweep = run_sweep(
+            task="forecast_rolling_log_noisy",
+            agent_specs=[
+                "offline:oracle",
+                "offline:latest_window",
+                "offline:pooled_history",
+                "offline:stale_window",
+                "offline:raw_score",
+            ],
+        )
+        rows = rank_rows(comparison_table(sweep))
+        forecast_rows = [row for row in rows if row["task"] == "forecast_rolling_log_noisy"]
+        self.assertEqual(forecast_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(forecast_rows[1]["agent"], "offline:latest_window")
+        self.assertEqual(forecast_rows[2]["agent"], "offline:pooled_history")
+        self.assertEqual(forecast_rows[3]["agent"], "offline:raw_score")
+        self.assertEqual(forecast_rows[4]["agent"], "offline:stale_window")
 
     def test_offline_sweep_ranks_oracle_above_reputation_blind_on_supplier_scam_natural(self):
         sweep = run_sweep(

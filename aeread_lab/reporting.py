@@ -50,6 +50,7 @@ PRIMARY_METRICS = {
     "forecast_shift_calibration": ("mean_expected_brier_regret", "lower"),
     "forecast_rolling_calibration": ("mean_expected_brier_regret", "lower"),
     "forecast_rolling_log_calibration": ("mean_expected_brier_regret", "lower"),
+    "forecast_rolling_log_noisy": ("mean_expected_brier_regret", "lower"),
     "exploration": ("mean_expected_value_gap", "lower"),
     "experiment_design": ("mean_expected_value_gap", "lower"),
     "retail": ("mean_order_error", "lower"),

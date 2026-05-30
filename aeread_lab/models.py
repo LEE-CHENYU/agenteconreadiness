@@ -1282,6 +1282,21 @@ class OfflineAgent:
         return f"FINAL_ACTION: {action}"
 
     def _forecast_probability(self, user: str) -> str:
+        if _has_forecast_rolling_noisy_log_table(user):
+            if self.policy in {"raw_score", "uncalibrated"}:
+                probability = _extract_float(user, "raw_model_probability")
+            elif self.policy in {"stale_window", "stale", "oldest_window"}:
+                probability = _forecast_rolling_noisy_log_stale_probability(user)
+            elif self.policy in {"pooled_history", "pooled", "all_history"}:
+                probability = _forecast_rolling_noisy_log_pooled_probability(user)
+            elif self.policy in {"latest_window", "recent_only", "newest_window"}:
+                probability = _forecast_rolling_noisy_log_latest_probability(user)
+            elif self.policy in {"base_rate", "prior", "unconditional"}:
+                probability = _extract_float(user, "global_base_rate", _extract_float(user, "base_rate"))
+            else:
+                probability = _forecast_rolling_noisy_log_probability(user)
+            probability = max(0.0, min(1.0, probability))
+            return f"FINAL_PROBABILITY: {probability:.12f}"
         if _has_forecast_rolling_log_table(user):
             if self.policy in {"raw_score", "uncalibrated"}:
                 probability = _extract_float(user, "raw_model_probability")
@@ -1998,6 +2013,120 @@ def _interpolate_forecast_points(points: list[tuple[float, float]], raw: float) 
             weight = (raw - left_raw) / max(right_raw - left_raw, 1e-12)
             return left_value + weight * (right_value - left_value)
     return points[-1][1]
+
+
+def _has_forecast_rolling_noisy_log_table(text: str) -> bool:
+    return "cohort_review=" in text and "score_band=" in text
+
+
+def _extract_forecast_rolling_noisy_log_periods(text: str) -> list[dict[str, object]]:
+    periods: list[dict[str, object]] = []
+    current: dict[str, object] | None = None
+    for line in text.splitlines():
+        if "cohort_review=" in line:
+            current = {
+                "days_before_target_midpoint": _extract_float(line, "age_days", 0.0),
+                "points": [],
+            }
+            periods.append(current)
+            continue
+        if "score_band=" in line and current is not None:
+            points = current["points"]
+            assert isinstance(points, list)
+            points.append(
+                (
+                    _extract_float(line, "score_center"),
+                    _extract_float(line, "events"),
+                    _extract_float(line, "reviewed", _extract_float(line, "total", 1.0)),
+                )
+            )
+    return periods
+
+
+def _forecast_rolling_noisy_log_half_life(text: str) -> float:
+    cadence = _extract_word(text, "review_cadence", "monthly")
+    if cadence == "biweekly":
+        return 21.0
+    if cadence == "six_week":
+        return 45.0
+    if cadence == "quarterly":
+        return 90.0
+    return 30.0
+
+
+def _forecast_rolling_noisy_log_period_weight(text: str, period: dict[str, object]) -> float:
+    half_life = max(_forecast_rolling_noisy_log_half_life(text), 1e-9)
+    age = max(float(period.get("days_before_target_midpoint", 0.0)), 0.0)
+    return 0.5 ** (age / half_life)
+
+
+def _forecast_rolling_noisy_log_bin_probability(text: str, events: float, total: float) -> float:
+    global_base_rate = _extract_float(text, "global_base_rate", _extract_float(text, "base_rate", 0.5))
+    prior_strength = _extract_float(text, "prior_strength", 0.0)
+    return (events + prior_strength * global_base_rate) / max(total + prior_strength, 1e-9)
+
+
+def _forecast_rolling_noisy_log_period_probability(
+    text: str,
+    period: dict[str, object],
+    *,
+    raw: float | None = None,
+) -> float:
+    raw = _extract_float(text, "raw_model_probability", 0.5) if raw is None else raw
+    raw_points = period.get("points", [])
+    assert isinstance(raw_points, list)
+    points = [
+        (score, _forecast_rolling_noisy_log_bin_probability(text, events, total))
+        for score, events, total in raw_points
+    ]
+    return _interpolate_forecast_points(points, raw)
+
+
+def _forecast_rolling_noisy_log_probability(text: str) -> float:
+    periods = _extract_forecast_rolling_noisy_log_periods(text)
+    if not periods:
+        return _extract_float(text, "raw_model_probability", 0.5)
+    weights = [_forecast_rolling_noisy_log_period_weight(text, period) for period in periods]
+    total_weight = sum(weights)
+    if total_weight <= 0:
+        return _forecast_rolling_noisy_log_pooled_probability(text)
+    return sum(
+        weight * _forecast_rolling_noisy_log_period_probability(text, period)
+        for weight, period in zip(weights, periods)
+    ) / total_weight
+
+
+def _forecast_rolling_noisy_log_stale_probability(text: str) -> float:
+    periods = _extract_forecast_rolling_noisy_log_periods(text)
+    if not periods:
+        return _extract_float(text, "raw_model_probability", 0.5)
+    stale = max(periods, key=lambda period: float(period.get("days_before_target_midpoint", 0.0)))
+    return _forecast_rolling_noisy_log_period_probability(text, stale)
+
+
+def _forecast_rolling_noisy_log_latest_probability(text: str) -> float:
+    periods = _extract_forecast_rolling_noisy_log_periods(text)
+    if not periods:
+        return _extract_float(text, "raw_model_probability", 0.5)
+    latest = min(periods, key=lambda period: float(period.get("days_before_target_midpoint", 0.0)))
+    return _forecast_rolling_noisy_log_period_probability(text, latest)
+
+
+def _forecast_rolling_noisy_log_pooled_probability(text: str) -> float:
+    pooled: dict[float, list[float]] = {}
+    for period in _extract_forecast_rolling_noisy_log_periods(text):
+        raw_points = period.get("points", [])
+        assert isinstance(raw_points, list)
+        for score, events, total in raw_points:
+            row = pooled.setdefault(score, [0.0, 0.0])
+            row[0] += events
+            row[1] += total
+    raw = _extract_float(text, "raw_model_probability", 0.5)
+    points = [
+        (score, _forecast_rolling_noisy_log_bin_probability(text, events, total))
+        for score, (events, total) in pooled.items()
+    ]
+    return _interpolate_forecast_points(points, raw)
 
 
 def _has_forecast_rolling_log_table(text: str) -> bool:

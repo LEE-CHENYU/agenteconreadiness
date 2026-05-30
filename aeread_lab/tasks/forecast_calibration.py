@@ -924,6 +924,197 @@ ROLLING_LOG_CALIBRATION_CASES = [
     ),
 ]
 
+NOISY_ROLLING_LOG_CALIBRATION_CASES = [
+    RollingLogCalibrationCase(
+        key="retention_noisy_cooldown",
+        real_case="enterprise churn scorecard after a retention playbook changed the renewal mix",
+        target_event="account churns before renewal",
+        raw_model_probability=0.72,
+        global_base_rate=0.26,
+        prior_strength=20.0,
+        recency_half_life_days=30.0,
+        periods=(
+            RollingLogCalibrationPeriod(
+                "january_audit",
+                110.0,
+                (
+                    CalibrationBin("jan_low", 0.44, 32, 92),
+                    CalibrationBin("jan_target", 0.72, 54, 80),
+                    CalibrationBin("jan_high", 0.88, 69, 91),
+                ),
+            ),
+            RollingLogCalibrationPeriod(
+                "march_audit",
+                72.0,
+                (
+                    CalibrationBin("mar_low", 0.44, 27, 89),
+                    CalibrationBin("mar_target", 0.72, 40, 80),
+                    CalibrationBin("mar_high", 0.88, 49, 83),
+                ),
+            ),
+            RollingLogCalibrationPeriod(
+                "april_audit",
+                35.0,
+                (
+                    CalibrationBin("apr_low", 0.44, 18, 76),
+                    CalibrationBin("apr_target", 0.72, 25, 78),
+                    CalibrationBin("apr_high", 0.88, 35, 74),
+                ),
+            ),
+            RollingLogCalibrationPeriod(
+                "current_audit",
+                8.0,
+                (
+                    CalibrationBin("current_low", 0.44, 8, 41),
+                    CalibrationBin("current_target", 0.72, 13, 42),
+                    CalibrationBin("current_high", 0.88, 19, 39),
+                ),
+            ),
+        ),
+    ),
+    RollingLogCalibrationCase(
+        key="merchant_noisy_surge",
+        real_case="merchant fraud screen after a new acquisition channel shifted traffic quality",
+        target_event="merchant account has a confirmed fraud escalation",
+        raw_model_probability=0.34,
+        global_base_rate=0.16,
+        prior_strength=24.0,
+        recency_half_life_days=21.0,
+        periods=(
+            RollingLogCalibrationPeriod(
+                "old_queue",
+                84.0,
+                (
+                    CalibrationBin("old_low", 0.18, 7, 96),
+                    CalibrationBin("old_target", 0.34, 10, 90),
+                    CalibrationBin("old_high", 0.58, 26, 103),
+                ),
+            ),
+            RollingLogCalibrationPeriod(
+                "mid_queue",
+                49.0,
+                (
+                    CalibrationBin("mid_low", 0.18, 13, 86),
+                    CalibrationBin("mid_target", 0.34, 24, 88),
+                    CalibrationBin("mid_high", 0.58, 45, 94),
+                ),
+            ),
+            RollingLogCalibrationPeriod(
+                "recent_queue",
+                21.0,
+                (
+                    CalibrationBin("recent_low", 0.18, 21, 74),
+                    CalibrationBin("recent_target", 0.34, 44, 84),
+                    CalibrationBin("recent_high", 0.58, 65, 91),
+                ),
+            ),
+            RollingLogCalibrationPeriod(
+                "live_queue",
+                5.0,
+                (
+                    CalibrationBin("live_low", 0.18, 15, 38),
+                    CalibrationBin("live_target", 0.34, 35, 40),
+                    CalibrationBin("live_high", 0.58, 37, 41),
+                ),
+            ),
+        ),
+    ),
+    RollingLogCalibrationCase(
+        key="credit_noisy_relief",
+        real_case="small-business delinquency score after underwriting controls tightened gradually",
+        target_event="borrower becomes 60 days delinquent",
+        raw_model_probability=0.58,
+        global_base_rate=0.28,
+        prior_strength=30.0,
+        recency_half_life_days=45.0,
+        periods=(
+            RollingLogCalibrationPeriod(
+                "legacy_book",
+                160.0,
+                (
+                    CalibrationBin("legacy_low", 0.30, 36, 112),
+                    CalibrationBin("legacy_target", 0.58, 58, 100),
+                    CalibrationBin("legacy_high", 0.78, 79, 109),
+                ),
+            ),
+            RollingLogCalibrationPeriod(
+                "transition_book",
+                95.0,
+                (
+                    CalibrationBin("transition_low", 0.30, 27, 106),
+                    CalibrationBin("transition_target", 0.58, 43, 102),
+                    CalibrationBin("transition_high", 0.78, 57, 105),
+                ),
+            ),
+            RollingLogCalibrationPeriod(
+                "recent_book",
+                40.0,
+                (
+                    CalibrationBin("recent_low", 0.30, 13, 88),
+                    CalibrationBin("recent_target", 0.58, 20, 92),
+                    CalibrationBin("recent_high", 0.78, 29, 86),
+                ),
+            ),
+            RollingLogCalibrationPeriod(
+                "thin_current_book",
+                9.0,
+                (
+                    CalibrationBin("thin_low", 0.30, 5, 36),
+                    CalibrationBin("thin_target", 0.58, 8, 35),
+                    CalibrationBin("thin_high", 0.78, 13, 34),
+                ),
+            ),
+        ),
+    ),
+    RollingLogCalibrationCase(
+        key="defect_noisy_regression",
+        real_case="launch-defect model after a supplier change worsened the most recent cohorts",
+        target_event="batch exceeds the defect escalation threshold",
+        raw_model_probability=0.46,
+        global_base_rate=0.12,
+        prior_strength=36.0,
+        recency_half_life_days=21.0,
+        periods=(
+            RollingLogCalibrationPeriod(
+                "baseline_audit",
+                90.0,
+                (
+                    CalibrationBin("baseline_low", 0.22, 6, 94),
+                    CalibrationBin("baseline_target", 0.46, 13, 95),
+                    CalibrationBin("baseline_high", 0.70, 28, 101),
+                ),
+            ),
+            RollingLogCalibrationPeriod(
+                "changeover_audit",
+                48.0,
+                (
+                    CalibrationBin("change_low", 0.22, 10, 87),
+                    CalibrationBin("change_target", 0.46, 20, 88),
+                    CalibrationBin("change_high", 0.70, 39, 92),
+                ),
+            ),
+            RollingLogCalibrationPeriod(
+                "new_supplier_audit",
+                19.0,
+                (
+                    CalibrationBin("new_low", 0.22, 17, 77),
+                    CalibrationBin("new_target", 0.46, 39, 82),
+                    CalibrationBin("new_high", 0.70, 61, 86),
+                ),
+            ),
+            RollingLogCalibrationPeriod(
+                "thin_current_audit",
+                4.0,
+                (
+                    CalibrationBin("thin_low", 0.22, 10, 35),
+                    CalibrationBin("thin_target", 0.46, 30, 36),
+                    CalibrationBin("thin_high", 0.70, 34, 37),
+                ),
+            ),
+        ),
+    ),
+]
+
 
 def posterior_probability(case: ForecastCase) -> float:
     odds = case.base_rate / max(1e-12, 1.0 - case.base_rate)
@@ -1451,6 +1642,67 @@ def run_forecast_rolling_log_calibration_game(
     return summarize_rolling_log_forecast_trials(agent.name, trials)
 
 
+def run_forecast_rolling_log_noisy_game(
+    agent: Agent,
+    cases: list[RollingLogCalibrationCase] | None = None,
+) -> dict:
+    cases = cases or NOISY_ROLLING_LOG_CALIBRATION_CASES
+    trials: list[RollingLogForecastTrial] = []
+    for case in cases:
+        calibrated = rolling_log_calibrated_probability(case)
+        stale = stale_rolling_log_probability(case)
+        pooled = pooled_rolling_log_probability(case)
+        latest = latest_rolling_log_probability(case)
+        response = agent.complete(FORECAST_SYSTEM, _rolling_log_noisy_prompt(case))
+        parsed = parse_float("FINAL_PROBABILITY", response)
+        chosen = clamp(parsed, 0.0, 1.0) if parsed is not None else None
+        raw_score_miss = (
+            chosen is not None
+            and abs(case.raw_model_probability - calibrated) >= 0.08
+            and abs(chosen - case.raw_model_probability) < abs(chosen - calibrated)
+        )
+        stale_window_miss = (
+            chosen is not None
+            and abs(stale - calibrated) >= 0.05
+            and abs(chosen - stale) < abs(chosen - calibrated)
+        )
+        pooled_history_miss = (
+            chosen is not None
+            and abs(pooled - calibrated) >= 0.03
+            and abs(chosen - pooled) < abs(chosen - calibrated)
+        )
+        latest_window_miss = (
+            chosen is not None
+            and abs(latest - calibrated) >= 0.02
+            and abs(chosen - latest) < abs(chosen - calibrated)
+        )
+        trials.append(
+            RollingLogForecastTrial(
+                case=case,
+                calibrated_probability=calibrated,
+                raw_model_probability=case.raw_model_probability,
+                stale_window_probability=stale,
+                pooled_history_probability=pooled,
+                latest_window_probability=latest,
+                chosen_probability=chosen,
+                expected_brier_regret=expected_brier_regret(calibrated, chosen)
+                if chosen is not None
+                else None,
+                probability_error=abs(chosen - calibrated) if chosen is not None else None,
+                raw_score_miss=raw_score_miss,
+                stale_window_miss=stale_window_miss,
+                pooled_history_miss=pooled_history_miss,
+                latest_window_miss=latest_window_miss,
+                raw_response=response,
+            )
+        )
+    return summarize_rolling_log_forecast_trials(
+        agent.name,
+        trials,
+        task_name="forecast_rolling_log_noisy",
+    )
+
+
 def _run_forecast_curve_game(
     agent: Agent,
     cases: list[ForecastCurveCase] | None,
@@ -1707,6 +1959,8 @@ def summarize_rolling_forecast_trials(
 def summarize_rolling_log_forecast_trials(
     agent_name: str,
     trials: list[RollingLogForecastTrial],
+    *,
+    task_name: str = "forecast_rolling_log_calibration",
 ) -> dict:
     regrets = [
         trial.expected_brier_regret
@@ -1735,7 +1989,7 @@ def summarize_rolling_log_forecast_trials(
         if abs(trial.latest_window_probability - trial.calibrated_probability) >= 0.02
     ]
     return {
-        "task": "forecast_rolling_log_calibration",
+        "task": task_name,
         "agent": agent_name,
         "n_trials": len(trials),
         "mean_expected_brier_regret": mean(regrets),
@@ -2083,6 +2337,57 @@ def _rolling_log_prompt(case: RollingLogCalibrationCase) -> str:
             "sample strength. Estimate the event probability for the next item at "
             "the raw score above; do not treat all dated batches as exchangeable, "
             "and do not use only the newest or oldest batch.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _review_cadence_label(case: RollingLogCalibrationCase) -> str:
+    half_life = case.recency_half_life_days
+    if half_life <= 22:
+        return "biweekly"
+    if half_life <= 38:
+        return "monthly"
+    if half_life <= 55:
+        return "six_week"
+    return "quarterly"
+
+
+def _rolling_log_noisy_prompt(case: RollingLogCalibrationCase) -> str:
+    cadence = _review_cadence_label(case)
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"target_event={case.target_event}",
+        f"raw_model_probability={case.raw_model_probability:.4f}",
+        f"global_base_rate={case.global_base_rate:.4f}",
+        f"prior_strength={case.prior_strength:.1f}",
+        f"review_cadence={cadence}",
+        "Uneven outcome-log excerpts from prior scored cohorts:",
+    ]
+    for period in case.periods:
+        lines.append(
+            f"cohort_review={period.period_id} "
+            f"age_days={period.days_before_target_midpoint:.1f}"
+        )
+        for bin_ in period.bins:
+            lines.append(
+                f"  score_band={bin_.bin_id} "
+                f"score_center={bin_.raw_mean_probability:.4f} "
+                f"events={bin_.observed_event_count} "
+                f"reviewed={bin_.observed_total}"
+            )
+    lines.extend(
+        [
+            "The operating environment has been moving across review cycles. "
+            "Older cohorts should not be discarded, but they are less "
+            "representative than closer cohorts once the process has shifted.",
+            "Some recent score bands are thin and lumpy. Stabilize them against "
+            "the global reference and nearby dated evidence instead of blindly "
+            "using only the newest row.",
+            "Estimate the event probability for the next item at the raw score "
+            "above. Do not treat all dated cohorts as exchangeable, and do not "
+            "assume the raw score is already calibrated.",
         ]
     )
     return "\n".join(lines)

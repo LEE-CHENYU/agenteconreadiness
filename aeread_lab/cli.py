@@ -58,6 +58,7 @@ TASKS = (
     "forecast_shift_calibration",
     "forecast_rolling_calibration",
     "forecast_rolling_log_calibration",
+    "forecast_rolling_log_noisy",
     "exploration",
     "experiment_design",
     "retail",
@@ -491,8 +492,9 @@ def _print_human(payload: dict[str, Any]) -> None:
             "forecast_shift_calibration",
             "forecast_rolling_calibration",
             "forecast_rolling_log_calibration",
+            "forecast_rolling_log_noisy",
         }:
-            if task == "forecast_rolling_log_calibration":
+            if task in {"forecast_rolling_log_calibration", "forecast_rolling_log_noisy"}:
                 print(
                     f"{task}: n={result['n_trials']} expected_brier_regret="
                     f"{_fmt(result['mean_expected_brier_regret'])} "
