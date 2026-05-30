@@ -81,15 +81,18 @@ from aeread_lab.tasks.portfolio import DEFAULT_CASES as PORTFOLIO_CASES
 from aeread_lab.tasks.portfolio import _prompt as portfolio_prompt
 from aeread_lab.tasks.portfolio import run_portfolio_game
 from aeread_lab.tasks.pricing import COUNTERFACTUAL_SETS as PRICING_COUNTERFACTUAL_SETS
+from aeread_lab.tasks.pricing import CROSS_ELASTICITY_CASES as PRICING_CROSS_CASES
 from aeread_lab.tasks.pricing import DEFAULT_CASES as PRICING_CASES
 from aeread_lab.tasks.pricing import DEFAULT_LAW_CASES as PRICING_LAW_CASES
 from aeread_lab.tasks.pricing import EVIDENCE_LAW_CASES as PRICING_EVIDENCE_LAW_CASES
 from aeread_lab.tasks.pricing import HOLDOUT_EVIDENCE_LAW_CASES as PRICING_EVIDENCE_HOLDOUT_CASES
 from aeread_lab.tasks.pricing import _counterfactual_prompt as pricing_counterfactual_prompt
+from aeread_lab.tasks.pricing import _cross_elasticity_prompt as pricing_cross_prompt
 from aeread_lab.tasks.pricing import _evidence_law_audit_prompt as pricing_evidence_law_prompt
 from aeread_lab.tasks.pricing import _law_audit_prompt as pricing_law_audit_prompt
 from aeread_lab.tasks.pricing import _prompt as pricing_prompt
 from aeread_lab.tasks.pricing import run_pricing_counterfactual_game
+from aeread_lab.tasks.pricing import run_pricing_cross_elasticity_game
 from aeread_lab.tasks.pricing import run_pricing_evidence_law_audit_game
 from aeread_lab.tasks.pricing import run_pricing_evidence_law_holdout_game
 from aeread_lab.tasks.pricing import run_pricing_game
@@ -220,6 +223,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 2)
         self.assertEqual(results[0]["counterfactual_shift_miss_rate"], 0.0)
 
+    def test_sample_limit_slices_pricing_cross_elasticity_cases(self):
+        results = run_tasks("pricing_cross_elasticity", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_absolute_price_error"], 0.01)
+
     def test_sample_limit_slices_pricing_law_audit_cases(self):
         results = run_tasks("pricing_law_audit", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
@@ -322,6 +330,16 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(stale["counterfactual_shift_miss_rate"], 1.0)
         self.assertEqual(stale["sticky_base_price_rate"], 1.0)
 
+    def test_pricing_cross_elasticity_flags_own_only_fit(self):
+        configured = run_pricing_cross_elasticity_game(OfflineAgent("oracle"))
+        own_only = run_pricing_cross_elasticity_game(OfflineAgent("own_only"))
+        self.assertEqual(configured["task"], "pricing_cross_elasticity")
+        self.assertEqual(configured["n_trials"], len(PRICING_CROSS_CASES))
+        self.assertLess(configured["mean_absolute_price_error"], 0.01)
+        self.assertEqual(configured["cross_blind_miss_rate"], 0.0)
+        self.assertGreater(own_only["mean_absolute_price_error"], 5.0)
+        self.assertGreater(own_only["cross_blind_miss_rate"], 0.6)
+
     def test_pricing_law_audit_flags_invalid_acceptance(self):
         configured = run_pricing_law_audit_game(OfflineAgent("oracle"))
         accept = run_pricing_law_audit_game(OfflineAgent("law_accept"))
@@ -383,6 +401,7 @@ class TaskSmokeTests(unittest.TestCase):
             PRICING_COUNTERFACTUAL_SETS[0].perturbed,
             "perturbed",
         )
+        pricing_cross = pricing_cross_prompt(PRICING_CROSS_CASES[0])
         pricing_law_audit = pricing_law_audit_prompt(PRICING_LAW_CASES[0])
         pricing_evidence_law = pricing_evidence_law_prompt(PRICING_EVIDENCE_LAW_CASES[0])
         pricing_evidence_holdout = pricing_evidence_law_prompt(PRICING_EVIDENCE_HOLDOUT_CASES[0])
@@ -428,6 +447,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", procurement_counterfactual)
         self.assertNotIn("oracle", pricing)
         self.assertNotIn("oracle", pricing_counterfactual)
+        self.assertNotIn("oracle", pricing_cross)
         self.assertNotIn("oracle", pricing_law_audit)
         self.assertNotIn("oracle", pricing_evidence_law)
         self.assertNotIn("oracle", pricing_evidence_holdout)
@@ -465,6 +485,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("kelly_fraction", regime_law_audit)
         self.assertNotIn("oracle_price", pricing)
         self.assertNotIn("oracle_price", pricing_counterfactual)
+        self.assertNotIn("oracle_price", pricing_cross)
         self.assertNotIn("oracle_price", pricing_law_audit)
         self.assertNotIn("oracle_price", pricing_evidence_law)
         self.assertNotIn("oracle_price", pricing_evidence_holdout)
@@ -994,6 +1015,13 @@ class TaskSmokeTests(unittest.TestCase):
         audit_rows = [row for row in rows if row["task"] == "pricing_law_audit"]
         self.assertEqual(audit_rows[0]["agent"], "offline:oracle")
         self.assertEqual(audit_rows[1]["agent"], "offline:law_accept")
+
+    def test_offline_sweep_ranks_oracle_above_own_only_on_pricing_cross_elasticity(self):
+        sweep = run_sweep(task="pricing_cross_elasticity", agent_specs=["offline:oracle", "offline:own_only"])
+        rows = rank_rows(comparison_table(sweep))
+        pricing_rows = [row for row in rows if row["task"] == "pricing_cross_elasticity"]
+        self.assertEqual(pricing_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(pricing_rows[1]["agent"], "offline:own_only")
 
     def test_offline_sweep_ranks_oracle_above_law_accept_on_pricing_evidence_law_audit(self):
         sweep = run_sweep(

@@ -55,6 +55,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `procurement_counterfactual` | Procurement paraphrase and preference-flip probe: the same products preserve the oracle under wording changes but require a different choice when the principal's weights change. | `python -m aeread_lab.cli --task procurement_counterfactual --agent offline:oracle` |
 | `pricing` | v0 `SimplePricingGame`: continuous price choice with base/posterior/reveal conditions and a closed-form revenue oracle. | `python -m aeread_lab.cli --task pricing --agent offline:oracle` |
 | `pricing_counterfactual` | Pricing evidence-perturbation probe: exact and noisy posterior demand evidence changes the revenue-maximizing price, and stale base prices are scored as counterfactual-shift misses. | `python -m aeread_lab.cli --task pricing_counterfactual --agent offline:oracle` |
+| `pricing_cross_elasticity` | Cross-product pricing evidence: fit focal demand from own-price and related-price variation, catching single-product fits that ignore substitution or complement effects. | `python -m aeread_lab.cli --task pricing_cross_elasticity --agent offline:oracle` |
 | `pricing_law_audit` | Cross-domain generator-verifier audit for pricing: classify generated comparative-static claims about the revenue-maximizing price as valid or invalid under demand and cap changes. | `python -m aeread_lab.cli --task pricing_law_audit --agent offline:oracle` |
 | `pricing_evidence_law_audit` | Evidence-derived pricing-law audit: classify price-movement claims from baseline and updated sales rows, without exposing alpha/beta demand parameters. | `python -m aeread_lab.cli --task pricing_evidence_law_audit --agent offline:oracle` |
 | `pricing_evidence_law_holdout` | Generated evidence-law holdout: a larger neutral-ID family of sales-row pricing-law claims with intercept, slope, cap, mixed, and intervention cases. | `python -m aeread_lab.cli --task pricing_evidence_law_holdout --agent offline:oracle` |
@@ -196,6 +197,8 @@ interpreting the economic metric.
 - `pricing`: lower revenue gap to the closed-form optimum is better.
 - `pricing_counterfactual`: lower posterior price error is better;
   counterfactual-shift miss and sticky-base-price rates are reported separately.
+- `pricing_cross_elasticity`: lower focal-price error is better; cross-blind
+  miss rate reports answers that collapse to the own-price-only fit.
 - `pricing_law_audit`: higher valid/invalid pricing-law classification accuracy
   is better; invalid-law acceptance and valid-law rejection rates are reported
   separately.

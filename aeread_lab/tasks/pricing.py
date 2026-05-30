@@ -12,6 +12,11 @@ PRICING_SYSTEM = (
     "Choose a price. Return one final line only: FINAL_PRICE: <number>."
 )
 
+PRICING_CROSS_SYSTEM = (
+    "TASK: pricing_cross_price\n"
+    "Choose the focal product price. Return one final line only: FINAL_PRICE: <number>."
+)
+
 PRICING_LAW_SYSTEM = (
     "TASK: pricing_law_label\n"
     "You are verifying a proposed comparative-static claim about the revenue-maximizing price. "
@@ -40,6 +45,15 @@ class PricingEvidenceCase:
     key: str
     p_max: float
     observations: tuple[tuple[float, float], ...]
+    scenario_note: str = ""
+
+
+@dataclass(frozen=True)
+class PricingCrossCase:
+    key: str
+    p_max: float
+    planned_related_price: float
+    observations: tuple[tuple[float, float, float], ...]
     scenario_note: str = ""
 
 
@@ -97,9 +111,71 @@ class PricingEvidenceLawTrial:
     raw_response: str
 
 
+def _cross_observations(
+    alpha: float,
+    own_beta: float,
+    related_beta: float,
+    p_max: float,
+) -> tuple[tuple[float, float, float], ...]:
+    pairs = ((0.22, 0.25), (0.34, 0.70), (0.46, 0.40), (0.58, 0.86), (0.70, 0.55), (0.82, 0.95))
+    return tuple(
+        (
+            round(own_ratio * p_max, 2),
+            round(related_ratio * p_max, 2),
+            round(max(0.0, alpha - own_beta * own_ratio * p_max + related_beta * related_ratio * p_max), 2),
+        )
+        for own_ratio, related_ratio in pairs
+    )
+
+
 DEFAULT_CASES = [
     PricingCase("snack_box", alpha=180.0, beta=6.0, sigma=4.0, p_max=30.0, seed=11),
     PricingCase("premium_widget", alpha=260.0, beta=4.0, sigma=6.0, p_max=55.0, seed=29),
+]
+
+CROSS_ELASTICITY_CASES = [
+    PricingCrossCase(
+        key="cross_case_01",
+        p_max=45.0,
+        planned_related_price=28.0,
+        scenario_note="Set the focal product price for the next campaign.",
+        observations=_cross_observations(alpha=130.0, own_beta=4.0, related_beta=2.0, p_max=45.0),
+    ),
+    PricingCrossCase(
+        key="cross_case_02",
+        p_max=45.0,
+        planned_related_price=8.0,
+        scenario_note="Set the focal product price for a different related-product promotion.",
+        observations=_cross_observations(alpha=130.0, own_beta=4.0, related_beta=2.0, p_max=45.0),
+    ),
+    PricingCrossCase(
+        key="cross_case_03",
+        p_max=40.0,
+        planned_related_price=8.0,
+        scenario_note="Set the focal product price for a bundle-adjacent catalog page.",
+        observations=_cross_observations(alpha=190.0, own_beta=5.0, related_beta=-2.0, p_max=40.0),
+    ),
+    PricingCrossCase(
+        key="cross_case_04",
+        p_max=45.0,
+        planned_related_price=24.0,
+        scenario_note="Set the focal product price after related-product placement changes.",
+        observations=_cross_observations(alpha=190.0, own_beta=4.0, related_beta=-2.0, p_max=45.0),
+    ),
+    PricingCrossCase(
+        key="cross_case_05",
+        p_max=50.0,
+        planned_related_price=36.0,
+        scenario_note="Set the focal product price for a market with strong cross-product movement.",
+        observations=_cross_observations(alpha=100.0, own_beta=3.0, related_beta=3.0, p_max=50.0),
+    ),
+    PricingCrossCase(
+        key="cross_case_06",
+        p_max=42.0,
+        planned_related_price=9.0,
+        scenario_note="Set the focal product price using the observed related-product variation.",
+        observations=_cross_observations(alpha=220.0, own_beta=6.0, related_beta=-3.0, p_max=42.0),
+    ),
 ]
 
 
@@ -477,6 +553,28 @@ def evidence_revenue(case: PricingEvidenceCase, price: float) -> float:
     return price * max(0.0, alpha_hat - beta_hat * price)
 
 
+def cross_posterior(case: PricingCrossCase) -> tuple[float, float, float]:
+    return _cross_fit(list(case.observations))
+
+
+def cross_oracle_price(case: PricingCrossCase) -> float:
+    alpha_hat, own_beta_hat, related_beta_hat = cross_posterior(case)
+    effective_alpha = alpha_hat + related_beta_hat * case.planned_related_price
+    return clamp(effective_alpha / (2.0 * own_beta_hat), 0.0, case.p_max)
+
+
+def cross_own_only_price(case: PricingCrossCase) -> float:
+    rows = [(own_price, quantity) for own_price, _, quantity in case.observations]
+    alpha_hat, beta_hat = _ols_fit(rows)
+    return clamp(alpha_hat / (2.0 * beta_hat), 0.0, case.p_max)
+
+
+def cross_revenue(case: PricingCrossCase, price: float) -> float:
+    alpha_hat, own_beta_hat, related_beta_hat = cross_posterior(case)
+    quantity = max(0.0, alpha_hat - own_beta_hat * price + related_beta_hat * case.planned_related_price)
+    return price * quantity
+
+
 def param_oracle_price(alpha: float, beta: float, p_max: float) -> float:
     return clamp(alpha / (2.0 * beta), 0.0, p_max)
 
@@ -515,6 +613,42 @@ def _ols_fit(rows: list[tuple[float, float]]) -> tuple[float, float]:
     beta_hat = max(0.001, -slope)
     alpha_hat = y_bar + beta_hat * x_bar
     return alpha_hat, beta_hat
+
+
+def _cross_fit(rows: list[tuple[float, float, float]]) -> tuple[float, float, float]:
+    matrix = []
+    vector = []
+    for own_price, related_price, quantity in rows:
+        matrix.append((1.0, own_price, related_price))
+        vector.append(quantity)
+    normal = [
+        [sum(row[i] * row[j] for row in matrix) for j in range(3)]
+        for i in range(3)
+    ]
+    rhs = [sum(row[i] * quantity for row, quantity in zip(matrix, vector)) for i in range(3)]
+    intercept, own_slope, related_slope = _solve_3x3(normal, rhs)
+    return intercept, max(0.001, -own_slope), related_slope
+
+
+def _solve_3x3(matrix: list[list[float]], vector: list[float]) -> tuple[float, float, float]:
+    for col in range(3):
+        pivot = max(range(col, 3), key=lambda row: abs(matrix[row][col]))
+        matrix[col], matrix[pivot] = matrix[pivot], matrix[col]
+        vector[col], vector[pivot] = vector[pivot], vector[col]
+        divisor = matrix[col][col]
+        if abs(divisor) < 1e-12:
+            raise ValueError("Singular pricing cross-elasticity design matrix")
+        for idx in range(col, 3):
+            matrix[col][idx] /= divisor
+        vector[col] /= divisor
+        for row in range(3):
+            if row == col:
+                continue
+            factor = matrix[row][col]
+            for idx in range(col, 3):
+                matrix[row][idx] -= factor * matrix[col][idx]
+            vector[row] -= factor * vector[col]
+    return vector[0], vector[1], vector[2]
 
 
 HOLDOUT_EVIDENCE_LAW_CASES = _build_holdout_evidence_law_cases()
@@ -640,6 +774,54 @@ def run_pricing_counterfactual_game(
         "counterfactual_shift_miss_rate": shift_misses / n_sets if n_sets else 0.0,
         "sticky_base_price_rate": sticky_prices / n_sets if n_sets else 0.0,
         "by_set": by_set,
+        "trials": rows,
+    }
+
+
+def run_pricing_cross_elasticity_game(
+    agent: Agent,
+    cases: list[PricingCrossCase] | None = None,
+) -> dict:
+    cases = cases or CROSS_ELASTICITY_CASES
+    rows = []
+    for case in cases:
+        oracle = cross_oracle_price(case)
+        own_only = cross_own_only_price(case)
+        oracle_rev = cross_revenue(case, oracle)
+        response = agent.complete(PRICING_CROSS_SYSTEM, _cross_elasticity_prompt(case))
+        parsed = parse_float("FINAL_PRICE", response)
+        chosen = clamp(parsed, 0.0, case.p_max) if parsed is not None else None
+        revenue = cross_revenue(case, chosen) if chosen is not None else None
+        rows.append(
+            {
+                "case": case.key,
+                "oracle_price": oracle,
+                "own_only_price": own_only,
+                "chosen_price": chosen,
+                "absolute_price_error": abs(chosen - oracle) if chosen is not None else None,
+                "oracle_revenue": oracle_rev,
+                "chosen_revenue": revenue,
+                "revenue_gap": oracle_rev - revenue if revenue is not None else None,
+                "cross_blind_miss": (
+                    chosen is not None
+                    and abs(chosen - own_only) < 1.0
+                    and abs(oracle - own_only) > 2.0
+                ),
+                "raw_response": response,
+            }
+        )
+    errors = [row["absolute_price_error"] for row in rows if row["absolute_price_error"] is not None]
+    gaps = [row["revenue_gap"] for row in rows if row["revenue_gap"] is not None]
+    parsed = [row for row in rows if row["chosen_price"] is not None]
+    cross_blind_misses = sum(row["cross_blind_miss"] for row in rows)
+    return {
+        "task": "pricing_cross_elasticity",
+        "agent": agent.name,
+        "n_trials": len(rows),
+        "mean_absolute_price_error": sum(errors) / len(errors) if errors else None,
+        "mean_revenue_gap": sum(gaps) / len(gaps) if gaps else None,
+        "parse_rate": len(parsed) / len(rows) if rows else 0.0,
+        "cross_blind_miss_rate": cross_blind_misses / len(rows) if rows else 0.0,
         "trials": rows,
     }
 
@@ -817,6 +999,26 @@ def _counterfactual_prompt(case: PricingEvidenceCase, variant: str) -> str:
     lines.append("Historical sales observations:")
     lines.extend(f"  price={p:.2f}, quantity={q:.2f}" for p, q in case.observations)
     lines.append("Fit a linear demand curve quantity = alpha - beta * price, then choose the revenue-maximizing price.")
+    return "\n".join(lines)
+
+
+def _cross_elasticity_prompt(case: PricingCrossCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"p_max={case.p_max:.2f}",
+        f"planned_related_price={case.planned_related_price:.2f}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note)
+    lines.append("Historical sales observations:")
+    lines.extend(
+        f"  own_price={own_price:.2f}, related_price={related_price:.2f}, quantity={quantity:.2f}"
+        for own_price, related_price, quantity in case.observations
+    )
+    lines.append(
+        "Fit demand as quantity = alpha - own_beta * own_price + related_beta * related_price, "
+        "then choose the focal price that maximizes focal price * quantity under p_max."
+    )
     return "\n".join(lines)
 
 

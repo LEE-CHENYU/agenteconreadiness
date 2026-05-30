@@ -100,6 +100,8 @@ class OfflineAgent:
             return self._procurement_choice(user)
         if "TASK: pricing_price" in system:
             return self._pricing_price(user)
+        if "TASK: pricing_cross_price" in system:
+            return self._pricing_cross_price(user)
         if "TASK: pricing_law_label" in system:
             return self._pricing_law_label(user)
         if "TASK: pricing_evidence_law_label" in system:
@@ -349,6 +351,22 @@ class OfflineAgent:
         if self.policy == "round":
             oracle = round(oracle / 10.0) * 10.0
         return f"FINAL_PRICE: {oracle:.2f}"
+
+    def _pricing_cross_price(self, user: str) -> str:
+        p_max = _extract_float(user, "p_max", 1e9)
+        planned_related = _extract_float(user, "planned_related_price")
+        rows = _extract_cross_pricing_rows(user)
+        if self.policy in {"own_only", "cross_blind"}:
+            fit = _fit_pricing_rows([(own, quantity) for own, _, quantity in rows])
+            alpha, beta = fit if fit is not None else (1.0, 1.0)
+            price = max(0.0, min(p_max, alpha / (2.0 * max(beta, 1e-9))))
+        else:
+            alpha, own_beta, related_beta = _fit_cross_pricing_rows(rows)
+            effective_alpha = alpha + related_beta * planned_related
+            price = max(0.0, min(p_max, effective_alpha / (2.0 * max(own_beta, 1e-9))))
+        if self.policy == "round":
+            price = round(price / 10.0) * 10.0
+        return f"FINAL_PRICE: {price:.2f}"
 
     def _pricing_law_label(self, user: str) -> str:
         oracle = _pricing_law_label(user)
@@ -1561,6 +1579,18 @@ def _extract_pricing_rows(text: str) -> list[tuple[float, float]]:
     ]
 
 
+def _extract_cross_pricing_rows(text: str) -> list[tuple[float, float, float]]:
+    return [
+        (float(own_price), float(related_price), float(quantity))
+        for own_price, related_price, quantity in re.findall(
+            r"own_price=([-+]?\d+(?:\.\d+)?),\s+"
+            r"related_price=([-+]?\d+(?:\.\d+)?),\s+"
+            r"quantity=([-+]?\d+(?:\.\d+)?)",
+            text,
+        )
+    ]
+
+
 def _fit_pricing_rows(rows: list[tuple[float, float]]) -> tuple[float, float] | None:
     if len(rows) < 2:
         return None
@@ -1575,6 +1605,44 @@ def _fit_pricing_rows(rows: list[tuple[float, float]]) -> tuple[float, float] | 
     beta = max(0.001, -slope)
     alpha = y_bar + beta * x_bar
     return alpha, beta
+
+
+def _fit_cross_pricing_rows(rows: list[tuple[float, float, float]]) -> tuple[float, float, float]:
+    if len(rows) < 3:
+        return 1.0, 1.0, 0.0
+    design = [(1.0, own_price, related_price) for own_price, related_price, _ in rows]
+    values = [quantity for _, _, quantity in rows]
+    normal = [
+        [sum(row[i] * row[j] for row in design) for j in range(3)]
+        for i in range(3)
+    ]
+    rhs = [sum(row[i] * value for row, value in zip(design, values)) for i in range(3)]
+    try:
+        intercept, own_slope, related_slope = _solve_linear_3(normal, rhs)
+    except ValueError:
+        return 1.0, 1.0, 0.0
+    return intercept, max(0.001, -own_slope), related_slope
+
+
+def _solve_linear_3(matrix: list[list[float]], vector: list[float]) -> tuple[float, float, float]:
+    for col in range(3):
+        pivot = max(range(col, 3), key=lambda row: abs(matrix[row][col]))
+        matrix[col], matrix[pivot] = matrix[pivot], matrix[col]
+        vector[col], vector[pivot] = vector[pivot], vector[col]
+        divisor = matrix[col][col]
+        if abs(divisor) < 1e-12:
+            raise ValueError("singular matrix")
+        for idx in range(col, 3):
+            matrix[col][idx] /= divisor
+        vector[col] /= divisor
+        for row in range(3):
+            if row == col:
+                continue
+            factor = matrix[row][col]
+            for idx in range(col, 3):
+                matrix[row][idx] -= factor * matrix[col][idx]
+            vector[row] -= factor * vector[col]
+    return vector[0], vector[1], vector[2]
 
 
 def _extract_exploration_arms(text: str) -> dict[str, list[tuple[float, float]]]:

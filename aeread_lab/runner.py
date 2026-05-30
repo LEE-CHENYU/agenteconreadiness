@@ -72,6 +72,7 @@ TASK_ORDER = (
     "procurement_counterfactual",
     "pricing",
     "pricing_counterfactual",
+    "pricing_cross_elasticity",
     "pricing_law_audit",
     "pricing_evidence_law_audit",
     "pricing_evidence_law_holdout",
@@ -175,6 +176,10 @@ _CASE_TASKS = {
     "pricing_counterfactual": (
         pricing_task.run_pricing_counterfactual_game,
         pricing_task.COUNTERFACTUAL_SETS,
+    ),
+    "pricing_cross_elasticity": (
+        pricing_task.run_pricing_cross_elasticity_game,
+        pricing_task.CROSS_ELASTICITY_CASES,
     ),
     "pricing_law_audit": (
         pricing_task.run_pricing_law_audit_game,

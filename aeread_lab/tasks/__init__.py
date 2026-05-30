@@ -29,6 +29,7 @@ from .moral_hazard import run_moral_hazard_game
 from .portfolio import run_portfolio_game
 from .pricing import (
     run_pricing_counterfactual_game,
+    run_pricing_cross_elasticity_game,
     run_pricing_evidence_law_audit_game,
     run_pricing_evidence_law_holdout_game,
     run_pricing_game,
@@ -78,6 +79,7 @@ __all__ = [
     "run_portfolio_game",
     "run_pricing_game",
     "run_pricing_counterfactual_game",
+    "run_pricing_cross_elasticity_game",
     "run_pricing_law_audit_game",
     "run_pricing_evidence_law_audit_game",
     "run_pricing_evidence_law_holdout_game",

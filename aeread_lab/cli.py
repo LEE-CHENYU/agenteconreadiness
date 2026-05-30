@@ -51,6 +51,7 @@ TASKS = (
     "procurement_counterfactual",
     "pricing",
     "pricing_counterfactual",
+    "pricing_cross_elasticity",
     "pricing_law_audit",
     "pricing_evidence_law_audit",
     "pricing_evidence_law_holdout",
@@ -447,6 +448,18 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"  {key:<24} base={_fmt(row['base_chosen_price'])} "
                     f"perturbed={_fmt(row['perturbed_chosen_price'])} "
                     f"oracle_shift={_fmt(row['oracle_price_shift'])}"
+                )
+        elif task == "pricing_cross_elasticity":
+            print(
+                f"pricing_cross_elasticity: n={result['n_trials']} "
+                f"price_error={_fmt(result['mean_absolute_price_error'])} "
+                f"revenue_gap={_fmt(result['mean_revenue_gap'])} "
+                f"cross_blind_miss={result['cross_blind_miss_rate']:.2f}"
+            )
+            for row in result["trials"]:
+                print(
+                    f"  {row['case']:<14} chosen={_fmt(row['chosen_price'])} "
+                    f"oracle={_fmt(row['oracle_price'])} own_only={_fmt(row['own_only_price'])}"
                 )
         elif task == "pricing_law_audit":
             print(
