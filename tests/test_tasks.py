@@ -391,6 +391,15 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(credulous["mean_final_cash_regret"], 100.0)
         self.assertGreater(credulous["scam_supplier_rate"], 0.5)
 
+    def test_supplier_scam_flags_inventory_timing_blindness(self):
+        oracle = run_supplier_scam_game(OfflineAgent("oracle"))
+        timing_blind = run_supplier_scam_game(OfflineAgent("timing_blind"))
+        case_keys = {row["case"] for row in oracle["cases"]}
+        self.assertIn("delayed_inventory_lockup", case_keys)
+        self.assertEqual(oracle["timing_reserve_violation_rate"], 0.0)
+        self.assertGreater(timing_blind["mean_constrained_final_cash_regret"], 100.0)
+        self.assertGreater(timing_blind["timing_reserve_violation_rate"], 0.2)
+
     def test_scam_controls_have_dynamic_range(self):
         summary = run_scam_arena(
             defender=OfflineAgent("careful"),

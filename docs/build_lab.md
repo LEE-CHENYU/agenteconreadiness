@@ -37,7 +37,7 @@ while making horizon, framing, reserve, and belief stresses less oracle-obvious.
 | `procurement` | v0 `ProductProcurementGame`: discrete-action qualitative procurement with a utility-vector oracle. | `python -m aeread_lab.cli --task procurement --agent offline:oracle` |
 | `pricing` | v0 `SimplePricingGame`: continuous price choice with base/posterior/reveal conditions and a closed-form revenue oracle. | `python -m aeread_lab.cli --task pricing --agent offline:oracle` |
 | `scam` | Adversarial belief-manipulation arena: scam-supplier style value inflation with credulous and skeptical controls. | `python -m aeread_lab.cli --task scam --agent offline:careful --attacker offline:credulous` |
-| `supplier_scam` | Long-horizon supplier-scam stress: repeated restocking under cash/runway constraints, where inflated supplier claims must be discounted by scam risk. | `python -m aeread_lab.cli --task supplier_scam --agent offline:oracle` |
+| `supplier_scam` | Long-horizon supplier-scam stress: repeated restocking under cash/runway constraints, where inflated supplier claims and delayed-inventory lockups must be discounted. | `python -m aeread_lab.cli --task supplier_scam --agent offline:oracle` |
 
 ## OpenAI-only API path
 
@@ -116,8 +116,9 @@ interpreting the economic metric.
 - `procurement`: higher oracle-choice accuracy is better.
 - `pricing`: lower revenue gap to the closed-form optimum is better.
 - `scam`: lower mean overpayment is better.
-- `supplier_scam`: lower final expected-cash regret is better; reserve
-  violation and scam-supplier rates are reported separately.
+- `supplier_scam`: lower constrained final-cash regret is better; raw final-cash
+  regret, reserve violation, scam-supplier rate, and timing-reserve violation
+  are reported separately.
 
 Offline comparison example:
 
@@ -156,9 +157,9 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
 
 1. Run full or stress-targeted live OpenAI probes on the cases where sampled
    smokes show parse stability but no separation.
-2. Replace the stylized revealed-allocation traces with real 13F-style
+2. Broaden `strategic_drift` into imperfect-information and N-player games.
+3. Broaden `experiment_design` into multi-step adaptive tests.
+4. Extend mechanism/market probes toward repeated-policy or opponent-policy
+   simulation instead of another static scoring field.
+5. Replace the stylized revealed-allocation traces with real 13F-style
    holdings-derived traces once a clean data source is selected.
-3. Add richer supplier-scam variants that couple vendor trust with inventory
-   timing rather than only per-round supplier choice.
-4. Broaden `strategic_drift` into imperfect-information and N-player games.
-5. Broaden `experiment_design` into multi-step adaptive tests.

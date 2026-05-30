@@ -75,6 +75,7 @@ judge-free, and API-testable while staying OpenAI-only.
 | 35 | `review/35-mechanism-ic-simulation` | incentive-compatibility simulation for mechanism choice | oracle score regret 0; IC-blind regret 18.4342 and IC-blind miss 1.00 |
 | 36 | `review/36-market-inventory-survival` | market inventory-survival pricing | oracle price gap 0; liquidation survival gap 4614.45 with reserve violation 1.00; live `nano` survival gap 551.9892 |
 | 37 | `review/37-retail-multiperiod-runway` | multi-period retail inventory/runway stress | oracle order error 0; EV-order ruin probability 0.251; single-cycle baseline multi-period cash gap 425.2572 and miss rate 1.00; live `nano` parses and slightly over-orders both multi-period cases |
+| 38 | `review/38-supplier-scam-inventory-timing` | supplier-scam inventory timing and lockup stress | oracle constrained regret 0; timing-blind constrained regret 132.849 with timing-violation rate 0.25; credulous constrained regret 374.401; live `nano` parses and safely avoids delayed lockup but leaves cash on the table |
 
 ## Task result ledger
 
@@ -105,7 +106,7 @@ explicitly marked as historical/upstream.
 | `procurement` | v0 qualitative procurement | oracle accuracy 1.00; first baseline 0.50 | current live OpenAI smoke also parses cleanly |
 | `pricing` | v0 continuous pricing | oracle revenue gap 0; rounded baseline gap 87.5 | validates continuous-action scoring |
 | `scam` | adversarial belief-manipulation arena | oracle overpay 0; careful overpay 6.66667; credulous overpay 133.333; instrument fires | working judge-free dynamic range; single-shot frontier scam resistance should not be confused with long-horizon Vending-Bench failures |
-| `supplier_scam` | long-horizon supplier-scam under cash/runway constraints | oracle final-cash regret 0; credulous final-cash regret 551.97; credulous scam-supplier rate 1.00 | directly targets the upstream finding that scam failures likely need repeated supplier exposure rather than one-shot valuation |
+| `supplier_scam` | long-horizon supplier-scam under cash/runway and inventory-timing constraints | oracle constrained final-cash regret 0 across 8 rounds; credulous constrained regret 374.401 with scam-supplier rate 0.75; timing-blind constrained regret 132.849 with timing-reserve violation rate 0.25 | now separates inflated-claim credulity from delayed-inventory cash-lockup failures |
 
 ## Current validation run
 
@@ -117,14 +118,14 @@ run on `review/26-regime-breadth`; PR 27-specific checks were run on
 `review/29-alignment-tax`; PR 30-specific checks were run on
 `review/30-revealed-allocation`; PR 31-specific checks were run on
 `review/31-alpha-maxmin-ambiguity`; PR 32-specific checks were run on
-`review/32-alternating-bargaining`; PRs 33-37 add sampled live validation,
+`review/32-alternating-bargaining`; PRs 33-38 add sampled live validation,
 multi-turn belief updates, mechanism IC checks, market inventory-survival, and
-multi-period retail runway checks.
+multi-period retail runway plus supplier-timing checks.
 
 | Check | Command | Result |
 |---|---|---|
-| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 67 tests passed after PR 37 |
-| Full offline oracle task pass | `python3 -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 23 task runners executed; oracle errors/regrets zero or expected near-zero; bargaining n=6 with grade error 0; belief-bargaining n=5 with surplus gap 0; market n=5 with price gap 0 and survival gap 0; mechanism n=6 with score regret 0; retail n=5 with order error 0 and multi-period miss 0; scam control `instrument_fires=True`; supplier-scam final-cash regret 0; alignment-tax regret 0; revealed-allocation regret 0 |
+| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 68 tests passed after PR 38 |
+| Full offline oracle task pass | `python3 -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 23 task runners executed; oracle errors/regrets zero or expected near-zero; bargaining n=6 with grade error 0; belief-bargaining n=5 with surplus gap 0; market n=5 with price gap 0 and survival gap 0; mechanism n=6 with score regret 0; retail n=5 with order error 0 and multi-period miss 0; supplier-scam n=8 with constrained regret 0 and timing violation 0; scam control `instrument_fires=True`; alignment-tax regret 0; revealed-allocation regret 0 |
 | Regime differential sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev,offline:kelly,offline:cvar,offline:half --no-cache` | oracle rank 1; EV baseline error 0.586033; CVaR/Kelly baselines error 0.224185; half baseline error 0.429783; parse 1.00 for all rows |
 | Alignment-tax differential sweep | `python3 -m aeread_lab.cli --sweep --task alignment_tax --agents offline:oracle,offline:helpful,offline:profit --no-cache` | oracle rank 1; profit-only regret 62.35; helpful regret 71.725; parse 1.00 |
 | Alignment-tax helpful smoke | `python3 -m aeread_lab.cli --task alignment_tax --agent offline:helpful --no-cache` | objective regret 71.725; overconcession 1.00; helpful-default match 1.00 |
@@ -143,8 +144,8 @@ multi-period retail runway checks.
 | Sampled regime sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev --limit 1 --no-cache` | 4 regime trials from one gamble; oracle rank 1; parse 1.00 |
 | Sampled all-task oracle smoke | `python3 -m aeread_lab.cli --task all --agent offline:oracle --limit 1 --no-cache` | all 23 task runners execute with first deterministic case/gamble only; scam remains instrumented |
 | Sampled JSON smoke | `python3 -m aeread_lab.cli --sweep --task common_value --agents offline:oracle,offline:ev --limit 1 --no-cache --json` | JSON payload includes `sample_limit: 1` and one common-value trial per agent |
-| Supplier-scam differential sweep | `python3 -m aeread_lab.cli --sweep --task supplier_scam --agents offline:oracle,offline:credulous --no-cache` | oracle rank 1; credulous final-cash regret 551.97; parse 1.00 |
-| Supplier-scam credulous smoke | `python3 -m aeread_lab.cli --task supplier_scam --agent offline:credulous --no-cache` | final-cash regret 551.97; scam-supplier rate 1.00 |
+| Supplier-scam differential sweep | `python3 -m aeread_lab.cli --sweep --task supplier_scam --agents offline:oracle,offline:credulous,offline:timing_blind --no-cache` | oracle rank 1 with constrained regret 0; timing-blind constrained regret 132.849 and timing violation 0.25; credulous constrained regret 374.401 and scam-supplier rate 0.75; parse 1.00 |
+| Supplier-scam credulous smoke | `python3 -m aeread_lab.cli --task supplier_scam --agent offline:credulous --no-cache` | final-cash regret 374.4007; scam-supplier rate 0.75; timing violation 0.00 |
 | Principal/portfolio/ambiguity sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1 on all; bad baselines expose intended failure modes |
 | Bargaining/belief/market sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1 for bargaining and market; bargaining now includes alternating/hidden variants; belief prior baseline fails; high-anchor ties current primary metric |
 | Matching/screening/mechanism sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1 on all; bad baselines expose intended failure modes |
@@ -171,6 +172,7 @@ not committed, and live commands source `.env` only for the subprocess.
 | `python3 -m aeread_lab.cli --task mechanism --agent openai:nano --cache-dir /tmp/aeread_pr35_live_cache` | completed; n=6, score regret 0, IC miss 0.00, mean IC violation 0.1192 | IC probe parses live and `nano` solves this first mechanism-IC set |
 | `python3 -m aeread_lab.cli --task market --agent openai:nano --cache-dir /tmp/aeread_pr36_live_cache` | completed; n=5, price gap 0.0536, collusion 0.00, survival cash gap 551.9892, reserve violation 0.00 | `nano` avoids collusion and reserve failure but leaves material inventory-survival cash on the table |
 | `python3 -m aeread_lab.cli --task retail --agent openai:nano --cache-dir /tmp/aeread_pr37_live_cache_v4` | completed after raising the default output budget to 4096; n=5, order error 0.0228, ruin probability 0.0103, multi-period miss 1.00 | `nano` parses the longer stress prompts and solves the one-cycle cases, but slightly over-orders both multi-period cases enough to create small reserve risk |
+| `python3 -m aeread_lab.cli --task supplier_scam --agent openai:nano --cache-dir /tmp/aeread_pr38_live_cache` | completed; n=8, parse 1.00, constrained regret 50.6953, reserve violation 0.00, scam-supplier rate 0.00, timing violation 0.00 | `nano` solves the legacy scam cases and avoids unsafe delayed lockup, but is conservative on delayed-inventory rounds and leaves 152.086 final cash on the table in that case |
 | `python3 -m aeread_lab.cli --sweep --task common_value --agents openai:nano,openai:mini,openai:gpt-5.5 --no-cache` | attempted, interrupted after more than 3 minutes with no completed output | not counted as a result; use smaller current live smokes or cached/historical `gpt-5.5` evidence until latency is controlled |
 
 Historical live API findings from earlier in this private stack:
@@ -241,3 +243,6 @@ build lab should not depend on `.playwright-mcp/` logs or the local
 12. Source commit `d517c2e` is now reflected in the lab strategy: single-agent
     v0 remains valid when the task removes easy oracle recognition through
     horizon, reserve, framing, or configured-principal stress.
+13. Supplier-scam now has both claim-credulity and delayed-inventory timing
+    variants. Next supplier work should move to adaptive vendor reputation or
+    multi-round belief updates, not another static supplier option list.

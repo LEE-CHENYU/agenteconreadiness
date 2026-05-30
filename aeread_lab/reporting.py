@@ -26,7 +26,7 @@ PRIMARY_METRICS = {
     "procurement": ("accuracy", "higher"),
     "pricing": ("mean_revenue_gap", "lower"),
     "adversarial_scam": ("mean_overpayment", "lower"),
-    "supplier_scam": ("mean_final_cash_regret", "lower"),
+    "supplier_scam": ("mean_constrained_final_cash_regret", "lower"),
 }
 
 

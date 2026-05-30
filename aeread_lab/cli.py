@@ -313,9 +313,11 @@ def _print_human(payload: dict[str, Any]) -> None:
             print(
                 f"supplier_scam: n={result['n_trials']} final_cash_regret="
                 f"{_fmt(result['mean_final_cash_regret'])} "
+                f"constrained_regret={_fmt(result.get('mean_constrained_final_cash_regret'))} "
                 f"ci95={_fmt_ci(result.get('mean_final_cash_regret_ci95'))} "
                 f"reserve_violation={result['reserve_violation_rate']:.2f} "
-                f"scam_supplier={result['scam_supplier_rate']:.2f}"
+                f"scam_supplier={result['scam_supplier_rate']:.2f} "
+                f"timing_violate={result.get('timing_reserve_violation_rate', 0.0):.2f}"
             )
     print("=" * 72)
     print("OpenAI-only API path: --agent openai:gpt-5.5, --agent openai:mini, or --agent openai:nano")

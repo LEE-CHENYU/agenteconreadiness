@@ -559,20 +559,28 @@ class OfflineAgent:
     def _supplier_scam_order(self, user: str) -> str:
         cash = _extract_float(user, "current_cash")
         reserve = _extract_float(user, "min_cash_reserve")
+        interim_cash_need = _extract_float(user, "interim_cash_need")
         suppliers = _extract_supplier_options(user)
         credulous = self.policy in {"credulous", "claimed", "high_anchor"}
+        timing_blind = self.policy in {"timing_blind", "delay_blind"}
         best_supplier = "none"
         best_units = 0
-        best_cash = cash
+        best_cash = cash if timing_blind else cash - interim_cash_need
         for supplier in suppliers:
-            max_units = _supplier_max_affordable_units(cash, reserve, supplier)
+            max_units = _supplier_max_affordable_units(
+                cash,
+                reserve,
+                interim_cash_need,
+                supplier,
+                timing_blind=timing_blind,
+            )
             if max_units <= 0:
                 continue
-            resale = _supplier_resale(supplier, credulous=credulous)
-            unit_profit = resale - supplier["unit_cost"]
+            unit_profit = _supplier_unit_profit(supplier, credulous=credulous, timing_blind=timing_blind)
             if unit_profit <= 0:
                 continue
-            candidate_cash = cash + max_units * unit_profit
+            interim_cost = 0.0 if timing_blind else interim_cash_need
+            candidate_cash = cash - interim_cost + max_units * unit_profit
             if candidate_cash > best_cash:
                 best_supplier = supplier["supplier_id"]
                 best_units = max_units
@@ -1287,6 +1295,9 @@ def _extract_supplier_options(text: str) -> list[dict[str, float | int | str]]:
                 "scam_probability": _extract_float(line, "scam_probability"),
                 "salvage_resale_if_scam": _extract_float(line, "salvage_resale_if_scam"),
                 "max_units": int(round(_extract_float(line, "max_units"))),
+                "delivery_lag_rounds": int(round(_extract_float(line, "delivery_lag_rounds", 0.0))),
+                "sell_through_rate": _extract_float(line, "sell_through_rate", 1.0),
+                "storage_cost_per_unsold": _extract_float(line, "storage_cost_per_unsold", 0.0),
             }
         )
     return suppliers
@@ -1302,15 +1313,38 @@ def _supplier_resale(supplier: dict[str, float | int | str], *, credulous: bool)
     )
 
 
+def _supplier_unit_profit(
+    supplier: dict[str, float | int | str],
+    *,
+    credulous: bool,
+    timing_blind: bool,
+) -> float:
+    resale = _supplier_resale(supplier, credulous=credulous)
+    unit_cost = float(supplier["unit_cost"])
+    if timing_blind:
+        return resale - unit_cost
+    sell_through_rate = float(supplier["sell_through_rate"])
+    sold_value = sell_through_rate * resale
+    leftover_value = (1.0 - sell_through_rate) * float(supplier["salvage_resale_if_scam"])
+    storage_cost = (1.0 - sell_through_rate) * float(supplier["storage_cost_per_unsold"])
+    return sold_value + leftover_value - storage_cost - unit_cost
+
+
 def _supplier_max_affordable_units(
     cash: float,
     reserve: float,
+    interim_cash_need: float,
     supplier: dict[str, float | int | str],
+    *,
+    timing_blind: bool,
 ) -> int:
     unit_cost = float(supplier["unit_cost"])
     if unit_cost <= 0:
         return int(supplier["max_units"])
-    affordable = int((cash - reserve) // unit_cost)
+    protected_cash = reserve
+    if int(supplier["delivery_lag_rounds"]) > 0 and not timing_blind:
+        protected_cash += interim_cash_need
+    affordable = int((cash - protected_cash) // unit_cost)
     return max(0, min(int(supplier["max_units"]), affordable))
 
 
