@@ -608,6 +608,18 @@ def run_forecast_curve_noisy_game(
     )
 
 
+def run_forecast_curve_natural_game(
+    agent: Agent,
+    cases: list[ForecastCurveCase] | None = None,
+) -> dict:
+    return _run_forecast_curve_game(
+        agent,
+        cases or NOISY_CURVE_CASES,
+        prompt_fn=_curve_natural_prompt,
+        task_name="forecast_curve_natural",
+    )
+
+
 def _run_forecast_curve_game(
     agent: Agent,
     cases: list[ForecastCurveCase] | None,
@@ -934,6 +946,36 @@ def _curve_noisy_prompt(case: ForecastCurveCase) -> str:
             "score above. Use the neighboring calibration pattern while accounting "
             "for sample size; avoid treating one noisy nearby row or the raw score "
             "itself as decisive.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _curve_natural_prompt(case: ForecastCurveCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"target_event={case.target_event}",
+        f"raw_model_probability={case.raw_model_probability:.4f}",
+        f"base_rate={case.global_base_rate:.4f}",
+        f"global_base_rate={case.global_base_rate:.4f}",
+        f"prior_strength={case.prior_strength:.1f}",
+        "Recent calibration review for comparable held-out items:",
+    ]
+    for bin_ in case.bins:
+        lines.append(
+            f"  slice={bin_.bin_id} "
+            f"score_center={bin_.raw_mean_probability:.4f} "
+            f"events={bin_.observed_event_count} "
+            f"total={bin_.observed_total}"
+        )
+    lines.extend(
+        [
+            "Rows summarize historical outcomes near each score center. Some rows "
+            "are based on many items and some are thin slices.",
+            "Give the best probability for the target event on the next comparable "
+            "held-out item at the raw model probability above. Treat the raw score "
+            "as a signal to calibrate, not as the final answer.",
         ]
     )
     return "\n".join(lines)

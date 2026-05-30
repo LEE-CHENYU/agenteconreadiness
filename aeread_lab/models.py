@@ -488,7 +488,7 @@ class OfflineAgent:
         return f"FINAL_ACTION: {action}"
 
     def _forecast_probability(self, user: str) -> str:
-        if "raw_mean_probability=" in user and "observed_event_count=" in user:
+        if _has_forecast_curve_table(user):
             if self.policy in {"raw_score", "uncalibrated"}:
                 probability = _extract_float(user, "raw_model_probability")
             elif self.policy in {"nearest_bin", "nearest"}:
@@ -799,16 +799,22 @@ def _forecast_aggregate_probability(text: str) -> float:
     return (event_count + prior_strength * global_base_rate) / max(total + prior_strength, 1e-9)
 
 
+def _has_forecast_curve_table(text: str) -> bool:
+    has_raw_mean = "raw_mean_probability=" in text or "score_center=" in text
+    has_count = "observed_event_count=" in text or "events=" in text
+    return has_raw_mean and has_count
+
+
 def _extract_forecast_curve_bins(text: str) -> list[tuple[float, float]]:
     global_base_rate = _extract_float(text, "global_base_rate", _extract_float(text, "base_rate", 0.5))
     prior_strength = _extract_float(text, "prior_strength", 0.0)
     points: list[tuple[float, float]] = []
     for line in text.splitlines():
-        if "raw_mean_probability=" not in line:
+        if "raw_mean_probability=" not in line and "score_center=" not in line:
             continue
-        raw_mean = _extract_float(line, "raw_mean_probability")
-        event_count = _extract_float(line, "observed_event_count")
-        total = _extract_float(line, "observed_total", 1.0)
+        raw_mean = _extract_float(line, "raw_mean_probability", _extract_float(line, "score_center"))
+        event_count = _extract_float(line, "observed_event_count", _extract_float(line, "events"))
+        total = _extract_float(line, "observed_total", _extract_float(line, "total", 1.0))
         probability = (event_count + prior_strength * global_base_rate) / max(total + prior_strength, 1e-9)
         points.append((raw_mean, probability))
     points.sort(key=lambda item: item[0])

@@ -11,6 +11,7 @@ from .forecast_calibration import run_forecast_aggregate_game, run_forecast_cali
 from .forecast_calibration import (
     run_forecast_curve_game,
     run_forecast_curve_implicit_game,
+    run_forecast_curve_natural_game,
     run_forecast_curve_noisy_game,
 )
 from .market import run_market_game
@@ -42,6 +43,7 @@ __all__ = [
     "run_forecast_aggregate_game",
     "run_forecast_curve_game",
     "run_forecast_curve_implicit_game",
+    "run_forecast_curve_natural_game",
     "run_forecast_curve_noisy_game",
     "run_market_game",
     "run_matching_game",

@@ -38,6 +38,7 @@ from aeread_lab.tasks.forecast_calibration import _aggregate_prompt as forecast_
 from aeread_lab.tasks.forecast_calibration import (
     _curve_implicit_prompt as forecast_curve_implicit_prompt,
 )
+from aeread_lab.tasks.forecast_calibration import _curve_natural_prompt as forecast_curve_natural_prompt
 from aeread_lab.tasks.forecast_calibration import _curve_noisy_prompt as forecast_curve_noisy_prompt
 from aeread_lab.tasks.forecast_calibration import _curve_prompt as forecast_curve_prompt
 from aeread_lab.tasks.forecast_calibration import _prompt as forecast_prompt
@@ -45,6 +46,7 @@ from aeread_lab.tasks.forecast_calibration import run_forecast_aggregate_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_calibration_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_curve_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_curve_implicit_game
+from aeread_lab.tasks.forecast_calibration import run_forecast_curve_natural_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_curve_noisy_game
 from aeread_lab.tasks.market import run_market_game
 from aeread_lab.tasks.matching import DEFAULT_CASES as MATCHING_CASES
@@ -191,6 +193,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_expected_brier_regret"], 1e-9)
 
+    def test_sample_limit_slices_forecast_curve_natural_cases(self):
+        results = run_tasks("forecast_curve_natural", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_expected_brier_regret"], 1e-9)
+
     def test_procurement_oracle_offline(self):
         summary = run_procurement_game(OfflineAgent("oracle"))
         self.assertEqual(summary["accuracy"], 1.0)
@@ -235,6 +242,7 @@ class TaskSmokeTests(unittest.TestCase):
         forecast_curve = forecast_curve_prompt(FORECAST_CURVE_CASES[0])
         forecast_curve_implicit = forecast_curve_implicit_prompt(FORECAST_CURVE_CASES[0])
         forecast_curve_noisy = forecast_curve_noisy_prompt(FORECAST_NOISY_CURVE_CASES[0])
+        forecast_curve_natural = forecast_curve_natural_prompt(FORECAST_NOISY_CURVE_CASES[0])
         exploration = exploration_prompt(EXPLORATION_CASES[0])
         belief_bargaining = belief_bargaining_prompt(BELIEF_BARGAINING_CASES[0])
         principal = principal_prompt(PRINCIPAL_CASES[0])
@@ -267,6 +275,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", forecast_curve)
         self.assertNotIn("oracle", forecast_curve_implicit)
         self.assertNotIn("oracle", forecast_curve_noisy)
+        self.assertNotIn("oracle", forecast_curve_natural)
         self.assertNotIn("oracle", exploration)
         self.assertNotIn("oracle", belief_bargaining)
         self.assertNotIn("oracle", principal)
@@ -285,6 +294,8 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("kelly_fraction", regime_relationship)
         self.assertNotIn("oracle_price", pricing)
         self.assertNotIn("oracle_price", pricing_counterfactual)
+        self.assertNotIn("raw_mean_probability", forecast_curve_natural)
+        self.assertNotIn("observed_event_count", forecast_curve_natural)
 
     def test_regime_relationship_flags_law_and_fit_failures(self):
         configured = run_regime_relationship_verifier(OfflineAgent("oracle"))
@@ -564,6 +575,17 @@ class TaskSmokeTests(unittest.TestCase):
         raw_score = run_forecast_curve_noisy_game(OfflineAgent("raw_score"))
         nearest = run_forecast_curve_noisy_game(OfflineAgent("nearest_bin"))
         self.assertEqual(calibrated["task"], "forecast_curve_noisy")
+        self.assertLess(calibrated["mean_expected_brier_regret"], 1e-9)
+        self.assertGreater(raw_score["mean_expected_brier_regret"], 0.02)
+        self.assertGreater(raw_score["raw_score_miss_rate"], 0.5)
+        self.assertGreater(nearest["mean_expected_brier_regret"], 0.0005)
+        self.assertGreater(nearest["nearest_bin_miss_rate"], 0.5)
+
+    def test_forecast_curve_natural_flags_raw_scores_and_nearest_bin_shortcuts(self):
+        calibrated = run_forecast_curve_natural_game(OfflineAgent("oracle"))
+        raw_score = run_forecast_curve_natural_game(OfflineAgent("raw_score"))
+        nearest = run_forecast_curve_natural_game(OfflineAgent("nearest_bin"))
+        self.assertEqual(calibrated["task"], "forecast_curve_natural")
         self.assertLess(calibrated["mean_expected_brier_regret"], 1e-9)
         self.assertGreater(raw_score["mean_expected_brier_regret"], 0.02)
         self.assertGreater(raw_score["raw_score_miss_rate"], 0.5)
