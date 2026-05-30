@@ -97,6 +97,8 @@ class OfflineAgent:
             return self._portfolio_choice(user)
         if "TASK: revealed_allocation" in system:
             return self._revealed_allocation(user)
+        if "TASK: principal_holding_prediction_noisy" in system:
+            return self._noisy_principal_holding_prediction(user)
         if "TASK: principal_holding_prediction" in system:
             return self._principal_holding_prediction(user)
         if "TASK: ambiguity_action" in system:
@@ -320,6 +322,34 @@ class OfflineAgent:
         else:
             style_id = _infer_principal_holding_style(user)
             trade_id = _best_principal_holding_trade(
+                target_trades,
+                _PRINCIPAL_STYLE_WEIGHTS[style_id],
+            )
+        return f"FINAL_TRADE: {trade_id}"
+
+    def _noisy_principal_holding_prediction(self, user: str) -> str:
+        target_trades = _extract_noisy_principal_holding_trades(user, target_only=True)
+        if self.policy in {"max_return", "market_return", "return"}:
+            trade_id = max(target_trades, key=lambda item: target_trades[item]["expected_return"])
+        elif self.policy in {"low_turnover", "min_turnover"}:
+            trade_id = min(target_trades, key=lambda item: target_trades[item]["turnover_cost"])
+        elif self.policy in {"generic_style", "balanced_style"}:
+            trade_id = _best_noisy_principal_holding_trade(
+                target_trades,
+                _PRINCIPAL_GENERIC_STYLE_WEIGHTS,
+            )
+        elif self.policy in {"mechanical_flow", "flow_blind", "filing_blind"}:
+            style_id = _infer_noisy_principal_holding_style(
+                user,
+                include_mechanical=True,
+            )
+            trade_id = _best_noisy_principal_holding_trade(
+                target_trades,
+                _PRINCIPAL_STYLE_WEIGHTS[style_id],
+            )
+        else:
+            style_id = _infer_noisy_principal_holding_style(user)
+            trade_id = _best_noisy_principal_holding_trade(
                 target_trades,
                 _PRINCIPAL_STYLE_WEIGHTS[style_id],
             )
@@ -3533,6 +3563,13 @@ _PRINCIPAL_GENERIC_STYLE_WEIGHTS = {
 }
 
 _PRINCIPAL_HOLDING_FIELDS = tuple(_PRINCIPAL_GENERIC_STYLE_WEIGHTS)
+_NOISY_PRINCIPAL_DELIBERATE_EVENTS = {
+    "manager_thesis",
+    "quality_rotation",
+    "growth_thesis",
+    "valuation_thesis",
+    "engagement_add",
+}
 
 
 def _extract_principal_holding_trades(
@@ -3610,6 +3647,100 @@ def _infer_principal_holding_style(text: str) -> str:
 
 
 def _best_principal_holding_trade(
+    target_trades: dict[str, dict[str, float | bool | str]],
+    weights: dict[str, float],
+) -> str:
+    return max(
+        target_trades,
+        key=lambda trade_id: _principal_holding_utility(target_trades[trade_id], weights),
+    )
+
+
+def _extract_noisy_principal_holding_trades(
+    text: str,
+    *,
+    target_only: bool = False,
+) -> dict[str, dict[str, float | bool | str]]:
+    trades: dict[str, dict[str, float | bool | str]] = {}
+    prefix = "candidate_trade" if target_only else r"(?:history_decision|candidate_trade)"
+    pattern = re.compile(
+        rf"{prefix}=([a-zA-Z0-9_-]+)\s+"
+        r"(?:menu_id=([a-zA-Z0-9_-]+)\s+)?"
+        r"issuer=([a-zA-Z0-9_-]+)\s+"
+        r"event_type=([a-zA-Z0-9_-]+)\s+"
+        r"expected_return=([-+]?\d+(?:\.\d+)?)\s+"
+        r"quality=([-+]?\d+(?:\.\d+)?)\s+"
+        r"value=([-+]?\d+(?:\.\d+)?)\s+"
+        r"momentum=([-+]?\d+(?:\.\d+)?)\s+"
+        r"volatility=([-+]?\d+(?:\.\d+)?)\s+"
+        r"turnover_cost=([-+]?\d+(?:\.\d+)?)\s+"
+        r"concentration_delta=([-+]?\d+(?:\.\d+)?)\s+"
+        r"liquidity=([-+]?\d+(?:\.\d+)?)\s+"
+        r"chosen=([01])"
+    )
+    for match in pattern.finditer(text):
+        menu_id = match.group(2) or ""
+        trade_id = match.group(1)
+        key = trade_id if target_only or not menu_id else f"{menu_id}:{trade_id}"
+        trades[key] = {
+            "menu_id": menu_id,
+            "issuer": match.group(3),
+            "event_type": match.group(4),
+            "expected_return": float(match.group(5)),
+            "quality": float(match.group(6)),
+            "value": float(match.group(7)),
+            "momentum": float(match.group(8)),
+            "volatility": float(match.group(9)),
+            "turnover_cost": float(match.group(10)),
+            "concentration_delta": float(match.group(11)),
+            "liquidity": float(match.group(12)),
+            "chosen": match.group(13) == "1",
+        }
+    return trades
+
+
+def _infer_noisy_principal_holding_style(
+    text: str,
+    *,
+    include_mechanical: bool = False,
+) -> str:
+    trades = _extract_noisy_principal_holding_trades(text)
+    menus: dict[str, list[dict[str, float | bool | str]]] = {}
+    for trade in trades.values():
+        menu_id = str(trade["menu_id"])
+        if menu_id:
+            menus.setdefault(menu_id, []).append(trade)
+    usable_menus = list(menus.values())
+    if not include_mechanical:
+        usable_menus = [
+            options
+            for options in usable_menus
+            if str(next(option for option in options if bool(option["chosen"]))["event_type"])
+            in _NOISY_PRINCIPAL_DELIBERATE_EVENTS
+        ] or usable_menus
+    best_style = next(iter(_PRINCIPAL_STYLE_WEIGHTS))
+    best_score = (-1, -math.inf)
+    for style_id, weights in _PRINCIPAL_STYLE_WEIGHTS.items():
+        valid = True
+        margin = 0.0
+        for options in usable_menus:
+            chosen = next(option for option in options if bool(option["chosen"]))
+            chosen_u = _principal_holding_utility(chosen, weights)
+            best_alt = max(
+                _principal_holding_utility(option, weights)
+                for option in options
+                if not bool(option["chosen"])
+            )
+            valid = valid and chosen_u >= best_alt
+            margin += chosen_u - best_alt
+        score = (1 if valid else 0, margin)
+        if score > best_score:
+            best_style = style_id
+            best_score = score
+    return best_style
+
+
+def _best_noisy_principal_holding_trade(
     target_trades: dict[str, dict[str, float | bool | str]],
     weights: dict[str, float],
 ) -> str:

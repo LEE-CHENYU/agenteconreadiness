@@ -50,6 +50,7 @@ from .mechanism import (
 from .moral_hazard import run_moral_hazard_game
 from .portfolio import run_portfolio_game
 from .principal_holding_prediction import run_principal_holding_prediction_game
+from .principal_holding_prediction_noisy import run_noisy_principal_holding_prediction_game
 from .pricing import (
     run_pricing_counterfactual_game,
     run_pricing_cross_elasticity_game,
@@ -136,6 +137,7 @@ __all__ = [
     "run_mechanism_strategic_equilibrium_game",
     "run_mechanism_strategic_response_game",
     "run_moral_hazard_game",
+    "run_noisy_principal_holding_prediction_game",
     "run_portfolio_game",
     "run_principal_holding_prediction_game",
     "run_pricing_game",

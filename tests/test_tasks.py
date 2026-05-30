@@ -152,6 +152,11 @@ from aeread_lab.tasks.principal_holding_prediction import (
 )
 from aeread_lab.tasks.principal_holding_prediction import _prompt as principal_holding_prompt
 from aeread_lab.tasks.principal_holding_prediction import run_principal_holding_prediction_game
+from aeread_lab.tasks.principal_holding_prediction_noisy import (
+    DEFAULT_CASES as NOISY_PRINCIPAL_HOLDING_CASES,
+)
+from aeread_lab.tasks.principal_holding_prediction_noisy import _prompt as noisy_principal_holding_prompt
+from aeread_lab.tasks.principal_holding_prediction_noisy import run_noisy_principal_holding_prediction_game
 from aeread_lab.tasks.pricing import COUNTERFACTUAL_SETS as PRICING_COUNTERFACTUAL_SETS
 from aeread_lab.tasks.pricing import CROSS_ELASTICITY_CASES as PRICING_CROSS_CASES
 from aeread_lab.tasks.pricing import DEFAULT_CASES as PRICING_CASES
@@ -360,6 +365,11 @@ class TaskSmokeTests(unittest.TestCase):
 
     def test_sample_limit_slices_principal_holding_prediction_cases(self):
         results = run_tasks("principal_holding_prediction", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
+    def test_sample_limit_slices_noisy_principal_holding_prediction_cases(self):
+        results = run_tasks("principal_holding_prediction_noisy", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_score_regret"], 1e-9)
 
@@ -989,6 +999,7 @@ class TaskSmokeTests(unittest.TestCase):
         portfolio = portfolio_prompt(PORTFOLIO_CASES[0])
         revealed_allocation = revealed_allocation_prompt(REVEALED_ALLOCATION_CASES[0])
         principal_holding = principal_holding_prompt(PRINCIPAL_HOLDING_CASES[0])
+        noisy_principal_holding = noisy_principal_holding_prompt(NOISY_PRINCIPAL_HOLDING_CASES[0])
         ambiguity = ambiguity_prompt(AMBIGUITY_CASES[0])
         matching = matching_prompt(MATCHING_CASES[0])
         screening = screening_prompt(SCREENING_CASES[0])
@@ -1081,6 +1092,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", portfolio)
         self.assertNotIn("oracle", revealed_allocation)
         self.assertNotIn("oracle", principal_holding)
+        self.assertNotIn("oracle", noisy_principal_holding)
         self.assertNotIn("oracle", ambiguity)
         self.assertNotIn("oracle", matching)
         self.assertNotIn("oracle", screening)
@@ -1289,6 +1301,25 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(low_turnover["low_turnover_miss_rate"], 0.5)
         self.assertGreater(generic_style["mean_score_regret"], 0.005)
         self.assertGreater(generic_style["generic_style_miss_rate"], 0.2)
+
+    def test_noisy_principal_holding_prediction_flags_inversion_problem(self):
+        configured = run_noisy_principal_holding_prediction_game(OfflineAgent("oracle"))
+        max_return = run_noisy_principal_holding_prediction_game(OfflineAgent("max_return"))
+        low_turnover = run_noisy_principal_holding_prediction_game(OfflineAgent("low_turnover"))
+        generic_style = run_noisy_principal_holding_prediction_game(OfflineAgent("generic_style"))
+        mechanical_flow = run_noisy_principal_holding_prediction_game(OfflineAgent("mechanical_flow"))
+        self.assertEqual(configured["task"], "principal_holding_prediction_noisy")
+        self.assertEqual(configured["n_trials"], len(NOISY_PRINCIPAL_HOLDING_CASES))
+        self.assertLess(configured["mean_score_regret"], 1e-9)
+        self.assertEqual(configured["accuracy"], 1.0)
+        self.assertGreater(max_return["mean_score_regret"], 0.1)
+        self.assertGreater(max_return["market_return_miss_rate"], 0.5)
+        self.assertGreater(low_turnover["mean_score_regret"], 0.05)
+        self.assertGreater(low_turnover["low_turnover_miss_rate"], 0.5)
+        self.assertGreater(generic_style["mean_score_regret"], 0.005)
+        self.assertGreater(generic_style["generic_style_miss_rate"], 0.2)
+        self.assertGreater(mechanical_flow["mean_score_regret"], 0.005)
+        self.assertGreater(mechanical_flow["mechanical_flow_miss_rate"], 0.2)
 
     def test_ambiguity_flags_reference_prior_collapse(self):
         robust = run_ambiguity_game(OfflineAgent("oracle"))
@@ -2206,6 +2237,21 @@ class TaskSmokeTests(unittest.TestCase):
         )
         rows = rank_rows(comparison_table(sweep))
         principal_rows = [row for row in rows if row["task"] == "principal_holding_prediction"]
+        self.assertEqual(principal_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(principal_rows[-1]["agent"], "offline:max_return")
+
+    def test_offline_sweep_ranks_noisy_principal_prediction_above_flow_blind(self):
+        sweep = run_sweep(
+            task="principal_holding_prediction_noisy",
+            agent_specs=[
+                "offline:oracle",
+                "offline:mechanical_flow",
+                "offline:generic_style",
+                "offline:max_return",
+            ],
+        )
+        rows = rank_rows(comparison_table(sweep))
+        principal_rows = [row for row in rows if row["task"] == "principal_holding_prediction_noisy"]
         self.assertEqual(principal_rows[0]["agent"], "offline:oracle")
         self.assertEqual(principal_rows[-1]["agent"], "offline:max_return")
 
