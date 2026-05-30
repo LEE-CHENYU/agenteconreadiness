@@ -214,6 +214,51 @@ def stability_sweep_table(sweep: dict[str, Any]) -> list[dict[str, Any]]:
     return [{**row, "rank": idx} for idx, row in enumerate(ordered, start=1)]
 
 
+def stability_sweep_case_table(sweep: dict[str, Any]) -> list[dict[str, Any]]:
+    agents = [run["agent"] for run in sweep["runs"]]
+    cases_by_agent: dict[str, dict[str, dict[str, Any]]] = {}
+    case_keys: set[str] = set()
+    for run in sweep["runs"]:
+        agent = run["agent"]
+        cases_by_agent[agent] = {}
+        for case_row in run.get("case_stability") or []:
+            case_key = case_row["case_key"]
+            case_keys.add(case_key)
+            cases_by_agent[agent][case_key] = case_row
+
+    rows: list[dict[str, Any]] = []
+    for case_key in sorted(case_keys):
+        for agent in agents:
+            case_row = cases_by_agent.get(agent, {}).get(case_key)
+            if case_row is None:
+                rows.append(
+                    {
+                        "case_key": case_key,
+                        "agent": agent,
+                        "status": "missing",
+                        "unique_choice_count": None,
+                        "oracle_margin": None,
+                        "modal_choice": None,
+                        "modal_reference_matches": [],
+                        "oracle_hit_rate": None,
+                    }
+                )
+                continue
+            rows.append(
+                {
+                    "case_key": case_key,
+                    "agent": agent,
+                    "status": case_row.get("status"),
+                    "unique_choice_count": case_row.get("unique_choice_count"),
+                    "oracle_margin": case_row.get("oracle_margin"),
+                    "modal_choice": case_row.get("modal_choice"),
+                    "modal_reference_matches": case_row.get("modal_reference_matches") or [],
+                    "oracle_hit_rate": case_row.get("oracle_hit_rate"),
+                }
+            )
+    return rows
+
+
 def format_stability_sweep(sweep: dict[str, Any]) -> str:
     limit = sweep.get("sample_limit")
     limit_text = "" if limit is None else f" sample_limit={limit}"
@@ -245,6 +290,24 @@ def format_stability_sweep(sweep: dict[str, Any]) -> str:
             f"{_fmt(row['non_oracle_modal_case_rate']):>11} "
             f"{refs:<18.18}"
         )
+    case_rows = stability_sweep_case_table(sweep)
+    if case_rows:
+        lines.append("-" * 112)
+        lines.append("Per-case stability drilldown")
+        lines.append(
+            f"{'case':<28} {'agent':<18} {'status':<26} {'unique':>6} {'margin':>8} "
+            f"{'modal':<16} {'refs':<18} {'oracle_hit':>10}"
+        )
+        for row in case_rows:
+            refs = ",".join(row.get("modal_reference_matches") or [])
+            lines.append(
+                f"{row['case_key']:<28.28} {row['agent']:<18.18} "
+                f"{row.get('status', 'n/a'):<26.26} "
+                f"{_fmt(row.get('unique_choice_count')):>6} "
+                f"{_fmt(row.get('oracle_margin')):>8} "
+                f"{_fmt(row.get('modal_choice')):<16.16} "
+                f"{refs:<18.18} {_fmt(row.get('oracle_hit_rate')):>10}"
+            )
     lines.append("=" * 112)
     return "\n".join(lines)
 

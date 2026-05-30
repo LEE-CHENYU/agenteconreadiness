@@ -395,7 +395,10 @@ Use `--sweep --repeat N --no-cache` when the question is cross-model stability
 under the same repeated task. This runs the same stability probe for each agent
 in `--agents` and prints a compact table of mean score, range, parse floor,
 unstable rate, stable-oracle rate, non-oracle modal rate, and matched
-non-oracle references.
+non-oracle references. The sweep also prints a per-case drilldown across
+agents, so a cross-model difference can be traced to the exact case, modal
+choice, oracle margin, and non-oracle reference matches instead of becoming a
+new case-count target.
 
 Example:
 
@@ -466,8 +469,9 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    cross-domain verifier tasks.
 4. Use the stability probe on C1 before adding more C1 variants. PR 105 showed
    that `principal_holding_prediction_blind_notes` is sample-unstable for live
-   `nano`; PRs 106-108 turn that into repeat reliability, target-margin, and
-   case-outcome attribution. The remaining C1 depth question is replacement
+   `nano`; PRs 106-111 turn that into repeat reliability, target-margin,
+   case-outcome attribution, baseline attribution, cross-agent sweeps, and
+   per-case sweep drilldowns. The remaining C1 depth question is replacement
    with real 13F-style holdings-derived traces once a clean data source is
    selected.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse

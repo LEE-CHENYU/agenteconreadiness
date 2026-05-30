@@ -148,6 +148,7 @@ judge-free, and API-testable while staying OpenAI-only.
 | 108 | `review/108-stability-outcome-attribution` | repeat-stability outcome attribution | stability probe now separates stable-oracle, stable-wrong, unstable-oracle-modal, unstable-wrong-modal, and parse-modal cases; full blind C1 live repeat has 3 stable-oracle cases and 1 unstable-wrong-modal case |
 | 109 | `review/109-stability-baseline-attribution` | repeat-stability baseline attribution | stability probe now labels modal non-oracle reference matches; the live blind C1 wrong-modal case is attributed to `low_turnover` + `mechanical_flow` |
 | 110 | `review/110-stability-sweep` | cross-agent repeat-stability sweeps | `--sweep --repeat N --no-cache` now runs repeat-stability probes per agent; first alias probe separates `mini` from `nano`/`gpt-5.5` on the first blind C1 case |
+| 111 | `review/111-stability-sweep-cases` | per-case stability sweep drilldown | sweep reports now include case × agent status, modal choice, oracle margin, oracle-hit rate, and matched non-oracle references, so cross-agent differences can be localized without adding more synthetic cases |
 
 ## Task result ledger
 
@@ -394,6 +395,7 @@ revealed-style inference.
 | Stability outcome-attribution smoke | `python -m aeread_lab.cli --task principal_holding_prediction_blind_notes --agent offline:oracle --repeat 3 --limit 1 --no-cache` | status count `stable_oracle:1`, stable-oracle case rate 1.00, mean case oracle-hit rate 1.00, parse-modal rate 0 |
 | Stability baseline-attribution smoke | `python -m pytest tests/test_tasks.py -k 'stability_probe'` | synthetic stable non-oracle modal is attributed to `max_return` + `second_best`, proving the attribution layer only counts named references that differ from the oracle |
 | Stability sweep smoke | `python -m aeread_lab.cli --sweep --task principal_holding_prediction_blind_notes --agents offline:oracle,offline:low_turnover --repeat 2 --limit 1 --no-cache` | oracle rank 1 with mean score regret 0 and stable-oracle rate 1.00; low-turnover mean score regret 0.63135 with non-oracle modal rate 1.00 and refs `low_turnover`, `mechanical_flow` |
+| Stability sweep drilldown smoke | `python -m aeread_lab.cli --sweep --task principal_holding_prediction_blind_notes --agents offline:oracle,offline:low_turnover --repeat 2 --limit 1 --no-cache` | report includes `Per-case stability drilldown`; `pension_outflow_quality_signal` is stable-oracle for oracle and stable-non-oracle for low-turnover, with modal `move_to_cash` matching `low_turnover` + `mechanical_flow` at oracle margin 0.1767 |
 | Alpha-maxmin ambiguity sweep | `python3 -m aeread_lab.cli --sweep --task ambiguity --agents offline:oracle,offline:reference_prior,offline:maxmin,offline:optimistic --no-cache` | oracle rank 1; maxmin regret 2.32038; reference-prior regret 11.5796; optimistic regret 14.5817; parse 1.00 |
 | Ambiguity maxmin/optimistic smokes | `python3 -m aeread_lab.cli --task ambiguity --agent offline:maxmin --no-cache` and `python3 -m aeread_lab.cli --task ambiguity --agent offline:optimistic --no-cache` | maxmin misses the configured-alpha case; optimistic miss rate 1.00 where optimism differs from oracle |
 | Alternating/hidden bargaining sweep | `python3 -m aeread_lab.cli --sweep --task bargaining --agents offline:oracle,offline:gate,offline:round_blind,offline:optimistic_budget --no-cache` | oracle rank 1 with grade error 0; gate grade error 0.374225; round-blind grade error 0.0122222 and alternating miss 1.00; optimistic-budget grade error 0.0435819 and hidden miss 1.00; parse 1.00 |
@@ -904,3 +906,8 @@ build lab should not depend on `.playwright-mcp/` logs or the local
     while `nano` and `gpt-5.5` remain stable-oracle across two fresh calls. This
     gives the build lab a cheap way to ask whether a depth failure is
     model-specific before spending on full-case repeats.
+83. PR 111 adds per-case drilldown to the stability sweep report. This keeps the
+    C1 work on the depth track: every cross-agent result now points back to the
+    exact case, modal choice, oracle margin, and shortcut references that raised
+    the question. The next useful C1 spend is full-case live alias stability or
+    real-derived filing traces, not a larger synthetic case list.

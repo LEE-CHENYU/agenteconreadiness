@@ -7,7 +7,13 @@ from aeread_lab.models import (
     _extract_openai_response_text,
     resolve_openai_model,
 )
-from aeread_lab.reporting import comparison_table, format_stability_sweep, parse_rate, rank_rows
+from aeread_lab.reporting import (
+    comparison_table,
+    format_stability_sweep,
+    parse_rate,
+    rank_rows,
+    stability_sweep_case_table,
+)
 from aeread_lab.runner import run_stability_probe, run_stability_sweep, run_sweep, run_tasks
 from aeread_lab.tasks.adversarial import run_scam_arena
 from aeread_lab.tasks.alignment_tax import DEFAULT_CASES as ALIGNMENT_CASES
@@ -507,6 +513,20 @@ class TaskSmokeTests(unittest.TestCase):
             {"low_turnover": 1, "mechanical_flow": 1},
         )
         self.assertEqual(low_turnover["attributed_non_oracle_modal_case_rate"], 1.0)
+        case_rows = stability_sweep_case_table(payload)
+        self.assertEqual(len(case_rows), 2)
+        self.assertEqual(
+            [row["agent"] for row in case_rows],
+            ["offline:oracle", "offline:low_turnover"],
+        )
+        self.assertEqual(
+            {row["status"] for row in case_rows},
+            {"stable_oracle", "stable_non_oracle"},
+        )
+        self.assertEqual(
+            case_rows[1]["modal_reference_matches"],
+            ["low_turnover", "mechanical_flow"],
+        )
 
     def test_format_stability_sweep_includes_reference_counts(self):
         payload = run_stability_sweep(
@@ -520,6 +540,9 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertIn("offline:oracle", output)
         self.assertIn("offline:low_turno", output)
         self.assertIn("low_turnover:1", output)
+        self.assertIn("Per-case stability drilldown", output)
+        self.assertIn("pension_outflow_quality_sign", output)
+        self.assertIn("stable_non_oracle", output)
 
     def test_sample_limit_slices_pricing_cross_elasticity_cases(self):
         results = run_tasks("pricing_cross_elasticity", OfflineAgent("oracle"), sample_limit=1)
