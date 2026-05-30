@@ -422,6 +422,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(payload["parse_rate_min"], 1.0)
         self.assertEqual(payload["unstable_case_rate"], 0.0)
         self.assertEqual(payload["case_stability"][0]["unique_choice_count"], 1)
+        self.assertGreater(payload["case_stability"][0]["oracle_margin"], 0.05)
 
     def test_stability_probe_detects_choice_instability(self):
         payload = run_stability_probe(
@@ -434,6 +435,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(payload["primary_range"], 0.0)
         self.assertEqual(payload["unstable_case_rate"], 1.0)
         self.assertEqual(payload["case_stability"][0]["unique_choice_count"], 2)
+        self.assertGreater(payload["case_stability"][0]["oracle_margin"], 0.05)
 
     def test_sample_limit_slices_pricing_cross_elasticity_cases(self):
         results = run_tasks("pricing_cross_elasticity", OfflineAgent("oracle"), sample_limit=1)
@@ -1391,6 +1393,8 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(configured["n_trials"], len(PRINCIPAL_HOLDING_CASES))
         self.assertLess(configured["mean_score_regret"], 1e-9)
         self.assertEqual(configured["accuracy"], 1.0)
+        self.assertGreater(configured["min_oracle_margin"], 0.05)
+        self.assertEqual(configured["low_margin_rate_005"], 0.0)
         self.assertGreater(max_return["mean_score_regret"], 0.1)
         self.assertGreater(max_return["market_return_miss_rate"], 0.5)
         self.assertGreater(low_turnover["mean_score_regret"], 0.05)
@@ -1408,6 +1412,8 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(configured["n_trials"], len(NOISY_PRINCIPAL_HOLDING_CASES))
         self.assertLess(configured["mean_score_regret"], 1e-9)
         self.assertEqual(configured["accuracy"], 1.0)
+        self.assertGreater(configured["min_oracle_margin"], 0.05)
+        self.assertEqual(configured["low_margin_rate_005"], 0.0)
         self.assertGreater(max_return["mean_score_regret"], 0.1)
         self.assertGreater(max_return["market_return_miss_rate"], 0.5)
         self.assertGreater(low_turnover["mean_score_regret"], 0.05)
@@ -1427,6 +1433,8 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(configured["n_trials"], len(PRINCIPAL_HOLDING_NOTES_CASES))
         self.assertLess(configured["mean_score_regret"], 1e-9)
         self.assertEqual(configured["accuracy"], 1.0)
+        self.assertGreater(configured["min_oracle_margin"], 0.05)
+        self.assertEqual(configured["low_margin_rate_005"], 0.0)
         self.assertGreater(max_return["mean_score_regret"], 0.1)
         self.assertGreater(max_return["market_return_miss_rate"], 0.5)
         self.assertGreater(low_turnover["mean_score_regret"], 0.05)
@@ -1446,6 +1454,8 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(configured["n_trials"], len(PRINCIPAL_HOLDING_BLIND_NOTES_CASES))
         self.assertLess(configured["mean_score_regret"], 1e-9)
         self.assertEqual(configured["accuracy"], 1.0)
+        self.assertGreater(configured["min_oracle_margin"], 0.05)
+        self.assertEqual(configured["low_margin_rate_005"], 0.0)
         self.assertGreater(max_return["mean_score_regret"], 0.1)
         self.assertGreater(max_return["market_return_miss_rate"], 0.5)
         self.assertGreater(low_turnover["mean_score_regret"], 0.05)

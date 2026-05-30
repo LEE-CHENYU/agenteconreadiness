@@ -13,6 +13,7 @@ from aeread_lab.tasks.principal_holding_prediction_noisy import (
     mechanical_flow_trade,
     principal_trade,
     summarize_noisy_principal_holding_trials,
+    target_margin,
     trade_utility,
 )
 from aeread_lab.tasks.principal_holding_prediction_noisy import STYLE_WEIGHTS
@@ -99,6 +100,11 @@ def run_principal_holding_prediction_notes_game(
             f"t{i}": trade.trade_id for i, trade in enumerate(case.target_trades, start=1)
         }
         principal_score = trade_utility(target_by_id[expected_trade], weights)
+        second_trade, second_score, oracle_margin = target_margin(
+            case.target_trades,
+            weights,
+            expected_trade,
+        )
         response = agent.complete(PRINCIPAL_HOLDING_NOTES_SYSTEM, _prompt(case))
         chosen_visible = parse_token("FINAL_TRADE", response)
         chosen = visible_targets.get(chosen_visible, chosen_visible)
@@ -110,12 +116,15 @@ def run_principal_holding_prediction_notes_game(
                 inferred_style=style_id,
                 flow_blind_style=flow_blind_style,
                 principal_trade=expected_trade,
+                second_best_trade=second_trade,
                 max_return_trade=max_return_trade(case),
                 low_turnover_trade=low_turnover_trade(case),
                 generic_style_trade=generic_style_trade(case),
                 mechanical_flow_trade=flow_trade,
                 chosen_trade=chosen,
                 principal_score=principal_score,
+                second_best_score=second_score,
+                oracle_margin=oracle_margin,
                 chosen_score=chosen_score,
                 score_regret=principal_score - chosen_score if chosen_score is not None else None,
                 raw_response=response,

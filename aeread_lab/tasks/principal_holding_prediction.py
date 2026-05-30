@@ -107,11 +107,14 @@ class PrincipalHoldingTrial:
     case: PrincipalHoldingCase
     inferred_style: str
     principal_trade: str
+    second_best_trade: str
     max_return_trade: str
     low_turnover_trade: str
     generic_style_trade: str
     chosen_trade: str | None
     principal_score: float
+    second_best_score: float
+    oracle_margin: float
     chosen_score: float | None
     score_regret: float | None
     raw_response: str
@@ -307,6 +310,23 @@ def principal_trade(case: PrincipalHoldingCase) -> tuple[str, str]:
     return style_id, trade.trade_id
 
 
+def target_margin(
+    trades: tuple[HoldingTrade, ...],
+    weights: dict[str, float],
+    expected_trade: str,
+) -> tuple[str, float, float]:
+    ranked = sorted(
+        ((trade.trade_id, trade_utility(trade, weights)) for trade in trades),
+        key=lambda item: item[1],
+        reverse=True,
+    )
+    expected_score = next(score for trade_id, score in ranked if trade_id == expected_trade)
+    second_trade, second_score = next(
+        (trade_id, score) for trade_id, score in ranked if trade_id != expected_trade
+    )
+    return second_trade, second_score, expected_score - second_score
+
+
 def max_return_trade(case: PrincipalHoldingCase) -> str:
     return max(case.target_trades, key=lambda trade: trade.expected_return).trade_id
 
@@ -333,6 +353,11 @@ def run_principal_holding_prediction_game(
         weights = STYLE_WEIGHTS[style_id]
         target_by_id = {trade.trade_id: trade for trade in case.target_trades}
         principal_score = trade_utility(target_by_id[expected_trade], weights)
+        second_trade, second_score, oracle_margin = target_margin(
+            case.target_trades,
+            weights,
+            expected_trade,
+        )
         response = agent.complete(PRINCIPAL_HOLDING_SYSTEM, _prompt(case))
         chosen = parse_token("FINAL_TRADE", response)
         chosen = chosen if chosen in target_by_id else None
@@ -342,11 +367,14 @@ def run_principal_holding_prediction_game(
                 case=case,
                 inferred_style=style_id,
                 principal_trade=expected_trade,
+                second_best_trade=second_trade,
                 max_return_trade=max_return_trade(case),
                 low_turnover_trade=low_turnover_trade(case),
                 generic_style_trade=generic_style_trade(case),
                 chosen_trade=chosen,
                 principal_score=principal_score,
+                second_best_score=second_score,
+                oracle_margin=oracle_margin,
                 chosen_score=chosen_score,
                 score_regret=principal_score - chosen_score if chosen_score is not None else None,
                 raw_response=response,
@@ -360,6 +388,7 @@ def summarize_principal_holding_trials(
     trials: list[PrincipalHoldingTrial],
 ) -> dict:
     regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
+    margins = [trial.oracle_margin for trial in trials]
     parsed = [trial for trial in trials if trial.chosen_trade is not None]
     max_return_missable = [
         trial for trial in trials if trial.max_return_trade != trial.principal_trade
@@ -382,6 +411,11 @@ def summarize_principal_holding_trials(
         ),
         "mean_score_regret": mean(regrets),
         "mean_score_regret_ci95": bootstrap_mean_ci(regrets),
+        "mean_oracle_margin": mean(margins),
+        "min_oracle_margin": min(margins) if margins else None,
+        "low_margin_rate_005": (
+            sum(margin <= 0.05 for margin in margins) / len(margins) if margins else 0.0
+        ),
         "market_return_miss_rate": (
             sum(trial.chosen_trade == trial.max_return_trade for trial in max_return_missable)
             / len(max_return_missable)

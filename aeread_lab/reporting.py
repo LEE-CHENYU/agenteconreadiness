@@ -215,14 +215,15 @@ def format_stability(stability: dict[str, Any]) -> str:
     if case_rows:
         lines.append("-" * 88)
         lines.append(
-            f"{'case':<32} {'unique':>6} {'modal':<24} {'modal_rate':>10} {'oracle_hit':>10}"
+            f"{'case':<32} {'unique':>6} {'margin':>10} {'modal':<20} "
+            f"{'modal_rate':>10} {'oracle_hit':>10}"
         )
         for row in case_rows:
             oracle_hit = row.get("oracle_hit_rate")
             lines.append(
                 f"{row['case_key']:<32.32} {row['unique_choice_count']:>6} "
-                f"{row['modal_choice']:<24.24} {_fmt(row['modal_choice_rate']):>10} "
-                f"{_fmt(oracle_hit):>10}"
+                f"{_fmt(row.get('oracle_margin')):>10} {row['modal_choice']:<20.20} "
+                f"{_fmt(row['modal_choice_rate']):>10} {_fmt(oracle_hit):>10}"
             )
     lines.append("=" * 88)
     return "\n".join(lines)

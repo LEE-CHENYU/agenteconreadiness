@@ -68,6 +68,7 @@ def _metric_value(result: dict[str, Any], metric_name: str) -> float | None:
 def _case_stability(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     choices_by_case: dict[str, list[str]] = defaultdict(list)
     oracle_by_case: dict[str, str | None] = {}
+    margin_by_case: dict[str, float] = {}
     for result in results:
         trials = result.get("trials")
         if not isinstance(trials, list):
@@ -81,6 +82,9 @@ def _case_stability(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
             oracle = _trial_oracle(trial)
             if oracle is not None and case_key not in oracle_by_case:
                 oracle_by_case[case_key] = _choice_label(oracle)
+            margin = trial.get("oracle_margin")
+            if isinstance(margin, (int, float)) and case_key not in margin_by_case:
+                margin_by_case[case_key] = float(margin)
 
     rows: list[dict[str, Any]] = []
     for case_key in sorted(choices_by_case):
@@ -96,6 +100,7 @@ def _case_stability(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "modal_choice": modal_choice,
                 "modal_choice_rate": modal_count / len(choices),
                 "oracle_choice": oracle_choice,
+                "oracle_margin": margin_by_case.get(case_key),
                 "oracle_hit_rate": (
                     sum(choice == oracle_choice for choice in choices) / len(choices)
                     if oracle_choice is not None

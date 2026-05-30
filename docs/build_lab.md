@@ -157,19 +157,20 @@ interpreting the economic metric.
   revealed-principal allocation are better.
 - `principal_holding_prediction`: lower score regret to the inferred
   principal-style next holding change is better; accuracy, market-return miss,
-  low-turnover miss, and generic-style miss rates are reported separately.
+  low-turnover miss, generic-style miss rates, and oracle target margin are
+  reported separately.
 - `principal_holding_prediction_noisy`: lower score regret to the inferred
   discretionary principal-style next holding change is better; market-return,
-  low-turnover, generic-style, and mechanical-flow miss rates are reported
-  separately.
+  low-turnover, generic-style, mechanical-flow miss rates, and oracle target
+  margin are reported separately.
 - `principal_holding_prediction_notes`: lower score regret to the inferred
   discretionary principal-style next holding change is better; the prompt hides
-  event-type labels behind filing notes, and the same shortcut miss rates are
-  reported separately.
+  event-type labels behind filing notes, and the same shortcut miss rates plus
+  oracle target margin are reported separately.
 - `principal_holding_prediction_blind_notes`: lower score regret to the inferred
   discretionary principal-style next holding change is better after neutralizing
-  account/profile/security labels; the same shortcut miss rates are reported
-  separately.
+  account/profile/security labels; the same shortcut miss rates plus oracle
+  target margin are reported separately.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -381,7 +382,8 @@ interpreting the economic metric.
 Use `--repeat N --no-cache` when the question is run-to-run stability rather
 than another task variant. This repeats one explicit task against fresh model
 calls and reports the primary-metric range, parse-rate range, optional accuracy
-range, unstable-case rate, and per-case modal choice.
+range, unstable-case rate, oracle margin when available, and per-case modal
+choice.
 
 Example:
 

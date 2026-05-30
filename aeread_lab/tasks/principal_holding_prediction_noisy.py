@@ -8,6 +8,7 @@ from aeread_lab.stats import bootstrap_mean_ci, mean
 from aeread_lab.tasks.principal_holding_prediction import (
     GENERIC_STYLE_WEIGHTS,
     STYLE_WEIGHTS,
+    target_margin,
 )
 
 
@@ -65,12 +66,15 @@ class NoisyPrincipalHoldingTrial:
     inferred_style: str
     flow_blind_style: str
     principal_trade: str
+    second_best_trade: str
     max_return_trade: str
     low_turnover_trade: str
     generic_style_trade: str
     mechanical_flow_trade: str
     chosen_trade: str | None
     principal_score: float
+    second_best_score: float
+    oracle_margin: float
     chosen_score: float | None
     score_regret: float | None
     raw_response: str
@@ -337,6 +341,11 @@ def run_noisy_principal_holding_prediction_game(
         weights = STYLE_WEIGHTS[style_id]
         target_by_id = {trade.trade_id: trade for trade in case.target_trades}
         principal_score = trade_utility(target_by_id[expected_trade], weights)
+        second_trade, second_score, oracle_margin = target_margin(
+            case.target_trades,
+            weights,
+            expected_trade,
+        )
         response = agent.complete(NOISY_PRINCIPAL_HOLDING_SYSTEM, _prompt(case))
         chosen = parse_token("FINAL_TRADE", response)
         chosen = chosen if chosen in target_by_id else None
@@ -347,12 +356,15 @@ def run_noisy_principal_holding_prediction_game(
                 inferred_style=style_id,
                 flow_blind_style=flow_blind_style,
                 principal_trade=expected_trade,
+                second_best_trade=second_trade,
                 max_return_trade=max_return_trade(case),
                 low_turnover_trade=low_turnover_trade(case),
                 generic_style_trade=generic_style_trade(case),
                 mechanical_flow_trade=flow_trade,
                 chosen_trade=chosen,
                 principal_score=principal_score,
+                second_best_score=second_score,
+                oracle_margin=oracle_margin,
                 chosen_score=chosen_score,
                 score_regret=principal_score - chosen_score if chosen_score is not None else None,
                 raw_response=response,
@@ -366,6 +378,7 @@ def summarize_noisy_principal_holding_trials(
     trials: list[NoisyPrincipalHoldingTrial],
 ) -> dict:
     regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
+    margins = [trial.oracle_margin for trial in trials]
     parsed = [trial for trial in trials if trial.chosen_trade is not None]
     max_return_missable = [
         trial for trial in trials if trial.max_return_trade != trial.principal_trade
@@ -391,6 +404,11 @@ def summarize_noisy_principal_holding_trials(
         ),
         "mean_score_regret": mean(regrets),
         "mean_score_regret_ci95": bootstrap_mean_ci(regrets),
+        "mean_oracle_margin": mean(margins),
+        "min_oracle_margin": min(margins) if margins else None,
+        "low_margin_rate_005": (
+            sum(margin <= 0.05 for margin in margins) / len(margins) if margins else 0.0
+        ),
         "market_return_miss_rate": (
             sum(trial.chosen_trade == trial.max_return_trade for trial in max_return_missable)
             / len(max_return_missable)
