@@ -62,6 +62,7 @@ TASKS = (
     "pricing_cross_elasticity",
     "pricing_multi_product",
     "pricing_multi_product_natural",
+    "pricing_multi_product_capacity",
     "pricing_law_audit",
     "pricing_evidence_law_audit",
     "pricing_evidence_law_holdout",
@@ -511,19 +512,36 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"  {row['case']:<14} chosen={_fmt(row['chosen_price'])} "
                     f"oracle={_fmt(row['oracle_price'])} own_only={_fmt(row['own_only_price'])}"
                 )
-        elif task in {"pricing_multi_product", "pricing_multi_product_natural"}:
+        elif task in {
+            "pricing_multi_product",
+            "pricing_multi_product_natural",
+            "pricing_multi_product_capacity",
+        }:
+            capacity_miss = (
+                f" capacity_blind_miss={result['capacity_blind_miss_rate']:.2f}"
+                if task == "pricing_multi_product_capacity"
+                else ""
+            )
             print(
                 f"{task}: n={result['n_trials']} "
                 f"price_l1={_fmt(result['mean_price_l1_error'])} "
                 f"revenue_gap={_fmt(result['mean_revenue_gap'])} "
                 f"independent_miss={result['independent_miss_rate']:.2f}"
+                f"{capacity_miss}"
             )
             for row in result["trials"]:
+                capacity_blind = (
+                    f"capacity_blind_a={_fmt(row['capacity_blind_price_a'])} "
+                    f"capacity_blind_b={_fmt(row['capacity_blind_price_b'])} "
+                    if task == "pricing_multi_product_capacity"
+                    else ""
+                )
                 print(
                     f"  {row['case']:<14} a={_fmt(row['chosen_price_a'])} "
                     f"b={_fmt(row['chosen_price_b'])} "
                     f"oracle_a={_fmt(row['oracle_price_a'])} "
                     f"oracle_b={_fmt(row['oracle_price_b'])} "
+                    f"{capacity_blind}"
                     f"independent_a={_fmt(row['independent_price_a'])} "
                     f"independent_b={_fmt(row['independent_price_b'])}"
                 )

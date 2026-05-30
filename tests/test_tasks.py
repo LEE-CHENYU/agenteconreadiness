@@ -95,11 +95,13 @@ from aeread_lab.tasks.pricing import DEFAULT_CASES as PRICING_CASES
 from aeread_lab.tasks.pricing import DEFAULT_LAW_CASES as PRICING_LAW_CASES
 from aeread_lab.tasks.pricing import EVIDENCE_LAW_CASES as PRICING_EVIDENCE_LAW_CASES
 from aeread_lab.tasks.pricing import HOLDOUT_EVIDENCE_LAW_CASES as PRICING_EVIDENCE_HOLDOUT_CASES
+from aeread_lab.tasks.pricing import MULTI_PRODUCT_CAPACITY_CASES as PRICING_MULTI_CAPACITY_CASES
 from aeread_lab.tasks.pricing import MULTI_PRODUCT_CASES as PRICING_MULTI_CASES
 from aeread_lab.tasks.pricing import _counterfactual_prompt as pricing_counterfactual_prompt
 from aeread_lab.tasks.pricing import _cross_elasticity_prompt as pricing_cross_prompt
 from aeread_lab.tasks.pricing import _evidence_law_audit_prompt as pricing_evidence_law_prompt
 from aeread_lab.tasks.pricing import _law_audit_prompt as pricing_law_audit_prompt
+from aeread_lab.tasks.pricing import _multi_product_capacity_prompt as pricing_multi_capacity_prompt
 from aeread_lab.tasks.pricing import _multi_product_natural_prompt as pricing_multi_natural_prompt
 from aeread_lab.tasks.pricing import _multi_product_prompt as pricing_multi_prompt
 from aeread_lab.tasks.pricing import _prompt as pricing_prompt
@@ -109,6 +111,7 @@ from aeread_lab.tasks.pricing import run_pricing_evidence_law_audit_game
 from aeread_lab.tasks.pricing import run_pricing_evidence_law_holdout_game
 from aeread_lab.tasks.pricing import run_pricing_game
 from aeread_lab.tasks.pricing import run_pricing_law_audit_game
+from aeread_lab.tasks.pricing import run_pricing_multi_product_capacity_game
 from aeread_lab.tasks.pricing import run_pricing_multi_product_game
 from aeread_lab.tasks.pricing import run_pricing_multi_product_natural_game
 from aeread_lab.tasks.principal_inference import DEFAULT_CASES as PRINCIPAL_CASES
@@ -264,6 +267,11 @@ class TaskSmokeTests(unittest.TestCase):
 
     def test_sample_limit_slices_pricing_multi_product_natural_cases(self):
         results = run_tasks("pricing_multi_product_natural", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_price_l1_error"], 0.01)
+
+    def test_sample_limit_slices_pricing_multi_product_capacity_cases(self):
+        results = run_tasks("pricing_multi_product_capacity", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_price_l1_error"], 0.01)
 
@@ -507,6 +515,18 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(independent["mean_price_l1_error"], 8.0)
         self.assertGreater(independent["independent_miss_rate"], 0.6)
 
+    def test_pricing_multi_product_capacity_flags_capacity_blind_pricing(self):
+        configured = run_pricing_multi_product_capacity_game(OfflineAgent("oracle"))
+        capacity_blind = run_pricing_multi_product_capacity_game(OfflineAgent("capacity_blind"))
+        independent = run_pricing_multi_product_capacity_game(OfflineAgent("independent"))
+        self.assertEqual(configured["task"], "pricing_multi_product_capacity")
+        self.assertEqual(configured["n_trials"], len(PRICING_MULTI_CAPACITY_CASES))
+        self.assertLess(configured["mean_price_l1_error"], 0.01)
+        self.assertEqual(configured["capacity_blind_miss_rate"], 0.0)
+        self.assertGreater(capacity_blind["mean_price_l1_error"], 5.0)
+        self.assertGreater(capacity_blind["capacity_blind_miss_rate"], 0.5)
+        self.assertGreater(independent["mean_price_l1_error"], 5.0)
+
     def test_pricing_law_audit_flags_invalid_acceptance(self):
         configured = run_pricing_law_audit_game(OfflineAgent("oracle"))
         accept = run_pricing_law_audit_game(OfflineAgent("law_accept"))
@@ -577,6 +597,7 @@ class TaskSmokeTests(unittest.TestCase):
         pricing_cross = pricing_cross_prompt(PRICING_CROSS_CASES[0])
         pricing_multi = pricing_multi_prompt(PRICING_MULTI_CASES[0])
         pricing_multi_natural = pricing_multi_natural_prompt(PRICING_MULTI_CASES[0])
+        pricing_multi_capacity = pricing_multi_capacity_prompt(PRICING_MULTI_CAPACITY_CASES[0])
         pricing_law_audit = pricing_law_audit_prompt(PRICING_LAW_CASES[0])
         pricing_evidence_law = pricing_evidence_law_prompt(PRICING_EVIDENCE_LAW_CASES[0])
         pricing_evidence_holdout = pricing_evidence_law_prompt(PRICING_EVIDENCE_HOLDOUT_CASES[0])
@@ -639,6 +660,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", pricing_cross)
         self.assertNotIn("oracle", pricing_multi)
         self.assertNotIn("oracle", pricing_multi_natural)
+        self.assertNotIn("oracle", pricing_multi_capacity)
         self.assertNotIn("oracle", pricing_law_audit)
         self.assertNotIn("oracle", pricing_evidence_law)
         self.assertNotIn("oracle", pricing_evidence_holdout)
@@ -682,6 +704,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle_price", pricing_cross)
         self.assertNotIn("oracle_price", pricing_multi)
         self.assertNotIn("oracle_price", pricing_multi_natural)
+        self.assertNotIn("oracle_price", pricing_multi_capacity)
         self.assertNotIn("oracle_price", pricing_law_audit)
         self.assertNotIn("oracle_price", pricing_evidence_law)
         self.assertNotIn("oracle_price", pricing_evidence_holdout)
@@ -1297,6 +1320,16 @@ class TaskSmokeTests(unittest.TestCase):
         pricing_rows = [row for row in rows if row["task"] == "pricing_multi_product_natural"]
         self.assertEqual(pricing_rows[0]["agent"], "offline:oracle")
         self.assertEqual(pricing_rows[1]["agent"], "offline:independent")
+
+    def test_offline_sweep_ranks_oracle_above_capacity_blind_on_pricing_multi_product_capacity(self):
+        sweep = run_sweep(
+            task="pricing_multi_product_capacity",
+            agent_specs=["offline:oracle", "offline:capacity_blind", "offline:independent"],
+        )
+        rows = rank_rows(comparison_table(sweep))
+        pricing_rows = [row for row in rows if row["task"] == "pricing_multi_product_capacity"]
+        self.assertEqual(pricing_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(pricing_rows[1]["agent"], "offline:capacity_blind")
 
     def test_offline_sweep_ranks_oracle_above_law_accept_on_pricing_evidence_law_audit(self):
         sweep = run_sweep(

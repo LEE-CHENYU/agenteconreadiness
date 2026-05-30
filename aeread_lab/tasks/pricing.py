@@ -29,6 +29,12 @@ PRICING_MULTI_NATURAL_SYSTEM = (
     "FINAL_PRICE_A: <number> and FINAL_PRICE_B: <number>."
 )
 
+PRICING_MULTI_CAPACITY_SYSTEM = (
+    "TASK: pricing_multi_product_capacity_prices\n"
+    "Choose prices for both products with finite stock available. Return two final lines only: "
+    "FINAL_PRICE_A: <number> and FINAL_PRICE_B: <number>."
+)
+
 PRICING_LAW_SYSTEM = (
     "TASK: pricing_law_label\n"
     "You are verifying a proposed comparative-static claim about the revenue-maximizing price. "
@@ -74,6 +80,17 @@ class PricingMultiProductCase:
     key: str
     p_max_a: float
     p_max_b: float
+    observations: tuple[tuple[float, float, float, float], ...]
+    scenario_note: str = ""
+
+
+@dataclass(frozen=True)
+class PricingMultiProductCapacityCase:
+    key: str
+    p_max_a: float
+    p_max_b: float
+    inventory_a: float
+    inventory_b: float
     observations: tuple[tuple[float, float, float, float], ...]
     scenario_note: str = ""
 
@@ -263,6 +280,56 @@ MULTI_PRODUCT_CASES = [
         p_max_b=52.0,
         scenario_note="Both capped products are complements with strong joint-demand effects.",
         observations=_multi_product_observations(360.0, 5.5, -3.5, 300.0, 4.6, -2.6, 60.0, 52.0),
+    ),
+]
+
+MULTI_PRODUCT_CAPACITY_CASES = [
+    PricingMultiProductCapacityCase(
+        key="capacity_case_01",
+        p_max_a=50.0,
+        p_max_b=48.0,
+        inventory_a=46.0,
+        inventory_b=44.0,
+        scenario_note=(
+            "Two substitute products are promoted together, but the warehouse has limited "
+            "stock for the campaign."
+        ),
+        observations=MULTI_PRODUCT_CASES[0].observations,
+    ),
+    PricingMultiProductCapacityCase(
+        key="capacity_case_02",
+        p_max_a=65.0,
+        p_max_b=60.0,
+        inventory_a=58.0,
+        inventory_b=56.0,
+        scenario_note=(
+            "Substitute products share a campaign page; choose prices with finite inventory "
+            "rather than chasing unconstrained unit demand."
+        ),
+        observations=MULTI_PRODUCT_CASES[1].observations,
+    ),
+    PricingMultiProductCapacityCase(
+        key="capacity_case_03",
+        p_max_a=55.0,
+        p_max_b=55.0,
+        inventory_a=90.0,
+        inventory_b=85.0,
+        scenario_note=(
+            "Complementary products have large demand, but stock caps bind before the "
+            "unconstrained revenue optimum."
+        ),
+        observations=MULTI_PRODUCT_CASES[2].observations,
+    ),
+    PricingMultiProductCapacityCase(
+        key="capacity_case_04",
+        p_max_a=70.0,
+        p_max_b=68.0,
+        inventory_a=150.0,
+        inventory_b=145.0,
+        scenario_note=(
+            "A high-demand complement bundle has limited sellable units for each product."
+        ),
+        observations=MULTI_PRODUCT_CASES[3].observations,
     ),
 ]
 
@@ -701,6 +768,57 @@ def multi_product_independent_prices(case: PricingMultiProductCase) -> tuple[flo
     )
 
 
+def _capacity_base_case(case: PricingMultiProductCapacityCase) -> PricingMultiProductCase:
+    return PricingMultiProductCase(
+        key=case.key,
+        p_max_a=case.p_max_a,
+        p_max_b=case.p_max_b,
+        observations=case.observations,
+        scenario_note=case.scenario_note,
+    )
+
+
+def multi_product_capacity_revenue(
+    case: PricingMultiProductCapacityCase,
+    price_a: float,
+    price_b: float,
+) -> float:
+    alpha_a, own_beta_a, cross_ab, alpha_b, own_beta_b, cross_ba = multi_product_posterior(
+        _capacity_base_case(case)
+    )
+    demand_a = max(0.0, alpha_a - own_beta_a * price_a + cross_ab * price_b)
+    demand_b = max(0.0, alpha_b - own_beta_b * price_b + cross_ba * price_a)
+    sold_a = min(demand_a, case.inventory_a)
+    sold_b = min(demand_b, case.inventory_b)
+    return price_a * sold_a + price_b * sold_b
+
+
+def multi_product_capacity_oracle_prices(case: PricingMultiProductCapacityCase) -> tuple[float, float]:
+    alpha_a, own_beta_a, cross_ab, alpha_b, own_beta_b, cross_ba = multi_product_posterior(
+        _capacity_base_case(case)
+    )
+    return _best_multi_product_capacity_prices(
+        alpha_a=alpha_a,
+        own_beta_a=own_beta_a,
+        cross_ab=cross_ab,
+        alpha_b=alpha_b,
+        own_beta_b=own_beta_b,
+        cross_ba=cross_ba,
+        p_max_a=case.p_max_a,
+        p_max_b=case.p_max_b,
+        inventory_a=case.inventory_a,
+        inventory_b=case.inventory_b,
+    )
+
+
+def multi_product_capacity_blind_prices(case: PricingMultiProductCapacityCase) -> tuple[float, float]:
+    return multi_product_oracle_prices(_capacity_base_case(case))
+
+
+def multi_product_capacity_independent_prices(case: PricingMultiProductCapacityCase) -> tuple[float, float]:
+    return multi_product_independent_prices(_capacity_base_case(case))
+
+
 def _best_multi_product_prices(
     *,
     alpha_a: float,
@@ -737,6 +855,49 @@ def _best_multi_product_prices(
 
     best = max(candidates, key=objective)
     return clamp(best[0], 0.0, p_max_a), clamp(best[1], 0.0, p_max_b)
+
+
+def _best_multi_product_capacity_prices(
+    *,
+    alpha_a: float,
+    own_beta_a: float,
+    cross_ab: float,
+    alpha_b: float,
+    own_beta_b: float,
+    cross_ba: float,
+    p_max_a: float,
+    p_max_b: float,
+    inventory_a: float,
+    inventory_b: float,
+) -> tuple[float, float]:
+    step = 0.25
+    grid_a = _price_grid(p_max_a, step)
+    grid_b = _price_grid(p_max_b, step)
+
+    def objective(price_a: float, price_b: float) -> float:
+        demand_a = max(0.0, alpha_a - own_beta_a * price_a + cross_ab * price_b)
+        demand_b = max(0.0, alpha_b - own_beta_b * price_b + cross_ba * price_a)
+        sold_a = min(demand_a, inventory_a)
+        sold_b = min(demand_b, inventory_b)
+        return price_a * sold_a + price_b * sold_b
+
+    best_pair = (0.0, 0.0)
+    best_value = -1.0
+    for price_a in grid_a:
+        for price_b in grid_b:
+            value = objective(price_a, price_b)
+            if value > best_value:
+                best_value = value
+                best_pair = (price_a, price_b)
+    return best_pair
+
+
+def _price_grid(p_max: float, step: float) -> list[float]:
+    count = int(p_max / step)
+    values = [round(idx * step, 2) for idx in range(count + 1)]
+    if values[-1] < p_max:
+        values.append(round(p_max, 2))
+    return values
 
 
 def param_oracle_price(alpha: float, beta: float, p_max: float) -> float:
@@ -1014,6 +1175,82 @@ def run_pricing_multi_product_natural_game(
         prompt_builder=_multi_product_natural_prompt,
         task_name="pricing_multi_product_natural",
     )
+
+
+def run_pricing_multi_product_capacity_game(
+    agent: Agent,
+    cases: list[PricingMultiProductCapacityCase] | None = None,
+) -> dict:
+    cases = cases or MULTI_PRODUCT_CAPACITY_CASES
+    rows = []
+    for case in cases:
+        oracle_a, oracle_b = multi_product_capacity_oracle_prices(case)
+        capacity_blind_a, capacity_blind_b = multi_product_capacity_blind_prices(case)
+        independent_a, independent_b = multi_product_capacity_independent_prices(case)
+        oracle_rev = multi_product_capacity_revenue(case, oracle_a, oracle_b)
+        response = agent.complete(PRICING_MULTI_CAPACITY_SYSTEM, _multi_product_capacity_prompt(case))
+        parsed_a = parse_float("FINAL_PRICE_A", response)
+        parsed_b = parse_float("FINAL_PRICE_B", response)
+        chosen_a = clamp(parsed_a, 0.0, case.p_max_a) if parsed_a is not None else None
+        chosen_b = clamp(parsed_b, 0.0, case.p_max_b) if parsed_b is not None else None
+        revenue = (
+            multi_product_capacity_revenue(case, chosen_a, chosen_b)
+            if chosen_a is not None and chosen_b is not None
+            else None
+        )
+        price_l1 = (
+            abs(chosen_a - oracle_a) + abs(chosen_b - oracle_b)
+            if chosen_a is not None and chosen_b is not None
+            else None
+        )
+        capacity_blind_l1 = abs(capacity_blind_a - oracle_a) + abs(capacity_blind_b - oracle_b)
+        independent_l1 = abs(independent_a - oracle_a) + abs(independent_b - oracle_b)
+        rows.append(
+            {
+                "case": case.key,
+                "oracle_price_a": oracle_a,
+                "oracle_price_b": oracle_b,
+                "capacity_blind_price_a": capacity_blind_a,
+                "capacity_blind_price_b": capacity_blind_b,
+                "independent_price_a": independent_a,
+                "independent_price_b": independent_b,
+                "chosen_price_a": chosen_a,
+                "chosen_price_b": chosen_b,
+                "price_l1_error": price_l1,
+                "oracle_revenue": oracle_rev,
+                "chosen_revenue": revenue,
+                "revenue_gap": oracle_rev - revenue if revenue is not None else None,
+                "capacity_blind_miss": (
+                    chosen_a is not None
+                    and chosen_b is not None
+                    and abs(chosen_a - capacity_blind_a) + abs(chosen_b - capacity_blind_b) < 1.5
+                    and capacity_blind_l1 > 5.0
+                ),
+                "independent_miss": (
+                    chosen_a is not None
+                    and chosen_b is not None
+                    and abs(chosen_a - independent_a) + abs(chosen_b - independent_b) < 1.5
+                    and independent_l1 > 5.0
+                ),
+                "raw_response": response,
+            }
+        )
+    errors = [row["price_l1_error"] for row in rows if row["price_l1_error"] is not None]
+    gaps = [row["revenue_gap"] for row in rows if row["revenue_gap"] is not None]
+    parsed = [row for row in rows if row["chosen_price_a"] is not None and row["chosen_price_b"] is not None]
+    capacity_blind_misses = sum(row["capacity_blind_miss"] for row in rows)
+    independent_misses = sum(row["independent_miss"] for row in rows)
+    return {
+        "task": "pricing_multi_product_capacity",
+        "agent": agent.name,
+        "n_trials": len(rows),
+        "mean_price_l1_error": sum(errors) / len(errors) if errors else None,
+        "mean_revenue_gap": sum(gaps) / len(gaps) if gaps else None,
+        "parse_rate": len(parsed) / len(rows) if rows else 0.0,
+        "capacity_blind_miss_rate": capacity_blind_misses / len(rows) if rows else 0.0,
+        "independent_miss_rate": independent_misses / len(rows) if rows else 0.0,
+        "trials": rows,
+    }
 
 
 def _run_pricing_multi_product_game(
@@ -1324,6 +1561,33 @@ def _multi_product_natural_prompt(case: PricingMultiProductCase) -> str:
     lines.append(
         "Use the joint sales history to set the next campaign prices for both products. "
         "The two products can affect each other's unit sales, so assess the pair together."
+    )
+    return "\n".join(lines)
+
+
+def _multi_product_capacity_prompt(case: PricingMultiProductCapacityCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"price_ceiling_a={case.p_max_a:.2f}",
+        f"price_ceiling_b={case.p_max_b:.2f}",
+        f"available_units_a={case.inventory_a:.2f}",
+        f"available_units_b={case.inventory_b:.2f}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note)
+    lines.append("Recent joint campaign outcomes:")
+    lines.extend(
+        (
+            f"  campaign_row={idx} product_a_price={price_a:.2f}, "
+            f"product_b_price={price_b:.2f}, product_a_units={quantity_a:.2f}, "
+            f"product_b_units={quantity_b:.2f}"
+        )
+        for idx, (price_a, price_b, quantity_a, quantity_b) in enumerate(case.observations, start=1)
+    )
+    lines.append(
+        "Use the joint sales history to set the next campaign prices for both products. "
+        "Unit sales can be affected by both prices. Revenue is earned only on units available "
+        "for the campaign, so demand above available units is capped by stock."
     )
     return "\n".join(lines)
 

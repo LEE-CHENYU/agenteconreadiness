@@ -111,6 +111,8 @@ class OfflineAgent:
             return self._pricing_multi_product_prices(user)
         if "TASK: pricing_multi_product_natural_prices" in system:
             return self._pricing_multi_product_prices(user)
+        if "TASK: pricing_multi_product_capacity_prices" in system:
+            return self._pricing_multi_product_capacity_prices(user)
         if "TASK: pricing_law_label" in system:
             return self._pricing_law_label(user)
         if "TASK: pricing_evidence_law_label" in system:
@@ -424,6 +426,55 @@ class OfflineAgent:
                 p_max_a=p_max_a,
                 p_max_b=p_max_b,
             )
+        if self.policy == "round":
+            price_a = round(price_a / 10.0) * 10.0
+            price_b = round(price_b / 10.0) * 10.0
+        return f"FINAL_PRICE_A: {price_a:.2f}\nFINAL_PRICE_B: {price_b:.2f}"
+
+    def _pricing_multi_product_capacity_prices(self, user: str) -> str:
+        p_max_a = _extract_float(user, "p_max_a", _extract_float(user, "price_ceiling_a", 1e9))
+        p_max_b = _extract_float(user, "p_max_b", _extract_float(user, "price_ceiling_b", 1e9))
+        inventory_a = _extract_float(user, "available_units_a", math.inf)
+        inventory_b = _extract_float(user, "available_units_b", math.inf)
+        rows = _extract_multi_product_rows(user) or _extract_multi_product_natural_rows(user)
+        if self.policy in {"independent", "single_product", "own_only"}:
+            fit_a = _fit_pricing_rows([(price_a, quantity_a) for price_a, _, quantity_a, _ in rows])
+            fit_b = _fit_pricing_rows([(price_b, quantity_b) for _, price_b, _, quantity_b in rows])
+            alpha_a, beta_a = fit_a if fit_a is not None else (1.0, 1.0)
+            alpha_b, beta_b = fit_b if fit_b is not None else (1.0, 1.0)
+            price_a = max(0.0, min(p_max_a, alpha_a / (2.0 * max(beta_a, 1e-9))))
+            price_b = max(0.0, min(p_max_b, alpha_b / (2.0 * max(beta_b, 1e-9))))
+        else:
+            alpha_a, own_beta_a, cross_ab = _fit_cross_pricing_rows(
+                [(price_a, price_b, quantity_a) for price_a, price_b, quantity_a, _ in rows]
+            )
+            alpha_b, own_beta_b, cross_ba = _fit_cross_pricing_rows(
+                [(price_b, price_a, quantity_b) for price_a, price_b, _, quantity_b in rows]
+            )
+            if self.policy in {"capacity_blind", "inventory_blind", "unconstrained"}:
+                price_a, price_b = _best_multi_product_prices(
+                    alpha_a=alpha_a,
+                    own_beta_a=own_beta_a,
+                    cross_ab=cross_ab,
+                    alpha_b=alpha_b,
+                    own_beta_b=own_beta_b,
+                    cross_ba=cross_ba,
+                    p_max_a=p_max_a,
+                    p_max_b=p_max_b,
+                )
+            else:
+                price_a, price_b = _best_multi_product_capacity_prices(
+                    alpha_a=alpha_a,
+                    own_beta_a=own_beta_a,
+                    cross_ab=cross_ab,
+                    alpha_b=alpha_b,
+                    own_beta_b=own_beta_b,
+                    cross_ba=cross_ba,
+                    p_max_a=p_max_a,
+                    p_max_b=p_max_b,
+                    inventory_a=inventory_a,
+                    inventory_b=inventory_b,
+                )
         if self.policy == "round":
             price_a = round(price_a / 10.0) * 10.0
             price_b = round(price_b / 10.0) * 10.0
@@ -2035,6 +2086,41 @@ def _best_multi_product_prices(
 
     best = max(candidates, key=objective)
     return max(0.0, min(p_max_a, best[0])), max(0.0, min(p_max_b, best[1]))
+
+
+def _best_multi_product_capacity_prices(
+    *,
+    alpha_a: float,
+    own_beta_a: float,
+    cross_ab: float,
+    alpha_b: float,
+    own_beta_b: float,
+    cross_ba: float,
+    p_max_a: float,
+    p_max_b: float,
+    inventory_a: float,
+    inventory_b: float,
+) -> tuple[float, float]:
+    step = 0.25
+    best_pair = (0.0, 0.0)
+    best_value = -1.0
+    for price_a in _price_grid(p_max_a, step):
+        for price_b in _price_grid(p_max_b, step):
+            demand_a = max(0.0, alpha_a - own_beta_a * price_a + cross_ab * price_b)
+            demand_b = max(0.0, alpha_b - own_beta_b * price_b + cross_ba * price_a)
+            value = price_a * min(demand_a, inventory_a) + price_b * min(demand_b, inventory_b)
+            if value > best_value:
+                best_value = value
+                best_pair = (price_a, price_b)
+    return best_pair
+
+
+def _price_grid(p_max: float, step: float) -> list[float]:
+    count = int(p_max / step)
+    values = [round(idx * step, 2) for idx in range(count + 1)]
+    if values[-1] < p_max:
+        values.append(round(p_max, 2))
+    return values
 
 
 def _solve_linear_3(matrix: list[list[float]], vector: list[float]) -> tuple[float, float, float]:
