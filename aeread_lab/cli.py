@@ -36,6 +36,7 @@ TASKS = (
     "procurement",
     "procurement_counterfactual",
     "pricing",
+    "pricing_counterfactual",
     "scam",
     "supplier_scam",
     "all",
@@ -348,6 +349,21 @@ def _print_human(payload: dict[str, Any]) -> None:
             )
             for key, row in result["by_condition"].items():
                 print(f"  {key:<9} gap={_fmt(row['mean_revenue_gap'])}")
+        elif task == "pricing_counterfactual":
+            print(
+                f"pricing_counterfactual: sets={result['n_sets']} n={result['n_trials']} "
+                f"price_error={_fmt(result['mean_absolute_price_error'])} "
+                f"revenue_gap={_fmt(result['mean_revenue_gap'])} "
+                f"shift_error={_fmt(result['mean_shift_error'])} "
+                f"shift_miss={result['counterfactual_shift_miss_rate']:.2f} "
+                f"sticky_price={result['sticky_base_price_rate']:.2f}"
+            )
+            for key, row in result["by_set"].items():
+                print(
+                    f"  {key:<24} base={_fmt(row['base_chosen_price'])} "
+                    f"perturbed={_fmt(row['perturbed_chosen_price'])} "
+                    f"oracle_shift={_fmt(row['oracle_price_shift'])}"
+                )
         elif task == "adversarial_scam":
             controls = result["controls"]
             print(

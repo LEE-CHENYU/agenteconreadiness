@@ -57,6 +57,7 @@ TASK_ORDER = (
     "procurement",
     "procurement_counterfactual",
     "pricing",
+    "pricing_counterfactual",
     "scam",
     "supplier_scam",
 )
@@ -106,6 +107,10 @@ _CASE_TASKS = {
         procurement_task.COUNTERFACTUAL_SETS,
     ),
     "pricing": (pricing_task.run_pricing_game, pricing_task.DEFAULT_CASES),
+    "pricing_counterfactual": (
+        pricing_task.run_pricing_counterfactual_game,
+        pricing_task.COUNTERFACTUAL_SETS,
+    ),
     "supplier_scam": (supplier_scam_task.run_supplier_scam_game, supplier_scam_task.DEFAULT_CASES),
 }
 

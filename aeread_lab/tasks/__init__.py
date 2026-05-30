@@ -13,7 +13,7 @@ from .matching import run_matching_game
 from .mechanism import run_mechanism_game
 from .moral_hazard import run_moral_hazard_game
 from .portfolio import run_portfolio_game
-from .pricing import run_pricing_game
+from .pricing import run_pricing_counterfactual_game, run_pricing_game
 from .principal_inference import run_principal_inference_game
 from .procurement import run_procurement_counterfactual_game, run_procurement_game
 from .regime import run_regime_battery, run_regime_relationship_verifier
@@ -40,6 +40,7 @@ __all__ = [
     "run_moral_hazard_game",
     "run_portfolio_game",
     "run_pricing_game",
+    "run_pricing_counterfactual_game",
     "run_principal_inference_game",
     "run_procurement_game",
     "run_procurement_counterfactual_game",

@@ -296,6 +296,15 @@ class OfflineAgent:
     def _pricing_price(self, user: str) -> str:
         case_key = _extract_word(user, "case")
         p_max = _extract_float(user, "p_max", 1e9)
+        if self.policy in {"stale_price", "base_price"}:
+            stale_prices = {
+                "snack_demand_downshift_base": 15.0,
+                "snack_demand_downshift_perturbed": 15.0,
+                "premium_demand_upswing_base": 20.0,
+                "premium_demand_upswing_perturbed": 20.0,
+            }
+            if case_key in stale_prices:
+                return f"FINAL_PRICE: {stale_prices[case_key]:.2f}"
         known = {
             "snack_box": (180.0, 6.0),
             "premium_widget": (260.0, 4.0),

@@ -46,8 +46,11 @@ from aeread_lab.tasks.moral_hazard import run_moral_hazard_game
 from aeread_lab.tasks.portfolio import DEFAULT_CASES as PORTFOLIO_CASES
 from aeread_lab.tasks.portfolio import _prompt as portfolio_prompt
 from aeread_lab.tasks.portfolio import run_portfolio_game
+from aeread_lab.tasks.pricing import COUNTERFACTUAL_SETS as PRICING_COUNTERFACTUAL_SETS
 from aeread_lab.tasks.pricing import DEFAULT_CASES as PRICING_CASES
+from aeread_lab.tasks.pricing import _counterfactual_prompt as pricing_counterfactual_prompt
 from aeread_lab.tasks.pricing import _prompt as pricing_prompt
+from aeread_lab.tasks.pricing import run_pricing_counterfactual_game
 from aeread_lab.tasks.pricing import run_pricing_game
 from aeread_lab.tasks.principal_inference import DEFAULT_CASES as PRINCIPAL_CASES
 from aeread_lab.tasks.principal_inference import _prompt as principal_prompt
@@ -149,6 +152,12 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 3)
         self.assertEqual(results[0]["accuracy"], 1.0)
 
+    def test_sample_limit_slices_pricing_counterfactual_sets(self):
+        results = run_tasks("pricing_counterfactual", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_sets"], 1)
+        self.assertEqual(results[0]["n_trials"], 2)
+        self.assertEqual(results[0]["counterfactual_shift_miss_rate"], 0.0)
+
     def test_procurement_oracle_offline(self):
         summary = run_procurement_game(OfflineAgent("oracle"))
         self.assertEqual(summary["accuracy"], 1.0)
@@ -167,6 +176,15 @@ class TaskSmokeTests(unittest.TestCase):
         summary = run_pricing_game(OfflineAgent("oracle"))
         self.assertLess(summary["mean_revenue_gap"], 1e-9)
 
+    def test_pricing_counterfactual_flags_stale_prices(self):
+        configured = run_pricing_counterfactual_game(OfflineAgent("oracle"))
+        stale = run_pricing_counterfactual_game(OfflineAgent("stale_price"))
+        self.assertLess(configured["mean_absolute_price_error"], 0.01)
+        self.assertEqual(configured["counterfactual_shift_miss_rate"], 0.0)
+        self.assertGreater(stale["mean_absolute_price_error"], 2.0)
+        self.assertEqual(stale["counterfactual_shift_miss_rate"], 1.0)
+        self.assertEqual(stale["sticky_base_price_rate"], 1.0)
+
     def test_prompts_do_not_expose_oracle_answers(self):
         regime = regime_prompt(DEFAULT_GAMBLES[0], "kelly")
         regime_relationship = regime_relationship_prompt(DEFAULT_RELATIONSHIP_GAMBLES[0], "kelly")
@@ -174,6 +192,10 @@ class TaskSmokeTests(unittest.TestCase):
         procurement = procurement_prompt(PROCUREMENT_CASES[0])
         procurement_counterfactual = procurement_prompt(COUNTERFACTUAL_SETS[0].preference_flip)
         pricing = pricing_prompt(PRICING_CASES[0], "reveal")
+        pricing_counterfactual = pricing_counterfactual_prompt(
+            PRICING_COUNTERFACTUAL_SETS[0].perturbed,
+            "perturbed",
+        )
         strategic = strategic_prompt(DRIFT_CASES[0], 1, [])
         forecast = forecast_prompt(FORECAST_CASES[0])
         exploration = exploration_prompt(EXPLORATION_CASES[0])
@@ -201,6 +223,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", procurement)
         self.assertNotIn("oracle", procurement_counterfactual)
         self.assertNotIn("oracle", pricing)
+        self.assertNotIn("oracle", pricing_counterfactual)
         self.assertNotIn("oracle", strategic)
         self.assertNotIn("oracle", forecast)
         self.assertNotIn("oracle", exploration)
@@ -220,6 +243,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("kelly_fraction", regime)
         self.assertNotIn("kelly_fraction", regime_relationship)
         self.assertNotIn("oracle_price", pricing)
+        self.assertNotIn("oracle_price", pricing_counterfactual)
 
     def test_regime_relationship_flags_law_and_fit_failures(self):
         configured = run_regime_relationship_verifier(OfflineAgent("oracle"))
