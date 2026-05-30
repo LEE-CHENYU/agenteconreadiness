@@ -46,6 +46,7 @@ from .pricing import (
 )
 from .principal_inference import run_principal_inference_game
 from .procurement import (
+    run_procurement_bundle_evidence_game,
     run_procurement_bundle_game,
     run_procurement_bundle_natural_game,
     run_procurement_counterfactual_game,
@@ -106,6 +107,7 @@ __all__ = [
     "run_procurement_counterfactual_game",
     "run_procurement_bundle_game",
     "run_procurement_bundle_natural_game",
+    "run_procurement_bundle_evidence_game",
     "run_regime_battery",
     "run_regime_holdout_verifier",
     "run_regime_law_audit_game",

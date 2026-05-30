@@ -117,9 +117,11 @@ from aeread_lab.tasks.principal_inference import run_principal_inference_game
 from aeread_lab.tasks.procurement import COUNTERFACTUAL_SETS
 from aeread_lab.tasks.procurement import DEFAULT_CASES as PROCUREMENT_CASES
 from aeread_lab.tasks.procurement import PROCUREMENT_BUNDLE_CASES
+from aeread_lab.tasks.procurement import _bundle_evidence_prompt as procurement_bundle_evidence_prompt
 from aeread_lab.tasks.procurement import _bundle_natural_prompt as procurement_bundle_natural_prompt
 from aeread_lab.tasks.procurement import _bundle_prompt as procurement_bundle_prompt
 from aeread_lab.tasks.procurement import _prompt as procurement_prompt
+from aeread_lab.tasks.procurement import run_procurement_bundle_evidence_game
 from aeread_lab.tasks.procurement import run_procurement_bundle_game
 from aeread_lab.tasks.procurement import run_procurement_bundle_natural_game
 from aeread_lab.tasks.procurement import run_procurement_counterfactual_game
@@ -324,6 +326,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_score_regret"], 1e-9)
 
+    def test_sample_limit_slices_procurement_bundle_evidence_cases(self):
+        results = run_tasks("procurement_bundle_evidence", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
     def test_sample_limit_slices_mechanism_repeated_cases(self):
         results = run_tasks("mechanism_repeated", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
@@ -393,6 +400,16 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(configured["task"], "procurement_bundle_natural")
         self.assertEqual(configured["accuracy"], 1.0)
         self.assertLess(configured["mean_score_regret"], 1e-9)
+        self.assertGreater(compatibility_blind["mean_score_regret"], 0.1)
+        self.assertGreater(compatibility_blind["compatibility_blind_miss_rate"], 0.5)
+
+    def test_procurement_bundle_evidence_flags_outcome_blindness(self):
+        configured = run_procurement_bundle_evidence_game(OfflineAgent("oracle"))
+        compatibility_blind = run_procurement_bundle_evidence_game(OfflineAgent("compatibility_blind"))
+        self.assertEqual(configured["task"], "procurement_bundle_evidence")
+        self.assertEqual(configured["accuracy"], 1.0)
+        self.assertLess(configured["mean_score_regret"], 1e-9)
+        self.assertEqual(configured["invalid_rate"], 0.0)
         self.assertGreater(compatibility_blind["mean_score_regret"], 0.1)
         self.assertGreater(compatibility_blind["compatibility_blind_miss_rate"], 0.5)
 
@@ -496,6 +513,7 @@ class TaskSmokeTests(unittest.TestCase):
         procurement = procurement_prompt(PROCUREMENT_CASES[0])
         procurement_bundle = procurement_bundle_prompt(PROCUREMENT_BUNDLE_CASES[0])
         procurement_bundle_natural = procurement_bundle_natural_prompt(PROCUREMENT_BUNDLE_CASES[0])
+        procurement_bundle_evidence = procurement_bundle_evidence_prompt(PROCUREMENT_BUNDLE_CASES[0])
         procurement_counterfactual = procurement_prompt(COUNTERFACTUAL_SETS[0].preference_flip)
         pricing = pricing_prompt(PRICING_CASES[0], "reveal")
         pricing_counterfactual = pricing_counterfactual_prompt(
@@ -557,6 +575,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", procurement)
         self.assertNotIn("oracle", procurement_bundle)
         self.assertNotIn("oracle", procurement_bundle_natural)
+        self.assertNotIn("oracle", procurement_bundle_evidence)
         self.assertNotIn("oracle", procurement_counterfactual)
         self.assertNotIn("oracle", pricing)
         self.assertNotIn("oracle", pricing_counterfactual)
@@ -623,6 +642,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("compatibility bonuses", procurement_bundle_natural.lower())
         self.assertNotIn("durability_weight", procurement_bundle_natural)
         self.assertNotIn("price_weight", procurement_bundle_natural)
+        self.assertNotIn("compatibility bonuses", procurement_bundle_evidence.lower())
+        self.assertNotIn("service_fit_delta", procurement_bundle_evidence)
+        self.assertNotIn("bonus=", procurement_bundle_evidence)
+        self.assertNotIn("durability_weight", procurement_bundle_evidence)
+        self.assertNotIn("price_weight", procurement_bundle_evidence)
 
     def test_regime_relationship_flags_law_and_fit_failures(self):
         configured = run_regime_relationship_verifier(OfflineAgent("oracle"))
@@ -1453,6 +1477,16 @@ class TaskSmokeTests(unittest.TestCase):
         )
         rows = rank_rows(comparison_table(sweep))
         procurement_rows = [row for row in rows if row["task"] == "procurement_bundle_natural"]
+        self.assertEqual(procurement_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(procurement_rows[1]["agent"], "offline:compatibility_blind")
+
+    def test_offline_sweep_ranks_oracle_above_compatibility_blind_on_procurement_bundle_evidence(self):
+        sweep = run_sweep(
+            task="procurement_bundle_evidence",
+            agent_specs=["offline:oracle", "offline:compatibility_blind"],
+        )
+        rows = rank_rows(comparison_table(sweep))
+        procurement_rows = [row for row in rows if row["task"] == "procurement_bundle_evidence"]
         self.assertEqual(procurement_rows[0]["agent"], "offline:oracle")
         self.assertEqual(procurement_rows[1]["agent"], "offline:compatibility_blind")
 

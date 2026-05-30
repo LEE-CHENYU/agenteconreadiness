@@ -1182,6 +1182,13 @@ def _procurement_bundle_compatibility(text: str, pair: tuple[str, str]) -> float
         for match in pattern.finditer(text):
             if normalized == {match.group(1), match.group(2)}:
                 return float(match.group(3))
+    evidence_pattern = re.compile(
+        r"pilot_pair=([a-zA-Z0-9_-]+),([a-zA-Z0-9_-]+)\s+"
+        r"rollout_hours_delta=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in evidence_pattern.finditer(text):
+        if normalized == {match.group(1), match.group(2)}:
+            return -float(match.group(3)) / 8.0
     return 0.0
 
 

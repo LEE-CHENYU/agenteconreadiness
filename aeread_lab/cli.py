@@ -53,6 +53,7 @@ TASKS = (
     "procurement_counterfactual",
     "procurement_bundle",
     "procurement_bundle_natural",
+    "procurement_bundle_evidence",
     "pricing",
     "pricing_counterfactual",
     "pricing_cross_elasticity",
@@ -456,7 +457,11 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"paraphrase={row['paraphrase_chosen']} "
                     f"flip={row['preference_flip_chosen']}"
                 )
-        elif task in {"procurement_bundle", "procurement_bundle_natural"}:
+        elif task in {
+            "procurement_bundle",
+            "procurement_bundle_natural",
+            "procurement_bundle_evidence",
+        }:
             print(
                 f"{task}: n={result['n_trials']} score_regret="
                 f"{_fmt(result['mean_score_regret'])} "

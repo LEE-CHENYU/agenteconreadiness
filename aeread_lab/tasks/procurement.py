@@ -27,6 +27,13 @@ PROCUREMENT_BUNDLE_NATURAL_SYSTEM = (
     "Return one final line only: FINAL_BUNDLE: <sku>,<sku>."
 )
 
+PROCUREMENT_BUNDLE_EVIDENCE_SYSTEM = (
+    "TASK: procurement_bundle_evidence\n"
+    "Select exactly two SKU values for the procurement package. "
+    "Respect the spend limit, required product lines, and deployment outcome evidence. "
+    "Return one final line only: FINAL_BUNDLE: <sku>,<sku>."
+)
+
 
 @dataclass(frozen=True)
 class Product:
@@ -508,6 +515,19 @@ def run_procurement_bundle_natural_game(
     )
 
 
+def run_procurement_bundle_evidence_game(
+    agent: Agent,
+    cases: list[ProcurementBundleCase] | None = None,
+) -> dict:
+    return _run_procurement_bundle_game(
+        agent,
+        cases=cases,
+        system=PROCUREMENT_BUNDLE_EVIDENCE_SYSTEM,
+        prompt_builder=_bundle_evidence_prompt,
+        task_name="procurement_bundle_evidence",
+    )
+
+
 def _run_procurement_bundle_game(
     agent: Agent,
     *,
@@ -804,6 +824,64 @@ def _bundle_natural_prompt(case: ProcurementBundleCase) -> str:
     lines.append(
         "Pick the two-SKU package with the best total procurement fit after spend, "
         "line coverage, deployment drag, and package-fit notes."
+    )
+    return "\n".join(lines)
+
+
+def _bundle_evidence_prompt(case: ProcurementBundleCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"buying_team={case.profile.key}",
+        f"spend_limit={case.budget:.0f}",
+        f"must_cover_lines={','.join(case.required_categories)}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note.replace("compatibility", "package performance"))
+    lines.append("Candidate SKUs:")
+    for product in case.products:
+        lines.append(
+            "  "
+            + " ".join(
+                [
+                    f"sku={product.product_id}",
+                    f"line={product.category}",
+                    f"invoice={product.price:.0f}",
+                    f"field_reliability={product.durability:.2f}",
+                    f"operator_fit={product.comfort:.2f}",
+                    f"presentation_fit={product.style_fit:.2f}",
+                    f"deployment_drag={product.assembly_friction:.2f}",
+                ]
+            )
+        )
+    lines.append("Prior two-SKU deployment outcomes:")
+    for left, right, bonus in case.compatibility_bonuses:
+        lines.append(
+            "  "
+            + " ".join(
+                [
+                    f"pilot_pair={left},{right}",
+                    f"rollout_hours_delta={-8.0 * bonus:.2f}",
+                    f"support_ticket_delta={-4.0 * bonus:.2f}",
+                    f"operator_acceptance_delta={0.12 * bonus:.3f}",
+                ]
+            )
+        )
+    lines.append("Buying team priorities:")
+    lines.append(
+        " ".join(
+            [
+                f"invoice_penalty={case.profile.price_weight:.4f}",
+                f"reliability_weight={case.profile.durability_weight:.4f}",
+                f"operator_fit_weight={case.profile.comfort_weight:.4f}",
+                f"presentation_weight={case.profile.style_weight:.4f}",
+                f"deployment_drag_weight={case.profile.friction_weight:.4f}",
+            ]
+        )
+    )
+    lines.append(
+        "Use the pilot outcome rows to infer whether a pair reduces or increases "
+        "deployment burden, then pick the two-SKU package with the best total "
+        "procurement fit."
     )
     return "\n".join(lines)
 
