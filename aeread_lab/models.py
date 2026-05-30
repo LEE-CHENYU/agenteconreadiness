@@ -122,6 +122,8 @@ class OfflineAgent:
             return self._pricing_inventory_markdown_prices(user)
         if "TASK: pricing_inventory_markdown_noisy_prices" in system:
             return self._pricing_inventory_markdown_prices(user)
+        if "TASK: pricing_multi_product_markdown_noisy_prices" in system:
+            return self._pricing_multi_product_markdown_noisy_prices(user)
         if "TASK: pricing_hidden_intervention_price" in system:
             return self._pricing_hidden_intervention_price(user)
         if "TASK: pricing_law_label" in system:
@@ -559,6 +561,134 @@ class OfflineAgent:
             price_early = round(price_early / 10.0) * 10.0
             price_late = round(price_late / 10.0) * 10.0
         return f"FINAL_PRICE_EARLY: {price_early:.2f}\nFINAL_PRICE_LATE: {price_late:.2f}"
+
+    def _pricing_multi_product_markdown_noisy_prices(self, user: str) -> str:
+        p_max_a = _extract_float(user, "p_max_a", _extract_float(user, "price_ceiling_a", 1e9))
+        p_max_b = _extract_float(user, "p_max_b", _extract_float(user, "price_ceiling_b", 1e9))
+        inventory_a = _extract_float(user, "available_units_a", math.inf)
+        inventory_b = _extract_float(user, "available_units_b", math.inf)
+        salvage_value_a = _extract_float(user, "liquidation_value_a", 0.0)
+        salvage_value_b = _extract_float(user, "liquidation_value_b", 0.0)
+        rows = _extract_multi_product_markdown_rows(user)
+        early_alpha_a, early_own_a, early_cross_ab = _fit_cross_pricing_rows(
+            [(row[0], row[1], row[2]) for row in rows]
+        )
+        early_alpha_b, early_own_b, early_cross_ba = _fit_cross_pricing_rows(
+            [(row[1], row[0], row[3]) for row in rows]
+        )
+        late_alpha_a, late_own_a, late_cross_ab = _fit_cross_pricing_rows(
+            [(row[4], row[5], row[6]) for row in rows]
+        )
+        late_alpha_b, late_own_b, late_cross_ba = _fit_cross_pricing_rows(
+            [(row[5], row[4], row[7]) for row in rows]
+        )
+        if self.policy in {"independent", "single_product", "own_only"}:
+            early_fit_a = _fit_pricing_rows([(row[0], row[2]) for row in rows]) or (1.0, 1.0)
+            early_fit_b = _fit_pricing_rows([(row[1], row[3]) for row in rows]) or (1.0, 1.0)
+            late_fit_a = _fit_pricing_rows([(row[4], row[6]) for row in rows]) or (1.0, 1.0)
+            late_fit_b = _fit_pricing_rows([(row[5], row[7]) for row in rows]) or (1.0, 1.0)
+            price_a_early = max(
+                salvage_value_a,
+                min(p_max_a, early_fit_a[0] / (2.0 * max(early_fit_a[1], 1e-9))),
+            )
+            price_b_early = max(
+                salvage_value_b,
+                min(p_max_b, early_fit_b[0] / (2.0 * max(early_fit_b[1], 1e-9))),
+            )
+            price_a_late = max(
+                salvage_value_a,
+                min(p_max_a, late_fit_a[0] / (2.0 * max(late_fit_a[1], 1e-9))),
+            )
+            price_b_late = max(
+                salvage_value_b,
+                min(p_max_b, late_fit_b[0] / (2.0 * max(late_fit_b[1], 1e-9))),
+            )
+        elif self.policy in {"capacity_blind", "inventory_blind", "unconstrained"}:
+            price_a_early, price_b_early = _best_multi_product_prices(
+                alpha_a=early_alpha_a,
+                own_beta_a=early_own_a,
+                cross_ab=early_cross_ab,
+                alpha_b=early_alpha_b,
+                own_beta_b=early_own_b,
+                cross_ba=early_cross_ba,
+                p_max_a=p_max_a,
+                p_max_b=p_max_b,
+            )
+            price_a_late, price_b_late = _best_multi_product_prices(
+                alpha_a=late_alpha_a,
+                own_beta_a=late_own_a,
+                cross_ab=late_cross_ab,
+                alpha_b=late_alpha_b,
+                own_beta_b=late_own_b,
+                cross_ba=late_cross_ba,
+                p_max_a=p_max_a,
+                p_max_b=p_max_b,
+            )
+            price_a_early = max(salvage_value_a, price_a_early)
+            price_b_early = max(salvage_value_b, price_b_early)
+            price_a_late = max(salvage_value_a, price_a_late)
+            price_b_late = max(salvage_value_b, price_b_late)
+        elif self.policy in {"myopic", "single_period", "depletion_blind"}:
+            price_a_early, price_b_early = _best_multi_product_capacity_prices(
+                alpha_a=early_alpha_a,
+                own_beta_a=early_own_a,
+                cross_ab=early_cross_ab,
+                alpha_b=early_alpha_b,
+                own_beta_b=early_own_b,
+                cross_ba=early_cross_ba,
+                p_max_a=p_max_a,
+                p_max_b=p_max_b,
+                inventory_a=inventory_a,
+                inventory_b=inventory_b,
+            )
+            price_a_late, price_b_late = _best_multi_product_capacity_prices(
+                alpha_a=late_alpha_a,
+                own_beta_a=late_own_a,
+                cross_ab=late_cross_ab,
+                alpha_b=late_alpha_b,
+                own_beta_b=late_own_b,
+                cross_ba=late_cross_ba,
+                p_max_a=p_max_a,
+                p_max_b=p_max_b,
+                inventory_a=inventory_a,
+                inventory_b=inventory_b,
+            )
+            price_a_early = max(salvage_value_a, price_a_early)
+            price_b_early = max(salvage_value_b, price_b_early)
+            price_a_late = max(salvage_value_a, price_a_late)
+            price_b_late = max(salvage_value_b, price_b_late)
+        else:
+            price_a_early, price_b_early, price_a_late, price_b_late = _best_multi_product_markdown_prices(
+                early_alpha_a,
+                early_own_a,
+                early_cross_ab,
+                early_alpha_b,
+                early_own_b,
+                early_cross_ba,
+                late_alpha_a,
+                late_own_a,
+                late_cross_ab,
+                late_alpha_b,
+                late_own_b,
+                late_cross_ba,
+                p_max_a=p_max_a,
+                p_max_b=p_max_b,
+                inventory_a=inventory_a,
+                inventory_b=inventory_b,
+                salvage_value_a=salvage_value_a,
+                salvage_value_b=salvage_value_b,
+            )
+        if self.policy == "round":
+            price_a_early = round(price_a_early / 10.0) * 10.0
+            price_b_early = round(price_b_early / 10.0) * 10.0
+            price_a_late = round(price_a_late / 10.0) * 10.0
+            price_b_late = round(price_b_late / 10.0) * 10.0
+        return (
+            f"FINAL_PRICE_A_EARLY: {price_a_early:.2f}\n"
+            f"FINAL_PRICE_B_EARLY: {price_b_early:.2f}\n"
+            f"FINAL_PRICE_A_LATE: {price_a_late:.2f}\n"
+            f"FINAL_PRICE_B_LATE: {price_b_late:.2f}"
+        )
 
     def _pricing_hidden_intervention_price(self, user: str) -> str:
         p_max = _extract_float(user, "price_ceiling", _extract_float(user, "p_max", 1e9))
@@ -2800,6 +2930,43 @@ def _extract_inventory_markdown_natural_rows(text: str) -> list[tuple[float, flo
     ]
 
 
+def _extract_multi_product_markdown_rows(
+    text: str,
+) -> list[tuple[float, float, float, float, float, float, float, float]]:
+    return [
+        (
+            float(launch_a_price),
+            float(launch_b_price),
+            float(launch_a_units),
+            float(launch_b_units),
+            float(clearance_a_price),
+            float(clearance_b_price),
+            float(clearance_a_units),
+            float(clearance_b_units),
+        )
+        for (
+            launch_a_price,
+            launch_b_price,
+            launch_a_units,
+            launch_b_units,
+            clearance_a_price,
+            clearance_b_price,
+            clearance_a_units,
+            clearance_b_units,
+        ) in re.findall(
+            r"launch_a_price=([-+]?\d+(?:\.\d+)?),\s+"
+            r"launch_b_price=([-+]?\d+(?:\.\d+)?),\s+"
+            r"launch_a_units=([-+]?\d+(?:\.\d+)?),\s+"
+            r"launch_b_units=([-+]?\d+(?:\.\d+)?),\s+"
+            r"clearance_a_price=([-+]?\d+(?:\.\d+)?),\s+"
+            r"clearance_b_price=([-+]?\d+(?:\.\d+)?),\s+"
+            r"clearance_a_units=([-+]?\d+(?:\.\d+)?),\s+"
+            r"clearance_b_units=([-+]?\d+(?:\.\d+)?)",
+            text,
+        )
+    ]
+
+
 def _fit_pricing_rows(rows: list[tuple[float, float]]) -> tuple[float, float] | None:
     if len(rows) < 2:
         return None
@@ -2925,6 +3092,141 @@ def _best_inventory_markdown_prices(
                 best_value = value
                 best_pair = (price_early, price_late)
     return best_pair
+
+
+def _best_multi_product_markdown_prices(
+    early_alpha_a: float,
+    early_own_a: float,
+    early_cross_ab: float,
+    early_alpha_b: float,
+    early_own_b: float,
+    early_cross_ba: float,
+    late_alpha_a: float,
+    late_own_a: float,
+    late_cross_ab: float,
+    late_alpha_b: float,
+    late_own_b: float,
+    late_cross_ba: float,
+    *,
+    p_max_a: float,
+    p_max_b: float,
+    inventory_a: float,
+    inventory_b: float,
+    salvage_value_a: float,
+    salvage_value_b: float,
+) -> tuple[float, float, float, float]:
+    early_blind_a, early_blind_b = _best_multi_product_prices(
+        alpha_a=early_alpha_a,
+        own_beta_a=early_own_a,
+        cross_ab=early_cross_ab,
+        alpha_b=early_alpha_b,
+        own_beta_b=early_own_b,
+        cross_ba=early_cross_ba,
+        p_max_a=p_max_a,
+        p_max_b=p_max_b,
+    )
+    late_blind_a, late_blind_b = _best_multi_product_prices(
+        alpha_a=late_alpha_a,
+        own_beta_a=late_own_a,
+        cross_ab=late_cross_ab,
+        alpha_b=late_alpha_b,
+        own_beta_b=late_own_b,
+        cross_ba=late_cross_ba,
+        p_max_a=p_max_a,
+        p_max_b=p_max_b,
+    )
+    early_cap_a, early_cap_b = _best_multi_product_capacity_prices(
+        alpha_a=early_alpha_a,
+        own_beta_a=early_own_a,
+        cross_ab=early_cross_ab,
+        alpha_b=early_alpha_b,
+        own_beta_b=early_own_b,
+        cross_ba=early_cross_ba,
+        p_max_a=p_max_a,
+        p_max_b=p_max_b,
+        inventory_a=inventory_a,
+        inventory_b=inventory_b,
+    )
+    late_cap_a, late_cap_b = _best_multi_product_capacity_prices(
+        alpha_a=late_alpha_a,
+        own_beta_a=late_own_a,
+        cross_ab=late_cross_ab,
+        alpha_b=late_alpha_b,
+        own_beta_b=late_own_b,
+        cross_ba=late_cross_ba,
+        p_max_a=p_max_a,
+        p_max_b=p_max_b,
+        inventory_a=inventory_a,
+        inventory_b=inventory_b,
+    )
+    early_a_grid = _markdown_price_candidates(
+        p_max_a,
+        salvage_value_a,
+        (early_blind_a, early_cap_a, late_cap_a),
+    )
+    early_b_grid = _markdown_price_candidates(
+        p_max_b,
+        salvage_value_b,
+        (early_blind_b, early_cap_b, late_cap_b),
+    )
+    late_a_grid = _markdown_price_candidates(
+        p_max_a,
+        salvage_value_a,
+        (late_blind_a, late_cap_a, early_cap_a),
+    )
+    late_b_grid = _markdown_price_candidates(
+        p_max_b,
+        salvage_value_b,
+        (late_blind_b, late_cap_b, early_cap_b),
+    )
+
+    def objective(
+        price_a_early: float,
+        price_b_early: float,
+        price_a_late: float,
+        price_b_late: float,
+    ) -> float:
+        early_demand_a = max(0.0, early_alpha_a - early_own_a * price_a_early + early_cross_ab * price_b_early)
+        early_demand_b = max(0.0, early_alpha_b - early_own_b * price_b_early + early_cross_ba * price_a_early)
+        early_sold_a = min(early_demand_a, inventory_a)
+        early_sold_b = min(early_demand_b, inventory_b)
+        remaining_a = max(0.0, inventory_a - early_sold_a)
+        remaining_b = max(0.0, inventory_b - early_sold_b)
+        late_demand_a = max(0.0, late_alpha_a - late_own_a * price_a_late + late_cross_ab * price_b_late)
+        late_demand_b = max(0.0, late_alpha_b - late_own_b * price_b_late + late_cross_ba * price_a_late)
+        late_sold_a = min(late_demand_a, remaining_a)
+        late_sold_b = min(late_demand_b, remaining_b)
+        unsold_a = max(0.0, remaining_a - late_sold_a)
+        unsold_b = max(0.0, remaining_b - late_sold_b)
+        return (
+            price_a_early * early_sold_a
+            + price_b_early * early_sold_b
+            + price_a_late * late_sold_a
+            + price_b_late * late_sold_b
+            + salvage_value_a * unsold_a
+            + salvage_value_b * unsold_b
+        )
+
+    best_plan = (0.0, 0.0, 0.0, 0.0)
+    best_value = -1.0
+    for price_a_early in early_a_grid:
+        for price_b_early in early_b_grid:
+            for price_a_late in late_a_grid:
+                for price_b_late in late_b_grid:
+                    value = objective(price_a_early, price_b_early, price_a_late, price_b_late)
+                    if value > best_value:
+                        best_value = value
+                        best_plan = (price_a_early, price_b_early, price_a_late, price_b_late)
+    return best_plan
+
+
+def _markdown_price_candidates(p_max: float, price_floor: float, anchors: tuple[float, ...]) -> list[float]:
+    values = {round(price_floor, 2), round(p_max, 2)}
+    values.update(value for value in _price_grid(p_max, 5.0) if value >= price_floor)
+    for anchor in anchors:
+        for offset in (-7.5, -5.0, -2.5, -1.0, -0.5, 0.0, 0.5, 1.0, 2.5, 5.0, 7.5):
+            values.add(round(max(price_floor, min(p_max, anchor + offset)), 2))
+    return sorted(values)
 
 
 def _price_grid(p_max: float, step: float) -> list[float]:

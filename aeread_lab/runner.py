@@ -98,6 +98,7 @@ TASK_ORDER = (
     "pricing_multi_product_capacity_noisy",
     "pricing_inventory_markdown",
     "pricing_inventory_markdown_noisy",
+    "pricing_multi_product_markdown_noisy",
     "pricing_hidden_intervention",
     "pricing_law_audit",
     "pricing_evidence_law_audit",
@@ -307,6 +308,10 @@ _CASE_TASKS = {
     "pricing_inventory_markdown_noisy": (
         pricing_task.run_pricing_inventory_markdown_noisy_game,
         pricing_task.INVENTORY_MARKDOWN_NOISY_CASES,
+    ),
+    "pricing_multi_product_markdown_noisy": (
+        pricing_task.run_pricing_multi_product_markdown_noisy_game,
+        pricing_task.MULTI_PRODUCT_MARKDOWN_NOISY_CASES,
     ),
     "pricing_hidden_intervention": (
         pricing_task.run_pricing_hidden_intervention_game,

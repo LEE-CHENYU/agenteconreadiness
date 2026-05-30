@@ -53,6 +53,13 @@ PRICING_INVENTORY_MARKDOWN_NOISY_SYSTEM = (
     "FINAL_PRICE_EARLY: <number> and FINAL_PRICE_LATE: <number>."
 )
 
+PRICING_MULTI_PRODUCT_MARKDOWN_NOISY_SYSTEM = (
+    "TASK: pricing_multi_product_markdown_noisy_prices\n"
+    "Choose launch and clearance prices for two products using lumpy regional evidence and finite stock. "
+    "Return four final lines only: FINAL_PRICE_A_EARLY: <number>, FINAL_PRICE_B_EARLY: <number>, "
+    "FINAL_PRICE_A_LATE: <number>, and FINAL_PRICE_B_LATE: <number>."
+)
+
 PRICING_HIDDEN_INTERVENTION_SYSTEM = (
     "TASK: pricing_hidden_intervention_price\n"
     "Choose the price for the next normal campaign after accounting for non-price interventions. "
@@ -127,6 +134,19 @@ class PricingInventoryMarkdownCase:
     inventory: float
     salvage_value: float
     observations: tuple[tuple[float, float, float, float], ...]
+    scenario_note: str = ""
+
+
+@dataclass(frozen=True)
+class PricingMultiProductMarkdownCase:
+    key: str
+    p_max_a: float
+    p_max_b: float
+    inventory_a: float
+    inventory_b: float
+    salvage_value_a: float
+    salvage_value_b: float
+    observations: tuple[tuple[float, float, float, float, float, float, float, float], ...]
     scenario_note: str = ""
 
 
@@ -309,6 +329,86 @@ def _noisy_markdown_observations(
             ),
         )
         for idx, (early_ratio, late_ratio) in enumerate(pairs)
+    )
+
+
+def _noisy_multi_product_markdown_observations(
+    early_alpha_a: float,
+    early_own_a: float,
+    early_cross_ab: float,
+    early_alpha_b: float,
+    early_own_b: float,
+    early_cross_ba: float,
+    late_alpha_a: float,
+    late_own_a: float,
+    late_cross_ab: float,
+    late_alpha_b: float,
+    late_own_b: float,
+    late_cross_ba: float,
+    p_max_a: float,
+    p_max_b: float,
+    early_noise_a: tuple[float, ...],
+    early_noise_b: tuple[float, ...],
+    late_noise_a: tuple[float, ...],
+    late_noise_b: tuple[float, ...],
+) -> tuple[tuple[float, float, float, float, float, float, float, float], ...]:
+    pairs = (
+        (0.22, 0.28, 0.30, 0.34),
+        (0.31, 0.39, 0.42, 0.46),
+        (0.43, 0.49, 0.52, 0.56),
+        (0.52, 0.61, 0.63, 0.67),
+        (0.64, 0.73, 0.74, 0.78),
+        (0.76, 0.84, 0.82, 0.88),
+        (0.88, 0.94, 0.91, 0.96),
+    )
+    return tuple(
+        (
+            round(early_a_ratio * p_max_a, 2),
+            round(early_b_ratio * p_max_b, 2),
+            round(
+                max(
+                    0.0,
+                    early_alpha_a
+                    - early_own_a * early_a_ratio * p_max_a
+                    + early_cross_ab * early_b_ratio * p_max_b
+                    + early_noise_a[idx],
+                ),
+                2,
+            ),
+            round(
+                max(
+                    0.0,
+                    early_alpha_b
+                    - early_own_b * early_b_ratio * p_max_b
+                    + early_cross_ba * early_a_ratio * p_max_a
+                    + early_noise_b[idx],
+                ),
+                2,
+            ),
+            round(late_a_ratio * p_max_a, 2),
+            round(late_b_ratio * p_max_b, 2),
+            round(
+                max(
+                    0.0,
+                    late_alpha_a
+                    - late_own_a * late_a_ratio * p_max_a
+                    + late_cross_ab * late_b_ratio * p_max_b
+                    + late_noise_a[idx],
+                ),
+                2,
+            ),
+            round(
+                max(
+                    0.0,
+                    late_alpha_b
+                    - late_own_b * late_b_ratio * p_max_b
+                    + late_cross_ba * late_a_ratio * p_max_a
+                    + late_noise_b[idx],
+                ),
+                2,
+            ),
+        )
+        for idx, (early_a_ratio, early_b_ratio, late_a_ratio, late_b_ratio) in enumerate(pairs)
     )
 
 
@@ -714,6 +814,142 @@ INVENTORY_MARKDOWN_NOISY_CASES = [
             68.0,
             (6.0, -3.5, 5.0, -5.5, 4.0, -4.5, 2.0),
             (-4.0, 5.0, -3.0, 4.5, -5.5, 3.5, -2.0),
+        ),
+    ),
+]
+
+
+MULTI_PRODUCT_MARKDOWN_NOISY_CASES = [
+    PricingMultiProductMarkdownCase(
+        key="noisy_multi_markdown_01",
+        p_max_a=50.0,
+        p_max_b=48.0,
+        inventory_a=60.0,
+        inventory_b=58.0,
+        salvage_value_a=4.0,
+        salvage_value_b=4.0,
+        scenario_note=(
+            "Two substitute products launch together, and the later clearance channel is "
+            "more price-tolerant if enough units survive the launch."
+        ),
+        observations=_noisy_multi_product_markdown_observations(
+            122.0,
+            4.5,
+            3.2,
+            118.0,
+            4.3,
+            3.0,
+            150.0,
+            2.6,
+            1.8,
+            143.0,
+            2.5,
+            1.7,
+            50.0,
+            48.0,
+            (5.0, -4.0, 6.0, -5.0, 4.0, -3.0, 2.0),
+            (-3.0, 5.0, -4.0, 6.0, -5.0, 4.0, -2.0),
+            (-4.0, 5.0, -3.0, 4.0, -5.0, 3.0, -2.0),
+            (4.0, -3.0, 5.0, -4.0, 3.0, -5.0, 2.0),
+        ),
+    ),
+    PricingMultiProductMarkdownCase(
+        key="noisy_multi_markdown_02",
+        p_max_a=65.0,
+        p_max_b=60.0,
+        inventory_a=95.0,
+        inventory_b=120.0,
+        salvage_value_a=5.0,
+        salvage_value_b=5.0,
+        scenario_note=(
+            "The substitute pair shares traffic asymmetrically. Launch rows are noisy, and "
+            "draining either product early weakens the paired clearance plan."
+        ),
+        observations=_noisy_multi_product_markdown_observations(
+            138.0,
+            4.1,
+            3.7,
+            135.0,
+            4.0,
+            3.4,
+            178.0,
+            2.9,
+            2.0,
+            166.0,
+            2.7,
+            1.8,
+            65.0,
+            60.0,
+            (6.0, -5.0, 7.0, -6.0, 5.0, -4.0, 3.0),
+            (-4.0, 6.0, -5.0, 5.0, -6.0, 4.0, -3.0),
+            (-5.0, 4.0, -4.0, 6.0, -3.0, 5.0, -2.5),
+            (5.0, -4.5, 4.0, -5.0, 6.0, -3.0, 2.5),
+        ),
+    ),
+    PricingMultiProductMarkdownCase(
+        key="noisy_multi_markdown_03",
+        p_max_a=55.0,
+        p_max_b=55.0,
+        inventory_a=92.0,
+        inventory_b=88.0,
+        salvage_value_a=6.0,
+        salvage_value_b=6.0,
+        scenario_note=(
+            "Complement products move together in both windows. Clearance demand is durable, "
+            "so launch pricing must account for paired late stock rather than each product alone."
+        ),
+        observations=_noisy_multi_product_markdown_observations(
+            340.0,
+            5.1,
+            -3.1,
+            318.0,
+            4.9,
+            -2.9,
+            286.0,
+            3.0,
+            -1.8,
+            272.0,
+            2.8,
+            -1.7,
+            55.0,
+            55.0,
+            (8.0, -7.0, 6.0, -5.0, 7.0, -6.0, 4.0),
+            (-6.0, 7.0, -8.0, 6.0, -5.0, 7.0, -4.0),
+            (5.0, -4.0, 6.0, -5.0, 4.0, -6.0, 3.0),
+            (-5.0, 6.0, -4.0, 5.0, -6.0, 4.0, -3.0),
+        ),
+    ),
+    PricingMultiProductMarkdownCase(
+        key="noisy_multi_markdown_04",
+        p_max_a=70.0,
+        p_max_b=68.0,
+        inventory_a=150.0,
+        inventory_b=145.0,
+        salvage_value_a=3.0,
+        salvage_value_b=3.0,
+        scenario_note=(
+            "A high-demand complement bundle has lumpy regional launch and clearance rows. "
+            "The clearance channel is smaller but more price-tolerant when stock remains."
+        ),
+        observations=_noisy_multi_product_markdown_observations(
+            510.0,
+            5.1,
+            -4.0,
+            486.0,
+            5.2,
+            -3.7,
+            420.0,
+            3.2,
+            -2.1,
+            398.0,
+            3.1,
+            -2.0,
+            70.0,
+            68.0,
+            (9.0, -8.0, 7.0, -9.0, 6.0, -7.0, 5.0),
+            (-8.0, 9.0, -7.0, 8.0, -9.0, 6.0, -5.0),
+            (7.0, -6.0, 5.0, -7.0, 6.0, -5.0, 4.0),
+            (-6.0, 7.0, -5.0, 6.0, -7.0, 5.0, -4.0),
         ),
     ),
 ]
@@ -1347,6 +1583,246 @@ def inventory_markdown_myopic_prices(case: PricingInventoryMarkdownCase) -> tupl
     )
 
 
+def multi_product_markdown_posterior(
+    case: PricingMultiProductMarkdownCase,
+) -> tuple[float, float, float, float, float, float, float, float, float, float, float, float]:
+    early_a = _cross_fit(
+        [
+            (early_price_a, early_price_b, early_units_a)
+            for (
+                early_price_a,
+                early_price_b,
+                early_units_a,
+                _,
+                _,
+                _,
+                _,
+                _,
+            ) in case.observations
+        ]
+    )
+    early_b = _cross_fit(
+        [
+            (early_price_b, early_price_a, early_units_b)
+            for (
+                early_price_a,
+                early_price_b,
+                _,
+                early_units_b,
+                _,
+                _,
+                _,
+                _,
+            ) in case.observations
+        ]
+    )
+    late_a = _cross_fit(
+        [
+            (late_price_a, late_price_b, late_units_a)
+            for (
+                _,
+                _,
+                _,
+                _,
+                late_price_a,
+                late_price_b,
+                late_units_a,
+                _,
+            ) in case.observations
+        ]
+    )
+    late_b = _cross_fit(
+        [
+            (late_price_b, late_price_a, late_units_b)
+            for (
+                _,
+                _,
+                _,
+                _,
+                late_price_a,
+                late_price_b,
+                _,
+                late_units_b,
+            ) in case.observations
+        ]
+    )
+    return (*early_a, *early_b, *late_a, *late_b)
+
+
+def multi_product_markdown_revenue(
+    case: PricingMultiProductMarkdownCase,
+    price_a_early: float,
+    price_b_early: float,
+    price_a_late: float,
+    price_b_late: float,
+) -> float:
+    (
+        early_alpha_a,
+        early_own_a,
+        early_cross_ab,
+        early_alpha_b,
+        early_own_b,
+        early_cross_ba,
+        late_alpha_a,
+        late_own_a,
+        late_cross_ab,
+        late_alpha_b,
+        late_own_b,
+        late_cross_ba,
+    ) = multi_product_markdown_posterior(case)
+    early_demand_a = max(0.0, early_alpha_a - early_own_a * price_a_early + early_cross_ab * price_b_early)
+    early_demand_b = max(0.0, early_alpha_b - early_own_b * price_b_early + early_cross_ba * price_a_early)
+    early_sold_a = min(early_demand_a, case.inventory_a)
+    early_sold_b = min(early_demand_b, case.inventory_b)
+    remaining_a = max(0.0, case.inventory_a - early_sold_a)
+    remaining_b = max(0.0, case.inventory_b - early_sold_b)
+    late_demand_a = max(0.0, late_alpha_a - late_own_a * price_a_late + late_cross_ab * price_b_late)
+    late_demand_b = max(0.0, late_alpha_b - late_own_b * price_b_late + late_cross_ba * price_a_late)
+    late_sold_a = min(late_demand_a, remaining_a)
+    late_sold_b = min(late_demand_b, remaining_b)
+    unsold_a = max(0.0, remaining_a - late_sold_a)
+    unsold_b = max(0.0, remaining_b - late_sold_b)
+    return (
+        price_a_early * early_sold_a
+        + price_b_early * early_sold_b
+        + price_a_late * late_sold_a
+        + price_b_late * late_sold_b
+        + case.salvage_value_a * unsold_a
+        + case.salvage_value_b * unsold_b
+    )
+
+
+def multi_product_markdown_oracle_prices(
+    case: PricingMultiProductMarkdownCase,
+) -> tuple[float, float, float, float]:
+    return _best_multi_product_markdown_prices(
+        *multi_product_markdown_posterior(case),
+        p_max_a=case.p_max_a,
+        p_max_b=case.p_max_b,
+        inventory_a=case.inventory_a,
+        inventory_b=case.inventory_b,
+        salvage_value_a=case.salvage_value_a,
+        salvage_value_b=case.salvage_value_b,
+    )
+
+
+def multi_product_markdown_myopic_prices(
+    case: PricingMultiProductMarkdownCase,
+) -> tuple[float, float, float, float]:
+    (
+        early_alpha_a,
+        early_own_a,
+        early_cross_ab,
+        early_alpha_b,
+        early_own_b,
+        early_cross_ba,
+        late_alpha_a,
+        late_own_a,
+        late_cross_ab,
+        late_alpha_b,
+        late_own_b,
+        late_cross_ba,
+    ) = multi_product_markdown_posterior(case)
+    early_a, early_b = _best_multi_product_capacity_prices(
+        alpha_a=early_alpha_a,
+        own_beta_a=early_own_a,
+        cross_ab=early_cross_ab,
+        alpha_b=early_alpha_b,
+        own_beta_b=early_own_b,
+        cross_ba=early_cross_ba,
+        p_max_a=case.p_max_a,
+        p_max_b=case.p_max_b,
+        inventory_a=case.inventory_a,
+        inventory_b=case.inventory_b,
+    )
+    late_a, late_b = _best_multi_product_capacity_prices(
+        alpha_a=late_alpha_a,
+        own_beta_a=late_own_a,
+        cross_ab=late_cross_ab,
+        alpha_b=late_alpha_b,
+        own_beta_b=late_own_b,
+        cross_ba=late_cross_ba,
+        p_max_a=case.p_max_a,
+        p_max_b=case.p_max_b,
+        inventory_a=case.inventory_a,
+        inventory_b=case.inventory_b,
+    )
+    return (
+        clamp(early_a, case.salvage_value_a, case.p_max_a),
+        clamp(early_b, case.salvage_value_b, case.p_max_b),
+        clamp(late_a, case.salvage_value_a, case.p_max_a),
+        clamp(late_b, case.salvage_value_b, case.p_max_b),
+    )
+
+
+def multi_product_markdown_capacity_blind_prices(
+    case: PricingMultiProductMarkdownCase,
+) -> tuple[float, float, float, float]:
+    (
+        early_alpha_a,
+        early_own_a,
+        early_cross_ab,
+        early_alpha_b,
+        early_own_b,
+        early_cross_ba,
+        late_alpha_a,
+        late_own_a,
+        late_cross_ab,
+        late_alpha_b,
+        late_own_b,
+        late_cross_ba,
+    ) = multi_product_markdown_posterior(case)
+    early_a, early_b = _best_multi_product_prices(
+        alpha_a=early_alpha_a,
+        own_beta_a=early_own_a,
+        cross_ab=early_cross_ab,
+        alpha_b=early_alpha_b,
+        own_beta_b=early_own_b,
+        cross_ba=early_cross_ba,
+        p_max_a=case.p_max_a,
+        p_max_b=case.p_max_b,
+    )
+    late_a, late_b = _best_multi_product_prices(
+        alpha_a=late_alpha_a,
+        own_beta_a=late_own_a,
+        cross_ab=late_cross_ab,
+        alpha_b=late_alpha_b,
+        own_beta_b=late_own_b,
+        cross_ba=late_cross_ba,
+        p_max_a=case.p_max_a,
+        p_max_b=case.p_max_b,
+    )
+    return (
+        clamp(early_a, case.salvage_value_a, case.p_max_a),
+        clamp(early_b, case.salvage_value_b, case.p_max_b),
+        clamp(late_a, case.salvage_value_a, case.p_max_a),
+        clamp(late_b, case.salvage_value_b, case.p_max_b),
+    )
+
+
+def multi_product_markdown_independent_prices(
+    case: PricingMultiProductMarkdownCase,
+) -> tuple[float, float, float, float]:
+    early_a_alpha, early_a_beta = _ols_fit(
+        [(row[0], row[2]) for row in case.observations]
+    )
+    early_b_alpha, early_b_beta = _ols_fit(
+        [(row[1], row[3]) for row in case.observations]
+    )
+    late_a_alpha, late_a_beta = _ols_fit(
+        [(row[4], row[6]) for row in case.observations]
+    )
+    late_b_alpha, late_b_beta = _ols_fit(
+        [(row[5], row[7]) for row in case.observations]
+    )
+    return (
+        clamp(early_a_alpha / (2.0 * early_a_beta), case.salvage_value_a, case.p_max_a),
+        clamp(early_b_alpha / (2.0 * early_b_beta), case.salvage_value_b, case.p_max_b),
+        clamp(late_a_alpha / (2.0 * late_a_beta), case.salvage_value_a, case.p_max_a),
+        clamp(late_b_alpha / (2.0 * late_b_beta), case.salvage_value_b, case.p_max_b),
+    )
+
+
 def _best_multi_product_prices(
     *,
     alpha_a: float,
@@ -1447,6 +1923,141 @@ def _best_inventory_markdown_prices(
                 best_value = value
                 best_pair = (price_early, price_late)
     return best_pair
+
+
+def _best_multi_product_markdown_prices(
+    early_alpha_a: float,
+    early_own_a: float,
+    early_cross_ab: float,
+    early_alpha_b: float,
+    early_own_b: float,
+    early_cross_ba: float,
+    late_alpha_a: float,
+    late_own_a: float,
+    late_cross_ab: float,
+    late_alpha_b: float,
+    late_own_b: float,
+    late_cross_ba: float,
+    *,
+    p_max_a: float,
+    p_max_b: float,
+    inventory_a: float,
+    inventory_b: float,
+    salvage_value_a: float,
+    salvage_value_b: float,
+) -> tuple[float, float, float, float]:
+    early_blind_a, early_blind_b = _best_multi_product_prices(
+        alpha_a=early_alpha_a,
+        own_beta_a=early_own_a,
+        cross_ab=early_cross_ab,
+        alpha_b=early_alpha_b,
+        own_beta_b=early_own_b,
+        cross_ba=early_cross_ba,
+        p_max_a=p_max_a,
+        p_max_b=p_max_b,
+    )
+    late_blind_a, late_blind_b = _best_multi_product_prices(
+        alpha_a=late_alpha_a,
+        own_beta_a=late_own_a,
+        cross_ab=late_cross_ab,
+        alpha_b=late_alpha_b,
+        own_beta_b=late_own_b,
+        cross_ba=late_cross_ba,
+        p_max_a=p_max_a,
+        p_max_b=p_max_b,
+    )
+    early_cap_a, early_cap_b = _best_multi_product_capacity_prices(
+        alpha_a=early_alpha_a,
+        own_beta_a=early_own_a,
+        cross_ab=early_cross_ab,
+        alpha_b=early_alpha_b,
+        own_beta_b=early_own_b,
+        cross_ba=early_cross_ba,
+        p_max_a=p_max_a,
+        p_max_b=p_max_b,
+        inventory_a=inventory_a,
+        inventory_b=inventory_b,
+    )
+    late_cap_a, late_cap_b = _best_multi_product_capacity_prices(
+        alpha_a=late_alpha_a,
+        own_beta_a=late_own_a,
+        cross_ab=late_cross_ab,
+        alpha_b=late_alpha_b,
+        own_beta_b=late_own_b,
+        cross_ba=late_cross_ba,
+        p_max_a=p_max_a,
+        p_max_b=p_max_b,
+        inventory_a=inventory_a,
+        inventory_b=inventory_b,
+    )
+    early_a_grid = _markdown_price_candidates(
+        p_max_a,
+        salvage_value_a,
+        (early_blind_a, early_cap_a, late_cap_a),
+    )
+    early_b_grid = _markdown_price_candidates(
+        p_max_b,
+        salvage_value_b,
+        (early_blind_b, early_cap_b, late_cap_b),
+    )
+    late_a_grid = _markdown_price_candidates(
+        p_max_a,
+        salvage_value_a,
+        (late_blind_a, late_cap_a, early_cap_a),
+    )
+    late_b_grid = _markdown_price_candidates(
+        p_max_b,
+        salvage_value_b,
+        (late_blind_b, late_cap_b, early_cap_b),
+    )
+
+    def objective(
+        price_a_early: float,
+        price_b_early: float,
+        price_a_late: float,
+        price_b_late: float,
+    ) -> float:
+        early_demand_a = max(0.0, early_alpha_a - early_own_a * price_a_early + early_cross_ab * price_b_early)
+        early_demand_b = max(0.0, early_alpha_b - early_own_b * price_b_early + early_cross_ba * price_a_early)
+        early_sold_a = min(early_demand_a, inventory_a)
+        early_sold_b = min(early_demand_b, inventory_b)
+        remaining_a = max(0.0, inventory_a - early_sold_a)
+        remaining_b = max(0.0, inventory_b - early_sold_b)
+        late_demand_a = max(0.0, late_alpha_a - late_own_a * price_a_late + late_cross_ab * price_b_late)
+        late_demand_b = max(0.0, late_alpha_b - late_own_b * price_b_late + late_cross_ba * price_a_late)
+        late_sold_a = min(late_demand_a, remaining_a)
+        late_sold_b = min(late_demand_b, remaining_b)
+        unsold_a = max(0.0, remaining_a - late_sold_a)
+        unsold_b = max(0.0, remaining_b - late_sold_b)
+        return (
+            price_a_early * early_sold_a
+            + price_b_early * early_sold_b
+            + price_a_late * late_sold_a
+            + price_b_late * late_sold_b
+            + salvage_value_a * unsold_a
+            + salvage_value_b * unsold_b
+        )
+
+    best_plan = (0.0, 0.0, 0.0, 0.0)
+    best_value = -1.0
+    for price_a_early in early_a_grid:
+        for price_b_early in early_b_grid:
+            for price_a_late in late_a_grid:
+                for price_b_late in late_b_grid:
+                    value = objective(price_a_early, price_b_early, price_a_late, price_b_late)
+                    if value > best_value:
+                        best_value = value
+                        best_plan = (price_a_early, price_b_early, price_a_late, price_b_late)
+    return best_plan
+
+
+def _markdown_price_candidates(p_max: float, price_floor: float, anchors: tuple[float, ...]) -> list[float]:
+    values = {round(price_floor, 2), round(p_max, 2)}
+    values.update(value for value in _price_grid(p_max, 5.0) if value >= price_floor)
+    for anchor in anchors:
+        for offset in (-7.5, -5.0, -2.5, -1.0, -0.5, 0.0, 0.5, 1.0, 2.5, 5.0, 7.5):
+            values.add(round(clamp(anchor + offset, price_floor, p_max), 2))
+    return sorted(values)
 
 
 def _price_grid(p_max: float, step: float) -> list[float]:
@@ -1865,6 +2476,106 @@ def run_pricing_inventory_markdown_noisy_game(
         task_name="pricing_inventory_markdown_noisy",
         default_cases=INVENTORY_MARKDOWN_NOISY_CASES,
     )
+
+
+def run_pricing_multi_product_markdown_noisy_game(
+    agent: Agent,
+    cases: list[PricingMultiProductMarkdownCase] | None = None,
+) -> dict:
+    cases = cases or MULTI_PRODUCT_MARKDOWN_NOISY_CASES
+    rows = []
+    for case in cases:
+        oracle = multi_product_markdown_oracle_prices(case)
+        myopic = multi_product_markdown_myopic_prices(case)
+        capacity_blind = multi_product_markdown_capacity_blind_prices(case)
+        independent = multi_product_markdown_independent_prices(case)
+        oracle_rev = multi_product_markdown_revenue(case, *oracle)
+        response = agent.complete(PRICING_MULTI_PRODUCT_MARKDOWN_NOISY_SYSTEM, _multi_product_markdown_noisy_prompt(case))
+        parsed = (
+            parse_float("FINAL_PRICE_A_EARLY", response),
+            parse_float("FINAL_PRICE_B_EARLY", response),
+            parse_float("FINAL_PRICE_A_LATE", response),
+            parse_float("FINAL_PRICE_B_LATE", response),
+        )
+        chosen = (
+            clamp(parsed[0], case.salvage_value_a, case.p_max_a) if parsed[0] is not None else None,
+            clamp(parsed[1], case.salvage_value_b, case.p_max_b) if parsed[1] is not None else None,
+            clamp(parsed[2], case.salvage_value_a, case.p_max_a) if parsed[2] is not None else None,
+            clamp(parsed[3], case.salvage_value_b, case.p_max_b) if parsed[3] is not None else None,
+        )
+        parsed_all = all(value is not None for value in chosen)
+        revenue = multi_product_markdown_revenue(case, *chosen) if parsed_all else None
+        price_l1 = sum(abs(chosen[idx] - oracle[idx]) for idx in range(4)) if parsed_all else None
+        myopic_l1 = sum(abs(myopic[idx] - oracle[idx]) for idx in range(4))
+        capacity_blind_l1 = sum(abs(capacity_blind[idx] - oracle[idx]) for idx in range(4))
+        independent_l1 = sum(abs(independent[idx] - oracle[idx]) for idx in range(4))
+        rows.append(
+            {
+                "case": case.key,
+                "oracle_price_a_early": oracle[0],
+                "oracle_price_b_early": oracle[1],
+                "oracle_price_a_late": oracle[2],
+                "oracle_price_b_late": oracle[3],
+                "myopic_price_a_early": myopic[0],
+                "myopic_price_b_early": myopic[1],
+                "myopic_price_a_late": myopic[2],
+                "myopic_price_b_late": myopic[3],
+                "capacity_blind_price_a_early": capacity_blind[0],
+                "capacity_blind_price_b_early": capacity_blind[1],
+                "capacity_blind_price_a_late": capacity_blind[2],
+                "capacity_blind_price_b_late": capacity_blind[3],
+                "independent_price_a_early": independent[0],
+                "independent_price_b_early": independent[1],
+                "independent_price_a_late": independent[2],
+                "independent_price_b_late": independent[3],
+                "chosen_price_a_early": chosen[0],
+                "chosen_price_b_early": chosen[1],
+                "chosen_price_a_late": chosen[2],
+                "chosen_price_b_late": chosen[3],
+                "price_l1_error": price_l1,
+                "oracle_revenue": oracle_rev,
+                "chosen_revenue": revenue,
+                "revenue_gap": oracle_rev - revenue if revenue is not None else None,
+                "myopic_miss": (
+                    parsed_all
+                    and sum(abs(chosen[idx] - myopic[idx]) for idx in range(4)) < 2.0
+                    and myopic_l1 > 5.0
+                ),
+                "capacity_blind_miss": (
+                    parsed_all
+                    and sum(abs(chosen[idx] - capacity_blind[idx]) for idx in range(4)) < 2.0
+                    and capacity_blind_l1 > 5.0
+                ),
+                "independent_miss": (
+                    parsed_all
+                    and sum(abs(chosen[idx] - independent[idx]) for idx in range(4)) < 2.0
+                    and independent_l1 > 5.0
+                ),
+                "raw_response": response,
+            }
+        )
+    errors = [row["price_l1_error"] for row in rows if row["price_l1_error"] is not None]
+    gaps = [row["revenue_gap"] for row in rows if row["revenue_gap"] is not None]
+    parsed_rows = [
+        row
+        for row in rows
+        if row["chosen_price_a_early"] is not None
+        and row["chosen_price_b_early"] is not None
+        and row["chosen_price_a_late"] is not None
+        and row["chosen_price_b_late"] is not None
+    ]
+    return {
+        "task": "pricing_multi_product_markdown_noisy",
+        "agent": agent.name,
+        "n_trials": len(rows),
+        "mean_price_l1_error": sum(errors) / len(errors) if errors else None,
+        "mean_revenue_gap": sum(gaps) / len(gaps) if gaps else None,
+        "parse_rate": len(parsed_rows) / len(rows) if rows else 0.0,
+        "myopic_miss_rate": sum(row["myopic_miss"] for row in rows) / len(rows) if rows else 0.0,
+        "capacity_blind_miss_rate": sum(row["capacity_blind_miss"] for row in rows) / len(rows) if rows else 0.0,
+        "independent_miss_rate": sum(row["independent_miss"] for row in rows) / len(rows) if rows else 0.0,
+        "trials": rows,
+    }
 
 
 def run_pricing_hidden_intervention_game(
@@ -2403,6 +3114,48 @@ def _inventory_markdown_noisy_prompt(case: PricingInventoryMarkdownCase) -> str:
         "Recommend a launch price and later clearance price for the same batch of units. "
         "Launch sales happen first and reduce units available for clearance; leftover units "
         "after clearance recover only the liquidation value."
+    )
+    return "\n".join(lines)
+
+
+def _multi_product_markdown_noisy_prompt(case: PricingMultiProductMarkdownCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"price_ceiling_a={case.p_max_a:.2f}",
+        f"price_ceiling_b={case.p_max_b:.2f}",
+        f"available_units_a={case.inventory_a:.2f}",
+        f"available_units_b={case.inventory_b:.2f}",
+        f"liquidation_value_a={case.salvage_value_a:.2f}",
+        f"liquidation_value_b={case.salvage_value_b:.2f}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note)
+    lines.append("Regional launch and clearance evidence:")
+    lines.extend(
+        (
+            f"  region_row={idx} launch_a_price={early_price_a:.2f}, "
+            f"launch_b_price={early_price_b:.2f}, launch_a_units={early_units_a:.2f}, "
+            f"launch_b_units={early_units_b:.2f}, clearance_a_price={late_price_a:.2f}, "
+            f"clearance_b_price={late_price_b:.2f}, clearance_a_units={late_units_a:.2f}, "
+            f"clearance_b_units={late_units_b:.2f}"
+        )
+        for idx, (
+            early_price_a,
+            early_price_b,
+            early_units_a,
+            early_units_b,
+            late_price_a,
+            late_price_b,
+            late_units_a,
+            late_units_b,
+        ) in enumerate(case.observations, start=1)
+    )
+    lines.append(
+        "Recommend launch prices and later clearance prices for both products. "
+        "Launch sales happen first and reduce each product's units available for clearance. "
+        "The two products can affect each other's unit sales in either window, and leftover "
+        "units after clearance recover only their product-specific liquidation value. "
+        "Do not price either product below its liquidation value."
     )
     return "\n".join(lines)
 
