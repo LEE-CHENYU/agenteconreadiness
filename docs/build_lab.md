@@ -82,6 +82,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `pricing_inventory_markdown` | Sequential markdown pricing: choose early and late prices for one shared inventory pool, catching myopic single-period pricing that sells through stock before the later window. | `python -m aeread_lab.cli --task pricing_inventory_markdown --agent offline:oracle` |
 | `pricing_inventory_markdown_noisy` | Noisy sequential markdown pricing: infer launch and clearance demand from lumpy regional rows before choosing prices for one shared stock pool. | `python -m aeread_lab.cli --task pricing_inventory_markdown_noisy --agent offline:oracle` |
 | `pricing_multi_product_markdown_noisy` | Noisy two-product sequential markdown pricing: infer cross-demand in launch and clearance windows, then choose four prices under product-specific stock, depletion, and liquidation floors. | `python -m aeread_lab.cli --task pricing_multi_product_markdown_noisy --agent offline:oracle` |
+| `pricing_inventory_replenishment_noisy` | Noisy sequential replenishment pricing: infer launch and clearance demand, then choose launch price, mid-campaign restock quantity, and clearance price under setup cost, unit cost, storage capacity, and liquidation value. | `python -m aeread_lab.cli --task pricing_inventory_replenishment_noisy --agent offline:oracle` |
 | `pricing_hidden_intervention` | Hidden-intervention pricing: remove fixed intervention units and exposure multipliers from observed sales before fitting normal demand and choosing the next campaign price. | `python -m aeread_lab.cli --task pricing_hidden_intervention --agent offline:oracle` |
 | `pricing_law_audit` | Cross-domain generator-verifier audit for pricing: classify generated comparative-static claims about the revenue-maximizing price as valid or invalid under demand and cap changes. | `python -m aeread_lab.cli --task pricing_law_audit --agent offline:oracle` |
 | `pricing_evidence_law_audit` | Evidence-derived pricing-law audit: classify price-movement claims from baseline and updated sales rows, without exposing alpha/beta demand parameters. | `python -m aeread_lab.cli --task pricing_evidence_law_audit --agent offline:oracle` |
@@ -306,6 +307,10 @@ interpreting the economic metric.
   under lumpy launch/clearance cross-demand, product-specific stock depletion,
   and liquidation-value price floors; myopic, capacity-blind, and independent
   miss rates are reported separately.
+- `pricing_inventory_replenishment_noisy`: lower launch-price/restock/clearance
+  decision L1 error is better under lumpy evidence, restock setup cost, unit
+  cost, storage capacity, and liquidation value; no-restock, myopic, and
+  capacity-fill miss rates are reported separately.
 - `pricing_hidden_intervention`: lower price error to the intervention-adjusted
   demand optimum is better; intervention-blind miss reports fits that treat
   non-price lift as normal demand.

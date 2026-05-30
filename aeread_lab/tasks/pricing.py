@@ -60,6 +60,13 @@ PRICING_MULTI_PRODUCT_MARKDOWN_NOISY_SYSTEM = (
     "FINAL_PRICE_A_LATE: <number>, and FINAL_PRICE_B_LATE: <number>."
 )
 
+PRICING_INVENTORY_REPLENISHMENT_NOISY_SYSTEM = (
+    "TASK: pricing_inventory_replenishment_noisy_plan\n"
+    "Choose a launch price, replenishment quantity, and clearance price using lumpy regional evidence. "
+    "Return three final lines only: FINAL_PRICE_EARLY: <number>, "
+    "FINAL_REPLENISHMENT_UNITS: <number>, and FINAL_PRICE_LATE: <number>."
+)
+
 PRICING_HIDDEN_INTERVENTION_SYSTEM = (
     "TASK: pricing_hidden_intervention_price\n"
     "Choose the price for the next normal campaign after accounting for non-price interventions. "
@@ -132,6 +139,21 @@ class PricingInventoryMarkdownCase:
     p_max_early: float
     p_max_late: float
     inventory: float
+    salvage_value: float
+    observations: tuple[tuple[float, float, float, float], ...]
+    scenario_note: str = ""
+
+
+@dataclass(frozen=True)
+class PricingInventoryReplenishmentCase:
+    key: str
+    p_max_early: float
+    p_max_late: float
+    starting_inventory: float
+    max_replenishment_units: float
+    storage_capacity: float
+    replenishment_unit_cost: float
+    replenishment_setup_cost: float
     salvage_value: float
     observations: tuple[tuple[float, float, float, float], ...]
     scenario_note: str = ""
@@ -804,6 +826,110 @@ INVENTORY_MARKDOWN_NOISY_CASES = [
         scenario_note=(
             "Clearance data are lumpy, and the launch channel can drain inventory unless "
             "the launch price is set above the single-period optimum."
+        ),
+        observations=_noisy_markdown_observations(
+            182.0,
+            2.85,
+            132.0,
+            1.62,
+            70.0,
+            68.0,
+            (6.0, -3.5, 5.0, -5.5, 4.0, -4.5, 2.0),
+            (-4.0, 5.0, -3.0, 4.5, -5.5, 3.5, -2.0),
+        ),
+    ),
+]
+
+
+INVENTORY_REPLENISHMENT_NOISY_CASES = [
+    PricingInventoryReplenishmentCase(
+        key="noisy_replenishment_01",
+        p_max_early=60.0,
+        p_max_late=55.0,
+        starting_inventory=52.0,
+        max_replenishment_units=45.0,
+        storage_capacity=90.0,
+        replenishment_unit_cost=18.0,
+        replenishment_setup_cost=120.0,
+        salvage_value=4.0,
+        scenario_note=(
+            "Launch rows are lumpy, and the later channel can absorb extra units if the "
+            "mid-campaign buy is worth its unit and setup cost."
+        ),
+        observations=_noisy_markdown_observations(
+            172.0,
+            3.25,
+            151.0,
+            2.0,
+            60.0,
+            55.0,
+            (4.0, -5.0, 6.5, -3.5, 2.0, -4.5, 3.0),
+            (-3.0, 5.5, -4.0, 3.0, -5.0, 4.0, -2.5),
+        ),
+    ),
+    PricingInventoryReplenishmentCase(
+        key="noisy_replenishment_02",
+        p_max_early=58.0,
+        p_max_late=60.0,
+        starting_inventory=46.0,
+        max_replenishment_units=60.0,
+        storage_capacity=95.0,
+        replenishment_unit_cost=20.0,
+        replenishment_setup_cost=140.0,
+        salvage_value=5.0,
+        scenario_note=(
+            "The follow-up channel is price-tolerant, but launch sell-through and restock "
+            "cost jointly determine whether buying more units is worthwhile."
+        ),
+        observations=_noisy_markdown_observations(
+            132.0,
+            2.45,
+            202.0,
+            3.05,
+            58.0,
+            60.0,
+            (5.0, -4.0, 4.0, -6.0, 3.0, -5.5, 2.5),
+            (-4.5, 3.0, -3.5, 5.0, -2.0, 4.5, -3.0),
+        ),
+    ),
+    PricingInventoryReplenishmentCase(
+        key="noisy_replenishment_03",
+        p_max_early=65.0,
+        p_max_late=62.0,
+        starting_inventory=78.0,
+        max_replenishment_units=55.0,
+        storage_capacity=124.0,
+        replenishment_unit_cost=23.0,
+        replenishment_setup_cost=165.0,
+        salvage_value=6.0,
+        scenario_note=(
+            "Broad launch demand can stock out the batch, while the late channel is still "
+            "valuable enough that a partial replenishment may dominate simply preserving units."
+        ),
+        observations=_noisy_markdown_observations(
+            262.0,
+            4.45,
+            212.0,
+            3.05,
+            65.0,
+            62.0,
+            (7.0, -6.0, 4.5, -5.0, 6.0, -4.0, 3.5),
+            (-5.0, 4.0, -6.0, 5.5, -3.0, 4.5, -2.5),
+        ),
+    ),
+    PricingInventoryReplenishmentCase(
+        key="noisy_replenishment_04",
+        p_max_early=70.0,
+        p_max_late=68.0,
+        starting_inventory=58.0,
+        max_replenishment_units=62.0,
+        storage_capacity=108.0,
+        replenishment_unit_cost=24.0,
+        replenishment_setup_cost=150.0,
+        salvage_value=3.0,
+        scenario_note=(
+            "The launch channel can drain inventory quickly; the clearance channel is smaller "
+            "but has enough margin that a restock can be better than a high launch price alone."
         ),
         observations=_noisy_markdown_observations(
             182.0,
@@ -1583,6 +1709,93 @@ def inventory_markdown_myopic_prices(case: PricingInventoryMarkdownCase) -> tupl
     )
 
 
+def inventory_replenishment_posterior(case: PricingInventoryReplenishmentCase) -> tuple[float, float, float, float]:
+    early_alpha, early_beta = _ols_fit([(price, units) for price, units, _, _ in case.observations])
+    late_alpha, late_beta = _ols_fit([(price, units) for _, _, price, units in case.observations])
+    return early_alpha, early_beta, late_alpha, late_beta
+
+
+def inventory_replenishment_revenue(
+    case: PricingInventoryReplenishmentCase,
+    price_early: float,
+    replenishment_units: float,
+    price_late: float,
+) -> float:
+    early_alpha, early_beta, late_alpha, late_beta = inventory_replenishment_posterior(case)
+    early_demand = max(0.0, early_alpha - early_beta * price_early)
+    early_sold = min(early_demand, case.starting_inventory)
+    remaining = max(0.0, case.starting_inventory - early_sold)
+    ordered = clamp(replenishment_units, 0.0, case.max_replenishment_units)
+    received = min(ordered, max(0.0, case.storage_capacity - remaining))
+    replenishment_cost = (
+        case.replenishment_setup_cost + case.replenishment_unit_cost * received
+        if received > 1e-9
+        else 0.0
+    )
+    late_inventory = remaining + received
+    late_demand = max(0.0, late_alpha - late_beta * price_late)
+    late_sold = min(late_demand, late_inventory)
+    unsold = max(0.0, late_inventory - late_sold)
+    return price_early * early_sold + price_late * late_sold + case.salvage_value * unsold - replenishment_cost
+
+
+def inventory_replenishment_oracle_plan(case: PricingInventoryReplenishmentCase) -> tuple[float, float, float]:
+    early_alpha, early_beta, late_alpha, late_beta = inventory_replenishment_posterior(case)
+    return _best_inventory_replenishment_plan(
+        early_alpha=early_alpha,
+        early_beta=early_beta,
+        late_alpha=late_alpha,
+        late_beta=late_beta,
+        p_max_early=case.p_max_early,
+        p_max_late=case.p_max_late,
+        starting_inventory=case.starting_inventory,
+        max_replenishment_units=case.max_replenishment_units,
+        storage_capacity=case.storage_capacity,
+        replenishment_unit_cost=case.replenishment_unit_cost,
+        replenishment_setup_cost=case.replenishment_setup_cost,
+        salvage_value=case.salvage_value,
+    )
+
+
+def inventory_replenishment_no_restock_plan(case: PricingInventoryReplenishmentCase) -> tuple[float, float, float]:
+    early_alpha, early_beta, late_alpha, late_beta = inventory_replenishment_posterior(case)
+    price_early, price_late = _best_inventory_markdown_prices(
+        early_alpha=early_alpha,
+        early_beta=early_beta,
+        late_alpha=late_alpha,
+        late_beta=late_beta,
+        p_max_early=case.p_max_early,
+        p_max_late=case.p_max_late,
+        inventory=case.starting_inventory,
+        salvage_value=case.salvage_value,
+    )
+    return price_early, 0.0, price_late
+
+
+def inventory_replenishment_myopic_plan(case: PricingInventoryReplenishmentCase) -> tuple[float, float, float]:
+    early_alpha, early_beta, late_alpha, late_beta = inventory_replenishment_posterior(case)
+    price_early = clamp(early_alpha / (2.0 * early_beta), 0.0, case.p_max_early)
+    price_late = clamp(late_alpha / (2.0 * late_beta), 0.0, case.p_max_late)
+    early_demand = max(0.0, early_alpha - early_beta * price_early)
+    remaining = max(0.0, case.starting_inventory - min(early_demand, case.starting_inventory))
+    late_margin = price_late - case.replenishment_unit_cost
+    order_units = (
+        min(case.max_replenishment_units, max(0.0, case.storage_capacity - remaining))
+        if late_margin > case.salvage_value
+        else 0.0
+    )
+    return price_early, order_units, price_late
+
+
+def inventory_replenishment_capacity_fill_plan(case: PricingInventoryReplenishmentCase) -> tuple[float, float, float]:
+    price_early, _, price_late = inventory_replenishment_myopic_plan(case)
+    early_alpha, early_beta, _, _ = inventory_replenishment_posterior(case)
+    early_demand = max(0.0, early_alpha - early_beta * price_early)
+    remaining = max(0.0, case.starting_inventory - min(early_demand, case.starting_inventory))
+    order_units = min(case.max_replenishment_units, max(0.0, case.storage_capacity - remaining))
+    return price_early, order_units, price_late
+
+
 def multi_product_markdown_posterior(
     case: PricingMultiProductMarkdownCase,
 ) -> tuple[float, float, float, float, float, float, float, float, float, float, float, float]:
@@ -1923,6 +2136,94 @@ def _best_inventory_markdown_prices(
                 best_value = value
                 best_pair = (price_early, price_late)
     return best_pair
+
+
+def _best_inventory_replenishment_plan(
+    *,
+    early_alpha: float,
+    early_beta: float,
+    late_alpha: float,
+    late_beta: float,
+    p_max_early: float,
+    p_max_late: float,
+    starting_inventory: float,
+    max_replenishment_units: float,
+    storage_capacity: float,
+    replenishment_unit_cost: float,
+    replenishment_setup_cost: float,
+    salvage_value: float,
+) -> tuple[float, float, float]:
+    early_myopic = clamp(early_alpha / (2.0 * early_beta), 0.0, p_max_early)
+    late_myopic = clamp(late_alpha / (2.0 * late_beta), 0.0, p_max_late)
+    no_restock_early, no_restock_late = _best_inventory_markdown_prices(
+        early_alpha=early_alpha,
+        early_beta=early_beta,
+        late_alpha=late_alpha,
+        late_beta=late_beta,
+        p_max_early=p_max_early,
+        p_max_late=p_max_late,
+        inventory=starting_inventory,
+        salvage_value=salvage_value,
+    )
+    early_grid = _markdown_price_candidates(
+        p_max_early,
+        0.0,
+        (early_myopic, no_restock_early),
+    )
+    late_grid = _markdown_price_candidates(
+        p_max_late,
+        0.0,
+        (late_myopic, no_restock_late, replenishment_unit_cost + 5.0),
+    )
+    quantity_grid = _replenishment_quantity_candidates(
+        max_replenishment_units=max_replenishment_units,
+        storage_capacity=storage_capacity,
+        starting_inventory=starting_inventory,
+    )
+
+    def objective(price_early: float, replenishment_units: float, price_late: float) -> float:
+        early_demand = max(0.0, early_alpha - early_beta * price_early)
+        early_sold = min(early_demand, starting_inventory)
+        remaining = max(0.0, starting_inventory - early_sold)
+        received = min(replenishment_units, max(0.0, storage_capacity - remaining))
+        replenishment_cost = (
+            replenishment_setup_cost + replenishment_unit_cost * received
+            if received > 1e-9
+            else 0.0
+        )
+        late_inventory = remaining + received
+        late_demand = max(0.0, late_alpha - late_beta * price_late)
+        late_sold = min(late_demand, late_inventory)
+        unsold = max(0.0, late_inventory - late_sold)
+        return price_early * early_sold + price_late * late_sold + salvage_value * unsold - replenishment_cost
+
+    best_plan = (0.0, 0.0, 0.0)
+    best_value = -1e18
+    for price_early in early_grid:
+        for replenishment_units in quantity_grid:
+            for price_late in late_grid:
+                value = objective(price_early, replenishment_units, price_late)
+                if value > best_value:
+                    best_value = value
+                    best_plan = (price_early, replenishment_units, price_late)
+    return best_plan
+
+
+def _replenishment_quantity_candidates(
+    *,
+    max_replenishment_units: float,
+    storage_capacity: float,
+    starting_inventory: float,
+) -> list[float]:
+    values = {0.0, round(max_replenishment_units, 2)}
+    useful_capacity = clamp(storage_capacity - starting_inventory, 0.0, max_replenishment_units)
+    values.add(round(useful_capacity, 2))
+    step = 5.0
+    count = int(max_replenishment_units / step)
+    values.update(round(idx * step, 2) for idx in range(count + 1))
+    if count * step < max_replenishment_units:
+        values.add(round(max_replenishment_units, 2))
+    return sorted(values)
 
 
 def _best_multi_product_markdown_prices(
@@ -2476,6 +2777,101 @@ def run_pricing_inventory_markdown_noisy_game(
         task_name="pricing_inventory_markdown_noisy",
         default_cases=INVENTORY_MARKDOWN_NOISY_CASES,
     )
+
+
+def run_pricing_inventory_replenishment_noisy_game(
+    agent: Agent,
+    cases: list[PricingInventoryReplenishmentCase] | None = None,
+) -> dict:
+    cases = cases or INVENTORY_REPLENISHMENT_NOISY_CASES
+    rows = []
+    for case in cases:
+        oracle = inventory_replenishment_oracle_plan(case)
+        no_restock = inventory_replenishment_no_restock_plan(case)
+        myopic = inventory_replenishment_myopic_plan(case)
+        capacity_fill = inventory_replenishment_capacity_fill_plan(case)
+        oracle_rev = inventory_replenishment_revenue(case, *oracle)
+        response = agent.complete(
+            PRICING_INVENTORY_REPLENISHMENT_NOISY_SYSTEM,
+            _inventory_replenishment_noisy_prompt(case),
+        )
+        parsed = (
+            parse_float("FINAL_PRICE_EARLY", response),
+            parse_float("FINAL_REPLENISHMENT_UNITS", response),
+            parse_float("FINAL_PRICE_LATE", response),
+        )
+        chosen = (
+            clamp(parsed[0], 0.0, case.p_max_early) if parsed[0] is not None else None,
+            clamp(parsed[1], 0.0, case.max_replenishment_units) if parsed[1] is not None else None,
+            clamp(parsed[2], 0.0, case.p_max_late) if parsed[2] is not None else None,
+        )
+        parsed_all = all(value is not None for value in chosen)
+        revenue = inventory_replenishment_revenue(case, *chosen) if parsed_all else None
+        decision_l1 = sum(abs(chosen[idx] - oracle[idx]) for idx in range(3)) if parsed_all else None
+        no_restock_l1 = sum(abs(no_restock[idx] - oracle[idx]) for idx in range(3))
+        myopic_l1 = sum(abs(myopic[idx] - oracle[idx]) for idx in range(3))
+        capacity_fill_l1 = sum(abs(capacity_fill[idx] - oracle[idx]) for idx in range(3))
+        rows.append(
+            {
+                "case": case.key,
+                "oracle_price_early": oracle[0],
+                "oracle_replenishment_units": oracle[1],
+                "oracle_price_late": oracle[2],
+                "no_restock_price_early": no_restock[0],
+                "no_restock_replenishment_units": no_restock[1],
+                "no_restock_price_late": no_restock[2],
+                "myopic_price_early": myopic[0],
+                "myopic_replenishment_units": myopic[1],
+                "myopic_price_late": myopic[2],
+                "capacity_fill_price_early": capacity_fill[0],
+                "capacity_fill_replenishment_units": capacity_fill[1],
+                "capacity_fill_price_late": capacity_fill[2],
+                "chosen_price_early": chosen[0],
+                "chosen_replenishment_units": chosen[1],
+                "chosen_price_late": chosen[2],
+                "decision_l1_error": decision_l1,
+                "oracle_revenue": oracle_rev,
+                "chosen_revenue": revenue,
+                "revenue_gap": oracle_rev - revenue if revenue is not None else None,
+                "no_restock_miss": (
+                    parsed_all
+                    and sum(abs(chosen[idx] - no_restock[idx]) for idx in range(3)) < 2.0
+                    and no_restock_l1 > 5.0
+                ),
+                "myopic_miss": (
+                    parsed_all
+                    and sum(abs(chosen[idx] - myopic[idx]) for idx in range(3)) < 2.0
+                    and myopic_l1 > 5.0
+                ),
+                "capacity_fill_miss": (
+                    parsed_all
+                    and sum(abs(chosen[idx] - capacity_fill[idx]) for idx in range(3)) < 2.0
+                    and capacity_fill_l1 > 5.0
+                ),
+                "raw_response": response,
+            }
+        )
+    errors = [row["decision_l1_error"] for row in rows if row["decision_l1_error"] is not None]
+    gaps = [row["revenue_gap"] for row in rows if row["revenue_gap"] is not None]
+    parsed_rows = [
+        row
+        for row in rows
+        if row["chosen_price_early"] is not None
+        and row["chosen_replenishment_units"] is not None
+        and row["chosen_price_late"] is not None
+    ]
+    return {
+        "task": "pricing_inventory_replenishment_noisy",
+        "agent": agent.name,
+        "n_trials": len(rows),
+        "mean_decision_l1_error": sum(errors) / len(errors) if errors else None,
+        "mean_revenue_gap": sum(gaps) / len(gaps) if gaps else None,
+        "parse_rate": len(parsed_rows) / len(rows) if rows else 0.0,
+        "no_restock_miss_rate": sum(row["no_restock_miss"] for row in rows) / len(rows) if rows else 0.0,
+        "myopic_miss_rate": sum(row["myopic_miss"] for row in rows) / len(rows) if rows else 0.0,
+        "capacity_fill_miss_rate": sum(row["capacity_fill_miss"] for row in rows) / len(rows) if rows else 0.0,
+        "trials": rows,
+    }
 
 
 def run_pricing_multi_product_markdown_noisy_game(
@@ -3114,6 +3510,38 @@ def _inventory_markdown_noisy_prompt(case: PricingInventoryMarkdownCase) -> str:
         "Recommend a launch price and later clearance price for the same batch of units. "
         "Launch sales happen first and reduce units available for clearance; leftover units "
         "after clearance recover only the liquidation value."
+    )
+    return "\n".join(lines)
+
+
+def _inventory_replenishment_noisy_prompt(case: PricingInventoryReplenishmentCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"launch_price_ceiling={case.p_max_early:.2f}",
+        f"clearance_price_ceiling={case.p_max_late:.2f}",
+        f"starting_units={case.starting_inventory:.2f}",
+        f"max_replenishment_units={case.max_replenishment_units:.2f}",
+        f"storage_capacity={case.storage_capacity:.2f}",
+        f"replenishment_unit_cost={case.replenishment_unit_cost:.2f}",
+        f"replenishment_setup_cost={case.replenishment_setup_cost:.2f}",
+        f"liquidation_value={case.salvage_value:.2f}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note)
+    lines.append("Regional campaign evidence:")
+    lines.extend(
+        (
+            f"  region_row={idx} launch_price={early_price:.2f}, launch_units={early_units:.2f}, "
+            f"clearance_price={late_price:.2f}, clearance_units={late_units:.2f}"
+        )
+        for idx, (early_price, early_units, late_price, late_units) in enumerate(case.observations, start=1)
+    )
+    lines.append(
+        "Recommend a launch price, the units to buy after the launch window, and a later "
+        "clearance price. Launch sales happen before the replenishment decision; received "
+        "replenishment cannot exceed the max units or the storage space left after launch. "
+        "A positive replenishment pays both the unit cost for received units and the setup cost. "
+        "Leftover units after clearance recover only the liquidation value."
     )
     return "\n".join(lines)
 

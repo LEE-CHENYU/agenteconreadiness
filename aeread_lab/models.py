@@ -124,6 +124,8 @@ class OfflineAgent:
             return self._pricing_inventory_markdown_prices(user)
         if "TASK: pricing_multi_product_markdown_noisy_prices" in system:
             return self._pricing_multi_product_markdown_noisy_prices(user)
+        if "TASK: pricing_inventory_replenishment_noisy_plan" in system:
+            return self._pricing_inventory_replenishment_noisy_plan(user)
         if "TASK: pricing_hidden_intervention_price" in system:
             return self._pricing_hidden_intervention_price(user)
         if "TASK: pricing_law_label" in system:
@@ -688,6 +690,73 @@ class OfflineAgent:
             f"FINAL_PRICE_B_EARLY: {price_b_early:.2f}\n"
             f"FINAL_PRICE_A_LATE: {price_a_late:.2f}\n"
             f"FINAL_PRICE_B_LATE: {price_b_late:.2f}"
+        )
+
+    def _pricing_inventory_replenishment_noisy_plan(self, user: str) -> str:
+        p_max_early = _extract_float(user, "launch_price_ceiling", _extract_float(user, "p_max_early", 1e9))
+        p_max_late = _extract_float(user, "clearance_price_ceiling", _extract_float(user, "p_max_late", 1e9))
+        starting_inventory = _extract_float(user, "starting_units", _extract_float(user, "starting_inventory", math.inf))
+        max_replenishment_units = _extract_float(user, "max_replenishment_units", 0.0)
+        storage_capacity = _extract_float(user, "storage_capacity", starting_inventory + max_replenishment_units)
+        replenishment_unit_cost = _extract_float(user, "replenishment_unit_cost", 0.0)
+        replenishment_setup_cost = _extract_float(user, "replenishment_setup_cost", 0.0)
+        salvage_value = _extract_float(user, "liquidation_value", _extract_float(user, "salvage_value", 0.0))
+        rows = _extract_inventory_markdown_rows(user) or _extract_inventory_markdown_natural_rows(user)
+        fit_early = _fit_pricing_rows([(price, units) for price, units, _, _ in rows])
+        fit_late = _fit_pricing_rows([(price, units) for _, _, price, units in rows])
+        early_alpha, early_beta = fit_early if fit_early is not None else (1.0, 1.0)
+        late_alpha, late_beta = fit_late if fit_late is not None else (1.0, 1.0)
+        if self.policy in {"no_restock", "no_replenishment", "replenishment_blind"}:
+            price_early, price_late = _best_inventory_markdown_prices(
+                early_alpha=early_alpha,
+                early_beta=early_beta,
+                late_alpha=late_alpha,
+                late_beta=late_beta,
+                p_max_early=p_max_early,
+                p_max_late=p_max_late,
+                inventory=starting_inventory,
+                salvage_value=salvage_value,
+            )
+            replenishment_units = 0.0
+        elif self.policy in {"myopic", "single_period"}:
+            price_early = max(0.0, min(p_max_early, early_alpha / (2.0 * max(early_beta, 1e-9))))
+            price_late = max(0.0, min(p_max_late, late_alpha / (2.0 * max(late_beta, 1e-9))))
+            early_demand = max(0.0, early_alpha - early_beta * price_early)
+            remaining = max(0.0, starting_inventory - min(early_demand, starting_inventory))
+            replenishment_units = (
+                min(max_replenishment_units, max(0.0, storage_capacity - remaining))
+                if price_late - replenishment_unit_cost > salvage_value
+                else 0.0
+            )
+        elif self.policy in {"capacity_fill", "fill_capacity", "order_up"}:
+            price_early = max(0.0, min(p_max_early, early_alpha / (2.0 * max(early_beta, 1e-9))))
+            price_late = max(0.0, min(p_max_late, late_alpha / (2.0 * max(late_beta, 1e-9))))
+            early_demand = max(0.0, early_alpha - early_beta * price_early)
+            remaining = max(0.0, starting_inventory - min(early_demand, starting_inventory))
+            replenishment_units = min(max_replenishment_units, max(0.0, storage_capacity - remaining))
+        else:
+            price_early, replenishment_units, price_late = _best_inventory_replenishment_plan(
+                early_alpha=early_alpha,
+                early_beta=early_beta,
+                late_alpha=late_alpha,
+                late_beta=late_beta,
+                p_max_early=p_max_early,
+                p_max_late=p_max_late,
+                starting_inventory=starting_inventory,
+                max_replenishment_units=max_replenishment_units,
+                storage_capacity=storage_capacity,
+                replenishment_unit_cost=replenishment_unit_cost,
+                replenishment_setup_cost=replenishment_setup_cost,
+                salvage_value=salvage_value,
+            )
+        if self.policy == "round":
+            price_early = round(price_early / 10.0) * 10.0
+            replenishment_units = round(replenishment_units / 10.0) * 10.0
+            price_late = round(price_late / 10.0) * 10.0
+        return (
+            f"FINAL_PRICE_EARLY: {price_early:.2f}\n"
+            f"FINAL_REPLENISHMENT_UNITS: {replenishment_units:.2f}\n"
+            f"FINAL_PRICE_LATE: {price_late:.2f}"
         )
 
     def _pricing_hidden_intervention_price(self, user: str) -> str:
@@ -3092,6 +3161,94 @@ def _best_inventory_markdown_prices(
                 best_value = value
                 best_pair = (price_early, price_late)
     return best_pair
+
+
+def _best_inventory_replenishment_plan(
+    *,
+    early_alpha: float,
+    early_beta: float,
+    late_alpha: float,
+    late_beta: float,
+    p_max_early: float,
+    p_max_late: float,
+    starting_inventory: float,
+    max_replenishment_units: float,
+    storage_capacity: float,
+    replenishment_unit_cost: float,
+    replenishment_setup_cost: float,
+    salvage_value: float,
+) -> tuple[float, float, float]:
+    early_myopic = max(0.0, min(p_max_early, early_alpha / (2.0 * max(early_beta, 1e-9))))
+    late_myopic = max(0.0, min(p_max_late, late_alpha / (2.0 * max(late_beta, 1e-9))))
+    no_restock_early, no_restock_late = _best_inventory_markdown_prices(
+        early_alpha=early_alpha,
+        early_beta=early_beta,
+        late_alpha=late_alpha,
+        late_beta=late_beta,
+        p_max_early=p_max_early,
+        p_max_late=p_max_late,
+        inventory=starting_inventory,
+        salvage_value=salvage_value,
+    )
+    early_grid = _markdown_price_candidates(
+        p_max_early,
+        0.0,
+        (early_myopic, no_restock_early),
+    )
+    late_grid = _markdown_price_candidates(
+        p_max_late,
+        0.0,
+        (late_myopic, no_restock_late, replenishment_unit_cost + 5.0),
+    )
+    quantity_grid = _replenishment_quantity_candidates(
+        max_replenishment_units=max_replenishment_units,
+        storage_capacity=storage_capacity,
+        starting_inventory=starting_inventory,
+    )
+
+    def objective(price_early: float, replenishment_units: float, price_late: float) -> float:
+        early_demand = max(0.0, early_alpha - early_beta * price_early)
+        early_sold = min(early_demand, starting_inventory)
+        remaining = max(0.0, starting_inventory - early_sold)
+        received = min(replenishment_units, max(0.0, storage_capacity - remaining))
+        replenishment_cost = (
+            replenishment_setup_cost + replenishment_unit_cost * received
+            if received > 1e-9
+            else 0.0
+        )
+        late_inventory = remaining + received
+        late_demand = max(0.0, late_alpha - late_beta * price_late)
+        late_sold = min(late_demand, late_inventory)
+        unsold = max(0.0, late_inventory - late_sold)
+        return price_early * early_sold + price_late * late_sold + salvage_value * unsold - replenishment_cost
+
+    best_plan = (0.0, 0.0, 0.0)
+    best_value = -1e18
+    for price_early in early_grid:
+        for replenishment_units in quantity_grid:
+            for price_late in late_grid:
+                value = objective(price_early, replenishment_units, price_late)
+                if value > best_value:
+                    best_value = value
+                    best_plan = (price_early, replenishment_units, price_late)
+    return best_plan
+
+
+def _replenishment_quantity_candidates(
+    *,
+    max_replenishment_units: float,
+    storage_capacity: float,
+    starting_inventory: float,
+) -> list[float]:
+    values = {0.0, round(max_replenishment_units, 2)}
+    useful_capacity = max(0.0, min(max_replenishment_units, storage_capacity - starting_inventory))
+    values.add(round(useful_capacity, 2))
+    step = 5.0
+    count = int(max_replenishment_units / step)
+    values.update(round(idx * step, 2) for idx in range(count + 1))
+    if count * step < max_replenishment_units:
+        values.add(round(max_replenishment_units, 2))
+    return sorted(values)
 
 
 def _best_multi_product_markdown_prices(

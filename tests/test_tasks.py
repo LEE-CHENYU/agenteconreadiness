@@ -138,6 +138,9 @@ from aeread_lab.tasks.pricing import HIDDEN_INTERVENTION_CASES as PRICING_HIDDEN
 from aeread_lab.tasks.pricing import INVENTORY_MARKDOWN_CASES as PRICING_INVENTORY_MARKDOWN_CASES
 from aeread_lab.tasks.pricing import INVENTORY_MARKDOWN_NOISY_CASES as PRICING_INVENTORY_MARKDOWN_NOISY_CASES
 from aeread_lab.tasks.pricing import (
+    INVENTORY_REPLENISHMENT_NOISY_CASES as PRICING_INVENTORY_REPLENISHMENT_NOISY_CASES,
+)
+from aeread_lab.tasks.pricing import (
     MULTI_PRODUCT_MARKDOWN_NOISY_CASES as PRICING_MULTI_MARKDOWN_NOISY_CASES,
 )
 from aeread_lab.tasks.pricing import (
@@ -150,6 +153,9 @@ from aeread_lab.tasks.pricing import _cross_elasticity_prompt as pricing_cross_p
 from aeread_lab.tasks.pricing import _evidence_law_audit_prompt as pricing_evidence_law_prompt
 from aeread_lab.tasks.pricing import _inventory_markdown_noisy_prompt as pricing_inventory_markdown_noisy_prompt
 from aeread_lab.tasks.pricing import _inventory_markdown_prompt as pricing_inventory_markdown_prompt
+from aeread_lab.tasks.pricing import (
+    _inventory_replenishment_noisy_prompt as pricing_inventory_replenishment_noisy_prompt,
+)
 from aeread_lab.tasks.pricing import _hidden_intervention_prompt as pricing_hidden_intervention_prompt
 from aeread_lab.tasks.pricing import _law_audit_prompt as pricing_law_audit_prompt
 from aeread_lab.tasks.pricing import (
@@ -170,6 +176,7 @@ from aeread_lab.tasks.pricing import run_pricing_game
 from aeread_lab.tasks.pricing import run_pricing_hidden_intervention_game
 from aeread_lab.tasks.pricing import run_pricing_inventory_markdown_game
 from aeread_lab.tasks.pricing import run_pricing_inventory_markdown_noisy_game
+from aeread_lab.tasks.pricing import run_pricing_inventory_replenishment_noisy_game
 from aeread_lab.tasks.pricing import run_pricing_law_audit_game
 from aeread_lab.tasks.pricing import run_pricing_multi_product_markdown_noisy_game
 from aeread_lab.tasks.pricing import run_pricing_multi_product_capacity_noisy_game
@@ -359,6 +366,11 @@ class TaskSmokeTests(unittest.TestCase):
         results = run_tasks("pricing_multi_product_markdown_noisy", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_price_l1_error"], 0.01)
+
+    def test_sample_limit_slices_pricing_inventory_replenishment_noisy_cases(self):
+        results = run_tasks("pricing_inventory_replenishment_noisy", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_decision_l1_error"], 0.01)
 
     def test_sample_limit_slices_pricing_hidden_intervention_cases(self):
         results = run_tasks("pricing_hidden_intervention", OfflineAgent("oracle"), sample_limit=1)
@@ -736,6 +748,24 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(independent["mean_price_l1_error"], 5.0)
         self.assertGreater(independent["independent_miss_rate"], 0.5)
 
+    def test_pricing_inventory_replenishment_noisy_flags_restock_and_myopic_plans(self):
+        configured = run_pricing_inventory_replenishment_noisy_game(OfflineAgent("oracle"))
+        no_restock = run_pricing_inventory_replenishment_noisy_game(OfflineAgent("no_restock"))
+        myopic = run_pricing_inventory_replenishment_noisy_game(OfflineAgent("myopic"))
+        capacity_fill = run_pricing_inventory_replenishment_noisy_game(OfflineAgent("capacity_fill"))
+        self.assertEqual(configured["task"], "pricing_inventory_replenishment_noisy")
+        self.assertEqual(configured["n_trials"], len(PRICING_INVENTORY_REPLENISHMENT_NOISY_CASES))
+        self.assertLess(configured["mean_decision_l1_error"], 0.01)
+        self.assertEqual(configured["no_restock_miss_rate"], 0.0)
+        self.assertEqual(configured["myopic_miss_rate"], 0.0)
+        self.assertEqual(configured["capacity_fill_miss_rate"], 0.0)
+        self.assertGreater(no_restock["mean_decision_l1_error"], 20.0)
+        self.assertEqual(no_restock["no_restock_miss_rate"], 1.0)
+        self.assertGreater(myopic["mean_decision_l1_error"], 20.0)
+        self.assertEqual(myopic["myopic_miss_rate"], 1.0)
+        self.assertGreater(capacity_fill["mean_decision_l1_error"], 20.0)
+        self.assertEqual(capacity_fill["capacity_fill_miss_rate"], 1.0)
+
     def test_pricing_hidden_intervention_flags_lift_blind_pricing(self):
         configured = run_pricing_hidden_intervention_game(OfflineAgent("oracle"))
         blind = run_pricing_hidden_intervention_game(OfflineAgent("intervention_blind"))
@@ -830,6 +860,9 @@ class TaskSmokeTests(unittest.TestCase):
         pricing_multi_markdown_noisy = pricing_multi_markdown_noisy_prompt(
             PRICING_MULTI_MARKDOWN_NOISY_CASES[0]
         )
+        pricing_inventory_replenishment_noisy = pricing_inventory_replenishment_noisy_prompt(
+            PRICING_INVENTORY_REPLENISHMENT_NOISY_CASES[0]
+        )
         pricing_hidden_intervention = pricing_hidden_intervention_prompt(PRICING_HIDDEN_INTERVENTION_CASES[0])
         pricing_law_audit = pricing_law_audit_prompt(PRICING_LAW_CASES[0])
         pricing_evidence_law = pricing_evidence_law_prompt(PRICING_EVIDENCE_LAW_CASES[0])
@@ -921,6 +954,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", pricing_inventory_markdown)
         self.assertNotIn("oracle", pricing_inventory_markdown_noisy)
         self.assertNotIn("oracle", pricing_multi_markdown_noisy)
+        self.assertNotIn("oracle", pricing_inventory_replenishment_noisy)
         self.assertNotIn("oracle", pricing_hidden_intervention)
         self.assertNotIn("oracle", pricing_law_audit)
         self.assertNotIn("oracle", pricing_evidence_law)
@@ -980,6 +1014,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle_price", pricing_inventory_markdown)
         self.assertNotIn("oracle_price", pricing_inventory_markdown_noisy)
         self.assertNotIn("oracle_price", pricing_multi_markdown_noisy)
+        self.assertNotIn("oracle_price", pricing_inventory_replenishment_noisy)
         self.assertNotIn("oracle_price", pricing_hidden_intervention)
         self.assertNotIn("oracle_price", pricing_law_audit)
         self.assertNotIn("oracle_price", pricing_evidence_law)
@@ -1871,6 +1906,21 @@ class TaskSmokeTests(unittest.TestCase):
         pricing_rows = [row for row in rows if row["task"] == "pricing_multi_product_markdown_noisy"]
         self.assertEqual(pricing_rows[0]["agent"], "offline:oracle")
         self.assertEqual(pricing_rows[1]["agent"], "offline:capacity_blind")
+
+    def test_offline_sweep_ranks_oracle_above_baselines_on_pricing_inventory_replenishment_noisy(self):
+        sweep = run_sweep(
+            task="pricing_inventory_replenishment_noisy",
+            agent_specs=[
+                "offline:oracle",
+                "offline:no_restock",
+                "offline:myopic",
+                "offline:capacity_fill",
+            ],
+        )
+        rows = rank_rows(comparison_table(sweep))
+        pricing_rows = [row for row in rows if row["task"] == "pricing_inventory_replenishment_noisy"]
+        self.assertEqual(pricing_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(pricing_rows[1]["agent"], "offline:myopic")
 
     def test_offline_sweep_ranks_oracle_above_intervention_blind_on_pricing(self):
         sweep = run_sweep(

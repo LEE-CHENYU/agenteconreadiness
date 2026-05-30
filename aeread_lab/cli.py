@@ -78,6 +78,7 @@ TASKS = (
     "pricing_inventory_markdown",
     "pricing_inventory_markdown_noisy",
     "pricing_multi_product_markdown_noisy",
+    "pricing_inventory_replenishment_noisy",
     "pricing_hidden_intervention",
     "pricing_law_audit",
     "pricing_evidence_law_audit",
@@ -692,6 +693,24 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"oracle_eb={_fmt(row['oracle_price_b_early'])} "
                     f"oracle_la={_fmt(row['oracle_price_a_late'])} "
                     f"oracle_lb={_fmt(row['oracle_price_b_late'])}"
+                )
+        elif task == "pricing_inventory_replenishment_noisy":
+            print(
+                f"{task}: n={result['n_trials']} "
+                f"decision_l1={_fmt(result['mean_decision_l1_error'])} "
+                f"revenue_gap={_fmt(result['mean_revenue_gap'])} "
+                f"no_restock_miss={result['no_restock_miss_rate']:.2f} "
+                f"myopic_miss={result['myopic_miss_rate']:.2f} "
+                f"capacity_fill_miss={result['capacity_fill_miss_rate']:.2f}"
+            )
+            for row in result["trials"]:
+                print(
+                    f"  {row['case']:<24} early={_fmt(row['chosen_price_early'])} "
+                    f"replenish={_fmt(row['chosen_replenishment_units'])} "
+                    f"late={_fmt(row['chosen_price_late'])} "
+                    f"oracle_early={_fmt(row['oracle_price_early'])} "
+                    f"oracle_replenish={_fmt(row['oracle_replenishment_units'])} "
+                    f"oracle_late={_fmt(row['oracle_price_late'])}"
                 )
         elif task == "pricing_hidden_intervention":
             print(
