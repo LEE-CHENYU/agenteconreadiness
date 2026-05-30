@@ -22,6 +22,7 @@ TASKS = (
     "revealed_allocation",
     "principal_holding_prediction",
     "principal_holding_prediction_noisy",
+    "principal_holding_prediction_notes",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -262,6 +263,17 @@ def _print_human(payload: dict[str, Any]) -> None:
         elif task == "principal_holding_prediction_noisy":
             print(
                 f"principal_holding_prediction_noisy: n={result['n_trials']} "
+                f"score_regret={_fmt(result['mean_score_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_score_regret_ci95'))} "
+                f"accuracy={result['accuracy']:.2f} "
+                f"market_return_miss={result['market_return_miss_rate']:.2f} "
+                f"low_turnover_miss={result['low_turnover_miss_rate']:.2f} "
+                f"generic_style_miss={result['generic_style_miss_rate']:.2f} "
+                f"mechanical_flow_miss={result['mechanical_flow_miss_rate']:.2f}"
+            )
+        elif task == "principal_holding_prediction_notes":
+            print(
+                f"principal_holding_prediction_notes: n={result['n_trials']} "
                 f"score_regret={_fmt(result['mean_score_regret'])} "
                 f"ci95={_fmt_ci(result.get('mean_score_regret_ci95'))} "
                 f"accuracy={result['accuracy']:.2f} "
