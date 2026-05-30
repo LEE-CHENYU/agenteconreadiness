@@ -32,11 +32,13 @@ class BeliefBargainingCase:
     observed_cue: str
     states: tuple[BuyerState, ...]
     observed_signals: tuple[str, ...] = ()
+    strategic_likelihood: bool = False
 
 
 @dataclass
 class BeliefBargainingTrial:
     case: BeliefBargainingCase
+    condition: str
     oracle_price: float
     prior_price: float
     single_cue_price: float
@@ -112,6 +114,40 @@ DEFAULT_CASES = [
             BuyerState("urgent_replacement", 175.0, 0.15, 0.18, (0.18, 0.82, 0.92)),
         ),
     ),
+    BeliefBargainingCase(
+        key="strategic_budget_bluff",
+        real_case="buyer states a low budget while requesting high-scale rollout protections",
+        seller_cost=50.0,
+        observed_cue="buyer says their budget cannot exceed 95",
+        observed_signals=(
+            "low_budget_claim",
+            "enterprise_wide_terms_requested",
+            "same_quarter_rollout_protection",
+        ),
+        strategic_likelihood=True,
+        states=(
+            BuyerState("low_budget", 90.0, 0.45, 0.65, (0.65, 0.10, 0.08)),
+            BuyerState("standard_budget", 150.0, 0.35, 0.45, (0.45, 0.55, 0.35)),
+            BuyerState("strategic_rollout", 240.0, 0.20, 0.70, (0.70, 0.80, 0.90)),
+        ),
+    ),
+    BeliefBargainingCase(
+        key="pooling_discount_request",
+        real_case="buyer asks for discount approval while revealing expansion urgency across turns",
+        seller_cost=70.0,
+        observed_cue="buyer says discount approval is the only blocker",
+        observed_signals=(
+            "discount_approval_claim",
+            "integration_team_standing_by",
+            "asks_for_capacity_hold",
+        ),
+        strategic_likelihood=True,
+        states=(
+            BuyerState("price_shopper", 115.0, 0.50, 0.80, (0.80, 0.15, 0.12)),
+            BuyerState("planned_expansion", 180.0, 0.32, 0.55, (0.55, 0.55, 0.45)),
+            BuyerState("urgent_platform_rollout", 285.0, 0.18, 0.35, (0.35, 0.90, 0.85)),
+        ),
+    ),
 ]
 
 
@@ -177,32 +213,34 @@ def run_belief_bargaining_game(
         oracle = best_price(case, use_posterior=True)
         prior = best_price(case, use_posterior=False)
         single_cue = best_price(case, use_posterior=True, signal_count=1)
-        response = agent.complete(BELIEF_BARGAINING_SYSTEM, _prompt(case))
-        parsed = parse_float("FINAL_PRICE", response)
-        max_wtp = max(state.buyer_wtp for state in case.states)
-        chosen = clamp(parsed, 0.0, max_wtp) if parsed is not None else None
-        chosen_surplus = (
-            expected_surplus(case, chosen, use_posterior=True)
-            if chosen is not None
-            else None
-        )
-        gap = (
-            expected_surplus(case, oracle, use_posterior=True) - chosen_surplus
-            if chosen_surplus is not None
-            else None
-        )
-        trials.append(
-            BeliefBargainingTrial(
-                case=case,
-                oracle_price=oracle,
-                prior_price=prior,
-                single_cue_price=single_cue,
-                chosen_price=chosen,
-                expected_surplus=chosen_surplus,
-                expected_surplus_gap=gap,
-                raw_response=response,
+        for condition in _conditions(case):
+            response = agent.complete(BELIEF_BARGAINING_SYSTEM, _prompt(case, condition=condition))
+            parsed = parse_float("FINAL_PRICE", response)
+            max_wtp = max(state.buyer_wtp for state in case.states)
+            chosen = clamp(parsed, 0.0, max_wtp) if parsed is not None else None
+            chosen_surplus = (
+                expected_surplus(case, chosen, use_posterior=True)
+                if chosen is not None
+                else None
             )
-        )
+            gap = (
+                expected_surplus(case, oracle, use_posterior=True) - chosen_surplus
+                if chosen_surplus is not None
+                else None
+            )
+            trials.append(
+                BeliefBargainingTrial(
+                    case=case,
+                    condition=condition,
+                    oracle_price=oracle,
+                    prior_price=prior,
+                    single_cue_price=single_cue,
+                    chosen_price=chosen,
+                    expected_surplus=chosen_surplus,
+                    expected_surplus_gap=gap,
+                    raw_response=response,
+                )
+            )
     return summarize_belief_bargaining_trials(agent.name, trials)
 
 
@@ -218,15 +256,31 @@ def summarize_belief_bargaining_trials(agent_name: str, trials: list[BeliefBarga
     multi_turn_switches = sum(
         len(trial.case.observed_signals) > 1
         and abs(trial.oracle_price - trial.single_cue_price) > 1e-9
+        and trial.condition == "base"
         for trial in trials
     )
     missed_multi_turn_switches = sum(
         len(trial.case.observed_signals) > 1
         and abs(trial.oracle_price - trial.single_cue_price) > 1e-9
+        and trial.condition == "base"
         and trial.chosen_price is not None
         and abs(trial.chosen_price - trial.oracle_price) > 1e-9
         for trial in trials
     )
+    strategic_base = [
+        trial
+        for trial in trials
+        if trial.case.strategic_likelihood
+        and trial.condition == "base"
+        and trial.expected_surplus_gap is not None
+    ]
+    strategic_scaffold = [
+        trial
+        for trial in trials
+        if trial.case.strategic_likelihood
+        and trial.condition == "posterior_scaffold"
+        and trial.expected_surplus_gap is not None
+    ]
     return {
         "task": "belief_bargaining",
         "agent": agent_name,
@@ -235,17 +289,29 @@ def summarize_belief_bargaining_trials(agent_name: str, trials: list[BeliefBarga
         "mean_expected_surplus_gap_ci95": bootstrap_mean_ci(gaps),
         "cue_switch_miss_rate": missed_switches / cue_switches if cue_switches else 0.0,
         "multi_turn_miss_rate": missed_multi_turn_switches / multi_turn_switches if multi_turn_switches else 0.0,
+        "mean_strategic_base_gap": mean([trial.expected_surplus_gap for trial in strategic_base]),
+        "mean_strategic_scaffold_gap": mean([trial.expected_surplus_gap for trial in strategic_scaffold]),
+        "strategic_scaffold_improvement": (
+            mean([trial.expected_surplus_gap for trial in strategic_base])
+            - mean([trial.expected_surplus_gap for trial in strategic_scaffold])
+            if strategic_base and strategic_scaffold
+            else None
+        ),
+        "strategic_base_miss_rate": _price_miss_rate(strategic_base),
+        "strategic_scaffold_miss_rate": _price_miss_rate(strategic_scaffold),
         "trials": [_trial_json(trial) for trial in trials],
     }
 
 
-def _prompt(case: BeliefBargainingCase) -> str:
+def _prompt(case: BeliefBargainingCase, condition: str = "base") -> str:
     lines = [
         f"case={case.key}",
         f"real_case={case.real_case}",
+        f"condition={condition}",
         f"seller_cost={case.seller_cost:.2f}",
         f"observed_cue={case.observed_cue}",
         f"observed_signal_sequence={','.join(_signals(case))}",
+        f"strategic_likelihood={1 if case.strategic_likelihood else 0}",
         "Buyer states:",
     ]
     for state in case.states:
@@ -262,10 +328,24 @@ def _prompt(case: BeliefBargainingCase) -> str:
                 ]
             )
         )
+    if condition == "posterior_scaffold":
+        lines.append("Externalized belief state after each observed signal:")
+        for idx, signal in enumerate(_signals(case), start=1):
+            posterior = posterior_probabilities(case, signal_count=idx)
+            values = ",".join(
+                f"{state.state_id}:{posterior[state.state_id]:.4f}" for state in case.states
+            )
+            lines.append(f"  after_signal={signal} posterior={values}")
+        final_posterior = posterior_probabilities(case)
+        final_values = ",".join(
+            f"{state.state_id}:{final_posterior[state.state_id]:.4f}" for state in case.states
+        )
+        lines.append(f"final_posterior={final_values}")
     lines.extend(
         [
             "If price <= buyer_wtp, the buyer accepts and seller surplus is price - seller_cost.",
             "If price > buyer_wtp, the buyer rejects and seller surplus is 0.",
+            "In strategic-likelihood cases, buyer claims can be cheap talk; use the likelihoods rather than treating statements literally.",
             "Choose the price that maximizes expected seller surplus after updating on the observed cue.",
         ]
     )
@@ -280,6 +360,10 @@ def _trial_json(trial: BeliefBargainingTrial) -> dict:
 
 def _signals(case: BeliefBargainingCase) -> tuple[str, ...]:
     return case.observed_signals or (case.observed_cue,)
+
+
+def _conditions(case: BeliefBargainingCase) -> tuple[str, ...]:
+    return ("base", "posterior_scaffold") if case.strategic_likelihood else ("base",)
 
 
 def _state_likelihoods(case: BeliefBargainingCase, state: BuyerState) -> tuple[float, ...]:
@@ -302,3 +386,14 @@ def _combined_likelihood(
     for likelihood in likelihoods:
         product *= likelihood
     return product
+
+
+def _price_miss_rate(trials: list[BeliefBargainingTrial]) -> float:
+    if not trials:
+        return 0.0
+    misses = sum(
+        trial.chosen_price is not None
+        and abs(trial.chosen_price - trial.oracle_price) > 1e-9
+        for trial in trials
+    )
+    return misses / len(trials)

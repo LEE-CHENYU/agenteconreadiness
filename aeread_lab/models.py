@@ -313,6 +313,8 @@ class OfflineAgent:
         use_posterior = self.policy not in {"prior", "ignore_cue"}
         if self.policy in {"high_anchor", "max_wtp"}:
             price = max(state["buyer_wtp"] for state in states)
+        elif self.policy in {"literal_claim", "cheap_talk_literal"}:
+            price = min(state["buyer_wtp"] for state in states)
         elif self.policy in {"single_cue", "first_cue"}:
             price = _belief_best_price(seller_cost, states, use_posterior=True, signal_count=1)
         else:

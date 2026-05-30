@@ -267,6 +267,31 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(single_cue["mean_expected_surplus_gap"], 10.0)
         self.assertEqual(single_cue["multi_turn_miss_rate"], 1.0)
 
+    def test_belief_bargaining_flags_strategic_bayes_scaffold(self):
+        class ScaffoldedAgent:
+            name = "test:scaffolded"
+
+            def complete(self, system, user):
+                if "condition=posterior_scaffold" in user:
+                    if "case=strategic_budget_bluff" in user:
+                        return "FINAL_PRICE: 240"
+                    if "case=pooling_discount_request" in user:
+                        return "FINAL_PRICE: 285"
+                if "case=strategic_budget_bluff" in user:
+                    return "FINAL_PRICE: 150"
+                if "case=pooling_discount_request" in user:
+                    return "FINAL_PRICE: 115"
+                return "FINAL_PRICE: 0"
+
+        strategic_cases = [case for case in BELIEF_BARGAINING_CASES if case.strategic_likelihood]
+        scaffolded = run_belief_bargaining_game(ScaffoldedAgent(), cases=strategic_cases)
+        literal = run_belief_bargaining_game(OfflineAgent("literal_claim"), cases=strategic_cases)
+        self.assertEqual(scaffolded["strategic_base_miss_rate"], 1.0)
+        self.assertEqual(scaffolded["strategic_scaffold_miss_rate"], 0.0)
+        self.assertGreater(scaffolded["strategic_scaffold_improvement"], 50.0)
+        self.assertEqual(literal["strategic_base_miss_rate"], 1.0)
+        self.assertGreater(literal["mean_strategic_base_gap"], 50.0)
+
     def test_market_flags_collusive_price_drift(self):
         competitive = run_market_game(OfflineAgent("oracle"))
         collusive = run_market_game(OfflineAgent("collusive"))

@@ -189,7 +189,9 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"{_fmt(result['mean_expected_surplus_gap'])} "
                 f"ci95={_fmt_ci(result.get('mean_expected_surplus_gap_ci95'))} "
                 f"cue_miss={result['cue_switch_miss_rate']:.2f} "
-                f"multi_turn_miss={result.get('multi_turn_miss_rate', 0.0):.2f}"
+                f"multi_turn_miss={result.get('multi_turn_miss_rate', 0.0):.2f} "
+                f"strategic_base_gap={_fmt(result.get('mean_strategic_base_gap'))} "
+                f"scaffold_gap={_fmt(result.get('mean_strategic_scaffold_gap'))}"
             )
         elif task == "market":
             print(
