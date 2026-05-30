@@ -72,6 +72,7 @@ TASK_ORDER = (
     "retail",
     "procurement",
     "procurement_counterfactual",
+    "procurement_bundle",
     "pricing",
     "pricing_counterfactual",
     "pricing_cross_elasticity",
@@ -184,6 +185,10 @@ _CASE_TASKS = {
     "procurement_counterfactual": (
         procurement_task.run_procurement_counterfactual_game,
         procurement_task.COUNTERFACTUAL_SETS,
+    ),
+    "procurement_bundle": (
+        procurement_task.run_procurement_bundle_game,
+        procurement_task.PROCUREMENT_BUNDLE_CASES,
     ),
     "pricing": (pricing_task.run_pricing_game, pricing_task.DEFAULT_CASES),
     "pricing_counterfactual": (

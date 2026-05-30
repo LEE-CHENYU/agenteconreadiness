@@ -43,6 +43,7 @@ PRIMARY_METRICS = {
     "retail": ("mean_order_error", "lower"),
     "procurement": ("accuracy", "higher"),
     "procurement_counterfactual": ("accuracy", "higher"),
+    "procurement_bundle": ("mean_score_regret", "lower"),
     "pricing": ("mean_revenue_gap", "lower"),
     "pricing_counterfactual": ("mean_absolute_price_error", "lower"),
     "pricing_cross_elasticity": ("mean_absolute_price_error", "lower"),

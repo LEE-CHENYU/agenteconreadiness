@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import math
 import os
 import re
@@ -98,6 +99,8 @@ class OfflineAgent:
             return self._revealed_allocation(user)
         if "TASK: ambiguity_action" in system:
             return self._ambiguity_action(user)
+        if "TASK: procurement_bundle" in system:
+            return self._procurement_bundle(user)
         if "TASK: procurement_choice" in system:
             return self._procurement_choice(user)
         if "TASK: pricing_price" in system:
@@ -334,6 +337,19 @@ class OfflineAgent:
                 best_utility = utility
                 best_product = product_id
         return f"FINAL_PRODUCT: {best_product}"
+
+    def _procurement_bundle(self, user: str) -> str:
+        products = _extract_procurement_bundle_products(user)
+        if not products:
+            return "FINAL_BUNDLE: ,"
+        if self.policy in {"first", "first_pair"}:
+            pair = tuple(list(products)[:2])
+        elif self.policy in {"cheapest", "price", "cheapest_pair"}:
+            pair = tuple(sorted(products, key=lambda item: products[item]["price"])[:2])
+        else:
+            pair = _best_procurement_bundle(user, products, self.policy)
+        left, right = sorted(pair)
+        return f"FINAL_BUNDLE: {left},{right}"
 
     def _pricing_price(self, user: str) -> str:
         case_key = _extract_word(user, "case")
@@ -1031,6 +1047,13 @@ def _extract_word(text: str, key: str, default: str = "") -> str:
     return match.group(1) if match else default
 
 
+def _extract_words(text: str, key: str) -> list[str]:
+    match = re.search(rf"{re.escape(key)}=([a-zA-Z0-9_,-]+)", text)
+    if not match:
+        return []
+    return [value for value in match.group(1).split(",") if value]
+
+
 def _extract_procurement_products(text: str) -> dict[str, dict[str, float]]:
     products: dict[str, dict[str, float]] = {}
     product_pattern = re.compile(
@@ -1050,6 +1073,78 @@ def _extract_procurement_products(text: str) -> dict[str, dict[str, float]]:
             "assembly_friction": float(match.group(6)),
         }
     return products
+
+
+def _extract_procurement_bundle_products(text: str) -> dict[str, dict[str, float | str]]:
+    products: dict[str, dict[str, float | str]] = {}
+    product_pattern = re.compile(
+        r"product_id=([a-zA-Z0-9_-]+)\s+"
+        r"category=([a-zA-Z0-9_-]+)\s+"
+        r"price=([-+]?\d+(?:\.\d+)?)\s+"
+        r"durability=([-+]?\d+(?:\.\d+)?)\s+"
+        r"comfort=([-+]?\d+(?:\.\d+)?)\s+"
+        r"style_fit=([-+]?\d+(?:\.\d+)?)\s+"
+        r"assembly_friction=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in product_pattern.finditer(text):
+        products[match.group(1)] = {
+            "category": match.group(2),
+            "price": float(match.group(3)),
+            "durability": float(match.group(4)),
+            "comfort": float(match.group(5)),
+            "style_fit": float(match.group(6)),
+            "assembly_friction": float(match.group(7)),
+        }
+    return products
+
+
+def _best_procurement_bundle(
+    text: str,
+    products: dict[str, dict[str, float | str]],
+    policy: str,
+) -> tuple[str, str]:
+    required = set(_extract_words(text, "required_categories"))
+    budget = _extract_float(text, "budget", math.inf)
+    candidates = []
+    for left, right in itertools.combinations(products, 2):
+        pair = tuple(sorted((left, right)))
+        if policy not in {"category_blind", "coverage_blind"}:
+            categories = {str(products[left]["category"]), str(products[right]["category"])}
+            if required and not required.issubset(categories):
+                continue
+        if products[left]["price"] + products[right]["price"] > budget:
+            continue
+        candidates.append(pair)
+    if not candidates:
+        candidates = [tuple(sorted(pair)) for pair in itertools.combinations(products, 2)]
+
+    def score(pair: tuple[str, str]) -> float:
+        return sum(_procurement_bundle_item_utility(text, products[item]) for item in pair) + (
+            0.0
+            if policy in {"compatibility_blind", "individual", "top_individual"}
+            else _procurement_bundle_compatibility(text, pair)
+        )
+
+    return max(candidates, key=score)
+
+
+def _procurement_bundle_item_utility(text: str, product: dict[str, float | str]) -> float:
+    return (
+        _extract_float(text, "durability_weight") * float(product["durability"])
+        + _extract_float(text, "comfort_weight") * float(product["comfort"])
+        + _extract_float(text, "style_weight") * float(product["style_fit"])
+        - _extract_float(text, "friction_weight") * float(product["assembly_friction"])
+        - _extract_float(text, "price_weight") * float(product["price"])
+    )
+
+
+def _procurement_bundle_compatibility(text: str, pair: tuple[str, str]) -> float:
+    normalized = set(pair)
+    pattern = re.compile(r"pair=([a-zA-Z0-9_-]+),([a-zA-Z0-9_-]+)\s+bonus=([-+]?\d+(?:\.\d+)?)")
+    for match in pattern.finditer(text):
+        if normalized == {match.group(1), match.group(2)}:
+            return float(match.group(3))
+    return 0.0
 
 
 def _extract_uniform_bounds(text: str) -> tuple[float, float]:
