@@ -14,7 +14,7 @@ LLM agents are being deployed for economic decisions — procurement, pricing, n
 
 ## Critical methodological questions (open Q&A)
 
-13 open methodological questions for major-lab adoption + methodology-paper acceptance. Working positions, not closed claims — engagement invited on all thirteen. **Full bodies + tables + "Open:" engagement lines for each Q live in [`methodology_open_questions.md`](methodology_open_questions.md).** This topic index is the navigation pointer:
+14 open methodological questions for major-lab adoption + methodology-paper acceptance. Working positions, not closed claims — engagement invited on all fourteen. **Full bodies + tables + "Open:" engagement lines for each Q live in [`methodology_open_questions.md`](methodology_open_questions.md).** This topic index is the navigation pointer:
 
 | Q | Topic | Working position |
 |---|---|---|
@@ -31,6 +31,7 @@ LLM agents are being deployed for economic decisions — procurement, pricing, n
 | **Q11** | Gate vs grade: rationality and persona-fidelity — one problem or two? | One pipeline, gate → grade; two scored stages, explicit dependency. Working position: rationality (gate) is a floor for frontier models, persona-fidelity (grade) is the discriminator + the alignment-relevant signal. Separate scoring forced by opposite failure-sign. Falsifiable. |
 | **Q12** | Operationalizing stress as a cross-cutting axis | Keep the 3-layer decomposition; add stress orthogonally. Rationality is a floor at rest, a cliff under load (degrades under horizon / compute / strategic / persona-conditioning / adversarial pressure). Report a degradation curve + cliff edge, not pass/fail. Co-measure gate+grade per (persona, stress) condition. Saturation is conditional (benign-only). |
 | **Q13** | Adversarial co-evolution as judge-free stress-discovery | Attacker LLM discovers defender-degrading scenarios, frozen into a corpus (test-generation, not runtime). Reward must be oracle-computed, not LLM-judged → adversarial games must be OracleDecomposable. Persona-Collapse Arena = first build; multi-agent/co-evolutionary → v0.5+/substrate. |
+| **Q14** | What training signal AERead emits — recover competence without reviving misbehavior | The signal is the oracle-decomposed **process** reward (Δ_inf/unc/ctrl, per-axis), not the scalar score. Scalar surplus-reward revives the deception/collusion safety post-training removed (the alignment trap); process reward targeted at the Δ-attributed deficit recovers competence without it. Pre-registered falsifier: process-reward vs outcome-reward model, read out the deception axis. v1+; methodology-framed. |
 
 
 ## Methodological foundation in behavioral economics

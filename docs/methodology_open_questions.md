@@ -21,6 +21,7 @@
 | **Q11** | Gate vs grade: rationality and persona-fidelity — one problem or two? | One pipeline, gate → grade; two scored stages, explicit dependency. Rationality (gate) is a floor for frontier models; persona-fidelity (grade) is the discriminator + alignment-relevant signal. Separate scoring forced by opposite failure-sign. Falsifiable. |
 | **Q12** | Operationalizing stress as a cross-cutting axis | Keep the decomposition; add stress orthogonally; report a degradation curve + cliff edge, not pass/fail; co-measure gate+grade per (persona, stress) condition. Saturation is conditional (benign-only) — Andon falsifies "gate is a structural floor". |
 | **Q13** | Adversarial co-evolution as judge-free stress-discovery | Yes — attacker discovers defender-degrading scenarios, frozen into a corpus (generation, not runtime); reward oracle-computed not LLM-judged (→ OracleDecomposable); Persona-Collapse Arena first; v0.5+/substrate. |
+| **Q14** | What training signal AERead emits — recover competence without reviving misbehavior | The signal is the oracle-decomposed **process** reward, not the scalar score. Outcome (surplus) reward revives the deception/collusion safety removed (the trap); process reward targeted at the Δ-attributed deficit recovers competence alignment-safely. Pre-registered falsifier: process-reward vs outcome-reward model, read out the deception axis. v1+; positioning decision; methodology-framed. |
 
 ---
 
@@ -278,6 +279,30 @@ Two validity constraints:
 Attack-objective taxonomy (each discovers a different stress): persona-collapse induction (grade) / money-pump induction (gate Axis 2) / bilateral exploitation (strategic) / belief-manipulation (gate Axis 1). Bonus: clustering discovered exploits induces stress *dimensions*, not just instances (taxonomy induction). First build: **Persona-Collapse Arena** (attacker tries to make a persona-configured defender accept a persona-violating deal; reward = persona-drift, oracle = the persona rule). Anchor: [Tak et al. 2026](https://arxiv.org/abs/2601.22329) (reasoning-mode rationality is sensitive to affective/emotional steering — stress-sensitive, not generic adversarial reversibility). Scope: multi-agent + co-evolutionary → v0.5+/substrate; connects to the bargaining + agentic-marketplace candidates and the planned v2 adversarial-robustness dimension. Strongest safety framing: automated red-teaming of whether a deployed economic agent can be made to betray its configured principal.
 
 **Open**: attacker-capability ceiling (how strong an attacker; co-evolve vs fixed); overfitting to one attacker's style (multiple / held-out attackers + an exploit-diversity metric); whether clustering discovered exploits reliably induces named stress dimensions.
+
+### Q14 — What training signal does AERead emit, and how does it recover economic competence *without* reviving the misbehavior alignment removed?
+
+**Working position**: the training-useful signal is **not the scalar score** — it is the **oracle-decomposed *process* signal**, and feeding back the process signal (not the outcome) is what lets a lab close the decision-making gap without re-introducing the deception/collusion that safety post-training removed. Q5/Q6/Q10 cover *which mechanisms* emit signal, *contamination defense*, and *causal validation*; Q14 is the distinct claim about **what the signal should be a function of**.
+
+**Why a scalar economic score is the wrong training target (the alignment trap).** The Andon result is "more-aligned model extracts *less* surplus." The naive fix — reward terminal surplus during training — retrains exactly the ruthless-anchoring / deception / collusion the safety stage suppressed (those *are* the surplus-maximizing strategies; see the [`refocus.md`](refocus.md) RLHF-coverage section). A scalar economic reward cannot tell "be more economically competent" apart from "be less aligned." So outcome-reward is alignment-regressive by construction.
+
+**The escape is the decomposition.** AERead attributes the alignment-induced loss to a *specific* axis. Working evidence so far points to a Δ_ctrl / regime-recognition deficit (a *competence* gap — the model fails to recognize the compounding regime / build the right posterior), **not** "the model chose to be nice." So the signal you feed back is the **process reward targeted at the deficit** (fix the belief-update; recognize the regime; match the configured principal), not the outcome reward (extract more). You recover competence *because* the reward points at inference/regime-recognition, leaving the deception axis untouched.
+
+| Diagnostic AERead emits | Consuming training method | Recovers / fixes | Alignment-safe? |
+|---|---|---|---|
+| Eq.4 process-decomposed reward (Δ_inf / Δ_unc / Δ_ctrl separately) | dense RLVR / process reward model (PRM) | the *specific* gap, with credit assignment | **yes** — targets competence, not surplus |
+| Per-decision local-oracle labels (OracleDecomposable per step) | step-level process supervision | granular per-axis failure | yes |
+| Auto-labeled preference pairs (oracle ≻ model; regime-appropriate ≻ EV-default; framing-invariant pairs) | DPO / RLAIF **with an economic oracle in the loop** | the literal RLHF-coverage gap (injects the economic ground truth raters can't supply) | yes (pairs encode the *right* contrast) |
+| Consistency / axiom-violation penalty (GARP, money-pump, framing) | training-time regularizer (Andrews-style — Q5 mechanism 1) | de-saturates the gate-under-stress | yes |
+| Regime-property reward (Kelly under compounding, CVaR under barrier) | targeted RLVR | regime-blindness → regime recognition | yes |
+| Persona-fidelity gradient (distance from configured-principal utility) | steerability training / grade-as-reward | faithful delegation | yes — *is* the alignment property |
+| **Terminal surplus / profit (scalar)** | naive outcome RL | competence **and** revives suppressed misbehavior | **NO — the trap** |
+
+**Pre-registered falsifier (the citation hook)**: train two matched models on the same task — (a) Δ_ctrl-targeted *process* reward, (b) raw-surplus *outcome* reward. Prediction: (a) recovers economic competence with **no rise** in deception/collusion-axis metrics; (b) recovers competence **and** raises the deception axis. If (a) *also* raises the deception axis, the "process-reward is alignment-safe" position is wrong (the deficit was not pure competence). This is the experiment that turns the RLHF-coverage theory into a testable training claim — and it is the cheap extension of the Q10 fine-tune experiment (same harness, two reward functions + the deception-axis readout).
+
+**Scope + positioning**: this is **v1+ and a positioning decision the user owns** — becoming a *training-signal provider* is a different posture from a *measurement benchmark*. The generator-vs-frozen-corpus split (Q6 AERead-Train / Cert) is exactly what lets AERead do both without losing held-out-eval purity; that split is the precondition, not a given. Framed as **methodology** (oracle-decomposed process rewards recover competence without reviving misbehavior), never as a commercial training-data product.
+
+**Open**: which axes most cleanly emit alignment-safe process reward (Δ_unc and regime-property are the cleanest candidates; Δ_ctrl on strategic surplus is the most trap-adjacent)? Does the process/outcome distinction hold empirically, or do *all* economic-competence rewards leak into the deception axis (which would be a deeper, more important finding)? Is "alignment-safe" a binary or a dose-response (how much surplus-reward before the deception axis moves)?
 
 ---
 
