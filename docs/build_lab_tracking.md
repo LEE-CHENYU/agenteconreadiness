@@ -73,6 +73,7 @@ judge-free, and API-testable while staying OpenAI-only.
 | 33 | `review/33-live-sampled-validation` | sampled live OpenAI validation for alignment-tax, bargaining, and supplier-scam | `nano`, `mini`, and `gpt-5.5` all parse 1.00 and score 0 on first sampled case for each task |
 | 34 | `review/34-multiturn-belief-bargaining` | multi-turn belief-bargaining signal updates | oracle surplus gap 0; prior gap 5.30563; single-cue gap 18.4281 and multi-turn miss 1.00 |
 | 35 | `review/35-mechanism-ic-simulation` | incentive-compatibility simulation for mechanism choice | oracle score regret 0; IC-blind regret 18.4342 and IC-blind miss 1.00 |
+| 36 | `review/36-market-inventory-survival` | market inventory-survival pricing | oracle price gap 0; liquidation survival gap 4614.45 with reserve violation 1.00; live `nano` survival gap 551.9892 |
 
 ## Task result ledger
 
@@ -89,7 +90,7 @@ explicitly marked as historical/upstream.
 | `ambiguity` | maxmin/alpha-maxmin under Knightian ambiguity | oracle configured regret 0 across 5 cases; reference-prior regret 11.5796; pure-maxmin regret 2.32038; optimistic regret 14.5817 | now includes signal-updated priors and configured alpha; exposes both single-prior collapse and wrong ambiguity-attitude extremes |
 | `bargaining` | D2/TERMS-style gate plus grade, now with alternating-offer and hidden-reservation variants | oracle grade error 0 across 6 cases; generic gate baseline grade error 0.374225; round-blind alternating-offer miss 1.00; optimistic-budget hidden-reservation miss 1.00 | confirms "gate-only surplus extraction" is not grade fidelity and adds first protocol/reservation-depth stressors |
 | `belief_bargaining` | cue use, posterior bargaining, and multi-turn opponent modeling | oracle surplus gap 0 across 5 cases; prior baseline gap 5.30563; single-cue baseline gap 18.4281 with multi-turn miss 1.00; high-anchor gap 11.2391 | single-cue updating is now distinct from full signal-sequence inference |
-| `market` | simultaneous price competition | oracle equilibrium gap 0.000179; collusive gap 1.0001; cost/high worse | gate under competition is measurable; parse is n/a for this aggregate result |
+| `market` | simultaneous price competition plus inventory/capital survival pricing | oracle price gap 0.000016 across 5 cases; collusive gap 0.114756 and collusion rate 1.00 on one-shot cases; liquidation gap 0.451656 with survival cash gap 4614.45 and reserve violation 1.00 | separates collusion drift from inventory-survival and liquidation failures |
 | `matching` | stability/access-aware matching | oracle regret 0; access regret 51.675; max-value regret 175.037 | separates value maximization from stability/access constraints |
 | `screening` | adverse-selection contract menus | oracle regret 0; constraint-blind regret 37.7125; max-profit regret 71.5061 | exposes IC/IR blind menus |
 | `moral_hazard` | hidden-action contract design | oracle profit regret 0; high-bonus regret 20.5875; hidden-action blind/fixed regret 49.3375 | exposes assuming effort for free |
@@ -119,8 +120,8 @@ run on `review/26-regime-breadth`; PR 27-specific checks were run on
 
 | Check | Command | Result |
 |---|---|---|
-| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 64 tests passed after PR 35 |
-| Full offline oracle task pass | `python3 -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 23 task runners executed; oracle errors/regrets zero or expected near-zero; bargaining n=6 with grade error 0; belief-bargaining n=5 with surplus gap 0; mechanism n=6 with score regret 0; scam control `instrument_fires=True`; supplier-scam final-cash regret 0; alignment-tax regret 0; revealed-allocation regret 0 |
+| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 65 tests passed after PR 36 |
+| Full offline oracle task pass | `python3 -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 23 task runners executed; oracle errors/regrets zero or expected near-zero; bargaining n=6 with grade error 0; belief-bargaining n=5 with surplus gap 0; market n=5 with price gap 0 and survival gap 0; mechanism n=6 with score regret 0; scam control `instrument_fires=True`; supplier-scam final-cash regret 0; alignment-tax regret 0; revealed-allocation regret 0 |
 | Regime differential sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev,offline:kelly,offline:cvar,offline:half --no-cache` | oracle rank 1; EV baseline error 0.586033; CVaR/Kelly baselines error 0.224185; half baseline error 0.429783; parse 1.00 for all rows |
 | Alignment-tax differential sweep | `python3 -m aeread_lab.cli --sweep --task alignment_tax --agents offline:oracle,offline:helpful,offline:profit --no-cache` | oracle rank 1; profit-only regret 62.35; helpful regret 71.725; parse 1.00 |
 | Alignment-tax helpful smoke | `python3 -m aeread_lab.cli --task alignment_tax --agent offline:helpful --no-cache` | objective regret 71.725; overconcession 1.00; helpful-default match 1.00 |
@@ -132,6 +133,7 @@ run on `review/26-regime-breadth`; PR 27-specific checks were run on
 | Bargaining oracle smoke | `python3 -m aeread_lab.cli --task bargaining --agent offline:oracle --no-cache` | 6 trials; expected agreement 0.84; mean grade error 0; gate gap 46.3942; alt miss 0.00; hidden miss 0.00 |
 | Multi-turn belief-bargaining sweep | `python3 -m aeread_lab.cli --sweep --task belief_bargaining --agents offline:oracle,offline:prior,offline:single_cue,offline:high_anchor --no-cache` | oracle rank 1 with surplus gap 0; prior gap 5.30563; high-anchor gap 11.2391; single-cue gap 18.4281 and multi-turn miss 1.00; parse 1.00 |
 | Mechanism IC sweep | `python3 -m aeread_lab.cli --sweep --task mechanism --agents offline:oracle,offline:revenue,offline:risk_blind,offline:ic_blind --no-cache` | oracle rank 1 with score regret 0; risk-blind regret 17.6667; IC-blind regret 18.4342 and IC miss 1.00; revenue regret 62.8342; parse 1.00 |
+| Market inventory-survival sweep | `python3 -m aeread_lab.cli --sweep --task market --agents offline:oracle,offline:collusive,offline:nash,offline:cost --no-cache` | oracle rank 1 with price gap 0.000016; Nash-only gap 0.0680322; collusive gap 0.114756 and collusion rate 1.00; cost/liquidation gap 0.451656, survival gap 4614.45, reserve violation 1.00 |
 | Regime oracle/barrier smoke | `python3 -m aeread_lab.cli --task regime --agent offline:oracle --no-cache` | 32 trials; oracle mean absolute error 0; wealth destruction 0.00; CVaR drawdown violation 0.00 |
 | Sampled regime sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev --limit 1 --no-cache` | 4 regime trials from one gamble; oracle rank 1; parse 1.00 |
 | Sampled all-task oracle smoke | `python3 -m aeread_lab.cli --task all --agent offline:oracle --limit 1 --no-cache` | all 23 task runners execute with first deterministic case/gamble only; scam remains instrumented |
@@ -162,6 +164,7 @@ not committed, and live commands source `.env` only for the subprocess.
 | `python3 -m aeread_lab.cli --sweep --task supplier_scam --agents openai:nano,openai:mini,openai:gpt-5.5 --limit 1 --cache-dir /tmp/aeread_pr33_live_cache` | completed; all three aliases parse 1.00 and score 0 on the first sampled case | sampled supplier-scam smoke validates parse/model plumbing; deeper stress cases are needed for separation |
 | `python3 -m aeread_lab.cli --task belief_bargaining --agent openai:nano --cache-dir /tmp/aeread_pr34_live_cache` | completed; n=5, mean surplus gap 18.4281, cue miss 0.00, multi-turn miss 1.00 | first live signal that `nano` handles one-shot cues but misses the new multi-turn signal updates |
 | `python3 -m aeread_lab.cli --task mechanism --agent openai:nano --cache-dir /tmp/aeread_pr35_live_cache` | completed; n=6, score regret 0, IC miss 0.00, mean IC violation 0.1192 | IC probe parses live and `nano` solves this first mechanism-IC set |
+| `python3 -m aeread_lab.cli --task market --agent openai:nano --cache-dir /tmp/aeread_pr36_live_cache` | completed; n=5, price gap 0.0536, collusion 0.00, survival cash gap 551.9892, reserve violation 0.00 | `nano` avoids collusion and reserve failure but leaves material inventory-survival cash on the table |
 | `python3 -m aeread_lab.cli --sweep --task common_value --agents openai:nano,openai:mini,openai:gpt-5.5 --no-cache` | attempted, interrupted after more than 3 minutes with no completed output | not counted as a result; use smaller current live smokes or cached/historical `gpt-5.5` evidence until latency is controlled |
 
 Historical live API findings from earlier in this private stack:
@@ -222,3 +225,6 @@ build lab should not depend on `.playwright-mcp/` logs or the local
 9. Mechanism choice now has a first incentive-compatibility probe. Next
    mechanism work should move toward repeated/equilibrium simulation rather than
    another static scoring field.
+10. Market now has a first inventory/capital-survival probe. Next market work
+    should add adaptive multi-period policies or opponent-policy shifts rather
+    than another one-price inventory case.

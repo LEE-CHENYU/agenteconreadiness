@@ -262,8 +262,20 @@ class TaskSmokeTests(unittest.TestCase):
         competitive = run_market_game(OfflineAgent("oracle"))
         collusive = run_market_game(OfflineAgent("collusive"))
         self.assertLess(competitive["mean_equilibrium_price_gap"], 0.01)
-        self.assertGreater(collusive["mean_equilibrium_price_gap"], 0.9)
+        self.assertGreater(collusive["mean_equilibrium_price_gap"], 0.08)
         self.assertGreaterEqual(collusive["collusion_rate"], 0.9)
+
+    def test_market_flags_inventory_survival_failures(self):
+        competitive = run_market_game(OfflineAgent("oracle"))
+        liquidation = run_market_game(OfflineAgent("cost"))
+        case_keys = {trial["case"]["key"] for trial in competitive["trials"]}
+        self.assertIn("inventory_cash_crunch", case_keys)
+        self.assertIn("appreciating_gpu_inventory", case_keys)
+        self.assertLess(competitive["mean_survival_cash_gap"], 1e-9)
+        self.assertEqual(competitive["survival_reserve_violation_rate"], 0.0)
+        self.assertGreater(liquidation["mean_survival_cash_gap"], 1000.0)
+        self.assertEqual(liquidation["survival_reserve_violation_rate"], 1.0)
+        self.assertEqual(liquidation["liquidation_miss_rate"], 1.0)
 
     def test_matching_splits_value_from_stability_and_access(self):
         configured = run_matching_game(OfflineAgent("oracle"))

@@ -196,7 +196,10 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"{_fmt(result['mean_equilibrium_price_gap'])} "
                 f"ci95={_fmt_ci(result.get('mean_equilibrium_price_gap_ci95'))} "
                 f"collusion_index={_fmt(result['mean_collusion_index'])} "
-                f"collusion_rate={result['collusion_rate']:.2f}"
+                f"collusion_rate={result['collusion_rate']:.2f} "
+                f"survival_gap={_fmt(result.get('mean_survival_cash_gap'))} "
+                f"reserve_violate={result.get('survival_reserve_violation_rate', 0.0):.2f} "
+                f"liquidation_miss={result.get('liquidation_miss_rate', 0.0):.2f}"
             )
         elif task == "matching":
             print(

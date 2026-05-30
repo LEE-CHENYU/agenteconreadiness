@@ -331,8 +331,10 @@ class OfflineAgent:
             price = collusive
         elif self.policy == "high":
             price = p_max
-        elif self.policy == "cost":
+        elif self.policy in {"cost", "liquidate", "clearance"}:
             price = cost
+        elif _market_has_survival_dynamics(user) and self.policy not in {"nash", "competitive"}:
+            price = _best_market_survival_price(user, nash)
         else:
             price = nash
         price = max(cost, min(p_max, price))
@@ -744,6 +746,46 @@ def _extract_common_value_bids(text: str) -> dict[str, dict[str, float]]:
             "win_probability": float(match.group(3)),
         }
     return bids
+
+
+def _market_has_survival_dynamics(text: str) -> bool:
+    return _extract_float(text, "horizon", 1.0) > 1.0 and _extract_float(text, "starting_inventory") > 0.0
+
+
+def _market_survival_terminal_cash(text: str, price: float, other_price: float) -> float:
+    base = _extract_float(text, "base_demand")
+    own_slope = _extract_float(text, "own_price_slope")
+    cross_slope = _extract_float(text, "cross_price_slope")
+    cost = _extract_float(text, "marginal_cost")
+    horizon = int(round(_extract_float(text, "horizon", 1.0)))
+    inventory = _extract_float(text, "starting_inventory")
+    cash = _extract_float(text, "starting_cash")
+    carrying_cost = _extract_float(text, "carrying_cost_per_unsold")
+    terminal_value = _extract_float(text, "terminal_inventory_value")
+    fixed_obligation = _extract_float(text, "fixed_obligation")
+    shocks = _extract_float_list(text, "demand_shocks")
+    for period in range(max(1, horizon)):
+        shock = shocks[period] if period < len(shocks) else 0.0
+        demand = max(0.0, base + shock - own_slope * price + cross_slope * other_price)
+        sold = min(inventory, demand)
+        cash += max(0.0, price - cost) * sold
+        inventory -= sold
+        cash -= carrying_cost * inventory
+    cash += terminal_value * inventory
+    cash -= fixed_obligation
+    return cash
+
+
+def _best_market_survival_price(text: str, other_price: float) -> float:
+    cost = _extract_float(text, "marginal_cost")
+    p_max = _extract_float(text, "p_max", cost)
+    candidates = {cost, p_max, other_price}
+    for price in range(int(cost), int(p_max) + 1):
+        candidates.add(float(price))
+    return max(
+        sorted(candidates),
+        key=lambda price: (_market_survival_terminal_cash(text, price, price), -abs(price - other_price)),
+    )
 
 
 def _common_value_expected_profit(
