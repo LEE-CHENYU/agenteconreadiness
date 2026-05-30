@@ -31,6 +31,7 @@ TASKS = (
     "mechanism",
     "mechanism_repeated",
     "mechanism_repeated_natural",
+    "mechanism_participant_response",
     "strategic_drift",
     "forecast_calibration",
     "forecast_aggregate",
@@ -295,6 +296,15 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"revenue_miss={result['revenue_default_miss_rate']:.2f} "
                 f"one_period_miss={result['one_period_miss_rate']:.2f} "
                 f"risk_blind_miss={result['risk_blind_miss_rate']:.2f}"
+            )
+        elif task == "mechanism_participant_response":
+            print(
+                f"mechanism_participant_response: n={result['n_trials']} score_regret="
+                f"{_fmt(result['mean_score_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_score_regret_ci95'))} "
+                f"revenue_miss={result['revenue_default_miss_rate']:.2f} "
+                f"one_period_miss={result['one_period_miss_rate']:.2f} "
+                f"response_blind_miss={result['response_blind_miss_rate']:.2f}"
             )
         elif task == "strategic_drift":
             print(

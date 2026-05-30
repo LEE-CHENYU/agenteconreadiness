@@ -52,6 +52,7 @@ TASK_ORDER = (
     "mechanism",
     "mechanism_repeated",
     "mechanism_repeated_natural",
+    "mechanism_participant_response",
     "strategic_drift",
     "forecast_calibration",
     "forecast_aggregate",
@@ -106,6 +107,10 @@ _CASE_TASKS = {
     "mechanism_repeated_natural": (
         mechanism_task.run_mechanism_repeated_natural_game,
         mechanism_task.REPEATED_CASES,
+    ),
+    "mechanism_participant_response": (
+        mechanism_task.run_mechanism_participant_response_game,
+        mechanism_task.PARTICIPANT_RESPONSE_CASES,
     ),
     "strategic_drift": (
         strategic_drift_task.run_strategic_drift_game,

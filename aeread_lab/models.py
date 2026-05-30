@@ -114,6 +114,8 @@ class OfflineAgent:
             return self._mechanism_choice(user)
         if "TASK: mechanism_repeated_choice" in system:
             return self._mechanism_repeated_choice(user)
+        if "TASK: mechanism_participant_response" in system:
+            return self._mechanism_participant_response_choice(user)
         if "TASK: matching_choice" in system:
             return self._matching_choice(user)
         if "TASK: screening_choice" in system:
@@ -457,6 +459,26 @@ class OfflineAgent:
             mechanism_id = _best_repeated_mechanism_choice(user, mechanisms, risk_blind=True)
         else:
             mechanism_id = _best_repeated_mechanism_choice(user, mechanisms)
+        return f"FINAL_MECHANISM: {mechanism_id}"
+
+    def _mechanism_participant_response_choice(self, user: str) -> str:
+        mechanisms = _extract_participant_response_mechanisms(user)
+        if self.policy in {"revenue", "max_revenue"}:
+            mechanism_id = max(mechanisms, key=lambda item: mechanisms[item]["sponsor_take"])
+        elif self.policy in {"one_period", "myopic"}:
+            mechanism_id = _best_participant_response_mechanism_choice(
+                user,
+                mechanisms,
+                one_period=True,
+            )
+        elif self.policy in {"response_blind", "static", "retention_blind"}:
+            mechanism_id = _best_participant_response_mechanism_choice(
+                user,
+                mechanisms,
+                response_blind=True,
+            )
+        else:
+            mechanism_id = _best_participant_response_mechanism_choice(user, mechanisms)
         return f"FINAL_MECHANISM: {mechanism_id}"
 
     def _matching_choice(self, user: str) -> str:
@@ -1919,6 +1941,84 @@ def _best_repeated_mechanism_choice(
                 - manipulation_penalty * manipulation
                 - mechanism["review_cost"]
             )
+        return total
+
+    return max(mechanisms, key=score)
+
+
+def _extract_participant_response_mechanisms(text: str) -> dict[str, dict[str, float]]:
+    mechanisms: dict[str, dict[str, float]] = {}
+    pattern = re.compile(
+        r"policy_id=([a-zA-Z0-9_-]+)\s+"
+        r"sponsor_take=([-+]?\d+(?:\.\d+)?)\s+"
+        r"participant_value=([-+]?\d+(?:\.\d+)?)\s+"
+        r"access_quality=([-+]?\d+(?:\.\d+)?)\s+"
+        r"starting_participants=([-+]?\d+(?:\.\d+)?)\s+"
+        r"base_stay_rate=([-+]?\d+(?:\.\d+)?)\s+"
+        r"take_exit_sensitivity=([-+]?\d+(?:\.\d+)?)\s+"
+        r"gaming_pressure=([-+]?\d+(?:\.\d+)?)\s+"
+        r"trust_decay=([-+]?\d+(?:\.\d+)?)\s+"
+        r"review_cost=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        mechanisms[match.group(1)] = {
+            "sponsor_take": float(match.group(2)),
+            "participant_value": float(match.group(3)),
+            "access_quality": float(match.group(4)),
+            "starting_participants": float(match.group(5)),
+            "base_stay_rate": float(match.group(6)),
+            "take_exit_sensitivity": float(match.group(7)),
+            "gaming_pressure": float(match.group(8)),
+            "trust_decay": float(match.group(9)),
+            "review_cost": float(match.group(10)),
+        }
+    return mechanisms
+
+
+def _best_participant_response_mechanism_choice(
+    text: str,
+    mechanisms: dict[str, dict[str, float]],
+    *,
+    one_period: bool = False,
+    response_blind: bool = False,
+) -> str:
+    horizon = 1 if one_period else int(round(_extract_float(text, "horizon", 1.0)))
+    revenue_weight = _extract_float(text, "revenue_weight")
+    participant_value_weight = _extract_float(text, "participant_value_weight")
+    access_weight = _extract_float(text, "access_weight")
+    gaming_penalty = _extract_float(text, "gaming_penalty")
+
+    def score(mechanism_id: str) -> float:
+        mechanism = mechanisms[mechanism_id]
+        participants = mechanism["starting_participants"]
+        total = 0.0
+        for period in range(max(1, horizon)):
+            gaming_pressure = mechanism["gaming_pressure"] * (
+                1.0 + mechanism["trust_decay"] * period
+            )
+            total += (
+                participants
+                * (
+                    revenue_weight * mechanism["sponsor_take"]
+                    + participant_value_weight * mechanism["participant_value"]
+                    + access_weight * mechanism["access_quality"]
+                    - gaming_penalty * gaming_pressure
+                )
+                - mechanism["review_cost"]
+            )
+            if response_blind:
+                participants = mechanism["starting_participants"]
+                continue
+            stay_rate = min(
+                0.99,
+                max(
+                    0.05,
+                    mechanism["base_stay_rate"]
+                    - mechanism["take_exit_sensitivity"] * mechanism["sponsor_take"]
+                    - mechanism["trust_decay"] * mechanism["gaming_pressure"] * period,
+                ),
+            )
+            participants *= stay_rate
         return total
 
     return max(mechanisms, key=score)

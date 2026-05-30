@@ -55,12 +55,15 @@ from aeread_lab.tasks.matching import DEFAULT_CASES as MATCHING_CASES
 from aeread_lab.tasks.matching import _prompt as matching_prompt
 from aeread_lab.tasks.matching import run_matching_game
 from aeread_lab.tasks.mechanism import DEFAULT_CASES as MECHANISM_CASES
+from aeread_lab.tasks.mechanism import PARTICIPANT_RESPONSE_CASES as MECHANISM_RESPONSE_CASES
 from aeread_lab.tasks.mechanism import REPEATED_CASES as MECHANISM_REPEATED_CASES
+from aeread_lab.tasks.mechanism import _participant_response_prompt as mechanism_response_prompt
 from aeread_lab.tasks.mechanism import _prompt as mechanism_prompt
 from aeread_lab.tasks.mechanism import _repeated_natural_prompt as mechanism_repeated_natural_prompt
 from aeread_lab.tasks.mechanism import _repeated_prompt as mechanism_repeated_prompt
 from aeread_lab.tasks.mechanism import (
     run_mechanism_game,
+    run_mechanism_participant_response_game,
     run_mechanism_repeated_game,
     run_mechanism_repeated_natural_game,
 )
@@ -222,6 +225,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_score_regret"], 1e-9)
 
+    def test_sample_limit_slices_mechanism_participant_response_cases(self):
+        results = run_tasks("mechanism_participant_response", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
     def test_procurement_oracle_offline(self):
         summary = run_procurement_game(OfflineAgent("oracle"))
         self.assertEqual(summary["accuracy"], 1.0)
@@ -281,6 +289,7 @@ class TaskSmokeTests(unittest.TestCase):
         mechanism = mechanism_prompt(MECHANISM_CASES[0])
         mechanism_repeated = mechanism_repeated_prompt(MECHANISM_REPEATED_CASES[0])
         mechanism_repeated_natural = mechanism_repeated_natural_prompt(MECHANISM_REPEATED_CASES[0])
+        mechanism_response = mechanism_response_prompt(MECHANISM_RESPONSE_CASES[0])
         experiment = experiment_prompt(EXPERIMENT_CASES[0])
         retail = retail_prompt(RETAIL_CASES[-1])
         supplier_scam = supplier_scam_prompt(
@@ -317,6 +326,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", mechanism)
         self.assertNotIn("oracle", mechanism_repeated)
         self.assertNotIn("oracle", mechanism_repeated_natural)
+        self.assertNotIn("oracle", mechanism_response)
         self.assertNotIn("oracle", experiment)
         self.assertNotIn("oracle", retail)
         self.assertNotIn("oracle", supplier_scam)
@@ -328,6 +338,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("observed_event_count", forecast_curve_natural)
         self.assertNotIn("first_period_revenue", mechanism_repeated_natural)
         self.assertNotIn("manipulation_growth", mechanism_repeated_natural)
+        self.assertNotIn("best_mechanism", mechanism_response)
 
     def test_regime_relationship_flags_law_and_fit_failures(self):
         configured = run_regime_relationship_verifier(OfflineAgent("oracle"))
@@ -565,6 +576,19 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(one_period["one_period_miss_rate"], 0.5)
         self.assertGreater(risk_blind["mean_score_regret"], 100.0)
         self.assertGreater(risk_blind["risk_blind_miss_rate"], 0.5)
+
+    def test_mechanism_participant_response_flags_exit_blind_defaults(self):
+        configured = run_mechanism_participant_response_game(OfflineAgent("oracle"))
+        revenue = run_mechanism_participant_response_game(OfflineAgent("revenue"))
+        one_period = run_mechanism_participant_response_game(OfflineAgent("one_period"))
+        response_blind = run_mechanism_participant_response_game(OfflineAgent("response_blind"))
+        self.assertLess(configured["mean_score_regret"], 1e-9)
+        self.assertGreater(revenue["mean_score_regret"], 1000.0)
+        self.assertEqual(revenue["revenue_default_miss_rate"], 1.0)
+        self.assertGreater(one_period["mean_score_regret"], 50.0)
+        self.assertGreater(one_period["one_period_miss_rate"], 0.5)
+        self.assertGreater(response_blind["mean_score_regret"], 50.0)
+        self.assertGreater(response_blind["response_blind_miss_rate"], 0.5)
 
     def test_strategic_drift_flags_myopic_grabs(self):
         disciplined = run_strategic_drift_game(OfflineAgent("oracle"))
@@ -860,6 +884,13 @@ class TaskSmokeTests(unittest.TestCase):
         sweep = run_sweep(task="mechanism_repeated_natural", agent_specs=["offline:oracle", "offline:revenue"])
         rows = rank_rows(comparison_table(sweep))
         mechanism_rows = [row for row in rows if row["task"] == "mechanism_repeated_natural"]
+        self.assertEqual(mechanism_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(mechanism_rows[1]["agent"], "offline:revenue")
+
+    def test_offline_sweep_ranks_participant_response_mechanism_above_revenue(self):
+        sweep = run_sweep(task="mechanism_participant_response", agent_specs=["offline:oracle", "offline:revenue"])
+        rows = rank_rows(comparison_table(sweep))
+        mechanism_rows = [row for row in rows if row["task"] == "mechanism_participant_response"]
         self.assertEqual(mechanism_rows[0]["agent"], "offline:oracle")
         self.assertEqual(mechanism_rows[1]["agent"], "offline:revenue")
 

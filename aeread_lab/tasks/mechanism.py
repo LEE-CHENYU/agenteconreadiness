@@ -20,6 +20,12 @@ MECHANISM_REPEATED_SYSTEM = (
     "FINAL_MECHANISM: <mechanism_id>."
 )
 
+MECHANISM_PARTICIPANT_RESPONSE_SYSTEM = (
+    "TASK: mechanism_participant_response\n"
+    "Choose the mechanism for a repeated program with participant response. "
+    "Return one final line only: FINAL_MECHANISM: <mechanism_id>."
+)
+
 
 @dataclass(frozen=True)
 class IncentiveCheck:
@@ -97,6 +103,44 @@ class RepeatedMechanismTrial:
     revenue_mechanism: str
     one_period_mechanism: str
     risk_blind_mechanism: str
+    chosen_mechanism: str | None
+    score_regret: float | None
+    raw_response: str
+
+
+@dataclass(frozen=True)
+class ParticipantResponseMechanismOption:
+    mechanism_id: str
+    sponsor_take: float
+    participant_value: float
+    access_quality: float
+    starting_participants: float
+    base_stay_rate: float
+    take_exit_sensitivity: float
+    gaming_pressure: float
+    trust_decay: float
+    review_cost: float
+
+
+@dataclass(frozen=True)
+class ParticipantResponseMechanismCase:
+    key: str
+    real_case: str
+    horizon: int
+    revenue_weight: float
+    participant_value_weight: float
+    access_weight: float
+    gaming_penalty: float
+    mechanisms: tuple[ParticipantResponseMechanismOption, ...]
+
+
+@dataclass
+class ParticipantResponseMechanismTrial:
+    case: ParticipantResponseMechanismCase
+    best_mechanism: str
+    revenue_mechanism: str
+    one_period_mechanism: str
+    response_blind_mechanism: str
     chosen_mechanism: str | None
     score_regret: float | None
     raw_response: str
@@ -316,6 +360,198 @@ REPEATED_CASES = [
 ]
 
 
+PARTICIPANT_RESPONSE_CASES = [
+    ParticipantResponseMechanismCase(
+        key="creator_subscription_exit",
+        real_case="creator marketplace where high sponsor take causes creators to exit over repeated allocation rounds",
+        horizon=5,
+        revenue_weight=1.00,
+        participant_value_weight=0.35,
+        access_weight=25.00,
+        gaming_penalty=6.00,
+        mechanisms=(
+            ParticipantResponseMechanismOption(
+                "extractive_rank",
+                42.0,
+                55.0,
+                0.45,
+                10.0,
+                0.920,
+                0.0100,
+                5.0,
+                0.0250,
+                2.0,
+            ),
+            ParticipantResponseMechanismOption(
+                "balanced_pacing",
+                24.0,
+                75.0,
+                0.78,
+                9.4,
+                0.960,
+                0.0040,
+                1.4,
+                0.0080,
+                3.5,
+            ),
+            ParticipantResponseMechanismOption(
+                "community_pool",
+                14.0,
+                68.0,
+                0.94,
+                9.0,
+                0.980,
+                0.0020,
+                0.8,
+                0.0050,
+                4.2,
+            ),
+        ),
+    ),
+    ParticipantResponseMechanismCase(
+        key="public_grants_applicant_retention",
+        real_case="public grants portal where extractive ranking rules discourage later applicant participation",
+        horizon=4,
+        revenue_weight=0.20,
+        participant_value_weight=0.55,
+        access_weight=45.00,
+        gaming_penalty=5.00,
+        mechanisms=(
+            ParticipantResponseMechanismOption(
+                "pay_to_rank",
+                38.0,
+                52.0,
+                0.40,
+                8.5,
+                0.900,
+                0.0110,
+                4.5,
+                0.0200,
+                1.5,
+            ),
+            ParticipantResponseMechanismOption(
+                "deliberative_score",
+                18.0,
+                78.0,
+                0.82,
+                8.2,
+                0.970,
+                0.0030,
+                1.0,
+                0.0060,
+                3.8,
+            ),
+            ParticipantResponseMechanismOption(
+                "rotating_lottery",
+                8.0,
+                64.0,
+                0.97,
+                8.0,
+                0.985,
+                0.0010,
+                0.7,
+                0.0040,
+                3.3,
+            ),
+        ),
+    ),
+    ParticipantResponseMechanismCase(
+        key="procurement_vendor_exit",
+        real_case="repeat procurement market where self-certification extracts margin but pushes reliable vendors out",
+        horizon=5,
+        revenue_weight=0.70,
+        participant_value_weight=0.50,
+        access_weight=30.00,
+        gaming_penalty=7.00,
+        mechanisms=(
+            ParticipantResponseMechanismOption(
+                "self_certified_low_bid",
+                50.0,
+                50.0,
+                0.42,
+                7.0,
+                0.880,
+                0.0090,
+                5.2,
+                0.0300,
+                1.0,
+            ),
+            ParticipantResponseMechanismOption(
+                "audited_score",
+                25.0,
+                82.0,
+                0.72,
+                6.8,
+                0.955,
+                0.0030,
+                1.2,
+                0.0060,
+                4.2,
+            ),
+            ParticipantResponseMechanismOption(
+                "supplier_rotation",
+                16.0,
+                74.0,
+                0.92,
+                6.4,
+                0.965,
+                0.0020,
+                1.0,
+                0.0050,
+                3.6,
+            ),
+        ),
+    ),
+    ParticipantResponseMechanismCase(
+        key="creator_feed_trust_decay",
+        real_case="creator feed rule where gaming pressure erodes participant trust over a longer program",
+        horizon=6,
+        revenue_weight=0.85,
+        participant_value_weight=0.40,
+        access_weight=20.00,
+        gaming_penalty=8.00,
+        mechanisms=(
+            ParticipantResponseMechanismOption(
+                "viral_auction",
+                44.0,
+                70.0,
+                0.58,
+                12.0,
+                0.940,
+                0.0060,
+                4.8,
+                0.0350,
+                2.2,
+            ),
+            ParticipantResponseMechanismOption(
+                "audited_pacing",
+                28.0,
+                86.0,
+                0.76,
+                11.2,
+                0.960,
+                0.0030,
+                1.1,
+                0.0070,
+                5.0,
+            ),
+            ParticipantResponseMechanismOption(
+                "community_lottery",
+                15.0,
+                72.0,
+                0.95,
+                10.8,
+                0.975,
+                0.0015,
+                0.9,
+                0.0050,
+                4.5,
+            ),
+        ),
+    ),
+]
+
+
 def incentive_violation(mechanism: MechanismOption) -> float:
     return sum(
         max(0.0, check.best_deviation_utility - check.truthful_utility) * max(0.0, check.probability)
@@ -440,6 +676,69 @@ def risk_blind_repeated_mechanism(case: RepeatedMechanismCase) -> str:
     ).mechanism_id
 
 
+def participant_response_mechanism_score(
+    case: ParticipantResponseMechanismCase,
+    mechanism: ParticipantResponseMechanismOption,
+    *,
+    one_period: bool = False,
+    response_blind: bool = False,
+) -> float:
+    participants = mechanism.starting_participants
+    total = 0.0
+    horizon = 1 if one_period else case.horizon
+    for period in range(horizon):
+        gaming_pressure = mechanism.gaming_pressure * (1.0 + mechanism.trust_decay * period)
+        total += (
+            participants
+            * (
+                case.revenue_weight * mechanism.sponsor_take
+                + case.participant_value_weight * mechanism.participant_value
+                + case.access_weight * mechanism.access_quality
+                - case.gaming_penalty * gaming_pressure
+            )
+            - mechanism.review_cost
+        )
+        if response_blind:
+            participants = mechanism.starting_participants
+            continue
+        stay_rate = _clamp_participant_stay(
+            mechanism.base_stay_rate
+            - mechanism.take_exit_sensitivity * mechanism.sponsor_take
+            - mechanism.trust_decay * mechanism.gaming_pressure * period
+        )
+        participants *= stay_rate
+    return total
+
+
+def best_participant_response_mechanism(case: ParticipantResponseMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: participant_response_mechanism_score(case, mechanism),
+    ).mechanism_id
+
+
+def revenue_participant_response_mechanism(case: ParticipantResponseMechanismCase) -> str:
+    return max(case.mechanisms, key=lambda mechanism: mechanism.sponsor_take).mechanism_id
+
+
+def one_period_participant_response_mechanism(case: ParticipantResponseMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: participant_response_mechanism_score(case, mechanism, one_period=True),
+    ).mechanism_id
+
+
+def response_blind_participant_response_mechanism(case: ParticipantResponseMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: participant_response_mechanism_score(case, mechanism, response_blind=True),
+    ).mechanism_id
+
+
+def _clamp_participant_stay(value: float) -> float:
+    return min(0.99, max(0.05, value))
+
+
 def run_mechanism_repeated_game(
     agent: Agent,
     cases: list[RepeatedMechanismCase] | None = None,
@@ -501,6 +800,42 @@ def _run_repeated_mechanism_game(
             )
         )
     return summarize_repeated_mechanism_trials(agent.name, trials, task_name=task_name)
+
+
+def run_mechanism_participant_response_game(
+    agent: Agent,
+    cases: list[ParticipantResponseMechanismCase] | None = None,
+) -> dict:
+    cases = cases or PARTICIPANT_RESPONSE_CASES
+    trials: list[ParticipantResponseMechanismTrial] = []
+    for case in cases:
+        best = best_participant_response_mechanism(case)
+        revenue = revenue_participant_response_mechanism(case)
+        one_period = one_period_participant_response_mechanism(case)
+        response_blind = response_blind_participant_response_mechanism(case)
+        response = agent.complete(MECHANISM_PARTICIPANT_RESPONSE_SYSTEM, _participant_response_prompt(case))
+        chosen = parse_token("FINAL_MECHANISM", response)
+        mechanism_by_id = {mechanism.mechanism_id: mechanism for mechanism in case.mechanisms}
+        chosen = chosen if chosen in mechanism_by_id else None
+        regret = (
+            participant_response_mechanism_score(case, mechanism_by_id[best])
+            - participant_response_mechanism_score(case, mechanism_by_id[chosen])
+            if chosen is not None
+            else None
+        )
+        trials.append(
+            ParticipantResponseMechanismTrial(
+                case=case,
+                best_mechanism=best,
+                revenue_mechanism=revenue,
+                one_period_mechanism=one_period,
+                response_blind_mechanism=response_blind,
+                chosen_mechanism=chosen,
+                score_regret=regret,
+                raw_response=response,
+            )
+        )
+    return summarize_participant_response_mechanism_trials(agent.name, trials)
 
 
 def summarize_mechanism_trials(agent_name: str, trials: list[MechanismTrial]) -> dict:
@@ -566,6 +901,52 @@ def summarize_repeated_mechanism_trials(
             else 0.0
         ),
         "trials": [_repeated_trial_json(trial) for trial in trials],
+    }
+
+
+def summarize_participant_response_mechanism_trials(
+    agent_name: str,
+    trials: list[ParticipantResponseMechanismTrial],
+) -> dict:
+    regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
+    revenue_missable = [trial for trial in trials if trial.revenue_mechanism != trial.best_mechanism]
+    one_period_missable = [
+        trial for trial in trials if trial.one_period_mechanism != trial.best_mechanism
+    ]
+    response_blind_missable = [
+        trial for trial in trials if trial.response_blind_mechanism != trial.best_mechanism
+    ]
+    return {
+        "task": "mechanism_participant_response",
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "mean_score_regret": mean(regrets),
+        "mean_score_regret_ci95": bootstrap_mean_ci(regrets),
+        "revenue_default_miss_rate": (
+            sum(trial.chosen_mechanism == trial.revenue_mechanism for trial in revenue_missable)
+            / len(revenue_missable)
+            if revenue_missable
+            else 0.0
+        ),
+        "one_period_miss_rate": (
+            sum(
+                trial.chosen_mechanism == trial.one_period_mechanism
+                for trial in one_period_missable
+            )
+            / len(one_period_missable)
+            if one_period_missable
+            else 0.0
+        ),
+        "response_blind_miss_rate": (
+            sum(
+                trial.chosen_mechanism == trial.response_blind_mechanism
+                for trial in response_blind_missable
+            )
+            / len(response_blind_missable)
+            if response_blind_missable
+            else 0.0
+        ),
+        "trials": [_participant_response_trial_json(trial) for trial in trials],
     }
 
 
@@ -680,6 +1061,45 @@ def _repeated_natural_prompt(case: RepeatedMechanismCase) -> str:
     return "\n".join(lines)
 
 
+def _participant_response_prompt(case: ParticipantResponseMechanismCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"horizon={case.horizon}",
+        f"revenue_weight={case.revenue_weight:.4f}",
+        f"participant_value_weight={case.participant_value_weight:.4f}",
+        f"access_weight={case.access_weight:.4f}",
+        f"gaming_penalty={case.gaming_penalty:.4f}",
+        "Candidate program rules:",
+    ]
+    for mechanism in case.mechanisms:
+        lines.append(
+            "  "
+            f"policy_id={mechanism.mechanism_id} "
+            f"sponsor_take={mechanism.sponsor_take:.2f} "
+            f"participant_value={mechanism.participant_value:.2f} "
+            f"access_quality={mechanism.access_quality:.4f} "
+            f"starting_participants={mechanism.starting_participants:.2f} "
+            f"base_stay_rate={mechanism.base_stay_rate:.4f} "
+            f"take_exit_sensitivity={mechanism.take_exit_sensitivity:.4f} "
+            f"gaming_pressure={mechanism.gaming_pressure:.2f} "
+            f"trust_decay={mechanism.trust_decay:.4f} "
+            f"review_cost={mechanism.review_cost:.2f}"
+        )
+    lines.extend(
+        [
+            "Simulate the participant pool over the full program.",
+            "Each period earns weighted sponsor take, participant value, and access quality "
+            "from the currently active participants.",
+            "Participant stay rate falls when sponsor take is high and when gaming pressure "
+            "accumulates over time.",
+            "Pick the rule with the best total program value, not the rule with the highest "
+            "launch-period take or the rule that assumes participants never leave.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _trial_json(trial: MechanismTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
@@ -687,6 +1107,12 @@ def _trial_json(trial: MechanismTrial) -> dict:
 
 
 def _repeated_trial_json(trial: RepeatedMechanismTrial) -> dict:
+    data = asdict(trial)
+    data["case"] = asdict(trial.case)
+    return data
+
+
+def _participant_response_trial_json(trial: ParticipantResponseMechanismTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
     return data
