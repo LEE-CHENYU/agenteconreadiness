@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
-from itertools import combinations
 import re
+from dataclasses import asdict, dataclass
+from itertools import combinations
 
 from aeread_lab.models import Agent
 from aeread_lab.parsing import parse_token
@@ -18,6 +18,13 @@ PROCUREMENT_BUNDLE_SYSTEM = (
     "Select exactly two product_id values as a procurement bundle. "
     "Respect the budget, required category coverage, and compatibility bonuses. "
     "Return one final line only: FINAL_BUNDLE: <product_id>,<product_id>."
+)
+
+PROCUREMENT_BUNDLE_NATURAL_SYSTEM = (
+    "TASK: procurement_bundle_natural\n"
+    "Select exactly two SKU values for the procurement package. "
+    "Respect the spend limit, required product lines, and package fit notes. "
+    "Return one final line only: FINAL_BUNDLE: <sku>,<sku>."
 )
 
 
@@ -479,11 +486,41 @@ def run_procurement_bundle_game(
     agent: Agent,
     cases: list[ProcurementBundleCase] | None = None,
 ) -> dict:
+    return _run_procurement_bundle_game(
+        agent,
+        cases=cases,
+        system=PROCUREMENT_BUNDLE_SYSTEM,
+        prompt_builder=_bundle_prompt,
+        task_name="procurement_bundle",
+    )
+
+
+def run_procurement_bundle_natural_game(
+    agent: Agent,
+    cases: list[ProcurementBundleCase] | None = None,
+) -> dict:
+    return _run_procurement_bundle_game(
+        agent,
+        cases=cases,
+        system=PROCUREMENT_BUNDLE_NATURAL_SYSTEM,
+        prompt_builder=_bundle_natural_prompt,
+        task_name="procurement_bundle_natural",
+    )
+
+
+def _run_procurement_bundle_game(
+    agent: Agent,
+    *,
+    cases: list[ProcurementBundleCase] | None,
+    system: str,
+    prompt_builder,
+    task_name: str,
+) -> dict:
     cases = cases or PROCUREMENT_BUNDLE_CASES
     rows = []
     for case in cases:
         oracle = oracle_bundle(case)
-        response = agent.complete(PROCUREMENT_BUNDLE_SYSTEM, _bundle_prompt(case))
+        response = agent.complete(system, prompt_builder(case))
         chosen = _parse_bundle(response)
         row = _score_bundle_case(case, chosen, response)
         row["oracle_bundle"] = oracle
@@ -497,7 +534,7 @@ def run_procurement_bundle_game(
         row for row in rows if row["compatibility_blind_bundle"] != row["oracle_bundle"]
     ]
     return {
-        "task": "procurement_bundle",
+        "task": task_name,
         "agent": agent.name,
         "n_trials": total,
         "accuracy": sum(row["correct"] for row in rows) / total if total else 0.0,
@@ -720,6 +757,53 @@ def _bundle_prompt(case: ProcurementBundleCase) -> str:
                 f"friction_weight={case.profile.friction_weight:.4f}",
             ]
         )
+    )
+    return "\n".join(lines)
+
+
+def _bundle_natural_prompt(case: ProcurementBundleCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"buying_team={case.profile.key}",
+        f"spend_limit={case.budget:.0f}",
+        f"must_cover_lines={','.join(case.required_categories)}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note)
+    lines.append("Candidate SKUs:")
+    for product in case.products:
+        lines.append(
+            "  "
+            + " ".join(
+                [
+                    f"sku={product.product_id}",
+                    f"line={product.category}",
+                    f"invoice={product.price:.0f}",
+                    f"field_reliability={product.durability:.2f}",
+                    f"operator_fit={product.comfort:.2f}",
+                    f"presentation_fit={product.style_fit:.2f}",
+                    f"deployment_drag={product.assembly_friction:.2f}",
+                ]
+            )
+        )
+    lines.append("Package fit notes:")
+    for left, right, bonus in case.compatibility_bonuses:
+        lines.append(f"  bundle_pair={left},{right} service_fit_delta={bonus:.2f}")
+    lines.append("Buying team priorities:")
+    lines.append(
+        " ".join(
+            [
+                f"invoice_penalty={case.profile.price_weight:.4f}",
+                f"reliability_weight={case.profile.durability_weight:.4f}",
+                f"operator_fit_weight={case.profile.comfort_weight:.4f}",
+                f"presentation_weight={case.profile.style_weight:.4f}",
+                f"deployment_drag_weight={case.profile.friction_weight:.4f}",
+            ]
+        )
+    )
+    lines.append(
+        "Pick the two-SKU package with the best total procurement fit after spend, "
+        "line coverage, deployment drag, and package-fit notes."
     )
     return "\n".join(lines)
 

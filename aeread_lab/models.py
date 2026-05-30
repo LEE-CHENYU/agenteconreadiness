@@ -1095,6 +1095,29 @@ def _extract_procurement_bundle_products(text: str) -> dict[str, dict[str, float
             "style_fit": float(match.group(6)),
             "assembly_friction": float(match.group(7)),
         }
+    return products or _extract_procurement_bundle_natural_products(text)
+
+
+def _extract_procurement_bundle_natural_products(text: str) -> dict[str, dict[str, float | str]]:
+    products: dict[str, dict[str, float | str]] = {}
+    product_pattern = re.compile(
+        r"sku=([a-zA-Z0-9_-]+)\s+"
+        r"line=([a-zA-Z0-9_-]+)\s+"
+        r"invoice=([-+]?\d+(?:\.\d+)?)\s+"
+        r"field_reliability=([-+]?\d+(?:\.\d+)?)\s+"
+        r"operator_fit=([-+]?\d+(?:\.\d+)?)\s+"
+        r"presentation_fit=([-+]?\d+(?:\.\d+)?)\s+"
+        r"deployment_drag=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in product_pattern.finditer(text):
+        products[match.group(1)] = {
+            "category": match.group(2),
+            "price": float(match.group(3)),
+            "durability": float(match.group(4)),
+            "comfort": float(match.group(5)),
+            "style_fit": float(match.group(6)),
+            "assembly_friction": float(match.group(7)),
+        }
     return products
 
 
@@ -1103,8 +1126,11 @@ def _best_procurement_bundle(
     products: dict[str, dict[str, float | str]],
     policy: str,
 ) -> tuple[str, str]:
-    required = set(_extract_words(text, "required_categories"))
-    budget = _extract_float(text, "budget", math.inf)
+    required = set(
+        _extract_words(text, "required_categories")
+        or _extract_words(text, "must_cover_lines")
+    )
+    budget = _extract_float(text, "budget", _extract_float(text, "spend_limit", math.inf))
     candidates = []
     for left, right in itertools.combinations(products, 2):
         pair = tuple(sorted((left, right)))
@@ -1112,7 +1138,7 @@ def _best_procurement_bundle(
             categories = {str(products[left]["category"]), str(products[right]["category"])}
             if required and not required.issubset(categories):
                 continue
-        if products[left]["price"] + products[right]["price"] > budget:
+        if float(products[left]["price"]) + float(products[right]["price"]) > budget:
             continue
         candidates.append(pair)
     if not candidates:
@@ -1130,20 +1156,32 @@ def _best_procurement_bundle(
 
 def _procurement_bundle_item_utility(text: str, product: dict[str, float | str]) -> float:
     return (
-        _extract_float(text, "durability_weight") * float(product["durability"])
-        + _extract_float(text, "comfort_weight") * float(product["comfort"])
-        + _extract_float(text, "style_weight") * float(product["style_fit"])
-        - _extract_float(text, "friction_weight") * float(product["assembly_friction"])
-        - _extract_float(text, "price_weight") * float(product["price"])
+        _extract_float(text, "durability_weight", _extract_float(text, "reliability_weight"))
+        * float(product["durability"])
+        + _extract_float(text, "comfort_weight", _extract_float(text, "operator_fit_weight"))
+        * float(product["comfort"])
+        + _extract_float(text, "style_weight", _extract_float(text, "presentation_weight"))
+        * float(product["style_fit"])
+        - _extract_float(text, "friction_weight", _extract_float(text, "deployment_drag_weight"))
+        * float(product["assembly_friction"])
+        - _extract_float(text, "price_weight", _extract_float(text, "invoice_penalty"))
+        * float(product["price"])
     )
 
 
 def _procurement_bundle_compatibility(text: str, pair: tuple[str, str]) -> float:
     normalized = set(pair)
-    pattern = re.compile(r"pair=([a-zA-Z0-9_-]+),([a-zA-Z0-9_-]+)\s+bonus=([-+]?\d+(?:\.\d+)?)")
-    for match in pattern.finditer(text):
-        if normalized == {match.group(1), match.group(2)}:
-            return float(match.group(3))
+    patterns = (
+        re.compile(r"pair=([a-zA-Z0-9_-]+),([a-zA-Z0-9_-]+)\s+bonus=([-+]?\d+(?:\.\d+)?)"),
+        re.compile(
+            r"bundle_pair=([a-zA-Z0-9_-]+),([a-zA-Z0-9_-]+)\s+"
+            r"service_fit_delta=([-+]?\d+(?:\.\d+)?)"
+        ),
+    )
+    for pattern in patterns:
+        for match in pattern.finditer(text):
+            if normalized == {match.group(1), match.group(2)}:
+                return float(match.group(3))
     return 0.0
 
 

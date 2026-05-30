@@ -56,6 +56,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `procurement` | v0 `ProductProcurementGame`: discrete-action qualitative procurement with a utility-vector oracle. | `python -m aeread_lab.cli --task procurement --agent offline:oracle` |
 | `procurement_counterfactual` | Procurement paraphrase and preference-flip probe: the same products preserve the oracle under wording changes but require a different choice when the principal's weights change. | `python -m aeread_lab.cli --task procurement_counterfactual --agent offline:oracle` |
 | `procurement_bundle` | Combinatorial procurement bundle choice: pick exactly two products under budget and category coverage, adding pairwise compatibility to item utility. | `python -m aeread_lab.cli --task procurement_bundle --agent offline:oracle` |
+| `procurement_bundle_natural` | Natural-label procurement bundle choice: same two-product oracle as `procurement_bundle`, but product rows use SKU/package-fit language instead of explicit compatibility-bonus labels. | `python -m aeread_lab.cli --task procurement_bundle_natural --agent offline:oracle` |
 | `pricing` | v0 `SimplePricingGame`: continuous price choice with base/posterior/reveal conditions and a closed-form revenue oracle. | `python -m aeread_lab.cli --task pricing --agent offline:oracle` |
 | `pricing_counterfactual` | Pricing evidence-perturbation probe: exact and noisy posterior demand evidence changes the revenue-maximizing price, and stale base prices are scored as counterfactual-shift misses. | `python -m aeread_lab.cli --task pricing_counterfactual --agent offline:oracle` |
 | `pricing_cross_elasticity` | Cross-product pricing evidence: fit focal demand from own-price and related-price variation, catching single-product fits that ignore substitution or complement effects. | `python -m aeread_lab.cli --task pricing_cross_elasticity --agent offline:oracle` |
@@ -210,6 +211,9 @@ interpreting the economic metric.
 - `procurement_bundle`: lower bundle score regret is better; invalid format,
   category miss, budget violation, and compatibility-blind miss rates are
   reported separately.
+- `procurement_bundle_natural`: lower bundle score regret is better under a
+  natural package-fit prompt; the same invalid, category, budget, and
+  compatibility-blind diagnostics are reported.
 - `pricing`: lower revenue gap to the closed-form optimum is better.
 - `pricing_counterfactual`: lower posterior price error is better;
   counterfactual-shift miss and sticky-base-price rates are reported separately.
