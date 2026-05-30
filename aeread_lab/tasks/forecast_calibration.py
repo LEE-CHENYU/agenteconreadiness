@@ -141,6 +141,40 @@ class ShiftForecastTrial:
     raw_response: str
 
 
+@dataclass(frozen=True)
+class RollingCalibrationPeriod:
+    period_id: str
+    recency_weight: float
+    bins: tuple[CalibrationBin, ...]
+
+
+@dataclass(frozen=True)
+class RollingCalibrationCase:
+    key: str
+    real_case: str
+    target_event: str
+    raw_model_probability: float
+    global_base_rate: float
+    prior_strength: float
+    periods: tuple[RollingCalibrationPeriod, ...]
+
+
+@dataclass
+class RollingForecastTrial:
+    case: RollingCalibrationCase
+    calibrated_probability: float
+    raw_model_probability: float
+    stale_window_probability: float
+    pooled_history_probability: float
+    chosen_probability: float | None
+    expected_brier_regret: float | None
+    probability_error: float | None
+    raw_score_miss: bool
+    stale_window_miss: bool
+    pooled_history_miss: bool
+    raw_response: str
+
+
 DEFAULT_CASES = [
     ForecastCase(
         key="enterprise_churn_warning",
@@ -547,6 +581,157 @@ SHIFT_CALIBRATION_CASES = [
     ),
 ]
 
+ROLLING_CALIBRATION_CASES = [
+    RollingCalibrationCase(
+        key="renewal_playbook_cooldown",
+        real_case="enterprise churn model after a retention playbook improved recent outcomes",
+        target_event="account churns before renewal",
+        raw_model_probability=0.72,
+        global_base_rate=0.26,
+        prior_strength=20.0,
+        periods=(
+            RollingCalibrationPeriod(
+                "window_1_older",
+                0.20,
+                (
+                    CalibrationBin("old_low", 0.44, 33, 90),
+                    CalibrationBin("old_target", 0.72, 53, 80),
+                    CalibrationBin("old_high", 0.88, 67, 90),
+                ),
+            ),
+            RollingCalibrationPeriod(
+                "window_2_mid",
+                0.30,
+                (
+                    CalibrationBin("mid_low", 0.44, 24, 90),
+                    CalibrationBin("mid_target", 0.72, 31, 80),
+                    CalibrationBin("mid_high", 0.88, 47, 90),
+                ),
+            ),
+            RollingCalibrationPeriod(
+                "window_3_recent",
+                0.50,
+                (
+                    CalibrationBin("recent_low", 0.44, 13, 90),
+                    CalibrationBin("recent_target", 0.72, 17, 80),
+                    CalibrationBin("recent_high", 0.88, 29, 90),
+                ),
+            ),
+        ),
+    ),
+    RollingCalibrationCase(
+        key="fraud_channel_surge",
+        real_case="merchant-risk model after a new acquisition channel began producing fraudier traffic",
+        target_event="merchant account has a confirmed fraud escalation",
+        raw_model_probability=0.34,
+        global_base_rate=0.16,
+        prior_strength=24.0,
+        periods=(
+            RollingCalibrationPeriod(
+                "window_1_older",
+                0.20,
+                (
+                    CalibrationBin("old_low", 0.18, 8, 100),
+                    CalibrationBin("old_target", 0.34, 10, 90),
+                    CalibrationBin("old_high", 0.58, 24, 100),
+                ),
+            ),
+            RollingCalibrationPeriod(
+                "window_2_mid",
+                0.30,
+                (
+                    CalibrationBin("mid_low", 0.18, 16, 100),
+                    CalibrationBin("mid_target", 0.34, 29, 90),
+                    CalibrationBin("mid_high", 0.58, 49, 100),
+                ),
+            ),
+            RollingCalibrationPeriod(
+                "window_3_recent",
+                0.50,
+                (
+                    CalibrationBin("recent_low", 0.18, 33, 100),
+                    CalibrationBin("recent_target", 0.34, 63, 90),
+                    CalibrationBin("recent_high", 0.58, 75, 100),
+                ),
+            ),
+        ),
+    ),
+    RollingCalibrationCase(
+        key="credit_policy_relief",
+        real_case="small-business delinquency model after underwriting controls tightened over time",
+        target_event="borrower becomes 60 days delinquent",
+        raw_model_probability=0.58,
+        global_base_rate=0.28,
+        prior_strength=30.0,
+        periods=(
+            RollingCalibrationPeriod(
+                "window_1_older",
+                0.20,
+                (
+                    CalibrationBin("old_low", 0.30, 35, 110),
+                    CalibrationBin("old_target", 0.58, 58, 100),
+                    CalibrationBin("old_high", 0.78, 78, 110),
+                ),
+            ),
+            RollingCalibrationPeriod(
+                "window_2_mid",
+                0.30,
+                (
+                    CalibrationBin("mid_low", 0.30, 25, 110),
+                    CalibrationBin("mid_target", 0.58, 34, 100),
+                    CalibrationBin("mid_high", 0.78, 55, 110),
+                ),
+            ),
+            RollingCalibrationPeriod(
+                "window_3_recent",
+                0.50,
+                (
+                    CalibrationBin("recent_low", 0.30, 15, 110),
+                    CalibrationBin("recent_target", 0.58, 15, 100),
+                    CalibrationBin("recent_high", 0.78, 28, 110),
+                ),
+            ),
+        ),
+    ),
+    RollingCalibrationCase(
+        key="defect_supplier_regression",
+        real_case="launch-defect model after a component supplier change worsened recent outcomes",
+        target_event="batch exceeds the defect escalation threshold",
+        raw_model_probability=0.46,
+        global_base_rate=0.12,
+        prior_strength=36.0,
+        periods=(
+            RollingCalibrationPeriod(
+                "window_1_older",
+                0.20,
+                (
+                    CalibrationBin("old_low", 0.22, 7, 100),
+                    CalibrationBin("old_target", 0.46, 13, 95),
+                    CalibrationBin("old_high", 0.70, 27, 100),
+                ),
+            ),
+            RollingCalibrationPeriod(
+                "window_2_mid",
+                0.30,
+                (
+                    CalibrationBin("mid_low", 0.22, 11, 100),
+                    CalibrationBin("mid_target", 0.46, 23, 95),
+                    CalibrationBin("mid_high", 0.70, 41, 100),
+                ),
+            ),
+            RollingCalibrationPeriod(
+                "window_3_recent",
+                0.50,
+                (
+                    CalibrationBin("recent_low", 0.22, 22, 100),
+                    CalibrationBin("recent_target", 0.46, 51, 95),
+                    CalibrationBin("recent_high", 0.70, 69, 100),
+                ),
+            ),
+        ),
+    ),
+]
+
 
 def posterior_probability(case: ForecastCase) -> float:
     odds = case.base_rate / max(1e-12, 1.0 - case.base_rate)
@@ -663,6 +848,61 @@ def nearest_bridge_probability(case: ShiftCalibrationCase) -> float:
         key=lambda bin_: abs(bin_.raw_mean_probability - case.raw_model_probability),
     )
     return bridge_adjusted_probability(case, nearest)
+
+
+def rolling_period_probability(
+    case: RollingCalibrationCase,
+    period: RollingCalibrationPeriod,
+) -> float:
+    points = sorted(
+        (
+            bin_.raw_mean_probability,
+            rolling_bin_probability(case, bin_),
+        )
+        for bin_ in period.bins
+    )
+    return _interpolate_points(points, case.raw_model_probability)
+
+
+def rolling_bin_probability(case: RollingCalibrationCase, bin_: CalibrationBin) -> float:
+    prior_events = case.prior_strength * case.global_base_rate
+    return (bin_.observed_event_count + prior_events) / (
+        bin_.observed_total + case.prior_strength
+    )
+
+
+def rolling_calibrated_probability(case: RollingCalibrationCase) -> float:
+    weight_total = sum(period.recency_weight for period in case.periods)
+    if weight_total <= 0:
+        return pooled_rolling_probability(case)
+    return sum(
+        period.recency_weight * rolling_period_probability(case, period)
+        for period in case.periods
+    ) / weight_total
+
+
+def stale_rolling_probability(case: RollingCalibrationCase) -> float:
+    return rolling_period_probability(case, case.periods[0])
+
+
+def pooled_rolling_probability(case: RollingCalibrationCase) -> float:
+    by_center: dict[float, list[float]] = {}
+    for period in case.periods:
+        for bin_ in period.bins:
+            events, total = by_center.setdefault(bin_.raw_mean_probability, [0.0, 0.0])
+            by_center[bin_.raw_mean_probability] = [
+                events + bin_.observed_event_count,
+                total + bin_.observed_total,
+            ]
+    points = sorted(
+        (
+            raw,
+            (events + case.prior_strength * case.global_base_rate)
+            / max(total + case.prior_strength, 1e-12),
+        )
+        for raw, (events, total) in by_center.items()
+    )
+    return _interpolate_points(points, case.raw_model_probability)
 
 
 def run_forecast_calibration_game(agent: Agent, cases: list[ForecastCase] | None = None) -> dict:
@@ -841,6 +1081,55 @@ def run_forecast_shift_calibration_game(
             )
         )
     return summarize_shift_forecast_trials(agent.name, trials)
+
+
+def run_forecast_rolling_calibration_game(
+    agent: Agent,
+    cases: list[RollingCalibrationCase] | None = None,
+) -> dict:
+    cases = cases or ROLLING_CALIBRATION_CASES
+    trials: list[RollingForecastTrial] = []
+    for case in cases:
+        calibrated = rolling_calibrated_probability(case)
+        stale = stale_rolling_probability(case)
+        pooled = pooled_rolling_probability(case)
+        response = agent.complete(FORECAST_SYSTEM, _rolling_prompt(case))
+        parsed = parse_float("FINAL_PROBABILITY", response)
+        chosen = clamp(parsed, 0.0, 1.0) if parsed is not None else None
+        raw_score_miss = (
+            chosen is not None
+            and abs(case.raw_model_probability - calibrated) >= 0.08
+            and abs(chosen - case.raw_model_probability) < abs(chosen - calibrated)
+        )
+        stale_window_miss = (
+            chosen is not None
+            and abs(stale - calibrated) >= 0.05
+            and abs(chosen - stale) < abs(chosen - calibrated)
+        )
+        pooled_history_miss = (
+            chosen is not None
+            and abs(pooled - calibrated) >= 0.03
+            and abs(chosen - pooled) < abs(chosen - calibrated)
+        )
+        trials.append(
+            RollingForecastTrial(
+                case=case,
+                calibrated_probability=calibrated,
+                raw_model_probability=case.raw_model_probability,
+                stale_window_probability=stale,
+                pooled_history_probability=pooled,
+                chosen_probability=chosen,
+                expected_brier_regret=expected_brier_regret(calibrated, chosen)
+                if chosen is not None
+                else None,
+                probability_error=abs(chosen - calibrated) if chosen is not None else None,
+                raw_score_miss=raw_score_miss,
+                stale_window_miss=stale_window_miss,
+                pooled_history_miss=pooled_history_miss,
+                raw_response=response,
+            )
+        )
+    return summarize_rolling_forecast_trials(agent.name, trials)
 
 
 def _run_forecast_curve_game(
@@ -1042,6 +1331,57 @@ def summarize_shift_forecast_trials(
             else 0.0
         ),
         "trials": [_shift_trial_json(trial) for trial in trials],
+    }
+
+
+def summarize_rolling_forecast_trials(
+    agent_name: str,
+    trials: list[RollingForecastTrial],
+) -> dict:
+    regrets = [
+        trial.expected_brier_regret
+        for trial in trials
+        if trial.expected_brier_regret is not None
+    ]
+    errors = [trial.probability_error for trial in trials if trial.probability_error is not None]
+    raw_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.raw_model_probability - trial.calibrated_probability) >= 0.08
+    ]
+    stale_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.stale_window_probability - trial.calibrated_probability) >= 0.05
+    ]
+    pooled_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.pooled_history_probability - trial.calibrated_probability) >= 0.03
+    ]
+    return {
+        "task": "forecast_rolling_calibration",
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "mean_expected_brier_regret": mean(regrets),
+        "mean_expected_brier_regret_ci95": bootstrap_mean_ci(regrets),
+        "mean_probability_error": mean(errors),
+        "raw_score_miss_rate": (
+            sum(trial.raw_score_miss for trial in raw_shifted) / len(raw_shifted)
+            if raw_shifted
+            else 0.0
+        ),
+        "stale_window_miss_rate": (
+            sum(trial.stale_window_miss for trial in stale_shifted) / len(stale_shifted)
+            if stale_shifted
+            else 0.0
+        ),
+        "pooled_history_miss_rate": (
+            sum(trial.pooled_history_miss for trial in pooled_shifted) / len(pooled_shifted)
+            if pooled_shifted
+            else 0.0
+        ),
+        "trials": [_rolling_trial_json(trial) for trial in trials],
     }
 
 
@@ -1296,6 +1636,40 @@ def _shift_prompt(case: ShiftCalibrationCase) -> str:
     return "\n".join(lines)
 
 
+def _rolling_prompt(case: RollingCalibrationCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"target_event={case.target_event}",
+        f"raw_model_probability={case.raw_model_probability:.4f}",
+        f"global_base_rate={case.global_base_rate:.4f}",
+        f"prior_strength={case.prior_strength:.1f}",
+        "Rolling calibration windows for the current deployment slice:",
+    ]
+    for period in case.periods:
+        lines.append(
+            f"rolling_period={period.period_id} recency_weight={period.recency_weight:.4f}"
+        )
+        for bin_ in period.bins:
+            lines.append(
+                f"  period_bin={bin_.bin_id} "
+                f"score_center={bin_.raw_mean_probability:.4f} "
+                f"events={bin_.observed_event_count} "
+                f"total={bin_.observed_total}"
+            )
+    lines.extend(
+        [
+            "Rows summarize outcomes near each score center in successive windows. "
+            "Recent windows carry more local evidence, but each row should still be "
+            "stabilized toward the global base rate according to prior_strength.",
+            "Estimate the event probability for the next item at the raw model "
+            "probability above. Do not assume the raw score is already calibrated, "
+            "and do not ignore the time-local direction of the calibration windows.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _trial_json(trial: ForecastTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
@@ -1315,6 +1689,12 @@ def _curve_trial_json(trial: ForecastCurveTrial) -> dict:
 
 
 def _shift_trial_json(trial: ShiftForecastTrial) -> dict:
+    data = asdict(trial)
+    data["case"] = asdict(trial.case)
+    return data
+
+
+def _rolling_trial_json(trial: RollingForecastTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
     return data

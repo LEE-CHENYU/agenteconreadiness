@@ -56,6 +56,7 @@ TASKS = (
     "forecast_curve_noisy",
     "forecast_curve_natural",
     "forecast_shift_calibration",
+    "forecast_rolling_calibration",
     "exploration",
     "experiment_design",
     "retail",
@@ -487,16 +488,32 @@ def _print_human(payload: dict[str, Any]) -> None:
             "forecast_curve_noisy",
             "forecast_curve_natural",
             "forecast_shift_calibration",
+            "forecast_rolling_calibration",
         }:
-            if task == "forecast_shift_calibration":
+            if task in {"forecast_shift_calibration", "forecast_rolling_calibration"}:
+                miss_fields = (
+                    (
+                        "source_curve_miss",
+                        result.get("source_curve_miss_rate", 0.0),
+                        "nearest_bridge_miss",
+                        result.get("nearest_bridge_miss_rate", 0.0),
+                    )
+                    if task == "forecast_shift_calibration"
+                    else (
+                        "stale_window_miss",
+                        result.get("stale_window_miss_rate", 0.0),
+                        "pooled_history_miss",
+                        result.get("pooled_history_miss_rate", 0.0),
+                    )
+                )
                 print(
                     f"{task}: n={result['n_trials']} expected_brier_regret="
                     f"{_fmt(result['mean_expected_brier_regret'])} "
                     f"ci95={_fmt_ci(result.get('mean_expected_brier_regret_ci95'))} "
                     f"prob_error={_fmt(result['mean_probability_error'])} "
                     f"raw_score_miss={result['raw_score_miss_rate']:.2f} "
-                    f"source_curve_miss={result.get('source_curve_miss_rate', 0.0):.2f} "
-                    f"nearest_bridge_miss={result.get('nearest_bridge_miss_rate', 0.0):.2f}"
+                    f"{miss_fields[0]}={miss_fields[1]:.2f} "
+                    f"{miss_fields[2]}={miss_fields[3]:.2f}"
                 )
             else:
                 print(
