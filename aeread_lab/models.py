@@ -102,6 +102,8 @@ class OfflineAgent:
             return self._pricing_price(user)
         if "TASK: pricing_law_label" in system:
             return self._pricing_law_label(user)
+        if "TASK: pricing_evidence_law_label" in system:
+            return self._pricing_evidence_law_label(user)
         if "TASK: bargaining_offer" in system:
             return self._bargaining_offer(user)
         if "TASK: belief_bargain_price" in system:
@@ -350,6 +352,18 @@ class OfflineAgent:
 
     def _pricing_law_label(self, user: str) -> str:
         oracle = _pricing_law_label(user)
+        if self.policy in {"law_accept", "pricing_law_accept", "always_valid"}:
+            label = "valid"
+        elif self.policy in {"law_reject", "pricing_law_reject", "always_invalid"}:
+            label = "invalid"
+        elif self.policy in {"law_invert", "pricing_law_invert"}:
+            label = "invalid" if oracle == "valid" else "valid"
+        else:
+            label = oracle
+        return f"FINAL_LABEL: {label}"
+
+    def _pricing_evidence_law_label(self, user: str) -> str:
+        oracle = _pricing_evidence_law_label(user)
         if self.policy in {"law_accept", "pricing_law_accept", "always_valid"}:
             label = "valid"
         elif self.policy in {"law_reject", "pricing_law_reject", "always_invalid"}:
@@ -1476,24 +1490,11 @@ def _pricing_prompt_parameters(text: str) -> tuple[float, float]:
     beta_hat = _extract_float(text, "beta_hat")
     if alpha_hat > 0 and beta_hat > 0:
         return alpha_hat, beta_hat
-    rows = [
-        (float(price), float(quantity))
-        for price, quantity in re.findall(
-            r"price=([-+]?\d+(?:\.\d+)?),\s+quantity=([-+]?\d+(?:\.\d+)?)",
-            text,
-        )
-    ]
+    rows = _extract_pricing_rows(text)
     if len(rows) >= 2:
-        xs = [price for price, _ in rows]
-        ys = [quantity for _, quantity in rows]
-        x_bar = sum(xs) / len(xs)
-        y_bar = sum(ys) / len(ys)
-        denom = sum((x - x_bar) ** 2 for x in xs)
-        if denom > 0:
-            slope = sum((x - x_bar) * (y - y_bar) for x, y in rows) / denom
-            beta = max(0.001, -slope)
-            alpha = y_bar + beta * x_bar
-            return alpha, beta
+        fit = _fit_pricing_rows(rows)
+        if fit is not None:
+            return fit
     return 1.0, 1.0
 
 
@@ -1507,11 +1508,73 @@ def _pricing_law_label(text: str) -> str:
     relation = _extract_word(text, "relation")
     base_price = max(0.0, min(base_p_max, base_alpha / (2.0 * base_beta)))
     new_price = max(0.0, min(new_p_max, new_alpha / (2.0 * new_beta)))
+    return _pricing_relation_label(base_price, new_price, relation)
+
+
+def _pricing_evidence_law_label(text: str) -> str:
+    relation = _extract_word(text, "relation")
+    base_p_max = _extract_float(text, "baseline_price_cap")
+    updated_p_max = _extract_float(text, "updated_price_cap")
+    base_blob = _extract_between(text, "baseline_evidence:", "updated_price_cap=")
+    updated_blob = _extract_between(text, "updated_evidence:", "relation=")
+    base_fit = _fit_pricing_rows(_extract_pricing_rows(base_blob))
+    updated_fit = _fit_pricing_rows(_extract_pricing_rows(updated_blob))
+    if base_fit is None or updated_fit is None:
+        return "invalid"
+    base_alpha, base_beta = base_fit
+    updated_alpha, updated_beta = updated_fit
+    base_price = max(0.0, min(base_p_max, base_alpha / (2.0 * max(base_beta, 1e-9))))
+    updated_price = max(0.0, min(updated_p_max, updated_alpha / (2.0 * max(updated_beta, 1e-9))))
+    return _pricing_relation_label(base_price, updated_price, relation)
+
+
+def _pricing_relation_label(base_price: float, new_price: float, relation: str) -> str:
     if relation == "new_gt_base":
         return "valid" if new_price > base_price + 1e-9 else "invalid"
+    if relation == "new_ge_base":
+        return "valid" if new_price + 1e-9 >= base_price else "invalid"
+    if relation == "new_lt_base":
+        return "valid" if new_price < base_price - 1e-9 else "invalid"
     if relation == "new_le_base":
         return "valid" if new_price <= base_price + 1e-9 else "invalid"
-    return "valid" if new_price + 1e-9 >= base_price else "invalid"
+    return "invalid"
+
+
+def _extract_between(text: str, start: str, end: str) -> str:
+    start_idx = text.find(start)
+    if start_idx < 0:
+        return ""
+    start_idx += len(start)
+    end_idx = text.find(end, start_idx)
+    if end_idx < 0:
+        end_idx = len(text)
+    return text[start_idx:end_idx]
+
+
+def _extract_pricing_rows(text: str) -> list[tuple[float, float]]:
+    return [
+        (float(price), float(quantity))
+        for price, quantity in re.findall(
+            r"price=([-+]?\d+(?:\.\d+)?),\s+quantity=([-+]?\d+(?:\.\d+)?)",
+            text,
+        )
+    ]
+
+
+def _fit_pricing_rows(rows: list[tuple[float, float]]) -> tuple[float, float] | None:
+    if len(rows) < 2:
+        return None
+    xs = [price for price, _ in rows]
+    ys = [quantity for _, quantity in rows]
+    x_bar = sum(xs) / len(xs)
+    y_bar = sum(ys) / len(ys)
+    denom = sum((x - x_bar) ** 2 for x in xs)
+    if denom <= 0:
+        return None
+    slope = sum((x - x_bar) * (y - y_bar) for x, y in rows) / denom
+    beta = max(0.001, -slope)
+    alpha = y_bar + beta * x_bar
+    return alpha, beta
 
 
 def _extract_exploration_arms(text: str) -> dict[str, list[tuple[float, float]]]:

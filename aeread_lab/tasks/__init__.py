@@ -27,7 +27,12 @@ from .mechanism import (
 )
 from .moral_hazard import run_moral_hazard_game
 from .portfolio import run_portfolio_game
-from .pricing import run_pricing_counterfactual_game, run_pricing_game, run_pricing_law_audit_game
+from .pricing import (
+    run_pricing_counterfactual_game,
+    run_pricing_evidence_law_audit_game,
+    run_pricing_game,
+    run_pricing_law_audit_game,
+)
 from .principal_inference import run_principal_inference_game
 from .procurement import run_procurement_counterfactual_game, run_procurement_game
 from .regime import (
@@ -73,6 +78,7 @@ __all__ = [
     "run_pricing_game",
     "run_pricing_counterfactual_game",
     "run_pricing_law_audit_game",
+    "run_pricing_evidence_law_audit_game",
     "run_principal_inference_game",
     "run_procurement_game",
     "run_procurement_counterfactual_game",
