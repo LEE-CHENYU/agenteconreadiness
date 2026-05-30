@@ -528,6 +528,27 @@ class TaskSmokeTests(unittest.TestCase):
             ["low_turnover", "mechanical_flow"],
         )
 
+    def test_case_key_filter_targets_c1_depth_case(self):
+        results = run_tasks(
+            "principal_holding_prediction_blind_notes",
+            OfflineAgent("oracle"),
+            case_keys=["pension_outflow_quality_signal"],
+        )
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertEqual(
+            results[0]["trials"][0]["case"]["key"],
+            "pension_outflow_quality_signal",
+        )
+        self.assertEqual(results[0]["accuracy"], 1.0)
+
+    def test_case_key_filter_rejects_unknown_case(self):
+        with self.assertRaisesRegex(ValueError, "Unknown case key"):
+            run_tasks(
+                "principal_holding_prediction_blind_notes",
+                OfflineAgent("oracle"),
+                case_keys=["missing_case"],
+            )
+
     def test_format_stability_sweep_includes_reference_counts(self):
         payload = run_stability_sweep(
             task="principal_holding_prediction_blind_notes",
@@ -543,6 +564,18 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertIn("Per-case stability drilldown", output)
         self.assertIn("pension_outflow_quality_sign", output)
         self.assertIn("stable_non_oracle", output)
+
+    def test_format_stability_sweep_includes_case_filter(self):
+        payload = run_stability_sweep(
+            task="principal_holding_prediction_blind_notes",
+            agent_specs=["offline:oracle", "offline:low_turnover"],
+            repeat_count=2,
+            case_keys=["pension_outflow_quality_signal"],
+        )
+        output = format_stability_sweep(payload)
+        self.assertIn("cases=pension_outflow_quality_signal", output)
+        self.assertIn("pension_outflow_quality_sign", output)
+        self.assertNotIn("endowment_index_noise_growth", output)
 
     def test_sample_limit_slices_pricing_cross_elasticity_cases(self):
         results = run_tasks("pricing_cross_elasticity", OfflineAgent("oracle"), sample_limit=1)

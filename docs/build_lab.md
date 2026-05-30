@@ -419,6 +419,18 @@ AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli \
 `--repeat` intentionally requires `--no-cache`; cached repeated calls measure
 cache reuse, not model stability.
 
+Use `--case <key>` when a sweep or drilldown identifies one case as the
+research target. This keeps depth probes tied to the case that raised the
+question instead of relying on task ordering or expanding the case list.
+
+```bash
+AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli \
+  --sweep \
+  --task principal_holding_prediction_blind_notes \
+  --agents openai:nano,openai:mini,openai:gpt-5.5 \
+  --repeat 3 --case pension_outflow_quality_signal --no-cache
+```
+
 Offline comparison example:
 
 ```bash
@@ -469,10 +481,10 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    cross-domain verifier tasks.
 4. Use the stability probe on C1 before adding more C1 variants. PR 105 showed
    that `principal_holding_prediction_blind_notes` is sample-unstable for live
-   `nano`; PRs 106-111 turn that into repeat reliability, target-margin,
+   `nano`; PRs 106-112 turn that into repeat reliability, target-margin,
    case-outcome attribution, baseline attribution, cross-agent sweeps, and
-   per-case sweep drilldowns. The remaining C1 depth question is replacement
-   with real 13F-style holdings-derived traces once a clean data source is
-   selected.
+   per-case sweep drilldowns with keyed case targeting. The remaining C1 depth
+   question is replacement with real 13F-style holdings-derived traces once a
+   clean data source is selected.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.

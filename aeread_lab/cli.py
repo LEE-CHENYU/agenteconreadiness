@@ -136,6 +136,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Run only the first N default cases/gambles for cheap smoke checks.",
     )
     parser.add_argument(
+        "--case",
+        dest="case_keys",
+        default="",
+        help="Comma-separated case keys for targeted depth probes on keyed case tasks.",
+    )
+    parser.add_argument(
         "--repeat",
         type=_positive_int,
         default=1,
@@ -143,6 +149,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--json", action="store_true", help="Print raw JSON only.")
     args = parser.parse_args(argv)
+    case_keys = _case_keys(args.case_keys)
+    if case_keys and args.task == "all":
+        parser.error("--case requires one explicit --task, not all")
 
     def _wrap(agent):
         return CachedAgent(agent, cache_dir=Path(args.cache_dir), enabled=not args.no_cache)
@@ -160,6 +169,7 @@ def main(argv: list[str] | None = None) -> int:
                 attacker_spec=args.attacker,
                 repeat_count=args.repeat,
                 sample_limit=args.limit,
+                case_keys=case_keys,
             )
             if args.json:
                 print(json.dumps(payload, indent=2, sort_keys=True))
@@ -172,6 +182,7 @@ def main(argv: list[str] | None = None) -> int:
             attacker_spec=args.attacker,
             wrap_cache=_wrap,
             sample_limit=args.limit,
+            case_keys=case_keys,
         )
         if args.json:
             print(json.dumps(payload, indent=2, sort_keys=True))
@@ -192,6 +203,7 @@ def main(argv: list[str] | None = None) -> int:
             attacker=attacker,
             repeat_count=args.repeat,
             sample_limit=args.limit,
+            case_keys=case_keys,
         )
         if args.json:
             print(json.dumps(payload, indent=2, sort_keys=True))
@@ -201,8 +213,19 @@ def main(argv: list[str] | None = None) -> int:
     if not args.no_cache:
         agent = _wrap(agent)
         attacker = _wrap(attacker)
-    results: list[dict[str, Any]] = run_tasks(args.task, agent, attacker=attacker, sample_limit=args.limit)
-    payload = {"agent": agent.name, "sample_limit": args.limit, "results": results}
+    results: list[dict[str, Any]] = run_tasks(
+        args.task,
+        agent,
+        attacker=attacker,
+        sample_limit=args.limit,
+        case_keys=case_keys,
+    )
+    payload = {
+        "agent": agent.name,
+        "sample_limit": args.limit,
+        "case_keys": case_keys,
+        "results": results,
+    }
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
@@ -214,6 +237,8 @@ def _print_human(payload: dict[str, Any]) -> None:
     print(f"AERead build-lab report for {payload['agent']}")
     if payload.get("sample_limit") is not None:
         print(f"sample_limit={payload['sample_limit']}")
+    if payload.get("case_keys"):
+        print("cases=" + ",".join(str(case_key) for case_key in payload["case_keys"]))
     print("=" * 72)
     for result in payload["results"]:
         task = result["task"]
@@ -933,6 +958,10 @@ def _positive_int(value: str) -> int:
     if parsed < 1:
         raise argparse.ArgumentTypeError("--limit must be positive")
     return parsed
+
+
+def _case_keys(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
 
 
 if __name__ == "__main__":

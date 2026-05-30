@@ -162,8 +162,12 @@ def format_sweep(sweep: dict[str, Any]) -> str:
     rows = rank_rows(comparison_table(sweep))
     limit = sweep.get("sample_limit")
     limit_text = "" if limit is None else f" sample_limit={limit}"
+    case_text = _case_text(sweep.get("case_keys"))
     lines = [
-        f"AERead model sweep: task={sweep['task']} agents={', '.join(sweep['agents'])}{limit_text}",
+        (
+            f"AERead model sweep: task={sweep['task']} agents={', '.join(sweep['agents'])}"
+            f"{limit_text}{case_text}"
+        ),
         "=" * 88,
         f"{'task':<18} {'rank':>4} {'agent':<18} {'metric':<24} "
         f"{'value':>12} {'parse':>6} {'direction':<7}",
@@ -262,11 +266,13 @@ def stability_sweep_case_table(sweep: dict[str, Any]) -> list[dict[str, Any]]:
 def format_stability_sweep(sweep: dict[str, Any]) -> str:
     limit = sweep.get("sample_limit")
     limit_text = "" if limit is None else f" sample_limit={limit}"
+    case_text = _case_text(sweep.get("case_keys"))
     rows = stability_sweep_table(sweep)
     lines = [
         (
             f"AERead stability sweep: task={sweep['task']} "
-            f"agents={', '.join(sweep['agents'])} repeats={sweep['repeat_count']}{limit_text}"
+            f"agents={', '.join(sweep['agents'])} repeats={sweep['repeat_count']}"
+            f"{limit_text}{case_text}"
         ),
         "=" * 112,
         (
@@ -315,10 +321,12 @@ def format_stability_sweep(sweep: dict[str, Any]) -> str:
 def format_stability(stability: dict[str, Any]) -> str:
     limit = stability.get("sample_limit")
     limit_text = "" if limit is None else f" sample_limit={limit}"
+    case_text = _case_text(stability.get("case_keys"))
     lines = [
         (
             f"AERead stability probe: task={stability['task']} "
-            f"agent={stability['agent']} repeats={stability['repeat_count']}{limit_text}"
+            f"agent={stability['agent']} repeats={stability['repeat_count']}"
+            f"{limit_text}{case_text}"
         ),
         "=" * 88,
         (
@@ -415,3 +423,9 @@ def _sum_optional_rates(*values: Any) -> float | None:
     if not present:
         return None
     return sum(present)
+
+
+def _case_text(case_keys: Any) -> str:
+    if not case_keys:
+        return ""
+    return " cases=" + ",".join(str(case_key) for case_key in case_keys)

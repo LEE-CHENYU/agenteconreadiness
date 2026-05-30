@@ -402,8 +402,12 @@ def run_task(
     agent: Agent,
     attacker: Agent | None = None,
     sample_limit: int | None = None,
+    case_keys: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     limit = _normalize_sample_limit(sample_limit)
+    keys = _normalize_case_keys(case_keys)
+    if keys and task not in _CASE_TASKS:
+        raise ValueError(f"--case is supported only for keyed case tasks, not {task}")
     if task == "regime":
         return regime_task.run_regime_battery(
             agent,
@@ -432,7 +436,7 @@ def run_task(
         )
     if task in _CASE_TASKS:
         runner, cases = _CASE_TASKS[task]
-        return runner(agent, cases=_sample(cases, limit))
+        return runner(agent, cases=_select_cases(cases, limit, keys))
     raise ValueError(f"Unknown task: {task}")
 
 
@@ -445,8 +449,15 @@ def run_tasks(
     agent: Agent,
     attacker: Agent | None = None,
     sample_limit: int | None = None,
+    case_keys: Iterable[str] | None = None,
 ) -> list[dict[str, Any]]:
-    return [run_task(t, agent, attacker=attacker, sample_limit=sample_limit) for t in expand_tasks(task)]
+    keys = _normalize_case_keys(case_keys)
+    if keys and task == "all":
+        raise ValueError("--case requires one explicit task, not all")
+    return [
+        run_task(t, agent, attacker=attacker, sample_limit=sample_limit, case_keys=keys)
+        for t in expand_tasks(task)
+    ]
 
 
 def run_sweep(
@@ -456,8 +467,12 @@ def run_sweep(
     attacker_spec: str = "offline:credulous",
     wrap_cache=None,
     sample_limit: int | None = None,
+    case_keys: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     limit = _normalize_sample_limit(sample_limit)
+    keys = _normalize_case_keys(case_keys)
+    if keys and task == "all":
+        raise ValueError("--case requires one explicit task, not all")
     attacker = build_agent(attacker_spec)
     if wrap_cache is not None:
         attacker = wrap_cache(attacker)
@@ -467,8 +482,25 @@ def run_sweep(
         agent = build_agent(spec)
         if wrap_cache is not None:
             agent = wrap_cache(agent)
-        runs.append({"agent": agent.name, "results": run_tasks(task, agent, attacker=attacker, sample_limit=limit)})
-    return {"task": task, "agents": specs, "sample_limit": limit, "runs": runs}
+        runs.append(
+            {
+                "agent": agent.name,
+                "results": run_tasks(
+                    task,
+                    agent,
+                    attacker=attacker,
+                    sample_limit=limit,
+                    case_keys=keys,
+                ),
+            }
+        )
+    return {
+        "task": task,
+        "agents": specs,
+        "sample_limit": limit,
+        "case_keys": keys,
+        "runs": runs,
+    }
 
 
 def run_stability_sweep(
@@ -478,12 +510,14 @@ def run_stability_sweep(
     attacker_spec: str = "offline:credulous",
     repeat_count: int = 3,
     sample_limit: int | None = None,
+    case_keys: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     if repeat_count < 1:
         raise ValueError("repeat_count must be positive")
     if task == "all":
         raise ValueError("stability sweeps require one explicit task")
     limit = _normalize_sample_limit(sample_limit)
+    keys = _normalize_case_keys(case_keys)
     attacker = build_agent(attacker_spec)
     specs = list(agent_specs)
     runs = [
@@ -493,6 +527,7 @@ def run_stability_sweep(
             attacker=attacker,
             repeat_count=repeat_count,
             sample_limit=limit,
+            case_keys=keys,
         )
         for spec in specs
     ]
@@ -501,6 +536,7 @@ def run_stability_sweep(
         "agents": specs,
         "repeat_count": repeat_count,
         "sample_limit": limit,
+        "case_keys": keys,
         "runs": runs,
     }
 
@@ -512,22 +548,26 @@ def run_stability_probe(
     attacker: Agent | None = None,
     repeat_count: int = 3,
     sample_limit: int | None = None,
+    case_keys: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     if repeat_count < 1:
         raise ValueError("repeat_count must be positive")
     if task == "all":
         raise ValueError("stability probes require one explicit task")
     limit = _normalize_sample_limit(sample_limit)
+    keys = _normalize_case_keys(case_keys)
     results = [
-        run_task(task, agent, attacker=attacker, sample_limit=limit)
+        run_task(task, agent, attacker=attacker, sample_limit=limit, case_keys=keys)
         for _ in range(repeat_count)
     ]
-    return summarize_stability_runs(
+    summary = summarize_stability_runs(
         task=task,
         agent_name=agent.name,
         results=results,
         sample_limit=limit,
     )
+    summary["case_keys"] = keys
+    return summary
 
 
 def _normalize_sample_limit(sample_limit: int | None) -> int | None:
@@ -542,3 +582,36 @@ def _sample(items, sample_limit: int | None):
     if sample_limit is None:
         return None
     return list(items)[:sample_limit]
+
+
+def _normalize_case_keys(case_keys: Iterable[str] | None) -> list[str]:
+    if case_keys is None:
+        return []
+    return [str(item) for item in case_keys if str(item)]
+
+
+def _select_cases(items, sample_limit: int | None, case_keys: Iterable[str] | None = None):
+    keys = _normalize_case_keys(case_keys)
+    if not keys:
+        return _sample(items, sample_limit)
+    by_key = {_item_key(item, idx): item for idx, item in enumerate(items, start=1)}
+    missing = [key for key in keys if key not in by_key]
+    if missing:
+        available = ", ".join(sorted(by_key))
+        requested = ", ".join(missing)
+        raise ValueError(f"Unknown case key(s): {requested}. Available: {available}")
+    selected = [by_key[key] for key in keys]
+    return selected[:sample_limit] if sample_limit is not None else selected
+
+
+def _item_key(item, idx: int) -> str:
+    for attr in ("key", "case_key", "id", "real_case"):
+        value = getattr(item, attr, None)
+        if value is not None:
+            return str(value)
+    if isinstance(item, dict):
+        for key in ("key", "case_key", "id", "real_case"):
+            value = item.get(key)
+            if value is not None:
+                return str(value)
+    return f"case_{idx}"

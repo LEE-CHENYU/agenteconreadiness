@@ -149,6 +149,7 @@ judge-free, and API-testable while staying OpenAI-only.
 | 109 | `review/109-stability-baseline-attribution` | repeat-stability baseline attribution | stability probe now labels modal non-oracle reference matches; the live blind C1 wrong-modal case is attributed to `low_turnover` + `mechanical_flow` |
 | 110 | `review/110-stability-sweep` | cross-agent repeat-stability sweeps | `--sweep --repeat N --no-cache` now runs repeat-stability probes per agent; first alias probe separates `mini` from `nano`/`gpt-5.5` on the first blind C1 case |
 | 111 | `review/111-stability-sweep-cases` | per-case stability sweep drilldown | sweep reports now include case × agent status, modal choice, oracle margin, oracle-hit rate, and matched non-oracle references, so cross-agent differences can be localized without adding more synthetic cases |
+| 112 | `review/112-case-key-filter` | keyed case targeting for depth probes | `--case <key>` now filters keyed case tasks, sweeps, and repeat-stability probes; the pension C1 failure can be rerun directly instead of relying on `--limit 1` or adding cases |
 
 ## Task result ledger
 
@@ -396,6 +397,7 @@ revealed-style inference.
 | Stability baseline-attribution smoke | `python -m pytest tests/test_tasks.py -k 'stability_probe'` | synthetic stable non-oracle modal is attributed to `max_return` + `second_best`, proving the attribution layer only counts named references that differ from the oracle |
 | Stability sweep smoke | `python -m aeread_lab.cli --sweep --task principal_holding_prediction_blind_notes --agents offline:oracle,offline:low_turnover --repeat 2 --limit 1 --no-cache` | oracle rank 1 with mean score regret 0 and stable-oracle rate 1.00; low-turnover mean score regret 0.63135 with non-oracle modal rate 1.00 and refs `low_turnover`, `mechanical_flow` |
 | Stability sweep drilldown smoke | `python -m aeread_lab.cli --sweep --task principal_holding_prediction_blind_notes --agents offline:oracle,offline:low_turnover --repeat 2 --limit 1 --no-cache` | report includes `Per-case stability drilldown`; `pension_outflow_quality_signal` is stable-oracle for oracle and stable-non-oracle for low-turnover, with modal `move_to_cash` matching `low_turnover` + `mechanical_flow` at oracle margin 0.1767 |
+| Keyed C1 case-targeting smoke | `python -m aeread_lab.cli --sweep --task principal_holding_prediction_blind_notes --agents offline:oracle,offline:low_turnover --repeat 2 --case pension_outflow_quality_signal --no-cache` | report header includes `cases=pension_outflow_quality_signal`; the exact pension C1 failure is rerun without depending on task order, preserving the same oracle/low-turnover separation |
 | Alpha-maxmin ambiguity sweep | `python3 -m aeread_lab.cli --sweep --task ambiguity --agents offline:oracle,offline:reference_prior,offline:maxmin,offline:optimistic --no-cache` | oracle rank 1; maxmin regret 2.32038; reference-prior regret 11.5796; optimistic regret 14.5817; parse 1.00 |
 | Ambiguity maxmin/optimistic smokes | `python3 -m aeread_lab.cli --task ambiguity --agent offline:maxmin --no-cache` and `python3 -m aeread_lab.cli --task ambiguity --agent offline:optimistic --no-cache` | maxmin misses the configured-alpha case; optimistic miss rate 1.00 where optimism differs from oracle |
 | Alternating/hidden bargaining sweep | `python3 -m aeread_lab.cli --sweep --task bargaining --agents offline:oracle,offline:gate,offline:round_blind,offline:optimistic_budget --no-cache` | oracle rank 1 with grade error 0; gate grade error 0.374225; round-blind grade error 0.0122222 and alternating miss 1.00; optimistic-budget grade error 0.0435819 and hidden miss 1.00; parse 1.00 |
@@ -919,3 +921,8 @@ build lab should not depend on `.playwright-mcp/` logs or the local
     shortcut-driven across the whole set. That makes the uncovered direction
     narrower: test realistic filing-derived traces and repeat reliability by
     model tier before adding any new hand-written C1 scenarios.
+85. PR 112 adds keyed case targeting. The important operational change is that
+    follow-up probes can now name `pension_outflow_quality_signal` directly
+    with `--case`, so the C1 depth loop can re-test the discovered failure
+    across models and repeats without relying on ordering (`--limit 1`) or
+    adding more scenarios.
