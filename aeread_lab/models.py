@@ -1282,6 +1282,25 @@ class OfflineAgent:
         return f"FINAL_ACTION: {action}"
 
     def _forecast_probability(self, user: str) -> str:
+        if _has_forecast_operational_log_table(user):
+            if self.policy in {"raw_score", "uncalibrated"}:
+                probability = _extract_float(user, "raw_model_probability")
+            elif self.policy in {"stale_window", "stale", "oldest_window"}:
+                probability = _forecast_operational_log_stale_probability(user)
+            elif self.policy in {"pooled_history", "pooled", "all_history"}:
+                probability = _forecast_operational_log_pooled_probability(user)
+            elif self.policy in {"latest_window", "recent_only", "newest_window"}:
+                probability = _forecast_operational_log_latest_probability(user)
+            elif self.policy in {"policy_blind", "policy_agnostic"}:
+                probability = _forecast_operational_log_policy_blind_probability(user)
+            elif self.policy in {"route_blind", "route_agnostic"}:
+                probability = _forecast_operational_log_route_blind_probability(user)
+            elif self.policy in {"base_rate", "prior", "unconditional"}:
+                probability = _extract_float(user, "global_base_rate", _extract_float(user, "base_rate"))
+            else:
+                probability = _forecast_operational_log_probability(user)
+            probability = max(0.0, min(1.0, probability))
+            return f"FINAL_PROBABILITY: {probability:.12f}"
         if _has_forecast_event_log_table(user):
             if self.policy in {"raw_score", "uncalibrated"}:
                 probability = _extract_float(user, "raw_model_probability")
@@ -2028,6 +2047,181 @@ def _interpolate_forecast_points(points: list[tuple[float, float]], raw: float) 
             weight = (raw - left_raw) / max(right_raw - left_raw, 1e-12)
             return left_value + weight * (right_value - left_value)
     return points[-1][1]
+
+
+def _has_forecast_operational_log_table(text: str) -> bool:
+    return "operational_log_item=" in text and "policy=" in text and "route=" in text
+
+
+def _forecast_operational_log_half_life(text: str) -> float:
+    return _forecast_event_log_half_life(text)
+
+
+def _extract_forecast_operational_log_entries(text: str) -> list[dict[str, float | str | bool]]:
+    entries: list[dict[str, float | str | bool]] = []
+    for line in text.splitlines():
+        if "operational_log_item=" not in line:
+            continue
+        outcome = _extract_word(line, "outcome", "no_event")
+        entries.append(
+            {
+                "score": _extract_float(line, "score"),
+                "days": _extract_float(line, "age_days", 0.0),
+                "policy": _extract_word(line, "policy"),
+                "route": _extract_word(line, "route"),
+                "event": outcome in {"event", "yes", "true", "1"},
+            }
+        )
+    return entries
+
+
+def _forecast_operational_log_entry_weight(
+    text: str,
+    entry: dict[str, float | str | bool],
+    *,
+    use_recency: bool = True,
+    require_policy: bool = True,
+    require_route: bool = True,
+) -> float:
+    if require_policy and entry["policy"] != _extract_word(text, "current_policy"):
+        return 0.0
+    if require_route and entry["route"] != _extract_word(text, "current_route"):
+        return 0.0
+    raw = _extract_float(text, "raw_model_probability", 0.5)
+    score = float(entry["score"])
+    score_width = 0.11
+    score_distance = (score - raw) / max(score_width, 1e-9)
+    score_weight = math.exp(-0.5 * score_distance * score_distance)
+    if not use_recency:
+        return score_weight
+    age = max(float(entry["days"]), 0.0)
+    return score_weight * (0.5 ** (age / max(_forecast_operational_log_half_life(text), 1e-9)))
+
+
+def _forecast_operational_log_probability_from_entries(
+    text: str,
+    entries: list[dict[str, float | str | bool]],
+    *,
+    use_recency: bool = True,
+    require_policy: bool = True,
+    require_route: bool = True,
+) -> float:
+    global_base_rate = _extract_float(text, "global_base_rate", _extract_float(text, "base_rate", 0.5))
+    prior_strength = _extract_float(text, "prior_strength", 0.0)
+    weighted_events = sum(
+        _forecast_operational_log_entry_weight(
+            text,
+            entry,
+            use_recency=use_recency,
+            require_policy=require_policy,
+            require_route=require_route,
+        )
+        * float(bool(entry["event"]))
+        for entry in entries
+    )
+    weighted_total = sum(
+        _forecast_operational_log_entry_weight(
+            text,
+            entry,
+            use_recency=use_recency,
+            require_policy=require_policy,
+            require_route=require_route,
+        )
+        for entry in entries
+    )
+    return (weighted_events + prior_strength * global_base_rate) / max(
+        weighted_total + prior_strength,
+        1e-9,
+    )
+
+
+def _forecast_operational_log_probability(text: str) -> float:
+    entries = _extract_forecast_operational_log_entries(text)
+    if not entries:
+        return _extract_float(text, "raw_model_probability", 0.5)
+    return _forecast_operational_log_probability_from_entries(text, entries, use_recency=True)
+
+
+def _forecast_operational_log_pooled_probability(text: str) -> float:
+    entries = _extract_forecast_operational_log_entries(text)
+    if not entries:
+        return _extract_float(text, "raw_model_probability", 0.5)
+    return _forecast_operational_log_probability_from_entries(
+        text,
+        entries,
+        use_recency=False,
+        require_policy=False,
+        require_route=False,
+    )
+
+
+def _forecast_operational_log_policy_blind_probability(text: str) -> float:
+    entries = _extract_forecast_operational_log_entries(text)
+    if not entries:
+        return _extract_float(text, "raw_model_probability", 0.5)
+    return _forecast_operational_log_probability_from_entries(
+        text,
+        entries,
+        use_recency=True,
+        require_policy=False,
+        require_route=True,
+    )
+
+
+def _forecast_operational_log_route_blind_probability(text: str) -> float:
+    entries = _extract_forecast_operational_log_entries(text)
+    if not entries:
+        return _extract_float(text, "raw_model_probability", 0.5)
+    return _forecast_operational_log_probability_from_entries(
+        text,
+        entries,
+        use_recency=True,
+        require_policy=True,
+        require_route=False,
+    )
+
+
+def _forecast_operational_log_context_entries(
+    entries: list[dict[str, float | str | bool]],
+    text: str,
+) -> list[dict[str, float | str | bool]]:
+    current_policy = _extract_word(text, "current_policy")
+    current_route = _extract_word(text, "current_route")
+    return [
+        entry
+        for entry in entries
+        if entry["policy"] == current_policy and entry["route"] == current_route
+    ]
+
+
+def _forecast_operational_log_stale_probability(text: str) -> float:
+    entries = _forecast_operational_log_context_entries(
+        _extract_forecast_operational_log_entries(text),
+        text,
+    )
+    if not entries:
+        return _extract_float(text, "raw_model_probability", 0.5)
+    half_life = _forecast_operational_log_half_life(text)
+    stale_entries = [entry for entry in entries if float(entry["days"]) >= 2.0 * half_life]
+    if not stale_entries:
+        oldest = max(float(entry["days"]) for entry in entries)
+        stale_entries = [entry for entry in entries if float(entry["days"]) == oldest]
+    return _forecast_operational_log_probability_from_entries(text, stale_entries, use_recency=False)
+
+
+def _forecast_operational_log_latest_probability(text: str) -> float:
+    entries = _forecast_operational_log_context_entries(
+        _extract_forecast_operational_log_entries(text),
+        text,
+    )
+    if not entries:
+        return _extract_float(text, "raw_model_probability", 0.5)
+    half_life = _forecast_operational_log_half_life(text)
+    latest_entries = [entry for entry in entries if float(entry["days"]) <= 0.5 * half_life]
+    if not latest_entries:
+        latest = min(float(entry["days"]) for entry in entries)
+        latest_entries = [entry for entry in entries if float(entry["days"]) == latest]
+    return _forecast_operational_log_probability_from_entries(text, latest_entries, use_recency=False)
 
 
 def _has_forecast_event_log_table(text: str) -> bool:

@@ -40,6 +40,9 @@ from aeread_lab.tasks.forecast_calibration import (
     NOISY_ROLLING_LOG_CALIBRATION_CASES as FORECAST_ROLLING_NOISY_LOG_CASES,
 )
 from aeread_lab.tasks.forecast_calibration import EVENT_LOG_CALIBRATION_CASES as FORECAST_EVENT_LOG_CASES
+from aeread_lab.tasks.forecast_calibration import (
+    OPERATIONAL_LOG_CALIBRATION_CASES as FORECAST_OPERATIONAL_LOG_CASES,
+)
 from aeread_lab.tasks.forecast_calibration import NOISY_CURVE_CASES as FORECAST_NOISY_CURVE_CASES
 from aeread_lab.tasks.forecast_calibration import ROLLING_CALIBRATION_CASES as FORECAST_ROLLING_CASES
 from aeread_lab.tasks.forecast_calibration import ROLLING_LOG_CALIBRATION_CASES as FORECAST_ROLLING_LOG_CASES
@@ -52,6 +55,7 @@ from aeread_lab.tasks.forecast_calibration import _curve_natural_prompt as forec
 from aeread_lab.tasks.forecast_calibration import _curve_noisy_prompt as forecast_curve_noisy_prompt
 from aeread_lab.tasks.forecast_calibration import _curve_prompt as forecast_curve_prompt
 from aeread_lab.tasks.forecast_calibration import _event_log_prompt as forecast_event_log_prompt
+from aeread_lab.tasks.forecast_calibration import _operational_log_prompt as forecast_operational_log_prompt
 from aeread_lab.tasks.forecast_calibration import _prompt as forecast_prompt
 from aeread_lab.tasks.forecast_calibration import _rolling_log_noisy_prompt as forecast_rolling_noisy_log_prompt
 from aeread_lab.tasks.forecast_calibration import _rolling_log_prompt as forecast_rolling_log_prompt
@@ -64,6 +68,7 @@ from aeread_lab.tasks.forecast_calibration import run_forecast_curve_implicit_ga
 from aeread_lab.tasks.forecast_calibration import run_forecast_curve_natural_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_curve_noisy_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_event_log_calibration_game
+from aeread_lab.tasks.forecast_calibration import run_forecast_operational_log_calibration_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_rolling_log_calibration_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_rolling_log_noisy_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_rolling_calibration_game
@@ -460,6 +465,15 @@ class TaskSmokeTests(unittest.TestCase):
 
     def test_sample_limit_slices_forecast_event_log_calibration_cases(self):
         results = run_tasks("forecast_event_log_calibration", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_expected_brier_regret"], 1e-9)
+
+    def test_sample_limit_slices_forecast_operational_log_calibration_cases(self):
+        results = run_tasks(
+            "forecast_operational_log_calibration",
+            OfflineAgent("oracle"),
+            sample_limit=1,
+        )
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_expected_brier_regret"], 1e-9)
 
@@ -942,6 +956,9 @@ class TaskSmokeTests(unittest.TestCase):
             FORECAST_ROLLING_NOISY_LOG_CASES[0]
         )
         forecast_event_log = forecast_event_log_prompt(FORECAST_EVENT_LOG_CASES[0])
+        forecast_operational_log = forecast_operational_log_prompt(
+            FORECAST_OPERATIONAL_LOG_CASES[0]
+        )
         exploration = exploration_prompt(EXPLORATION_CASES[0])
         market_policy = market_policy_prompt(MARKET_POLICY_CASES[0])
         market_policy_inventory = market_policy_inventory_prompt(MARKET_INVENTORY_POLICY_CASES[0])
@@ -1038,6 +1055,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", forecast_rolling_log)
         self.assertNotIn("oracle", forecast_rolling_noisy_log)
         self.assertNotIn("oracle", forecast_event_log)
+        self.assertNotIn("oracle", forecast_operational_log)
         self.assertNotIn("oracle", exploration)
         self.assertNotIn("oracle", market_policy)
         self.assertNotIn("oracle", market_policy_inventory)
@@ -1858,6 +1876,30 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(latest_window["mean_expected_brier_regret"], 0.0005)
         self.assertGreater(latest_window["latest_window_miss_rate"], 0.5)
 
+    def test_forecast_operational_log_calibration_flags_context_shortcuts(self):
+        calibrated = run_forecast_operational_log_calibration_game(OfflineAgent("oracle"))
+        raw_score = run_forecast_operational_log_calibration_game(OfflineAgent("raw_score"))
+        stale_window = run_forecast_operational_log_calibration_game(OfflineAgent("stale_window"))
+        pooled_history = run_forecast_operational_log_calibration_game(OfflineAgent("pooled_history"))
+        latest_window = run_forecast_operational_log_calibration_game(OfflineAgent("latest_window"))
+        policy_blind = run_forecast_operational_log_calibration_game(OfflineAgent("policy_blind"))
+        route_blind = run_forecast_operational_log_calibration_game(OfflineAgent("route_blind"))
+        self.assertEqual(calibrated["task"], "forecast_operational_log_calibration")
+        self.assertEqual(calibrated["n_trials"], len(FORECAST_OPERATIONAL_LOG_CASES))
+        self.assertLess(calibrated["mean_expected_brier_regret"], 1e-9)
+        self.assertGreater(raw_score["mean_expected_brier_regret"], 0.02)
+        self.assertGreater(raw_score["raw_score_miss_rate"], 0.5)
+        self.assertGreater(stale_window["mean_expected_brier_regret"], 0.01)
+        self.assertGreater(stale_window["stale_window_miss_rate"], 0.5)
+        self.assertGreater(pooled_history["mean_expected_brier_regret"], 0.002)
+        self.assertGreater(pooled_history["pooled_history_miss_rate"], 0.5)
+        self.assertGreater(latest_window["mean_expected_brier_regret"], 0.0005)
+        self.assertGreater(latest_window["latest_window_miss_rate"], 0.5)
+        self.assertGreater(policy_blind["mean_expected_brier_regret"], 0.002)
+        self.assertGreater(policy_blind["policy_blind_miss_rate"], 0.5)
+        self.assertGreater(route_blind["mean_expected_brier_regret"], 0.002)
+        self.assertGreater(route_blind["route_blind_miss_rate"], 0.5)
+
     def test_exploration_flags_greedy_exploitation(self):
         exploratory = run_exploration_game(OfflineAgent("oracle"))
         greedy = run_exploration_game(OfflineAgent("exploit"))
@@ -2500,6 +2542,26 @@ class TaskSmokeTests(unittest.TestCase):
         )
         rows = rank_rows(comparison_table(sweep))
         forecast_rows = [row for row in rows if row["task"] == "forecast_event_log_calibration"]
+        self.assertEqual(forecast_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(forecast_rows[-1]["agent"], "offline:raw_score")
+
+    def test_offline_sweep_ranks_oracle_above_operational_log_calibration_baselines(self):
+        sweep = run_sweep(
+            task="forecast_operational_log_calibration",
+            agent_specs=[
+                "offline:oracle",
+                "offline:latest_window",
+                "offline:policy_blind",
+                "offline:route_blind",
+                "offline:pooled_history",
+                "offline:stale_window",
+                "offline:raw_score",
+            ],
+        )
+        rows = rank_rows(comparison_table(sweep))
+        forecast_rows = [
+            row for row in rows if row["task"] == "forecast_operational_log_calibration"
+        ]
         self.assertEqual(forecast_rows[0]["agent"], "offline:oracle")
         self.assertEqual(forecast_rows[-1]["agent"], "offline:raw_score")
 

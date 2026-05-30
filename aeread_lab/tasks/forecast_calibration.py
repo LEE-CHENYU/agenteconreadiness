@@ -251,6 +251,53 @@ class EventLogForecastTrial:
     raw_response: str
 
 
+@dataclass(frozen=True)
+class OperationalLogCalibrationEntry:
+    entry_id: str
+    raw_model_probability: float
+    days_before_target: float
+    policy: str
+    route: str
+    event_observed: bool
+
+
+@dataclass(frozen=True)
+class OperationalLogCalibrationCase:
+    key: str
+    real_case: str
+    target_event: str
+    raw_model_probability: float
+    global_base_rate: float
+    prior_strength: float
+    recency_half_life_days: float
+    score_kernel_width: float
+    current_policy: str
+    current_route: str
+    entries: tuple[OperationalLogCalibrationEntry, ...]
+
+
+@dataclass
+class OperationalLogForecastTrial:
+    case: OperationalLogCalibrationCase
+    calibrated_probability: float
+    raw_model_probability: float
+    stale_window_probability: float
+    pooled_history_probability: float
+    latest_window_probability: float
+    policy_blind_probability: float
+    route_blind_probability: float
+    chosen_probability: float | None
+    expected_brier_regret: float | None
+    probability_error: float | None
+    raw_score_miss: bool
+    stale_window_miss: bool
+    pooled_history_miss: bool
+    latest_window_miss: bool
+    policy_blind_miss: bool
+    route_blind_miss: bool
+    raw_response: str
+
+
 def _event_log_entries(
     prefix: str,
     rows: tuple[tuple[str, float, float, int, int], ...],
@@ -265,6 +312,28 @@ def _event_log_entries(
                     entry_id=f"{prefix}_{row_id}_{index + 1:02d}",
                     raw_model_probability=clamp(score + score_jitter, 0.01, 0.99),
                     days_before_target=max(0.0, days + day_jitter),
+                    event_observed=index < events,
+                )
+            )
+    return tuple(entries)
+
+
+def _operational_log_entries(
+    prefix: str,
+    rows: tuple[tuple[str, float, float, str, str, int, int], ...],
+) -> tuple[OperationalLogCalibrationEntry, ...]:
+    entries: list[OperationalLogCalibrationEntry] = []
+    for row_id, score, days, policy, route, events, total in rows:
+        for index in range(total):
+            score_jitter = ((index % 5) - 2) * 0.007
+            day_jitter = (index % 3) - 1
+            entries.append(
+                OperationalLogCalibrationEntry(
+                    entry_id=f"{prefix}_{row_id}_{index + 1:02d}",
+                    raw_model_probability=clamp(score + score_jitter, 0.01, 0.99),
+                    days_before_target=max(0.0, days + day_jitter),
+                    policy=policy,
+                    route=route,
                     event_observed=index < events,
                 )
             )
@@ -1262,6 +1331,114 @@ EVENT_LOG_CALIBRATION_CASES = [
 ]
 
 
+OPERATIONAL_LOG_CALIBRATION_CASES = [
+    OperationalLogCalibrationCase(
+        key="retention_policy_route_cooldown",
+        real_case="enterprise churn scorecard after a retention policy changed high-touch accounts",
+        target_event="account churns before renewal",
+        raw_model_probability=0.68,
+        global_base_rate=0.24,
+        prior_strength=18.0,
+        recency_half_life_days=30.0,
+        score_kernel_width=0.11,
+        current_policy="retention_playbook_v2",
+        current_route="enterprise_high_touch",
+        entries=_operational_log_entries(
+            "retention_ops",
+            (
+                ("old_current", 0.68, 116.0, "retention_playbook_v2", "enterprise_high_touch", 9, 14),
+                ("mid_current", 0.68, 49.0, "retention_playbook_v2", "enterprise_high_touch", 5, 14),
+                ("recent_current", 0.68, 17.0, "retention_playbook_v2", "enterprise_high_touch", 2, 14),
+                ("live_current", 0.68, 4.0, "retention_playbook_v2", "enterprise_high_touch", 1, 8),
+                ("policy_old", 0.68, 53.0, "legacy_discount_default", "enterprise_high_touch", 10, 14),
+                ("policy_recent", 0.68, 12.0, "legacy_discount_default", "enterprise_high_touch", 8, 10),
+                ("route_old", 0.68, 46.0, "retention_playbook_v2", "self_serve_queue", 9, 14),
+                ("route_recent", 0.68, 10.0, "retention_playbook_v2", "self_serve_queue", 7, 10),
+                ("far_score_recent", 0.36, 9.0, "retention_playbook_v2", "enterprise_high_touch", 6, 10),
+            ),
+        ),
+    ),
+    OperationalLogCalibrationCase(
+        key="merchant_route_policy_surge",
+        real_case="merchant fraud screen after a traffic gate changed affiliate onboarding",
+        target_event="merchant account has a confirmed fraud escalation",
+        raw_model_probability=0.30,
+        global_base_rate=0.15,
+        prior_strength=22.0,
+        recency_half_life_days=21.0,
+        score_kernel_width=0.11,
+        current_policy="traffic_quality_gate",
+        current_route="affiliate_onboarding",
+        entries=_operational_log_entries(
+            "merchant_ops",
+            (
+                ("old_current", 0.30, 84.0, "traffic_quality_gate", "affiliate_onboarding", 2, 14),
+                ("mid_current", 0.30, 39.0, "traffic_quality_gate", "affiliate_onboarding", 6, 14),
+                ("recent_current", 0.30, 14.0, "traffic_quality_gate", "affiliate_onboarding", 10, 14),
+                ("live_current", 0.30, 3.0, "traffic_quality_gate", "affiliate_onboarding", 6, 8),
+                ("policy_old", 0.30, 41.0, "legacy_fast_approve", "affiliate_onboarding", 2, 14),
+                ("policy_recent", 0.30, 9.0, "legacy_fast_approve", "affiliate_onboarding", 1, 10),
+                ("route_old", 0.30, 37.0, "traffic_quality_gate", "direct_referral", 2, 14),
+                ("route_recent", 0.30, 8.0, "traffic_quality_gate", "direct_referral", 1, 10),
+                ("far_score_recent", 0.60, 7.0, "traffic_quality_gate", "affiliate_onboarding", 1, 10),
+            ),
+        ),
+    ),
+    OperationalLogCalibrationCase(
+        key="credit_policy_route_relief",
+        real_case="small-business delinquency model after tighter underwriting on documented cashflow loans",
+        target_event="borrower becomes 60 days delinquent",
+        raw_model_probability=0.62,
+        global_base_rate=0.27,
+        prior_strength=26.0,
+        recency_half_life_days=45.0,
+        score_kernel_width=0.11,
+        current_policy="tightened_underwriting",
+        current_route="cashflow_docs",
+        entries=_operational_log_entries(
+            "credit_ops",
+            (
+                ("old_current", 0.62, 150.0, "tightened_underwriting", "cashflow_docs", 10, 16),
+                ("mid_current", 0.62, 78.0, "tightened_underwriting", "cashflow_docs", 6, 16),
+                ("recent_current", 0.62, 31.0, "tightened_underwriting", "cashflow_docs", 3, 14),
+                ("live_current", 0.62, 6.0, "tightened_underwriting", "cashflow_docs", 1, 8),
+                ("policy_old", 0.62, 74.0, "legacy_underwriting", "cashflow_docs", 11, 16),
+                ("policy_recent", 0.62, 24.0, "legacy_underwriting", "cashflow_docs", 8, 10),
+                ("route_old", 0.62, 70.0, "tightened_underwriting", "bank_statement_only", 10, 16),
+                ("route_recent", 0.62, 20.0, "tightened_underwriting", "bank_statement_only", 7, 10),
+                ("far_score_recent", 0.34, 18.0, "tightened_underwriting", "cashflow_docs", 7, 10),
+            ),
+        ),
+    ),
+    OperationalLogCalibrationCase(
+        key="defect_policy_route_regression",
+        real_case="launch-defect model after supplier-policy and rush-route operations diverged",
+        target_event="batch exceeds the defect escalation threshold",
+        raw_model_probability=0.40,
+        global_base_rate=0.13,
+        prior_strength=24.0,
+        recency_half_life_days=21.0,
+        score_kernel_width=0.11,
+        current_policy="supplier_b_expedite",
+        current_route="rush_launch_batch",
+        entries=_operational_log_entries(
+            "defect_ops",
+            (
+                ("old_current", 0.40, 88.0, "supplier_b_expedite", "rush_launch_batch", 2, 14),
+                ("mid_current", 0.40, 42.0, "supplier_b_expedite", "rush_launch_batch", 6, 14),
+                ("recent_current", 0.40, 15.0, "supplier_b_expedite", "rush_launch_batch", 11, 14),
+                ("live_current", 0.40, 3.0, "supplier_b_expedite", "rush_launch_batch", 7, 8),
+                ("policy_old", 0.40, 39.0, "supplier_a_standard", "rush_launch_batch", 1, 14),
+                ("policy_recent", 0.40, 9.0, "supplier_a_standard", "rush_launch_batch", 1, 10),
+                ("route_old", 0.40, 37.0, "supplier_b_expedite", "scheduled_batch", 1, 14),
+                ("route_recent", 0.40, 8.0, "supplier_b_expedite", "scheduled_batch", 1, 10),
+                ("far_score_recent", 0.72, 7.0, "supplier_b_expedite", "rush_launch_batch", 1, 10),
+            ),
+        ),
+    ),
+]
+
+
 def posterior_probability(case: ForecastCase) -> float:
     odds = case.base_rate / max(1e-12, 1.0 - case.base_rate)
     for signal in case.signals:
@@ -1571,6 +1748,134 @@ def latest_event_log_probability(case: EventLogCalibrationCase) -> float:
         latest_age = min(entry.days_before_target for entry in case.entries)
         latest_entries = tuple(entry for entry in case.entries if entry.days_before_target == latest_age)
     return event_log_probability(case, latest_entries, use_recency=False)
+
+
+def operational_log_entry_weight(
+    case: OperationalLogCalibrationCase,
+    entry: OperationalLogCalibrationEntry,
+    *,
+    use_recency: bool = True,
+    require_policy: bool = True,
+    require_route: bool = True,
+) -> float:
+    if require_policy and entry.policy != case.current_policy:
+        return 0.0
+    if require_route and entry.route != case.current_route:
+        return 0.0
+    score_distance = (
+        (entry.raw_model_probability - case.raw_model_probability)
+        / max(case.score_kernel_width, 1e-12)
+    )
+    score_weight = math.exp(-0.5 * score_distance * score_distance)
+    if not use_recency:
+        return score_weight
+    recency_weight = 0.5 ** (
+        max(entry.days_before_target, 0.0) / max(case.recency_half_life_days, 1e-12)
+    )
+    return score_weight * recency_weight
+
+
+def operational_log_probability(
+    case: OperationalLogCalibrationCase,
+    entries: tuple[OperationalLogCalibrationEntry, ...],
+    *,
+    use_recency: bool = True,
+    require_policy: bool = True,
+    require_route: bool = True,
+) -> float:
+    weighted_events = sum(
+        operational_log_entry_weight(
+            case,
+            entry,
+            use_recency=use_recency,
+            require_policy=require_policy,
+            require_route=require_route,
+        )
+        * float(entry.event_observed)
+        for entry in entries
+    )
+    weighted_total = sum(
+        operational_log_entry_weight(
+            case,
+            entry,
+            use_recency=use_recency,
+            require_policy=require_policy,
+            require_route=require_route,
+        )
+        for entry in entries
+    )
+    prior_events = case.prior_strength * case.global_base_rate
+    return (weighted_events + prior_events) / max(weighted_total + case.prior_strength, 1e-12)
+
+
+def operational_log_calibrated_probability(case: OperationalLogCalibrationCase) -> float:
+    return operational_log_probability(case, case.entries, use_recency=True)
+
+
+def pooled_operational_log_probability(case: OperationalLogCalibrationCase) -> float:
+    return operational_log_probability(
+        case,
+        case.entries,
+        use_recency=False,
+        require_policy=False,
+        require_route=False,
+    )
+
+
+def policy_blind_operational_log_probability(case: OperationalLogCalibrationCase) -> float:
+    return operational_log_probability(
+        case,
+        case.entries,
+        use_recency=True,
+        require_policy=False,
+        require_route=True,
+    )
+
+
+def route_blind_operational_log_probability(case: OperationalLogCalibrationCase) -> float:
+    return operational_log_probability(
+        case,
+        case.entries,
+        use_recency=True,
+        require_policy=True,
+        require_route=False,
+    )
+
+
+def _operational_context_entries(
+    case: OperationalLogCalibrationCase,
+) -> tuple[OperationalLogCalibrationEntry, ...]:
+    return tuple(
+        entry
+        for entry in case.entries
+        if entry.policy == case.current_policy and entry.route == case.current_route
+    )
+
+
+def stale_operational_log_probability(case: OperationalLogCalibrationCase) -> float:
+    context_entries = _operational_context_entries(case)
+    stale_entries = tuple(
+        entry
+        for entry in context_entries
+        if entry.days_before_target >= 2.0 * case.recency_half_life_days
+    )
+    if not stale_entries:
+        oldest_age = max(entry.days_before_target for entry in context_entries)
+        stale_entries = tuple(entry for entry in context_entries if entry.days_before_target == oldest_age)
+    return operational_log_probability(case, stale_entries, use_recency=False)
+
+
+def latest_operational_log_probability(case: OperationalLogCalibrationCase) -> float:
+    context_entries = _operational_context_entries(case)
+    latest_entries = tuple(
+        entry
+        for entry in context_entries
+        if entry.days_before_target <= 0.5 * case.recency_half_life_days
+    )
+    if not latest_entries:
+        latest_age = min(entry.days_before_target for entry in context_entries)
+        latest_entries = tuple(entry for entry in context_entries if entry.days_before_target == latest_age)
+    return operational_log_probability(case, latest_entries, use_recency=False)
 
 
 def run_forecast_calibration_game(agent: Agent, cases: list[ForecastCase] | None = None) -> dict:
@@ -1975,6 +2280,79 @@ def run_forecast_event_log_calibration_game(
     return summarize_event_log_forecast_trials(agent.name, trials)
 
 
+def run_forecast_operational_log_calibration_game(
+    agent: Agent,
+    cases: list[OperationalLogCalibrationCase] | None = None,
+) -> dict:
+    cases = cases or OPERATIONAL_LOG_CALIBRATION_CASES
+    trials: list[OperationalLogForecastTrial] = []
+    for case in cases:
+        calibrated = operational_log_calibrated_probability(case)
+        stale = stale_operational_log_probability(case)
+        pooled = pooled_operational_log_probability(case)
+        latest = latest_operational_log_probability(case)
+        policy_blind = policy_blind_operational_log_probability(case)
+        route_blind = route_blind_operational_log_probability(case)
+        response = agent.complete(FORECAST_SYSTEM, _operational_log_prompt(case))
+        parsed = parse_float("FINAL_PROBABILITY", response)
+        chosen = clamp(parsed, 0.0, 1.0) if parsed is not None else None
+        raw_score_miss = (
+            chosen is not None
+            and abs(case.raw_model_probability - calibrated) >= 0.08
+            and abs(chosen - case.raw_model_probability) < abs(chosen - calibrated)
+        )
+        stale_window_miss = (
+            chosen is not None
+            and abs(stale - calibrated) >= 0.04
+            and abs(chosen - stale) < abs(chosen - calibrated)
+        )
+        pooled_history_miss = (
+            chosen is not None
+            and abs(pooled - calibrated) >= 0.03
+            and abs(chosen - pooled) < abs(chosen - calibrated)
+        )
+        latest_window_miss = (
+            chosen is not None
+            and abs(latest - calibrated) >= 0.02
+            and abs(chosen - latest) < abs(chosen - calibrated)
+        )
+        policy_blind_miss = (
+            chosen is not None
+            and abs(policy_blind - calibrated) >= 0.03
+            and abs(chosen - policy_blind) < abs(chosen - calibrated)
+        )
+        route_blind_miss = (
+            chosen is not None
+            and abs(route_blind - calibrated) >= 0.03
+            and abs(chosen - route_blind) < abs(chosen - calibrated)
+        )
+        trials.append(
+            OperationalLogForecastTrial(
+                case=case,
+                calibrated_probability=calibrated,
+                raw_model_probability=case.raw_model_probability,
+                stale_window_probability=stale,
+                pooled_history_probability=pooled,
+                latest_window_probability=latest,
+                policy_blind_probability=policy_blind,
+                route_blind_probability=route_blind,
+                chosen_probability=chosen,
+                expected_brier_regret=expected_brier_regret(calibrated, chosen)
+                if chosen is not None
+                else None,
+                probability_error=abs(chosen - calibrated) if chosen is not None else None,
+                raw_score_miss=raw_score_miss,
+                stale_window_miss=stale_window_miss,
+                pooled_history_miss=pooled_history_miss,
+                latest_window_miss=latest_window_miss,
+                policy_blind_miss=policy_blind_miss,
+                route_blind_miss=route_blind_miss,
+                raw_response=response,
+            )
+        )
+    return summarize_operational_log_forecast_trials(agent.name, trials)
+
+
 def _run_forecast_curve_game(
     agent: Agent,
     cases: list[ForecastCurveCase] | None,
@@ -2349,6 +2727,87 @@ def summarize_event_log_forecast_trials(
             else 0.0
         ),
         "trials": [_event_log_trial_json(trial) for trial in trials],
+    }
+
+
+def summarize_operational_log_forecast_trials(
+    agent_name: str,
+    trials: list[OperationalLogForecastTrial],
+) -> dict:
+    regrets = [
+        trial.expected_brier_regret
+        for trial in trials
+        if trial.expected_brier_regret is not None
+    ]
+    errors = [trial.probability_error for trial in trials if trial.probability_error is not None]
+    raw_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.raw_model_probability - trial.calibrated_probability) >= 0.08
+    ]
+    stale_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.stale_window_probability - trial.calibrated_probability) >= 0.04
+    ]
+    pooled_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.pooled_history_probability - trial.calibrated_probability) >= 0.03
+    ]
+    latest_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.latest_window_probability - trial.calibrated_probability) >= 0.02
+    ]
+    policy_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.policy_blind_probability - trial.calibrated_probability) >= 0.03
+    ]
+    route_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.route_blind_probability - trial.calibrated_probability) >= 0.03
+    ]
+    return {
+        "task": "forecast_operational_log_calibration",
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "mean_expected_brier_regret": mean(regrets),
+        "mean_expected_brier_regret_ci95": bootstrap_mean_ci(regrets),
+        "mean_probability_error": mean(errors),
+        "raw_score_miss_rate": (
+            sum(trial.raw_score_miss for trial in raw_shifted) / len(raw_shifted)
+            if raw_shifted
+            else 0.0
+        ),
+        "stale_window_miss_rate": (
+            sum(trial.stale_window_miss for trial in stale_shifted) / len(stale_shifted)
+            if stale_shifted
+            else 0.0
+        ),
+        "pooled_history_miss_rate": (
+            sum(trial.pooled_history_miss for trial in pooled_shifted) / len(pooled_shifted)
+            if pooled_shifted
+            else 0.0
+        ),
+        "latest_window_miss_rate": (
+            sum(trial.latest_window_miss for trial in latest_shifted) / len(latest_shifted)
+            if latest_shifted
+            else 0.0
+        ),
+        "policy_blind_miss_rate": (
+            sum(trial.policy_blind_miss for trial in policy_shifted) / len(policy_shifted)
+            if policy_shifted
+            else 0.0
+        ),
+        "route_blind_miss_rate": (
+            sum(trial.route_blind_miss for trial in route_shifted) / len(route_shifted)
+            if route_shifted
+            else 0.0
+        ),
+        "trials": [_operational_log_trial_json(trial) for trial in trials],
     }
 
 
@@ -2760,6 +3219,49 @@ def _event_log_prompt(case: EventLogCalibrationCase) -> str:
     return "\n".join(lines)
 
 
+def _operational_log_prompt(case: OperationalLogCalibrationCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"target_event={case.target_event}",
+        f"raw_model_probability={case.raw_model_probability:.4f}",
+        f"global_base_rate={case.global_base_rate:.4f}",
+        f"prior_strength={case.prior_strength:.1f}",
+        f"review_cadence={_review_cadence_label_for_half_life(case.recency_half_life_days)}",
+        f"current_policy={case.current_policy}",
+        f"current_route={case.current_route}",
+        "Dated scored operational record log:",
+    ]
+    for entry in case.entries:
+        outcome = "event" if entry.event_observed else "no_event"
+        lines.append(
+            f"operational_log_item={entry.entry_id} "
+            f"age_days={entry.days_before_target:.1f} "
+            f"score={entry.raw_model_probability:.4f} "
+            f"policy={entry.policy} "
+            f"route={entry.route} "
+            f"outcome={outcome}"
+        )
+    lines.extend(
+        [
+            "Use records with scores near the target raw probability as more "
+            "comparable than far-away scores. The process has drifted over time, "
+            "so more recent comparable records are more informative, but thin "
+            "recent logs should be stabilized against the global reference and "
+            "older nearby records.",
+            "Operational comparability also matters: records from the current "
+            "policy and current route are the closest reference class. Same-score "
+            "records from a different policy or route can be misleading even when "
+            "they are recent.",
+            "Estimate the event probability for the next item at the raw score, "
+            "current policy, and current route above. Do not simply pool all "
+            "history, use only the newest records, ignore policy/route context, "
+            "or reuse the raw model score as the final probability.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _review_cadence_label_for_half_life(half_life: float) -> str:
     if half_life <= 22:
         return "biweekly"
@@ -2807,6 +3309,12 @@ def _rolling_log_trial_json(trial: RollingLogForecastTrial) -> dict:
 
 
 def _event_log_trial_json(trial: EventLogForecastTrial) -> dict:
+    data = asdict(trial)
+    data["case"] = asdict(trial.case)
+    return data
+
+
+def _operational_log_trial_json(trial: OperationalLogForecastTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
     return data

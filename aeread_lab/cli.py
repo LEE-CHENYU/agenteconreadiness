@@ -60,6 +60,7 @@ TASKS = (
     "forecast_rolling_log_calibration",
     "forecast_rolling_log_noisy",
     "forecast_event_log_calibration",
+    "forecast_operational_log_calibration",
     "exploration",
     "experiment_design",
     "retail",
@@ -495,12 +496,20 @@ def _print_human(payload: dict[str, Any]) -> None:
             "forecast_rolling_log_calibration",
             "forecast_rolling_log_noisy",
             "forecast_event_log_calibration",
+            "forecast_operational_log_calibration",
         }:
             if task in {
                 "forecast_rolling_log_calibration",
                 "forecast_rolling_log_noisy",
                 "forecast_event_log_calibration",
+                "forecast_operational_log_calibration",
             }:
+                context_misses = (
+                    f" policy_blind_miss={result.get('policy_blind_miss_rate', 0.0):.2f} "
+                    f"route_blind_miss={result.get('route_blind_miss_rate', 0.0):.2f}"
+                    if task == "forecast_operational_log_calibration"
+                    else ""
+                )
                 print(
                     f"{task}: n={result['n_trials']} expected_brier_regret="
                     f"{_fmt(result['mean_expected_brier_regret'])} "
@@ -510,6 +519,7 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"stale_window_miss={result.get('stale_window_miss_rate', 0.0):.2f} "
                     f"pooled_history_miss={result.get('pooled_history_miss_rate', 0.0):.2f} "
                     f"latest_window_miss={result.get('latest_window_miss_rate', 0.0):.2f}"
+                    f"{context_misses}"
                 )
             elif task in {"forecast_shift_calibration", "forecast_rolling_calibration"}:
                 miss_fields = (
