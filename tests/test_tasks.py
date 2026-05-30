@@ -447,8 +447,17 @@ class TaskSmokeTests(unittest.TestCase):
         case_keys = {row["case"] for row in oracle["cases"]}
         self.assertIn("delayed_inventory_lockup", case_keys)
         self.assertEqual(oracle["timing_reserve_violation_rate"], 0.0)
-        self.assertGreater(timing_blind["mean_constrained_final_cash_regret"], 100.0)
-        self.assertGreater(timing_blind["timing_reserve_violation_rate"], 0.2)
+        self.assertGreater(timing_blind["mean_constrained_final_cash_regret"], 90.0)
+        self.assertGreater(timing_blind["timing_reserve_violation_rate"], 0.15)
+
+    def test_supplier_scam_flags_reputation_blind_updates(self):
+        oracle = run_supplier_scam_game(OfflineAgent("oracle"))
+        reputation_blind = run_supplier_scam_game(OfflineAgent("reputation_blind"))
+        case_keys = {row["case"] for row in oracle["cases"]}
+        self.assertIn("adaptive_vendor_reputation", case_keys)
+        self.assertEqual(oracle["reputation_miss_rate"], 0.0)
+        self.assertEqual(reputation_blind["reputation_miss_rate"], 1.0)
+        self.assertGreater(reputation_blind["mean_constrained_final_cash_regret"], 20.0)
 
     def test_scam_controls_have_dynamic_range(self):
         summary = run_scam_arena(

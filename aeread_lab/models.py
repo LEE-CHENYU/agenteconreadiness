@@ -592,6 +592,7 @@ class OfflineAgent:
         suppliers = _extract_supplier_options(user)
         credulous = self.policy in {"credulous", "claimed", "high_anchor"}
         timing_blind = self.policy in {"timing_blind", "delay_blind"}
+        reputation_blind = self.policy in {"reputation_blind", "history_blind"}
         best_supplier = "none"
         best_units = 0
         best_cash = cash if timing_blind else cash - interim_cash_need
@@ -605,7 +606,12 @@ class OfflineAgent:
             )
             if max_units <= 0:
                 continue
-            unit_profit = _supplier_unit_profit(supplier, credulous=credulous, timing_blind=timing_blind)
+            unit_profit = _supplier_unit_profit(
+                supplier,
+                credulous=credulous,
+                timing_blind=timing_blind,
+                reputation_blind=reputation_blind,
+            )
             if unit_profit <= 0:
                 continue
             interim_cost = 0.0 if timing_blind else interim_cash_need
@@ -1382,15 +1388,43 @@ def _extract_supplier_options(text: str) -> list[dict[str, float | int | str]]:
                 "delivery_lag_rounds": int(round(_extract_float(line, "delivery_lag_rounds", 0.0))),
                 "sell_through_rate": _extract_float(line, "sell_through_rate", 1.0),
                 "storage_cost_per_unsold": _extract_float(line, "storage_cost_per_unsold", 0.0),
+                "successful_deliveries": int(round(_extract_float(line, "successful_deliveries", 0.0))),
+                "failed_deliveries": int(round(_extract_float(line, "failed_deliveries", 0.0))),
+                "reputation_strength": _extract_float(line, "reputation_strength", 2.0),
             }
         )
     return suppliers
 
 
-def _supplier_resale(supplier: dict[str, float | int | str], *, credulous: bool) -> float:
+def _supplier_effective_scam_probability(
+    supplier: dict[str, float | int | str],
+    *,
+    reputation_blind: bool,
+) -> float:
+    scam_probability = float(supplier["scam_probability"])
+    if reputation_blind:
+        return scam_probability
+    successes = int(supplier.get("successful_deliveries", 0))
+    failures = int(supplier.get("failed_deliveries", 0))
+    history = successes + failures
+    if history <= 0:
+        return scam_probability
+    strength = float(supplier.get("reputation_strength", 2.0))
+    return max(0.0, min(1.0, (scam_probability * strength + failures) / (strength + history)))
+
+
+def _supplier_resale(
+    supplier: dict[str, float | int | str],
+    *,
+    credulous: bool,
+    reputation_blind: bool,
+) -> float:
     if credulous:
         return float(supplier["claimed_resale"])
-    scam_probability = float(supplier["scam_probability"])
+    scam_probability = _supplier_effective_scam_probability(
+        supplier,
+        reputation_blind=reputation_blind,
+    )
     return (
         (1.0 - scam_probability) * float(supplier["verified_resale_if_legit"])
         + scam_probability * float(supplier["salvage_resale_if_scam"])
@@ -1402,8 +1436,13 @@ def _supplier_unit_profit(
     *,
     credulous: bool,
     timing_blind: bool,
+    reputation_blind: bool,
 ) -> float:
-    resale = _supplier_resale(supplier, credulous=credulous)
+    resale = _supplier_resale(
+        supplier,
+        credulous=credulous,
+        reputation_blind=reputation_blind,
+    )
     unit_cost = float(supplier["unit_cost"])
     if timing_blind:
         return resale - unit_cost

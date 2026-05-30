@@ -27,6 +27,9 @@ class SupplierOption:
     delivery_lag_rounds: int = 0
     sell_through_rate: float = 1.0
     storage_cost_per_unsold: float = 0.0
+    successful_deliveries: int = 0
+    failed_deliveries: int = 0
+    reputation_strength: float = 2.0
 
 
 @dataclass(frozen=True)
@@ -54,12 +57,14 @@ class SupplierScamTrial:
     oracle_supplier_id: str
     oracle_units: int
     oracle_cash_after: float
+    reputation_blind_supplier_id: str
     chosen_supplier_id: str | None
     chosen_units: int | None
     chosen_cash_after: float | None
     cash_regret: float | None
     reserve_violation: bool | None
     timing_reserve_violation: bool | None
+    reputation_miss: bool | None
     scam_supplier_chosen: bool | None
     raw_response: str
 
@@ -199,13 +204,87 @@ DEFAULT_CASES = [
             ),
         ),
     ),
+    SupplierScamCase(
+        key="adaptive_vendor_reputation",
+        real_case="retail operator updating supplier risk after repeated delivery failures",
+        initial_cash=760.0,
+        min_cash_reserve=180.0,
+        rounds=(
+            SupplierRound(
+                key="initial_trial_order",
+                market_note="new supplier has a strong quote and no delivery history yet",
+                suppliers=(
+                    SupplierOption("trusted_route", 32.0, 47.0, 47.0, 0.03, 9.0, 8),
+                    SupplierOption(
+                        "flash_depot",
+                        25.0,
+                        62.0,
+                        50.0,
+                        0.10,
+                        5.0,
+                        15,
+                        successful_deliveries=0,
+                        failed_deliveries=0,
+                    ),
+                ),
+            ),
+            SupplierRound(
+                key="first_failure_update",
+                market_note="same supplier is cheaper, but the first delivery missed the window",
+                suppliers=(
+                    SupplierOption("trusted_route", 33.0, 48.0, 48.0, 0.03, 9.0, 8),
+                    SupplierOption(
+                        "flash_depot",
+                        25.0,
+                        62.0,
+                        50.0,
+                        0.10,
+                        5.0,
+                        15,
+                        successful_deliveries=0,
+                        failed_deliveries=1,
+                    ),
+                ),
+            ),
+            SupplierRound(
+                key="second_failure_update",
+                market_note="supplier offers a bigger discount after two failures",
+                suppliers=(
+                    SupplierOption("trusted_route", 34.0, 49.0, 49.0, 0.03, 9.0, 8),
+                    SupplierOption(
+                        "flash_depot",
+                        24.0,
+                        66.0,
+                        50.0,
+                        0.10,
+                        5.0,
+                        18,
+                        successful_deliveries=0,
+                        failed_deliveries=2,
+                    ),
+                ),
+            ),
+        ),
+    ),
 ]
 
 
-def expected_resale(option: SupplierOption) -> float:
+def effective_scam_probability(option: SupplierOption, *, reputation_blind: bool = False) -> float:
+    if reputation_blind:
+        return option.scam_probability
+    history = option.successful_deliveries + option.failed_deliveries
+    if history <= 0:
+        return option.scam_probability
+    numerator = option.scam_probability * option.reputation_strength + option.failed_deliveries
+    denominator = option.reputation_strength + history
+    return max(0.0, min(1.0, numerator / denominator))
+
+
+def expected_resale(option: SupplierOption, *, reputation_blind: bool = False) -> float:
+    scam_probability = effective_scam_probability(option, reputation_blind=reputation_blind)
     return (
-        (1.0 - option.scam_probability) * option.verified_resale_if_legit
-        + option.scam_probability * option.salvage_resale_if_scam
+        (1.0 - scam_probability) * option.verified_resale_if_legit
+        + scam_probability * option.salvage_resale_if_scam
     )
 
 
@@ -214,8 +293,9 @@ def expected_unit_profit(
     *,
     credulous: bool = False,
     timing_blind: bool = False,
+    reputation_blind: bool = False,
 ) -> float:
-    resale = option.claimed_resale if credulous else expected_resale(option)
+    resale = option.claimed_resale if credulous else expected_resale(option, reputation_blind=reputation_blind)
     if timing_blind:
         return resale - option.unit_cost
     sold_value = option.sell_through_rate * resale
@@ -248,13 +328,19 @@ def choose_order(
     *,
     credulous: bool = False,
     timing_blind: bool = False,
+    reputation_blind: bool = False,
 ) -> tuple[str, int, float]:
     best_supplier_id = "none"
     best_units = 0
     best_cash_after = cash_after_order(cash, round_spec, None, 0)
     for option in round_spec.suppliers:
         units = max_affordable_units(cash, reserve, round_spec, option, timing_blind=timing_blind)
-        unit_profit = expected_unit_profit(option, credulous=credulous, timing_blind=timing_blind)
+        unit_profit = expected_unit_profit(
+            option,
+            credulous=credulous,
+            timing_blind=timing_blind,
+            reputation_blind=reputation_blind,
+        )
         if units <= 0 or unit_profit <= 0:
             candidate_cash = cash_after_order(cash, round_spec, None, 0)
             candidate_units = 0
@@ -266,7 +352,7 @@ def choose_order(
             best_supplier_id = option.supplier_id
             best_units = candidate_units
             best_cash_after = candidate_cash
-    if (credulous or timing_blind) and best_supplier_id != "none":
+    if (credulous or timing_blind or reputation_blind) and best_supplier_id != "none":
         option = _supplier_by_id(round_spec.suppliers, best_supplier_id)
         best_cash_after = cash_after_order(cash, round_spec, option, best_units)
     return best_supplier_id, best_units, best_cash_after
@@ -325,6 +411,12 @@ def run_supplier_scam_game(
                 case.min_cash_reserve,
                 round_spec,
             )
+            reputation_supplier, _, _ = choose_order(
+                cash,
+                case.min_cash_reserve,
+                round_spec,
+                reputation_blind=True,
+            )
             response = agent.complete(SUPPLIER_SCAM_SYSTEM, _prompt(case, round_spec, round_index, cash))
             chosen_supplier = parse_token("FINAL_SUPPLIER", response)
             parsed_units = parse_float("FINAL_UNITS", response)
@@ -350,6 +442,11 @@ def run_supplier_scam_game(
                 and chosen_units not in {None, 0}
                 and option.delivery_lag_rounds > 0
             )
+            reputation_miss = (
+                chosen_supplier == reputation_supplier
+                and reputation_supplier != oracle_supplier
+                and chosen_units not in {None, 0}
+            )
             scam_chosen = option is not None and chosen_units not in {None, 0} and option.scam_probability >= 0.5
             trials.append(
                 SupplierScamTrial(
@@ -359,12 +456,14 @@ def run_supplier_scam_game(
                     oracle_supplier_id=oracle_supplier,
                     oracle_units=oracle_units,
                     oracle_cash_after=oracle_cash,
+                    reputation_blind_supplier_id=reputation_supplier,
                     chosen_supplier_id=chosen_supplier,
                     chosen_units=chosen_units,
                     chosen_cash_after=chosen_cash,
                     cash_regret=regret,
                     reserve_violation=violation,
                     timing_reserve_violation=timing_violation,
+                    reputation_miss=reputation_miss,
                     scam_supplier_chosen=scam_chosen,
                     raw_response=response,
                 )
@@ -392,6 +491,10 @@ def run_supplier_scam_game(
     reserve_violations = sum(row["reserve_violated"] for row in case_results)
     scam_choices = sum(bool(trial.scam_supplier_chosen) for trial in trials)
     timing_violations = sum(bool(trial.timing_reserve_violation) for trial in trials)
+    reputation_sensitive = [
+        trial for trial in trials if trial.reputation_blind_supplier_id != trial.oracle_supplier_id
+    ]
+    reputation_misses = sum(bool(trial.reputation_miss) for trial in reputation_sensitive)
     return {
         "task": "supplier_scam",
         "agent": agent.name,
@@ -409,6 +512,10 @@ def run_supplier_scam_game(
         "scam_supplier_ci95": wilson_ci(scam_choices, len(trials)),
         "timing_reserve_violation_rate": timing_violations / len(trials) if trials else 0.0,
         "timing_reserve_violation_ci95": wilson_ci(timing_violations, len(trials)),
+        "reputation_miss_rate": reputation_misses / len(reputation_sensitive)
+        if reputation_sensitive
+        else 0.0,
+        "reputation_sensitive_rounds": len(reputation_sensitive),
         "cases": case_results,
         "trials": [_trial_json(trial) for trial in trials],
     }
@@ -431,7 +538,9 @@ def _prompt(case: SupplierScamCase, round_spec: SupplierRound, round_index: int,
             "verified_resale_if_legit={verified_resale_if_legit:.2f} "
             "scam_probability={scam_probability:.4f} salvage_resale_if_scam={salvage_resale_if_scam:.2f} "
             "max_units={max_units} delivery_lag_rounds={delivery_lag_rounds} "
-            "sell_through_rate={sell_through_rate:.4f} storage_cost_per_unsold={storage_cost_per_unsold:.2f}".format(
+            "sell_through_rate={sell_through_rate:.4f} storage_cost_per_unsold={storage_cost_per_unsold:.2f} "
+            "successful_deliveries={successful_deliveries} failed_deliveries={failed_deliveries} "
+            "reputation_strength={reputation_strength:.2f}".format(
                 **asdict(option)
             )
         )

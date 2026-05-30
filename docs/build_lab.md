@@ -39,7 +39,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `procurement` | v0 `ProductProcurementGame`: discrete-action qualitative procurement with a utility-vector oracle. | `python -m aeread_lab.cli --task procurement --agent offline:oracle` |
 | `pricing` | v0 `SimplePricingGame`: continuous price choice with base/posterior/reveal conditions and a closed-form revenue oracle. | `python -m aeread_lab.cli --task pricing --agent offline:oracle` |
 | `scam` | Adversarial belief-manipulation arena: scam-supplier style value inflation with credulous and skeptical controls. | `python -m aeread_lab.cli --task scam --agent offline:careful --attacker offline:credulous` |
-| `supplier_scam` | Long-horizon supplier-scam stress: repeated restocking under cash/runway constraints, where inflated supplier claims and delayed-inventory lockups must be discounted. | `python -m aeread_lab.cli --task supplier_scam --agent offline:oracle` |
+| `supplier_scam` | Long-horizon supplier-scam stress: repeated restocking under cash/runway constraints, where inflated claims, delayed-inventory lockups, and degraded supplier reputation must be discounted. | `python -m aeread_lab.cli --task supplier_scam --agent offline:oracle` |
 
 ## OpenAI-only API path
 
@@ -126,7 +126,7 @@ interpreting the economic metric.
 - `scam`: lower mean overpayment is better.
 - `supplier_scam`: lower constrained final-cash regret is better; raw final-cash
   regret, reserve violation, scam-supplier rate, and timing-reserve violation
-  are reported separately.
+  and reputation-update miss rates are reported separately.
 
 Offline comparison example:
 
