@@ -16,6 +16,7 @@ TASKS = (
     "alignment_tax",
     "principal_inference",
     "portfolio",
+    "revealed_allocation",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -154,6 +155,13 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"ci95={_fmt_ci(result.get('mean_utility_regret_ci95'))} "
                 f"return_miss={result['max_return_miss_rate']:.2f} "
                 f"low_risk_miss={result['low_risk_miss_rate']:.2f}"
+            )
+        elif task == "revealed_allocation":
+            print(
+                f"revealed_allocation: n={result['n_trials']} utility_regret="
+                f"{_fmt(result['mean_utility_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_utility_regret_ci95'))} "
+                f"weight_l1={_fmt(result['mean_weight_l1_error'])}"
             )
         elif task == "ambiguity":
             print(

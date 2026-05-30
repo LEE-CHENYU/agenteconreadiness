@@ -90,6 +90,8 @@ class OfflineAgent:
             return self._principal_fraction(user)
         if "TASK: portfolio_choice" in system:
             return self._portfolio_choice(user)
+        if "TASK: revealed_allocation" in system:
+            return self._revealed_allocation(user)
         if "TASK: ambiguity_action" in system:
             return self._ambiguity_action(user)
         if "TASK: procurement_choice" in system:
@@ -195,6 +197,25 @@ class OfflineAgent:
         else:
             portfolio_id = _best_portfolio_choice(user, portfolios)
         return f"FINAL_PORTFOLIO: {portfolio_id}"
+
+    def _revealed_allocation(self, user: str) -> str:
+        assets = _extract_revealed_assets(user)
+        if self.policy in {"max_return", "return"}:
+            weights = {asset_id: 0.0 for asset_id in assets}
+            weights[max(assets, key=lambda item: assets[item]["expected_return"])] = 1.0
+        elif self.policy in {"low_risk", "min_variance"}:
+            weights = {asset_id: 0.0 for asset_id in assets}
+            weights[min(assets, key=lambda item: assets[item]["variance"])] = 1.0
+        elif self.policy == "equal":
+            weights = {asset_id: 1.0 / len(assets) for asset_id in assets}
+        else:
+            gamma = _infer_revealed_gamma(user)
+            weights = _best_revealed_weights(assets, gamma)
+        return (
+            f"FINAL_GROWTH_WEIGHT: {weights.get('growth', 0.0):.6f}\n"
+            f"FINAL_INCOME_WEIGHT: {weights.get('income', 0.0):.6f}\n"
+            f"FINAL_HEDGE_WEIGHT: {weights.get('hedge', 0.0):.6f}"
+        )
 
     def _ambiguity_action(self, user: str) -> str:
         state_ids = _extract_state_ids(user)
@@ -657,6 +678,91 @@ def _best_portfolio_choice(text: str, portfolios: dict[str, dict[str, float]]) -
         )
 
     return max(portfolios, key=utility)
+
+
+def _extract_revealed_assets(text: str) -> dict[str, dict[str, float]]:
+    assets = {}
+    pattern = re.compile(
+        r"asset_id=([a-zA-Z0-9_-]+)\s+"
+        r"expected_return=([-+]?\d+(?:\.\d+)?)\s+"
+        r"variance=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        assets[match.group(1)] = {
+            "expected_return": float(match.group(2)),
+            "variance": float(match.group(3)),
+        }
+    return assets
+
+
+def _extract_revealed_history(text: str) -> dict[str, list[dict[str, float | bool | str]]]:
+    menus: dict[str, list[dict[str, float | bool | str]]] = {}
+    pattern = re.compile(
+        r"history_id=([a-zA-Z0-9_-]+)\s+"
+        r"option_id=([a-zA-Z0-9_-]+)\s+"
+        r"expected_return=([-+]?\d+(?:\.\d+)?)\s+"
+        r"variance=([-+]?\d+(?:\.\d+)?)\s+"
+        r"chosen=([01])"
+    )
+    for match in pattern.finditer(text):
+        menus.setdefault(match.group(1), []).append(
+            {
+                "option_id": match.group(2),
+                "expected_return": float(match.group(3)),
+                "variance": float(match.group(4)),
+                "chosen": match.group(5) == "1",
+            }
+        )
+    return menus
+
+
+def _infer_revealed_gamma(text: str) -> float:
+    menus = _extract_revealed_history(text)
+    best_gamma = 1.0
+    best_margin = -math.inf
+    for idx in range(10, 801):
+        gamma = idx / 100.0
+        margin = 0.0
+        valid = True
+        for options in menus.values():
+            chosen = next(option for option in options if option["chosen"])
+            chosen_u = _revealed_portfolio_utility(chosen, gamma)
+            best_alt = max(
+                _revealed_portfolio_utility(option, gamma)
+                for option in options
+                if not option["chosen"]
+            )
+            margin += chosen_u - best_alt
+            valid = valid and chosen_u >= best_alt
+        if (valid, margin) > (best_margin >= 0.0, best_margin):
+            best_gamma = gamma
+            best_margin = margin
+    return best_gamma
+
+
+def _revealed_portfolio_utility(portfolio: dict[str, float | bool | str], gamma: float) -> float:
+    return float(portfolio["expected_return"]) - gamma * float(portfolio["variance"])
+
+
+def _best_revealed_weights(assets: dict[str, dict[str, float]], gamma: float) -> dict[str, float]:
+    ids = list(assets)
+    best_weights = {ids[0]: 1.0, ids[1]: 0.0, ids[2]: 0.0}
+    best_utility = -math.inf
+    for first in range(21):
+        for second in range(21 - first):
+            third = 20 - first - second
+            weights = {
+                ids[0]: first / 20.0,
+                ids[1]: second / 20.0,
+                ids[2]: third / 20.0,
+            }
+            expected_return = sum(weights[asset_id] * assets[asset_id]["expected_return"] for asset_id in ids)
+            variance = sum((weights[asset_id] ** 2) * assets[asset_id]["variance"] for asset_id in ids)
+            utility = expected_return - gamma * variance
+            if utility > best_utility:
+                best_weights = weights
+                best_utility = utility
+    return best_weights
 
 
 def _regime_ev_fraction(text: str) -> float:

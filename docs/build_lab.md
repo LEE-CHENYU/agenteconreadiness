@@ -14,6 +14,7 @@ only.
 | `alignment_tax` | RLHF-appropriateness probe: all listed actions are compliant, but the helpful/customer-approved default can sacrifice configured economic value. | `python -m aeread_lab.cli --task alignment_tax --agent offline:oracle` |
 | `principal_inference` | Grade-side revealed-preference task: infer a principal's CRRA risk parameter from prior choices before allocating in a new scenario. | `python -m aeread_lab.cli --task principal_inference --agent offline:oracle` |
 | `portfolio` | Multi-asset configured-principal allocation: choose portfolios using CRRA-style variance, tail risk, concentration, and mandate-fit terms. | `python -m aeread_lab.cli --task portfolio --agent offline:oracle` |
+| `revealed_allocation` | Stylized 13F-style revealed-preference allocation: infer risk preference from historical portfolio choices, then output continuous target weights. | `python -m aeread_lab.cli --task revealed_allocation --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: choose maxmin-robust actions across plausible priors instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from noisy cues before pricing. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -75,6 +76,8 @@ interpreting the economic metric.
   is better; generic-gamma gap is reported separately.
 - `portfolio`: lower configured-principal utility regret is better; max-return
   and low-risk miss rates are reported separately.
+- `revealed_allocation`: lower utility regret and lower weight L1 error to the
+  revealed-principal allocation are better.
 - `ambiguity`: lower robust maxmin regret is better; reference-prior miss rate
   is reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -148,8 +151,8 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    `gpt-5.5`, `mini`, and `nano`.
 2. Run live sampled alignment-tax and supplier-scam smokes across `gpt-5.5`, `mini`, and `nano`
    once an API key is available in the shell.
-3. Broaden `portfolio` from candidate portfolios to real 13F-style
-   revealed-preference traces and continuous allocation.
+3. Replace the stylized revealed-allocation traces with real 13F-style
+   holdings-derived traces once a clean data source is selected.
 4. Broaden `ambiguity` into maxmin/alpha-maxmin and multiple-prior updates.
 5. Broaden the `bargaining` wrapper from take-it-or-leave-it offers to
    alternating-offer and hidden-reservation variants.

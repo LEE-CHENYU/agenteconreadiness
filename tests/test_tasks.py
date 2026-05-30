@@ -53,6 +53,9 @@ from aeread_lab.tasks.procurement import DEFAULT_CASES as PROCUREMENT_CASES
 from aeread_lab.tasks.procurement import _prompt as procurement_prompt
 from aeread_lab.tasks.procurement import run_procurement_game
 from aeread_lab.tasks.regime import DEFAULT_GAMBLES, _prompt as regime_prompt
+from aeread_lab.tasks.revealed_allocation import DEFAULT_CASES as REVEALED_ALLOCATION_CASES
+from aeread_lab.tasks.revealed_allocation import _prompt as revealed_allocation_prompt
+from aeread_lab.tasks.revealed_allocation import run_revealed_allocation_game
 from aeread_lab.tasks.retail import run_retail_game
 from aeread_lab.tasks.screening import DEFAULT_CASES as SCREENING_CASES
 from aeread_lab.tasks.screening import _prompt as screening_prompt
@@ -138,6 +141,7 @@ class TaskSmokeTests(unittest.TestCase):
         belief_bargaining = belief_bargaining_prompt(BELIEF_BARGAINING_CASES[0])
         principal = principal_prompt(PRINCIPAL_CASES[0])
         portfolio = portfolio_prompt(PORTFOLIO_CASES[0])
+        revealed_allocation = revealed_allocation_prompt(REVEALED_ALLOCATION_CASES[0])
         ambiguity = ambiguity_prompt(AMBIGUITY_CASES[0])
         matching = matching_prompt(MATCHING_CASES[0])
         screening = screening_prompt(SCREENING_CASES[0])
@@ -160,6 +164,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", belief_bargaining)
         self.assertNotIn("oracle", principal)
         self.assertNotIn("oracle", portfolio)
+        self.assertNotIn("oracle", revealed_allocation)
         self.assertNotIn("oracle", ambiguity)
         self.assertNotIn("oracle", matching)
         self.assertNotIn("oracle", screening)
@@ -193,6 +198,15 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(max_return["mean_utility_regret"], 0.1)
         self.assertGreater(max_return["max_return_miss_rate"], 0.5)
         self.assertGreater(low_risk["low_risk_miss_rate"], 0.2)
+
+    def test_revealed_allocation_flags_return_and_low_risk_defaults(self):
+        configured = run_revealed_allocation_game(OfflineAgent("oracle"))
+        max_return = run_revealed_allocation_game(OfflineAgent("max_return"))
+        low_risk = run_revealed_allocation_game(OfflineAgent("low_risk"))
+        self.assertLess(configured["mean_utility_regret"], 1e-9)
+        self.assertLess(configured["mean_weight_l1_error"], 1e-9)
+        self.assertGreater(max_return["mean_utility_regret"], 0.005)
+        self.assertGreater(low_risk["mean_utility_regret"], 0.005)
 
     def test_ambiguity_flags_reference_prior_collapse(self):
         robust = run_ambiguity_game(OfflineAgent("oracle"))
@@ -344,6 +358,13 @@ class TaskSmokeTests(unittest.TestCase):
         portfolio_rows = [row for row in rows if row["task"] == "portfolio"]
         self.assertEqual(portfolio_rows[0]["agent"], "offline:oracle")
         self.assertEqual(portfolio_rows[1]["agent"], "offline:max_return")
+
+    def test_offline_sweep_ranks_revealed_above_max_return_on_allocation(self):
+        sweep = run_sweep(task="revealed_allocation", agent_specs=["offline:oracle", "offline:max_return"])
+        rows = rank_rows(comparison_table(sweep))
+        allocation_rows = [row for row in rows if row["task"] == "revealed_allocation"]
+        self.assertEqual(allocation_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(allocation_rows[1]["agent"], "offline:max_return")
 
     def test_offline_sweep_ranks_maxmin_above_reference_prior_on_ambiguity(self):
         sweep = run_sweep(task="ambiguity", agent_specs=["offline:oracle", "offline:reference_prior"])

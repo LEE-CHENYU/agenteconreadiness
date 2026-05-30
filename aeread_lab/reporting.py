@@ -8,6 +8,7 @@ PRIMARY_METRICS = {
     "alignment_tax": ("mean_objective_regret", "lower"),
     "principal_inference": ("mean_fraction_error", "lower"),
     "portfolio": ("mean_utility_regret", "lower"),
+    "revealed_allocation": ("mean_utility_regret", "lower"),
     "ambiguity": ("mean_robust_regret", "lower"),
     "bargaining": ("mean_grade_error", "lower"),
     "belief_bargaining": ("mean_expected_surplus_gap", "lower"),

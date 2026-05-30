@@ -23,6 +23,7 @@ from aeread_lab.tasks import (
     principal_inference as principal_inference_task,
     procurement as procurement_task,
     regime as regime_task,
+    revealed_allocation as revealed_allocation_task,
     retail as retail_task,
     screening as screening_task,
     strategic_drift as strategic_drift_task,
@@ -35,6 +36,7 @@ TASK_ORDER = (
     "alignment_tax",
     "principal_inference",
     "portfolio",
+    "revealed_allocation",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -63,6 +65,10 @@ _CASE_TASKS = {
         principal_inference_task.DEFAULT_CASES,
     ),
     "portfolio": (portfolio_task.run_portfolio_game, portfolio_task.DEFAULT_CASES),
+    "revealed_allocation": (
+        revealed_allocation_task.run_revealed_allocation_game,
+        revealed_allocation_task.DEFAULT_CASES,
+    ),
     "ambiguity": (ambiguity_task.run_ambiguity_game, ambiguity_task.DEFAULT_CASES),
     "bargaining": (bargaining_task.run_bargaining_game, bargaining_task.DEFAULT_CASES),
     "belief_bargaining": (
