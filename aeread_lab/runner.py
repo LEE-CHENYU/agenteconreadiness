@@ -6,6 +6,7 @@ from typing import Any
 from aeread_lab.models import Agent, build_agent
 from aeread_lab.tasks import (
     adversarial as adversarial_task,
+    alignment_tax as alignment_tax_task,
     ambiguity as ambiguity_task,
     auction as auction_task,
     bargaining as bargaining_task,
@@ -31,6 +32,7 @@ from aeread_lab.tasks import (
 
 TASK_ORDER = (
     "regime",
+    "alignment_tax",
     "principal_inference",
     "portfolio",
     "ambiguity",
@@ -55,6 +57,7 @@ TASK_ORDER = (
 
 
 _CASE_TASKS = {
+    "alignment_tax": (alignment_tax_task.run_alignment_tax_game, alignment_tax_task.DEFAULT_CASES),
     "principal_inference": (
         principal_inference_task.run_principal_inference_game,
         principal_inference_task.DEFAULT_CASES,

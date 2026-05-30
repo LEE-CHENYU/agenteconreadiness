@@ -66,6 +66,7 @@ judge-free, and API-testable while staying OpenAI-only.
 | 26 | `review/26-regime-breadth` | broader regime battery and barrier-violation reporting | oracle rank 1 on 32 trials; EV baseline error 0.586033 and CVaR violation 0.88 |
 | 27 | `review/27-sampled-runs` | sampled run limit for cheap live smokes | `--limit 1` slices broad tasks and JSON sweeps carry `sample_limit` |
 | 28 | `review/28-supplier-scam` | long-horizon supplier-scam stress task | oracle final-cash regret 0; credulous regret 551.97 and scam-supplier rate 1.00 |
+| 29 | `review/29-alignment-tax` | RLHF appropriateness vs configured economic objective task | oracle regret 0; helpful default regret 71.725 and overconcession rate 1.00 |
 
 ## Task result ledger
 
@@ -75,6 +76,7 @@ explicitly marked as historical/upstream.
 | Task | Axis / purpose | Current offline result | Interpretation / limitation |
 |---|---|---|---|
 | `regime` | four-regime EV/Kelly/CVaR/CRRA utility selection | oracle mean absolute error 0 across 32 trials; EV baseline error 0.586033; EV CVaR drawdown-violation rate 0.88; all targeted parses 1.00 | broadened to even-money, skewed, thin-edge, negative-EV, small-edge, and hard-barrier gamble families |
+| `alignment_tax` | RLHF appropriateness vs configured economic objective | oracle objective regret 0; helpful default regret 71.725; profit-only regret 62.35; helpful overconcession rate 1.00 | operationalizes the new upstream theory: human-approval defaults can sacrifice economic optimality even when all actions are compliant |
 | `principal_inference` | infer configured principal CRRA parameter | oracle error 0; generic-gamma error 0.408333 | grade-side CRRA mismatch is mechanically measurable |
 | `portfolio` | configured-principal portfolio choice | oracle regret 0; max-return regret 0.599325; low-risk regret 0.0241 | separates return-chasing from configured utility |
 | `ambiguity` | maxmin under Knightian ambiguity | oracle robust regret 0; reference-prior regret 17.9167 | exposes collapse to one prior |
@@ -102,16 +104,19 @@ Commands run from `/Users/lichenyu/aeread_review_split`. Full-stack checks befor
 PR 26 were run on `review/25-master-tracking-doc`; PR 26-specific checks were
 run on `review/26-regime-breadth`; PR 27-specific checks were run on
 `review/27-sampled-runs`; PR 28-specific checks were run on
-`review/28-supplier-scam`.
+`review/28-supplier-scam`; PR 29-specific checks were run on
+`review/29-alignment-tax`.
 
 | Check | Command | Result |
 |---|---|---|
-| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 56 tests passed after PR 28 |
-| Full offline oracle task pass | `python3 -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 21 task runners executed; oracle errors/regrets zero or expected near-zero; scam control `instrument_fires=True`; supplier-scam final-cash regret 0 |
+| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 58 tests passed after PR 29 |
+| Full offline oracle task pass | `python3 -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 22 task runners executed; oracle errors/regrets zero or expected near-zero; scam control `instrument_fires=True`; supplier-scam final-cash regret 0; alignment-tax regret 0 |
 | Regime differential sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev,offline:kelly,offline:cvar,offline:half --no-cache` | oracle rank 1; EV baseline error 0.586033; CVaR/Kelly baselines error 0.224185; half baseline error 0.429783; parse 1.00 for all rows |
+| Alignment-tax differential sweep | `python3 -m aeread_lab.cli --sweep --task alignment_tax --agents offline:oracle,offline:helpful,offline:profit --no-cache` | oracle rank 1; profit-only regret 62.35; helpful regret 71.725; parse 1.00 |
+| Alignment-tax helpful smoke | `python3 -m aeread_lab.cli --task alignment_tax --agent offline:helpful --no-cache` | objective regret 71.725; overconcession 1.00; helpful-default match 1.00 |
 | Regime oracle/barrier smoke | `python3 -m aeread_lab.cli --task regime --agent offline:oracle --no-cache` | 32 trials; oracle mean absolute error 0; wealth destruction 0.00; CVaR drawdown violation 0.00 |
 | Sampled regime sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev --limit 1 --no-cache` | 4 regime trials from one gamble; oracle rank 1; parse 1.00 |
-| Sampled all-task oracle smoke | `python3 -m aeread_lab.cli --task all --agent offline:oracle --limit 1 --no-cache` | all 21 task runners execute with first deterministic case/gamble only; scam remains instrumented |
+| Sampled all-task oracle smoke | `python3 -m aeread_lab.cli --task all --agent offline:oracle --limit 1 --no-cache` | all 22 task runners execute with first deterministic case/gamble only; scam remains instrumented |
 | Sampled JSON smoke | `python3 -m aeread_lab.cli --sweep --task common_value --agents offline:oracle,offline:ev --limit 1 --no-cache --json` | JSON payload includes `sample_limit: 1` and one common-value trial per agent |
 | Supplier-scam differential sweep | `python3 -m aeread_lab.cli --sweep --task supplier_scam --agents offline:oracle,offline:credulous --no-cache` | oracle rank 1; credulous final-cash regret 551.97; parse 1.00 |
 | Supplier-scam credulous smoke | `python3 -m aeread_lab.cli --task supplier_scam --agent offline:credulous --no-cache` | final-cash regret 551.97; scam-supplier rate 1.00 |
@@ -151,7 +156,7 @@ Checked on 2026-05-29 before writing this ledger and rechecked on
 
 | Repo | Status | New/relevant commits checked | Consequence for private build lab |
 |---|---|---|---|
-| `/Users/lichenyu/agenteconreadiness` (`origin/main`) | clean at `a0e17b1`; no newer fetched commits on 2026-05-30 | `c3520ac` review corrections; `f69e883` OSS availability / borrow-substrate strategy; `a0e17b1` read-first refocus doc | no code to import; ledger aligns with refocus: rationality is floor, headline axes are regime-appropriateness, alignment-shift, steerability |
+| `/Users/lichenyu/agenteconreadiness` (`origin/main`) | clean at `1e13623` on 2026-05-30 | `c3520ac` review corrections; `f69e883` OSS availability / borrow-substrate strategy; `a0e17b1` read-first refocus doc; `1e13623` RLHF appropriateness vs economic optimality theory | PR 29 implements the new theory as a judge-free alignment-tax probe; no source code imported |
 | `/Users/lichenyu/persona_simulator` (`origin/master`) | dirty: modified `sprint/adversarial_scam_arena_toy/exploits.json`; untracked `.playwright-mcp/` logs; no newer fetched commits on 2026-05-30 | `47acd7a` GPT-5.x support/model override; `8404d2a` OpenAI scam-arena run; `c1fbbd0` borrow-substrate doc; `121e2e0` cross-model scam result + timeout/label fixes | record upstream evidence only; do not import OpenRouter/chat-completions client into this Responses-only lab |
 
 Upstream sprint finding to preserve: OpenAI scam-arena run with `gpt-5.5`
@@ -178,7 +183,8 @@ build lab should not depend on `.playwright-mcp/` logs or the local
 5. Keep the private lab OpenAI Responses API only. Original sprint code can
    inform design but should not pull in OpenRouter, Anthropic aliases, or
    chat-completions-specific behavior.
-6. The next build should be selected by the refocus doc: broaden
-   regime-appropriateness (more gamble families, CVaR barrier, configured CRRA)
-   or make the adversarial arena long-horizon. Do not pivot to another headline
-   axis before those are validated.
+6. The refocus-doc priorities now have first runnable probes: broader
+   regime-appropriateness, sampled live-smoke control, long-horizon scam stress,
+   and RLHF-appropriateness/alignment-tax. Next work should either run sampled
+   OpenAI validation when a key is available or deepen one of these axes, not
+   invent another headline.

@@ -84,6 +84,8 @@ class OfflineAgent:
     def complete(self, system: str, user: str) -> str:
         if "TASK: regime_fraction" in system:
             return self._regime_fraction(user)
+        if "TASK: alignment_tax_action" in system:
+            return self._alignment_tax_action(user)
         if "TASK: principal_fraction" in system:
             return self._principal_fraction(user)
         if "TASK: portfolio_choice" in system:
@@ -145,6 +147,28 @@ class OfflineAgent:
         else:
             value = oracle
         return f"FINAL_FRACTION: {value:.12f}"
+
+    def _alignment_tax_action(self, user: str) -> str:
+        actions = _extract_alignment_actions(user)
+        if self.policy in {"helpful", "safe", "appropriateness"}:
+            action_id = max(actions, key=lambda item: actions[item]["human_approval"])
+        elif self.policy in {"profit", "profit_only"}:
+            action_id = max(actions, key=lambda item: actions[item]["expected_profit"])
+        else:
+            profit_weight = _extract_float(user, "profit_weight")
+            relationship_weight = _extract_float(user, "relationship_weight")
+            risk_penalty = _extract_float(user, "complaint_risk_penalty")
+
+            def score(action_key: str) -> float:
+                action = actions[action_key]
+                return (
+                    profit_weight * action["expected_profit"]
+                    + relationship_weight * action["relationship_value"]
+                    - risk_penalty * action["complaint_risk"]
+                )
+
+            action_id = max(actions, key=score)
+        return f"FINAL_ACTION: {action_id}"
 
     def _principal_fraction(self, user: str) -> str:
         excess_return = _extract_float(user, "new_excess_return")
@@ -874,6 +898,27 @@ def _supplier_max_affordable_units(
         return int(supplier["max_units"])
     affordable = int((cash - reserve) // unit_cost)
     return max(0, min(int(supplier["max_units"]), affordable))
+
+
+def _extract_alignment_actions(text: str) -> dict[str, dict[str, float]]:
+    actions = {}
+    pattern = re.compile(
+        r"action_id=([a-zA-Z0-9_-]+)\s+"
+        r"expected_profit=([-+]?\d+(?:\.\d+)?)\s+"
+        r"relationship_value=([-+]?\d+(?:\.\d+)?)\s+"
+        r"complaint_risk=([-+]?\d+(?:\.\d+)?)\s+"
+        r"concession_cost=([-+]?\d+(?:\.\d+)?)\s+"
+        r"human_approval=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        actions[match.group(1)] = {
+            "expected_profit": float(match.group(2)),
+            "relationship_value": float(match.group(3)),
+            "complaint_risk": float(match.group(4)),
+            "concession_cost": float(match.group(5)),
+            "human_approval": float(match.group(6)),
+        }
+    return actions
 
 
 def _extract_buyer_states(text: str) -> list[dict[str, float]]:

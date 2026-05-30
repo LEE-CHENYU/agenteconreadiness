@@ -10,6 +10,9 @@ from aeread_lab.models import (
 from aeread_lab.reporting import comparison_table, parse_rate, rank_rows
 from aeread_lab.runner import run_sweep, run_tasks
 from aeread_lab.tasks.adversarial import run_scam_arena
+from aeread_lab.tasks.alignment_tax import DEFAULT_CASES as ALIGNMENT_CASES
+from aeread_lab.tasks.alignment_tax import _prompt as alignment_tax_prompt
+from aeread_lab.tasks.alignment_tax import run_alignment_tax_game
 from aeread_lab.tasks.ambiguity import DEFAULT_CASES as AMBIGUITY_CASES
 from aeread_lab.tasks.ambiguity import _prompt as ambiguity_prompt
 from aeread_lab.tasks.ambiguity import run_ambiguity_game
@@ -127,6 +130,7 @@ class TaskSmokeTests(unittest.TestCase):
 
     def test_prompts_do_not_expose_oracle_answers(self):
         regime = regime_prompt(DEFAULT_GAMBLES[0], "kelly")
+        alignment_tax = alignment_tax_prompt(ALIGNMENT_CASES[0])
         procurement = procurement_prompt(PROCUREMENT_CASES[0])
         pricing = pricing_prompt(PRICING_CASES[0], "reveal")
         strategic = strategic_prompt(DRIFT_CASES[0], 1, [])
@@ -148,6 +152,7 @@ class TaskSmokeTests(unittest.TestCase):
             SUPPLIER_SCAM_CASES[0].initial_cash,
         )
         self.assertNotIn("oracle", regime)
+        self.assertNotIn("oracle", alignment_tax)
         self.assertNotIn("oracle", procurement)
         self.assertNotIn("oracle", pricing)
         self.assertNotIn("oracle", strategic)
@@ -171,6 +176,14 @@ class TaskSmokeTests(unittest.TestCase):
         generic = run_principal_inference_game(OfflineAgent("generic_gamma"))
         self.assertLess(inferred["mean_fraction_error"], 1e-9)
         self.assertGreater(generic["mean_fraction_error"], 0.1)
+
+    def test_alignment_tax_flags_helpful_default_overconcession(self):
+        configured = run_alignment_tax_game(OfflineAgent("oracle"))
+        helpful = run_alignment_tax_game(OfflineAgent("helpful"))
+        self.assertLess(configured["mean_objective_regret"], 1e-9)
+        self.assertGreater(helpful["mean_objective_regret"], 40.0)
+        self.assertGreater(helpful["overconcession_rate"], 0.5)
+        self.assertGreater(helpful["helpful_default_match_rate"], 0.5)
 
     def test_portfolio_flags_max_return_and_low_risk_defaults(self):
         configured = run_portfolio_game(OfflineAgent("oracle"))
@@ -310,6 +323,13 @@ class TaskSmokeTests(unittest.TestCase):
         regime_rows = [row for row in rows if row["task"] == "regime"]
         self.assertEqual(regime_rows[0]["agent"], "offline:oracle")
         self.assertEqual(regime_rows[1]["agent"], "offline:ev")
+
+    def test_offline_sweep_ranks_configured_above_helpful_on_alignment_tax(self):
+        sweep = run_sweep(task="alignment_tax", agent_specs=["offline:oracle", "offline:helpful"])
+        rows = rank_rows(comparison_table(sweep))
+        alignment_rows = [row for row in rows if row["task"] == "alignment_tax"]
+        self.assertEqual(alignment_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(alignment_rows[1]["agent"], "offline:helpful")
 
     def test_offline_sweep_ranks_inferred_above_generic_on_principal(self):
         sweep = run_sweep(task="principal_inference", agent_specs=["offline:oracle", "offline:generic_gamma"])

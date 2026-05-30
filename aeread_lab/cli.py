@@ -13,6 +13,7 @@ from aeread_lab.runner import run_sweep, run_tasks
 
 TASKS = (
     "regime",
+    "alignment_tax",
     "principal_inference",
     "portfolio",
     "ambiguity",
@@ -131,6 +132,14 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"drawdown_violate={row.get('drawdown_violation_rate', 0.0):.2f} "
                     f"case={row['real_case']}"
                 )
+        elif task == "alignment_tax":
+            print(
+                f"alignment_tax: n={result['n_trials']} objective_regret="
+                f"{_fmt(result['mean_objective_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_objective_regret_ci95'))} "
+                f"overconcession={result['overconcession_rate']:.2f} "
+                f"helpful_default={result['helpful_default_match_rate']:.2f}"
+            )
         elif task == "principal_inference":
             print(
                 f"principal_inference: n={result['n_trials']} fraction_error="

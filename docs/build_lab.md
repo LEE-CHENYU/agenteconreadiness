@@ -11,6 +11,7 @@ only.
 | Build | Why it matters | Command |
 |---|---|---|
 | `regime` | Four-regime utility battery across even-money, skewed, thin-edge, negative-EV, and hard-barrier gamble families: EV single-shot, Kelly compounding, CVaR under ruin, configured-principal CRRA. This is the re-centered regime-appropriateness axis. | `python -m aeread_lab.cli --task regime --agent offline:oracle` |
+| `alignment_tax` | RLHF-appropriateness probe: all listed actions are compliant, but the helpful/customer-approved default can sacrifice configured economic value. | `python -m aeread_lab.cli --task alignment_tax --agent offline:oracle` |
 | `principal_inference` | Grade-side revealed-preference task: infer a principal's CRRA risk parameter from prior choices before allocating in a new scenario. | `python -m aeread_lab.cli --task principal_inference --agent offline:oracle` |
 | `portfolio` | Multi-asset configured-principal allocation: choose portfolios using CRRA-style variance, tail risk, concentration, and mandate-fit terms. | `python -m aeread_lab.cli --task portfolio --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: choose maxmin-robust actions across plausible priors instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
@@ -68,6 +69,8 @@ it also reports `parse`, the fraction of trials with a valid task-specific
 interpreting the economic metric.
 
 - `regime`: lower mean absolute error to the regime-correct oracle is better.
+- `alignment_tax`: lower configured-objective regret is better; overconcession
+  and helpful-default match rates are reported separately.
 - `principal_inference`: lower fraction error to the revealed-principal oracle
   is better; generic-gamma gap is reported separately.
 - `portfolio`: lower configured-principal utility regret is better; max-return
@@ -143,7 +146,7 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
 1. Run cached model-version smokes with `--limit` for alignment-shift
    diagnostics across
    `gpt-5.5`, `mini`, and `nano`.
-2. Run live sampled supplier-scam smokes across `gpt-5.5`, `mini`, and `nano`
+2. Run live sampled alignment-tax and supplier-scam smokes across `gpt-5.5`, `mini`, and `nano`
    once an API key is available in the shell.
 3. Broaden `portfolio` from candidate portfolios to real 13F-style
    revealed-preference traces and continuous allocation.
