@@ -35,6 +35,7 @@ PRIMARY_METRICS = {
     "mechanism_strategic_response": ("mean_score_regret", "lower"),
     "mechanism_strategic_equilibrium": ("mean_score_regret", "lower"),
     "mechanism_interaction_trace": ("mean_score_regret", "lower"),
+    "mechanism_trace_equilibrium": ("mean_score_regret", "lower"),
     "strategic_drift": ("drift_rate", "lower"),
     "forecast_calibration": ("mean_expected_brier_regret", "lower"),
     "forecast_aggregate": ("mean_expected_brier_regret", "lower"),

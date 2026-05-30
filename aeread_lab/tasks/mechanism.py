@@ -44,6 +44,13 @@ MECHANISM_INTERACTION_TRACE_SYSTEM = (
     "Return one final line only: FINAL_MECHANISM: <mechanism_id>."
 )
 
+MECHANISM_TRACE_EQUILIBRIUM_SYSTEM = (
+    "TASK: mechanism_trace_equilibrium\n"
+    "Choose the mechanism for the remaining program rounds after reading prior interaction traces "
+    "and solving the self-consistent strategic response. Return one final line only: "
+    "FINAL_MECHANISM: <mechanism_id>."
+)
+
 
 @dataclass(frozen=True)
 class IncentiveCheck:
@@ -243,6 +250,49 @@ class InteractionTraceMechanismTrial:
     best_mechanism: str
     revenue_mechanism: str
     one_period_mechanism: str
+    trace_blind_mechanism: str
+    chosen_mechanism: str | None
+    score_regret: float | None
+    raw_response: str
+
+
+@dataclass(frozen=True)
+class TraceEquilibriumMechanismOption:
+    mechanism_id: str
+    sponsor_take: float
+    participant_value: float
+    access_quality: float
+    manipulation_harm: float
+    review_cost: float
+    base_stay_rate: float
+    exit_sensitivity: float
+    strategic_gain: float
+    peer_contagion: float
+    audit_strength: float
+    detection_cost: float
+    response_update_rate: float
+    trace: tuple[InteractionTracePoint, ...]
+
+
+@dataclass(frozen=True)
+class TraceEquilibriumMechanismCase:
+    key: str
+    real_case: str
+    forecast_horizon: int
+    revenue_weight: float
+    participant_value_weight: float
+    access_weight: float
+    manipulation_penalty: float
+    mechanisms: tuple[TraceEquilibriumMechanismOption, ...]
+
+
+@dataclass
+class TraceEquilibriumMechanismTrial:
+    case: TraceEquilibriumMechanismCase
+    best_mechanism: str
+    revenue_mechanism: str
+    trace_projection_mechanism: str
+    equilibrium_blind_mechanism: str
     trace_blind_mechanism: str
     chosen_mechanism: str | None
     score_regret: float | None
@@ -1111,6 +1161,294 @@ INTERACTION_TRACE_CASES = [
 ]
 
 
+TRACE_EQUILIBRIUM_CASES = [
+    TraceEquilibriumMechanismCase(
+        key="creator_copycat_equilibrium_trace",
+        real_case="creator marketplace where copycat strategic posting feeds back after a ranking pilot",
+        forecast_horizon=5,
+        revenue_weight=0.90,
+        participant_value_weight=0.40,
+        access_weight=25.00,
+        manipulation_penalty=7.00,
+        mechanisms=(
+            TraceEquilibriumMechanismOption(
+                "extractive_rank",
+                190.0,
+                58.0,
+                0.45,
+                20.0,
+                150.0,
+                0.840,
+                0.110,
+                0.250,
+                0.450,
+                0.150,
+                1.000,
+                0.600,
+                (
+                    InteractionTracePoint(1, 1050.0, 0.050),
+                    InteractionTracePoint(2, 1000.0, 0.100),
+                    InteractionTracePoint(3, 940.0, 0.160),
+                ),
+            ),
+            TraceEquilibriumMechanismOption(
+                "audited_score",
+                62.0,
+                86.0,
+                0.77,
+                6.0,
+                500.0,
+                0.940,
+                0.040,
+                0.070,
+                0.120,
+                0.850,
+                1.200,
+                0.180,
+                (
+                    InteractionTracePoint(1, 1010.0, 0.040),
+                    InteractionTracePoint(2, 990.0, 0.055),
+                    InteractionTracePoint(3, 960.0, 0.070),
+                ),
+            ),
+            TraceEquilibriumMechanismOption(
+                "rotation_pool",
+                25.0,
+                76.0,
+                0.95,
+                4.0,
+                420.0,
+                0.960,
+                0.025,
+                0.040,
+                0.080,
+                0.550,
+                1.200,
+                0.150,
+                (
+                    InteractionTracePoint(1, 980.0, 0.035),
+                    InteractionTracePoint(2, 965.0, 0.045),
+                    InteractionTracePoint(3, 940.0, 0.055),
+                ),
+            ),
+        ),
+    ),
+    TraceEquilibriumMechanismCase(
+        key="procurement_bidder_equilibrium_trace",
+        real_case="repeat procurement pilot where self-certification makes bid shading contagious",
+        forecast_horizon=5,
+        revenue_weight=0.75,
+        participant_value_weight=0.50,
+        access_weight=30.00,
+        manipulation_penalty=7.00,
+        mechanisms=(
+            TraceEquilibriumMechanismOption(
+                "self_certified_low_bid",
+                185.0,
+                52.0,
+                0.42,
+                22.0,
+                130.0,
+                0.820,
+                0.100,
+                0.240,
+                0.420,
+                0.160,
+                1.000,
+                0.560,
+                (
+                    InteractionTracePoint(1, 760.0, 0.060),
+                    InteractionTracePoint(2, 720.0, 0.130),
+                    InteractionTracePoint(3, 665.0, 0.230),
+                ),
+            ),
+            TraceEquilibriumMechanismOption(
+                "audited_score_auction",
+                58.0,
+                86.0,
+                0.74,
+                7.0,
+                470.0,
+                0.940,
+                0.045,
+                0.070,
+                0.120,
+                0.840,
+                1.200,
+                0.180,
+                (
+                    InteractionTracePoint(1, 740.0, 0.040),
+                    InteractionTracePoint(2, 715.0, 0.055),
+                    InteractionTracePoint(3, 690.0, 0.075),
+                ),
+            ),
+            TraceEquilibriumMechanismOption(
+                "supplier_rotation_pool",
+                28.0,
+                78.0,
+                0.93,
+                5.0,
+                390.0,
+                0.955,
+                0.030,
+                0.050,
+                0.080,
+                0.550,
+                1.200,
+                0.160,
+                (
+                    InteractionTracePoint(1, 710.0, 0.030),
+                    InteractionTracePoint(2, 700.0, 0.040),
+                    InteractionTracePoint(3, 680.0, 0.055),
+                ),
+            ),
+        ),
+    ),
+    TraceEquilibriumMechanismCase(
+        key="grant_pay_rank_equilibrium_trace",
+        real_case="public grants pilot where pay-to-rank creates applicant gaming feedback",
+        forecast_horizon=4,
+        revenue_weight=0.20,
+        participant_value_weight=0.55,
+        access_weight=45.00,
+        manipulation_penalty=5.00,
+        mechanisms=(
+            TraceEquilibriumMechanismOption(
+                "pay_to_rank_fast",
+                300.0,
+                52.0,
+                0.40,
+                17.0,
+                120.0,
+                0.860,
+                0.080,
+                0.200,
+                0.360,
+                0.180,
+                1.000,
+                0.500,
+                (
+                    InteractionTracePoint(1, 850.0, 0.050),
+                    InteractionTracePoint(2, 835.0, 0.110),
+                    InteractionTracePoint(3, 805.0, 0.190),
+                ),
+            ),
+            TraceEquilibriumMechanismOption(
+                "audited_deliberation",
+                28.0,
+                82.0,
+                0.83,
+                6.0,
+                430.0,
+                0.950,
+                0.035,
+                0.060,
+                0.100,
+                0.820,
+                1.250,
+                0.160,
+                (
+                    InteractionTracePoint(1, 820.0, 0.040),
+                    InteractionTracePoint(2, 800.0, 0.055),
+                    InteractionTracePoint(3, 775.0, 0.075),
+                ),
+            ),
+            TraceEquilibriumMechanismOption(
+                "rotating_access_pool",
+                10.0,
+                68.0,
+                0.98,
+                3.5,
+                350.0,
+                0.970,
+                0.020,
+                0.035,
+                0.060,
+                0.550,
+                1.200,
+                0.120,
+                (
+                    InteractionTracePoint(1, 790.0, 0.030),
+                    InteractionTracePoint(2, 780.0, 0.040),
+                    InteractionTracePoint(3, 765.0, 0.050),
+                ),
+            ),
+        ),
+    ),
+    TraceEquilibriumMechanismCase(
+        key="creator_feed_equilibrium_trace",
+        real_case="creator feed pilot where observed gaming success induces a strategic-share equilibrium",
+        forecast_horizon=6,
+        revenue_weight=0.85,
+        participant_value_weight=0.40,
+        access_weight=20.00,
+        manipulation_penalty=8.00,
+        mechanisms=(
+            TraceEquilibriumMechanismOption(
+                "viral_rank_auction",
+                180.0,
+                72.0,
+                0.56,
+                19.0,
+                220.0,
+                0.840,
+                0.100,
+                0.250,
+                0.450,
+                0.160,
+                1.000,
+                0.550,
+                (
+                    InteractionTracePoint(1, 1200.0, 0.060),
+                    InteractionTracePoint(2, 1170.0, 0.130),
+                    InteractionTracePoint(3, 1110.0, 0.230),
+                ),
+            ),
+            TraceEquilibriumMechanismOption(
+                "audited_pacing_rule",
+                45.0,
+                90.0,
+                0.78,
+                7.0,
+                560.0,
+                0.940,
+                0.040,
+                0.070,
+                0.110,
+                0.820,
+                1.250,
+                0.160,
+                (
+                    InteractionTracePoint(1, 1120.0, 0.040),
+                    InteractionTracePoint(2, 1090.0, 0.055),
+                    InteractionTracePoint(3, 1050.0, 0.075),
+                ),
+            ),
+            TraceEquilibriumMechanismOption(
+                "community_lottery",
+                20.0,
+                76.0,
+                0.96,
+                4.0,
+                480.0,
+                0.965,
+                0.025,
+                0.040,
+                0.070,
+                0.550,
+                1.200,
+                0.130,
+                (
+                    InteractionTracePoint(1, 1080.0, 0.030),
+                    InteractionTracePoint(2, 1065.0, 0.040),
+                    InteractionTracePoint(3, 1045.0, 0.055),
+                ),
+            ),
+        ),
+    ),
+]
+
+
 def incentive_violation(mechanism: MechanismOption) -> float:
     return sum(
         max(0.0, check.best_deviation_utility - check.truthful_utility) * max(0.0, check.probability)
@@ -1512,6 +1850,130 @@ def trace_blind_interaction_trace_mechanism(case: InteractionTraceMechanismCase)
     ).mechanism_id
 
 
+def trace_equilibrium_share(
+    mechanism: TraceEquilibriumMechanismOption,
+    *,
+    equilibrium_blind: bool = False,
+    trace_blind: bool = False,
+) -> float:
+    trace = mechanism.trace
+    strategic_share = trace[0].strategic_share if trace_blind else trace[-1].strategic_share
+    if equilibrium_blind:
+        return strategic_share
+    strategic_momentum = 0.0 if trace_blind else _mean_trace_strategic_delta(trace)
+    for _iteration in range(25):
+        payoff_advantage = (
+            mechanism.strategic_gain
+            + mechanism.peer_contagion * strategic_share
+            + strategic_momentum
+            - mechanism.audit_strength * mechanism.detection_cost
+        )
+        strategic_share = _clamp_strategic_share(
+            strategic_share + mechanism.response_update_rate * payoff_advantage
+        )
+    return strategic_share
+
+
+def trace_equilibrium_mechanism_score(
+    case: TraceEquilibriumMechanismCase,
+    mechanism: TraceEquilibriumMechanismOption,
+    *,
+    one_period: bool = False,
+    equilibrium_blind: bool = False,
+    trace_blind: bool = False,
+) -> float:
+    trace = mechanism.trace
+    participants = trace[0].active_participants if trace_blind else trace[-1].active_participants
+    strategic_share = trace_equilibrium_share(
+        mechanism,
+        equilibrium_blind=equilibrium_blind,
+        trace_blind=trace_blind,
+    )
+    total = 0.0
+    horizon = 1 if one_period else case.forecast_horizon
+    for _period in range(horizon):
+        total += (
+            participants
+            * (
+                case.revenue_weight * mechanism.sponsor_take
+                + case.participant_value_weight * mechanism.participant_value
+                + case.access_weight * mechanism.access_quality
+                - case.manipulation_penalty * mechanism.manipulation_harm * strategic_share
+            )
+            - mechanism.review_cost
+        )
+        stay_rate = _clamp_participant_stay(
+            mechanism.base_stay_rate - mechanism.exit_sensitivity * strategic_share
+        )
+        participants *= stay_rate
+    return total
+
+
+def trace_projection_equilibrium_mechanism_score(
+    case: TraceEquilibriumMechanismCase,
+    mechanism: TraceEquilibriumMechanismOption,
+) -> float:
+    participants = mechanism.trace[-1].active_participants
+    strategic_share = mechanism.trace[-1].strategic_share
+    participant_ratio = _mean_trace_participant_ratio(mechanism.trace)
+    strategic_delta = _mean_trace_strategic_delta(mechanism.trace)
+    total = 0.0
+    for _period in range(case.forecast_horizon):
+        total += (
+            participants
+            * (
+                case.revenue_weight * mechanism.sponsor_take
+                + case.participant_value_weight * mechanism.participant_value
+                + case.access_weight * mechanism.access_quality
+                - case.manipulation_penalty * mechanism.manipulation_harm * strategic_share
+            )
+            - mechanism.review_cost
+        )
+        participants *= participant_ratio
+        strategic_share = _clamp_strategic_share(strategic_share + strategic_delta)
+    return total
+
+
+def best_trace_equilibrium_mechanism(case: TraceEquilibriumMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: trace_equilibrium_mechanism_score(case, mechanism),
+    ).mechanism_id
+
+
+def revenue_trace_equilibrium_mechanism(case: TraceEquilibriumMechanismCase) -> str:
+    return max(case.mechanisms, key=lambda mechanism: mechanism.sponsor_take).mechanism_id
+
+
+def trace_projection_equilibrium_mechanism(case: TraceEquilibriumMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: trace_projection_equilibrium_mechanism_score(case, mechanism),
+    ).mechanism_id
+
+
+def equilibrium_blind_trace_equilibrium_mechanism(case: TraceEquilibriumMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: trace_equilibrium_mechanism_score(
+            case,
+            mechanism,
+            equilibrium_blind=True,
+        ),
+    ).mechanism_id
+
+
+def trace_blind_trace_equilibrium_mechanism(case: TraceEquilibriumMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: trace_equilibrium_mechanism_score(
+            case,
+            mechanism,
+            trace_blind=True,
+        ),
+    ).mechanism_id
+
+
 def run_mechanism_repeated_game(
     agent: Agent,
     cases: list[RepeatedMechanismCase] | None = None,
@@ -1763,6 +2225,47 @@ def run_mechanism_interaction_trace_game(
     return summarize_interaction_trace_mechanism_trials(agent.name, trials)
 
 
+def run_mechanism_trace_equilibrium_game(
+    agent: Agent,
+    cases: list[TraceEquilibriumMechanismCase] | None = None,
+) -> dict:
+    cases = cases or TRACE_EQUILIBRIUM_CASES
+    trials: list[TraceEquilibriumMechanismTrial] = []
+    for case in cases:
+        best = best_trace_equilibrium_mechanism(case)
+        revenue = revenue_trace_equilibrium_mechanism(case)
+        trace_projection = trace_projection_equilibrium_mechanism(case)
+        equilibrium_blind = equilibrium_blind_trace_equilibrium_mechanism(case)
+        trace_blind = trace_blind_trace_equilibrium_mechanism(case)
+        response = agent.complete(
+            MECHANISM_TRACE_EQUILIBRIUM_SYSTEM,
+            _trace_equilibrium_prompt(case),
+        )
+        chosen = parse_token("FINAL_MECHANISM", response)
+        mechanism_by_id = {mechanism.mechanism_id: mechanism for mechanism in case.mechanisms}
+        chosen = chosen if chosen in mechanism_by_id else None
+        regret = (
+            trace_equilibrium_mechanism_score(case, mechanism_by_id[best])
+            - trace_equilibrium_mechanism_score(case, mechanism_by_id[chosen])
+            if chosen is not None
+            else None
+        )
+        trials.append(
+            TraceEquilibriumMechanismTrial(
+                case=case,
+                best_mechanism=best,
+                revenue_mechanism=revenue,
+                trace_projection_mechanism=trace_projection,
+                equilibrium_blind_mechanism=equilibrium_blind,
+                trace_blind_mechanism=trace_blind,
+                chosen_mechanism=chosen,
+                score_regret=regret,
+                raw_response=response,
+            )
+        )
+    return summarize_trace_equilibrium_mechanism_trials(agent.name, trials)
+
+
 def summarize_mechanism_trials(agent_name: str, trials: list[MechanismTrial]) -> dict:
     regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
     revenue_missable = [trial for trial in trials if trial.revenue_mechanism != trial.best_mechanism]
@@ -1968,6 +2471,64 @@ def summarize_interaction_trace_mechanism_trials(
             else 0.0
         ),
         "trials": [_interaction_trace_trial_json(trial) for trial in trials],
+    }
+
+
+def summarize_trace_equilibrium_mechanism_trials(
+    agent_name: str,
+    trials: list[TraceEquilibriumMechanismTrial],
+) -> dict:
+    regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
+    revenue_missable = [trial for trial in trials if trial.revenue_mechanism != trial.best_mechanism]
+    projection_missable = [
+        trial for trial in trials if trial.trace_projection_mechanism != trial.best_mechanism
+    ]
+    equilibrium_blind_missable = [
+        trial for trial in trials if trial.equilibrium_blind_mechanism != trial.best_mechanism
+    ]
+    trace_blind_missable = [
+        trial for trial in trials if trial.trace_blind_mechanism != trial.best_mechanism
+    ]
+    return {
+        "task": "mechanism_trace_equilibrium",
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "mean_score_regret": mean(regrets),
+        "mean_score_regret_ci95": bootstrap_mean_ci(regrets),
+        "revenue_default_miss_rate": (
+            sum(trial.chosen_mechanism == trial.revenue_mechanism for trial in revenue_missable)
+            / len(revenue_missable)
+            if revenue_missable
+            else 0.0
+        ),
+        "trace_projection_miss_rate": (
+            sum(
+                trial.chosen_mechanism == trial.trace_projection_mechanism
+                for trial in projection_missable
+            )
+            / len(projection_missable)
+            if projection_missable
+            else 0.0
+        ),
+        "equilibrium_blind_miss_rate": (
+            sum(
+                trial.chosen_mechanism == trial.equilibrium_blind_mechanism
+                for trial in equilibrium_blind_missable
+            )
+            / len(equilibrium_blind_missable)
+            if equilibrium_blind_missable
+            else 0.0
+        ),
+        "trace_blind_miss_rate": (
+            sum(
+                trial.chosen_mechanism == trial.trace_blind_mechanism
+                for trial in trace_blind_missable
+            )
+            / len(trace_blind_missable)
+            if trace_blind_missable
+            else 0.0
+        ),
+        "trials": [_trace_equilibrium_trial_json(trial) for trial in trials],
     }
 
 
@@ -2298,6 +2859,56 @@ def _interaction_trace_prompt(case: InteractionTraceMechanismCase) -> str:
     return "\n".join(lines)
 
 
+def _trace_equilibrium_prompt(case: TraceEquilibriumMechanismCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"future_rounds_to_score={case.forecast_horizon}",
+        f"revenue_weight={case.revenue_weight:.4f}",
+        f"participant_value_weight={case.participant_value_weight:.4f}",
+        f"access_weight={case.access_weight:.4f}",
+        f"manipulation_penalty={case.manipulation_penalty:.4f}",
+        "Candidate mechanisms with observed traces and strategic-response parameters:",
+    ]
+    for mechanism in case.mechanisms:
+        lines.append(
+            "  "
+            f"mechanism_id={mechanism.mechanism_id} "
+            f"sponsor_take={mechanism.sponsor_take:.2f} "
+            f"participant_value={mechanism.participant_value:.2f} "
+            f"access_quality={mechanism.access_quality:.4f} "
+            f"manipulation_harm={mechanism.manipulation_harm:.2f} "
+            f"review_cost={mechanism.review_cost:.2f} "
+            f"base_stay_rate={mechanism.base_stay_rate:.4f} "
+            f"exit_sensitivity={mechanism.exit_sensitivity:.4f} "
+            f"strategic_gain={mechanism.strategic_gain:.4f} "
+            f"peer_contagion={mechanism.peer_contagion:.4f} "
+            f"audit_strength={mechanism.audit_strength:.4f} "
+            f"detection_cost={mechanism.detection_cost:.4f} "
+            f"response_update_rate={mechanism.response_update_rate:.4f}"
+        )
+        for point in mechanism.trace:
+            lines.append(
+                "    "
+                f"trace mechanism_id={mechanism.mechanism_id} "
+                f"round={point.round_id} "
+                f"active_participants={point.active_participants:.2f} "
+                f"strategic_share={point.strategic_share:.4f}"
+            )
+    lines.extend(
+        [
+            "Use the last observed trace state and the trace momentum as the starting point.",
+            "Then solve the stable strategic-participant share implied by strategic gain, "
+            "peer contagion, trace momentum, audit strength, detection cost, and response update rate.",
+            "Future participant retention depends on base stay rate minus exit sensitivity times "
+            "that self-consistent strategic share.",
+            "Pick the best repeated program value, not the largest sponsor take, simple trace "
+            "projection, or initial strategic-share estimate.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _trial_json(trial: MechanismTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
@@ -2323,6 +2934,12 @@ def _strategic_response_trial_json(trial: StrategicResponseMechanismTrial) -> di
 
 
 def _interaction_trace_trial_json(trial: InteractionTraceMechanismTrial) -> dict:
+    data = asdict(trial)
+    data["case"] = asdict(trial.case)
+    return data
+
+
+def _trace_equilibrium_trial_json(trial: TraceEquilibriumMechanismTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
     return data

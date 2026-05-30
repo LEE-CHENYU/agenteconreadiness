@@ -157,6 +157,8 @@ class OfflineAgent:
             return self._mechanism_strategic_response_choice(user)
         if "TASK: mechanism_strategic_equilibrium" in system:
             return self._mechanism_strategic_equilibrium_choice(user)
+        if "TASK: mechanism_trace_equilibrium" in system:
+            return self._mechanism_trace_equilibrium_choice(user)
         if "TASK: mechanism_interaction_trace" in system:
             return self._mechanism_interaction_trace_choice(user)
         if "TASK: matching_choice" in system:
@@ -974,6 +976,32 @@ class OfflineAgent:
             )
         else:
             mechanism_id = _best_interaction_trace_mechanism_choice(user, mechanisms)
+        return f"FINAL_MECHANISM: {mechanism_id}"
+
+    def _mechanism_trace_equilibrium_choice(self, user: str) -> str:
+        mechanisms = _extract_trace_equilibrium_mechanisms(user)
+        if self.policy in {"revenue", "max_revenue"}:
+            mechanism_id = max(mechanisms, key=lambda item: mechanisms[item]["sponsor_take"])
+        elif self.policy in {"trace_projection", "linear_trace", "projection"}:
+            mechanism_id = _best_trace_equilibrium_mechanism_choice(
+                user,
+                mechanisms,
+                trace_projection=True,
+            )
+        elif self.policy in {"equilibrium_blind", "eq_blind", "initial_share"}:
+            mechanism_id = _best_trace_equilibrium_mechanism_choice(
+                user,
+                mechanisms,
+                equilibrium_blind=True,
+            )
+        elif self.policy in {"trace_blind", "history_blind"}:
+            mechanism_id = _best_trace_equilibrium_mechanism_choice(
+                user,
+                mechanisms,
+                trace_blind=True,
+            )
+        else:
+            mechanism_id = _best_trace_equilibrium_mechanism_choice(user, mechanisms)
         return f"FINAL_MECHANISM: {mechanism_id}"
 
     def _matching_choice(self, user: str) -> str:
@@ -3891,6 +3919,151 @@ def _best_interaction_trace_mechanism_choice(
             )
             participants *= participant_ratio
             strategic_share = min(0.95, max(0.0, strategic_share + strategic_delta))
+        return total
+
+    return max(mechanisms, key=score)
+
+
+def _extract_trace_equilibrium_mechanisms(text: str) -> dict[str, dict[str, object]]:
+    mechanisms: dict[str, dict[str, object]] = {}
+    mechanism_pattern = re.compile(
+        r"mechanism_id=([a-zA-Z0-9_-]+)\s+"
+        r"sponsor_take=([-+]?\d+(?:\.\d+)?)\s+"
+        r"participant_value=([-+]?\d+(?:\.\d+)?)\s+"
+        r"access_quality=([-+]?\d+(?:\.\d+)?)\s+"
+        r"manipulation_harm=([-+]?\d+(?:\.\d+)?)\s+"
+        r"review_cost=([-+]?\d+(?:\.\d+)?)\s+"
+        r"base_stay_rate=([-+]?\d+(?:\.\d+)?)\s+"
+        r"exit_sensitivity=([-+]?\d+(?:\.\d+)?)\s+"
+        r"strategic_gain=([-+]?\d+(?:\.\d+)?)\s+"
+        r"peer_contagion=([-+]?\d+(?:\.\d+)?)\s+"
+        r"audit_strength=([-+]?\d+(?:\.\d+)?)\s+"
+        r"detection_cost=([-+]?\d+(?:\.\d+)?)\s+"
+        r"response_update_rate=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in mechanism_pattern.finditer(text):
+        mechanisms[match.group(1)] = {
+            "sponsor_take": float(match.group(2)),
+            "participant_value": float(match.group(3)),
+            "access_quality": float(match.group(4)),
+            "manipulation_harm": float(match.group(5)),
+            "review_cost": float(match.group(6)),
+            "base_stay_rate": float(match.group(7)),
+            "exit_sensitivity": float(match.group(8)),
+            "strategic_gain": float(match.group(9)),
+            "peer_contagion": float(match.group(10)),
+            "audit_strength": float(match.group(11)),
+            "detection_cost": float(match.group(12)),
+            "response_update_rate": float(match.group(13)),
+            "trace": [],
+        }
+    trace_pattern = re.compile(
+        r"trace mechanism_id=([a-zA-Z0-9_-]+)\s+"
+        r"round=\d+\s+"
+        r"active_participants=([-+]?\d+(?:\.\d+)?)\s+"
+        r"strategic_share=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in trace_pattern.finditer(text):
+        mechanism_id = match.group(1)
+        if mechanism_id in mechanisms:
+            trace = mechanisms[mechanism_id]["trace"]
+            assert isinstance(trace, list)
+            trace.append((float(match.group(2)), float(match.group(3))))
+    return mechanisms
+
+
+def _best_trace_equilibrium_mechanism_choice(
+    text: str,
+    mechanisms: dict[str, dict[str, object]],
+    *,
+    trace_projection: bool = False,
+    equilibrium_blind: bool = False,
+    trace_blind: bool = False,
+) -> str:
+    horizon = int(round(_extract_float(text, "future_rounds_to_score", 1.0)))
+    revenue_weight = _extract_float(text, "revenue_weight")
+    participant_value_weight = _extract_float(text, "participant_value_weight")
+    access_weight = _extract_float(text, "access_weight")
+    manipulation_penalty = _extract_float(text, "manipulation_penalty")
+
+    def score(mechanism_id: str) -> float:
+        mechanism = mechanisms[mechanism_id]
+        trace = mechanism["trace"]
+        assert isinstance(trace, list)
+        if trace_projection:
+            participants, strategic_share = trace[-1]
+            ratios = [
+                later[0] / earlier[0]
+                for earlier, later in zip(trace, trace[1:])
+                if earlier[0] > 0
+            ]
+            deltas = [later[1] - earlier[1] for earlier, later in zip(trace, trace[1:])]
+            participant_ratio = sum(ratios) / len(ratios) if ratios else 1.0
+            strategic_delta = sum(deltas) / len(deltas) if deltas else 0.0
+            total = 0.0
+            for _period in range(max(1, horizon)):
+                total += (
+                    participants
+                    * (
+                        revenue_weight * float(mechanism["sponsor_take"])
+                        + participant_value_weight * float(mechanism["participant_value"])
+                        + access_weight * float(mechanism["access_quality"])
+                        - manipulation_penalty
+                        * float(mechanism["manipulation_harm"])
+                        * strategic_share
+                    )
+                    - float(mechanism["review_cost"])
+                )
+                participants *= participant_ratio
+                strategic_share = min(0.95, max(0.0, strategic_share + strategic_delta))
+            return total
+
+        if trace_blind:
+            participants, strategic_share = trace[0]
+            strategic_momentum = 0.0
+        else:
+            participants, strategic_share = trace[-1]
+            deltas = [later[1] - earlier[1] for earlier, later in zip(trace, trace[1:])]
+            strategic_momentum = sum(deltas) / len(deltas) if deltas else 0.0
+        if not equilibrium_blind:
+            for _iteration in range(25):
+                payoff_advantage = (
+                    float(mechanism["strategic_gain"])
+                    + float(mechanism["peer_contagion"]) * strategic_share
+                    + strategic_momentum
+                    - float(mechanism["audit_strength"]) * float(mechanism["detection_cost"])
+                )
+                strategic_share = min(
+                    0.95,
+                    max(
+                        0.0,
+                        strategic_share
+                        + float(mechanism["response_update_rate"]) * payoff_advantage,
+                    ),
+                )
+        total = 0.0
+        for _period in range(max(1, horizon)):
+            total += (
+                participants
+                * (
+                    revenue_weight * float(mechanism["sponsor_take"])
+                    + participant_value_weight * float(mechanism["participant_value"])
+                    + access_weight * float(mechanism["access_quality"])
+                    - manipulation_penalty
+                    * float(mechanism["manipulation_harm"])
+                    * strategic_share
+                )
+                - float(mechanism["review_cost"])
+            )
+            stay_rate = min(
+                0.99,
+                max(
+                    0.05,
+                    float(mechanism["base_stay_rate"])
+                    - float(mechanism["exit_sensitivity"]) * strategic_share,
+                ),
+            )
+            participants *= stay_rate
         return total
 
     return max(mechanisms, key=score)

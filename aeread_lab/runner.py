@@ -64,6 +64,7 @@ TASK_ORDER = (
     "mechanism_strategic_response",
     "mechanism_strategic_equilibrium",
     "mechanism_interaction_trace",
+    "mechanism_trace_equilibrium",
     "strategic_drift",
     "forecast_calibration",
     "forecast_aggregate",
@@ -177,6 +178,10 @@ _CASE_TASKS = {
     "mechanism_interaction_trace": (
         mechanism_task.run_mechanism_interaction_trace_game,
         mechanism_task.INTERACTION_TRACE_CASES,
+    ),
+    "mechanism_trace_equilibrium": (
+        mechanism_task.run_mechanism_trace_equilibrium_game,
+        mechanism_task.TRACE_EQUILIBRIUM_CASES,
     ),
     "strategic_drift": (
         strategic_drift_task.run_strategic_drift_game,

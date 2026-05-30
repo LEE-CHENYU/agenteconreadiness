@@ -79,6 +79,7 @@ from aeread_lab.tasks.mechanism import INTERACTION_TRACE_CASES as MECHANISM_TRAC
 from aeread_lab.tasks.mechanism import PARTICIPANT_RESPONSE_CASES as MECHANISM_RESPONSE_CASES
 from aeread_lab.tasks.mechanism import REPEATED_CASES as MECHANISM_REPEATED_CASES
 from aeread_lab.tasks.mechanism import STRATEGIC_RESPONSE_CASES as MECHANISM_STRATEGIC_CASES
+from aeread_lab.tasks.mechanism import TRACE_EQUILIBRIUM_CASES as MECHANISM_TRACE_EQUILIBRIUM_CASES
 from aeread_lab.tasks.mechanism import _participant_elasticity_prompt as mechanism_elasticity_prompt
 from aeread_lab.tasks.mechanism import _participant_response_prompt as mechanism_response_prompt
 from aeread_lab.tasks.mechanism import _prompt as mechanism_prompt
@@ -87,6 +88,7 @@ from aeread_lab.tasks.mechanism import _repeated_prompt as mechanism_repeated_pr
 from aeread_lab.tasks.mechanism import _strategic_equilibrium_prompt as mechanism_strategic_equilibrium_prompt
 from aeread_lab.tasks.mechanism import _strategic_response_prompt as mechanism_strategic_response_prompt
 from aeread_lab.tasks.mechanism import _interaction_trace_prompt as mechanism_interaction_trace_prompt
+from aeread_lab.tasks.mechanism import _trace_equilibrium_prompt as mechanism_trace_equilibrium_prompt
 from aeread_lab.tasks.mechanism import (
     run_mechanism_elasticity_inference_game,
     run_mechanism_game,
@@ -96,6 +98,7 @@ from aeread_lab.tasks.mechanism import (
     run_mechanism_repeated_natural_game,
     run_mechanism_strategic_equilibrium_game,
     run_mechanism_strategic_response_game,
+    run_mechanism_trace_equilibrium_game,
 )
 from aeread_lab.tasks.moral_hazard import DEFAULT_CASES as MORAL_HAZARD_CASES
 from aeread_lab.tasks.moral_hazard import _prompt as moral_hazard_prompt
@@ -461,6 +464,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_score_regret"], 1e-9)
 
+    def test_sample_limit_slices_mechanism_trace_equilibrium_cases(self):
+        results = run_tasks("mechanism_trace_equilibrium", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
     def test_sample_limit_slices_supplier_scam_natural_cases(self):
         results = run_tasks("supplier_scam_natural", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], len(SUPPLIER_SCAM_CASES[0].rounds))
@@ -756,6 +764,9 @@ class TaskSmokeTests(unittest.TestCase):
         mechanism_strategic_response = mechanism_strategic_response_prompt(MECHANISM_STRATEGIC_CASES[0])
         mechanism_strategic_equilibrium = mechanism_strategic_equilibrium_prompt(MECHANISM_STRATEGIC_CASES[0])
         mechanism_interaction_trace = mechanism_interaction_trace_prompt(MECHANISM_TRACE_CASES[0])
+        mechanism_trace_equilibrium = mechanism_trace_equilibrium_prompt(
+            MECHANISM_TRACE_EQUILIBRIUM_CASES[0]
+        )
         experiment = experiment_prompt(EXPERIMENT_CASES[0])
         retail = retail_prompt(RETAIL_CASES[-1])
         supplier_scam = supplier_scam_prompt(
@@ -828,6 +839,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", mechanism_strategic_response)
         self.assertNotIn("oracle", mechanism_strategic_equilibrium)
         self.assertNotIn("oracle", mechanism_interaction_trace)
+        self.assertNotIn("oracle", mechanism_trace_equilibrium)
         self.assertNotIn("oracle", experiment)
         self.assertNotIn("oracle", retail)
         self.assertNotIn("oracle", supplier_scam)
@@ -863,6 +875,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("best_mechanism", mechanism_strategic_response)
         self.assertNotIn("best_mechanism", mechanism_strategic_equilibrium)
         self.assertNotIn("best_mechanism", mechanism_interaction_trace)
+        self.assertNotIn("best_mechanism", mechanism_trace_equilibrium)
         self.assertNotIn("compatibility bonuses", procurement_bundle_natural.lower())
         self.assertNotIn("durability_weight", procurement_bundle_natural)
         self.assertNotIn("price_weight", procurement_bundle_natural)
@@ -1302,6 +1315,20 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(one_period["one_period_miss_rate"], 0.4)
         self.assertGreater(trace_blind["mean_score_regret"], 50000.0)
         self.assertGreater(trace_blind["trace_blind_miss_rate"], 0.7)
+
+    def test_mechanism_trace_equilibrium_flags_projection_and_equilibrium_blindness(self):
+        configured = run_mechanism_trace_equilibrium_game(OfflineAgent("oracle"))
+        revenue = run_mechanism_trace_equilibrium_game(OfflineAgent("revenue"))
+        projection = run_mechanism_trace_equilibrium_game(OfflineAgent("trace_projection"))
+        equilibrium_blind = run_mechanism_trace_equilibrium_game(OfflineAgent("equilibrium_blind"))
+        self.assertEqual(configured["task"], "mechanism_trace_equilibrium")
+        self.assertLess(configured["mean_score_regret"], 1e-9)
+        self.assertGreater(revenue["mean_score_regret"], 100000.0)
+        self.assertEqual(revenue["revenue_default_miss_rate"], 1.0)
+        self.assertGreater(projection["mean_score_regret"], 100000.0)
+        self.assertGreater(projection["trace_projection_miss_rate"], 0.5)
+        self.assertGreater(equilibrium_blind["mean_score_regret"], 100000.0)
+        self.assertGreater(equilibrium_blind["equilibrium_blind_miss_rate"], 0.5)
 
     def test_strategic_drift_flags_myopic_grabs(self):
         disciplined = run_strategic_drift_game(OfflineAgent("oracle"))

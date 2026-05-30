@@ -34,6 +34,7 @@ from .mechanism import (
     run_mechanism_participant_response_game,
     run_mechanism_repeated_game,
     run_mechanism_repeated_natural_game,
+    run_mechanism_trace_equilibrium_game,
     run_mechanism_strategic_equilibrium_game,
     run_mechanism_strategic_response_game,
 )
@@ -108,6 +109,7 @@ __all__ = [
     "run_mechanism_participant_response_game",
     "run_mechanism_repeated_game",
     "run_mechanism_repeated_natural_game",
+    "run_mechanism_trace_equilibrium_game",
     "run_mechanism_strategic_equilibrium_game",
     "run_mechanism_strategic_response_game",
     "run_moral_hazard_game",
