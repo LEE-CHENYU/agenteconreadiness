@@ -17,6 +17,7 @@ from .forecast_calibration import (
 from .market import run_market_game, run_market_policy_shift_game
 from .matching import run_matching_game
 from .mechanism import (
+    run_mechanism_elasticity_inference_game,
     run_mechanism_game,
     run_mechanism_participant_response_game,
     run_mechanism_repeated_game,
@@ -53,6 +54,7 @@ __all__ = [
     "run_market_game",
     "run_market_policy_shift_game",
     "run_matching_game",
+    "run_mechanism_elasticity_inference_game",
     "run_mechanism_game",
     "run_mechanism_participant_response_game",
     "run_mechanism_repeated_game",

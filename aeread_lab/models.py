@@ -1948,7 +1948,7 @@ def _best_repeated_mechanism_choice(
 
 def _extract_participant_response_mechanisms(text: str) -> dict[str, dict[str, float]]:
     mechanisms: dict[str, dict[str, float]] = {}
-    pattern = re.compile(
+    explicit_pattern = re.compile(
         r"policy_id=([a-zA-Z0-9_-]+)\s+"
         r"sponsor_take=([-+]?\d+(?:\.\d+)?)\s+"
         r"participant_value=([-+]?\d+(?:\.\d+)?)\s+"
@@ -1960,7 +1960,21 @@ def _extract_participant_response_mechanisms(text: str) -> dict[str, dict[str, f
         r"trust_decay=([-+]?\d+(?:\.\d+)?)\s+"
         r"review_cost=([-+]?\d+(?:\.\d+)?)"
     )
-    for match in pattern.finditer(text):
+    elasticity_pattern = re.compile(
+        r"policy_id=([a-zA-Z0-9_-]+)\s+"
+        r"sponsor_take=([-+]?\d+(?:\.\d+)?)\s+"
+        r"participant_value=([-+]?\d+(?:\.\d+)?)\s+"
+        r"access_quality=([-+]?\d+(?:\.\d+)?)\s+"
+        r"starting_participants=([-+]?\d+(?:\.\d+)?)\s+"
+        r"gaming_pressure=([-+]?\d+(?:\.\d+)?)\s+"
+        r"review_cost=([-+]?\d+(?:\.\d+)?)\s+"
+        r"pilot_low_take=([-+]?\d+(?:\.\d+)?)\s+"
+        r"pilot_low_stay=([-+]?\d+(?:\.\d+)?)\s+"
+        r"pilot_high_take=([-+]?\d+(?:\.\d+)?)\s+"
+        r"pilot_high_stay=([-+]?\d+(?:\.\d+)?)\s+"
+        r"round3_extra_exit=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in explicit_pattern.finditer(text):
         mechanisms[match.group(1)] = {
             "sponsor_take": float(match.group(2)),
             "participant_value": float(match.group(3)),
@@ -1971,6 +1985,27 @@ def _extract_participant_response_mechanisms(text: str) -> dict[str, dict[str, f
             "gaming_pressure": float(match.group(8)),
             "trust_decay": float(match.group(9)),
             "review_cost": float(match.group(10)),
+        }
+    for match in elasticity_pattern.finditer(text):
+        low_take = float(match.group(8))
+        low_stay = float(match.group(9))
+        high_take = float(match.group(10))
+        high_stay = float(match.group(11))
+        gaming_pressure = float(match.group(6))
+        take_span = high_take - low_take
+        sensitivity = (low_stay - high_stay) / take_span if take_span else 0.0
+        round3_extra_exit = float(match.group(12))
+        trust_decay = round3_extra_exit / (2.0 * gaming_pressure) if gaming_pressure else 0.0
+        mechanisms[match.group(1)] = {
+            "sponsor_take": float(match.group(2)),
+            "participant_value": float(match.group(3)),
+            "access_quality": float(match.group(4)),
+            "starting_participants": float(match.group(5)),
+            "base_stay_rate": low_stay + sensitivity * low_take,
+            "take_exit_sensitivity": sensitivity,
+            "gaming_pressure": gaming_pressure,
+            "trust_decay": trust_decay,
+            "review_cost": float(match.group(7)),
         }
     return mechanisms
 

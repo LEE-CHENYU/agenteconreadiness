@@ -838,6 +838,46 @@ def run_mechanism_participant_response_game(
     return summarize_participant_response_mechanism_trials(agent.name, trials)
 
 
+def run_mechanism_elasticity_inference_game(
+    agent: Agent,
+    cases: list[ParticipantResponseMechanismCase] | None = None,
+) -> dict:
+    cases = cases or PARTICIPANT_RESPONSE_CASES
+    trials: list[ParticipantResponseMechanismTrial] = []
+    for case in cases:
+        best = best_participant_response_mechanism(case)
+        revenue = revenue_participant_response_mechanism(case)
+        one_period = one_period_participant_response_mechanism(case)
+        response_blind = response_blind_participant_response_mechanism(case)
+        response = agent.complete(MECHANISM_PARTICIPANT_RESPONSE_SYSTEM, _participant_elasticity_prompt(case))
+        chosen = parse_token("FINAL_MECHANISM", response)
+        mechanism_by_id = {mechanism.mechanism_id: mechanism for mechanism in case.mechanisms}
+        chosen = chosen if chosen in mechanism_by_id else None
+        regret = (
+            participant_response_mechanism_score(case, mechanism_by_id[best])
+            - participant_response_mechanism_score(case, mechanism_by_id[chosen])
+            if chosen is not None
+            else None
+        )
+        trials.append(
+            ParticipantResponseMechanismTrial(
+                case=case,
+                best_mechanism=best,
+                revenue_mechanism=revenue,
+                one_period_mechanism=one_period,
+                response_blind_mechanism=response_blind,
+                chosen_mechanism=chosen,
+                score_regret=regret,
+                raw_response=response,
+            )
+        )
+    return summarize_participant_response_mechanism_trials(
+        agent.name,
+        trials,
+        task_name="mechanism_elasticity_inference",
+    )
+
+
 def summarize_mechanism_trials(agent_name: str, trials: list[MechanismTrial]) -> dict:
     regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
     revenue_missable = [trial for trial in trials if trial.revenue_mechanism != trial.best_mechanism]
@@ -907,6 +947,8 @@ def summarize_repeated_mechanism_trials(
 def summarize_participant_response_mechanism_trials(
     agent_name: str,
     trials: list[ParticipantResponseMechanismTrial],
+    *,
+    task_name: str = "mechanism_participant_response",
 ) -> dict:
     regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
     revenue_missable = [trial for trial in trials if trial.revenue_mechanism != trial.best_mechanism]
@@ -917,7 +959,7 @@ def summarize_participant_response_mechanism_trials(
         trial for trial in trials if trial.response_blind_mechanism != trial.best_mechanism
     ]
     return {
-        "task": "mechanism_participant_response",
+        "task": task_name,
         "agent": agent_name,
         "n_trials": len(trials),
         "mean_score_regret": mean(regrets),
@@ -1095,6 +1137,55 @@ def _participant_response_prompt(case: ParticipantResponseMechanismCase) -> str:
             "accumulates over time.",
             "Pick the rule with the best total program value, not the rule with the highest "
             "launch-period take or the rule that assumes participants never leave.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _participant_elasticity_prompt(case: ParticipantResponseMechanismCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"horizon={case.horizon}",
+        f"revenue_weight={case.revenue_weight:.4f}",
+        f"participant_value_weight={case.participant_value_weight:.4f}",
+        f"access_weight={case.access_weight:.4f}",
+        f"gaming_penalty={case.gaming_penalty:.4f}",
+        "Pilot observations from candidate program rules:",
+    ]
+    for mechanism in case.mechanisms:
+        low_take = 10.0
+        high_take = 30.0
+        low_stay = _clamp_participant_stay(
+            mechanism.base_stay_rate - mechanism.take_exit_sensitivity * low_take
+        )
+        high_stay = _clamp_participant_stay(
+            mechanism.base_stay_rate - mechanism.take_exit_sensitivity * high_take
+        )
+        round3_extra_exit = 2.0 * mechanism.trust_decay * mechanism.gaming_pressure
+        lines.append(
+            "  "
+            f"policy_id={mechanism.mechanism_id} "
+            f"sponsor_take={mechanism.sponsor_take:.2f} "
+            f"participant_value={mechanism.participant_value:.2f} "
+            f"access_quality={mechanism.access_quality:.4f} "
+            f"starting_participants={mechanism.starting_participants:.2f} "
+            f"gaming_pressure={mechanism.gaming_pressure:.2f} "
+            f"review_cost={mechanism.review_cost:.2f} "
+            f"pilot_low_take={low_take:.2f} "
+            f"pilot_low_stay={low_stay:.4f} "
+            f"pilot_high_take={high_take:.2f} "
+            f"pilot_high_stay={high_stay:.4f} "
+            f"round3_extra_exit={round3_extra_exit:.4f}"
+        )
+    lines.extend(
+        [
+            "Infer each rule's fee-response from the two pilot stay shares.",
+            "Use the round-3 extra-exit observation as the two-period accumulated "
+            "gaming-pressure effect.",
+            "Simulate active participants over the full horizon before comparing rules.",
+            "Pick the rule with the best total program value, not the rule with the highest "
+            "launch-period take or the rule that assumes the initial pool stays fixed.",
         ]
     )
     return "\n".join(lines)
