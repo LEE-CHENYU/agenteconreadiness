@@ -53,6 +53,7 @@ TASKS = (
     "pricing_counterfactual",
     "pricing_law_audit",
     "pricing_evidence_law_audit",
+    "pricing_evidence_law_holdout",
     "scam",
     "supplier_scam",
     "all",
@@ -459,9 +460,9 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"  {key:<20} accuracy={row['accuracy']:.2f} "
                     f"valid={row['valid_count']} invalid={row['invalid_count']}"
                 )
-        elif task == "pricing_evidence_law_audit":
+        elif task in {"pricing_evidence_law_audit", "pricing_evidence_law_holdout"}:
             print(
-                f"pricing_evidence_law_audit: n={result['n_trials']} accuracy="
+                f"{task}: n={result['n_trials']} accuracy="
                 f"{result['accuracy']:.2f} parse={result['parse_rate']:.2f} "
                 f"invalid_accept={result['invalid_accept_rate']:.2f} "
                 f"valid_reject={result['valid_reject_rate']:.2f}"

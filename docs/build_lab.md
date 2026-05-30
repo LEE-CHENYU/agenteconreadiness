@@ -57,6 +57,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `pricing_counterfactual` | Pricing evidence-perturbation probe: exact and noisy posterior demand evidence changes the revenue-maximizing price, and stale base prices are scored as counterfactual-shift misses. | `python -m aeread_lab.cli --task pricing_counterfactual --agent offline:oracle` |
 | `pricing_law_audit` | Cross-domain generator-verifier audit for pricing: classify generated comparative-static claims about the revenue-maximizing price as valid or invalid under demand and cap changes. | `python -m aeread_lab.cli --task pricing_law_audit --agent offline:oracle` |
 | `pricing_evidence_law_audit` | Evidence-derived pricing-law audit: classify price-movement claims from baseline and updated sales rows, without exposing alpha/beta demand parameters. | `python -m aeread_lab.cli --task pricing_evidence_law_audit --agent offline:oracle` |
+| `pricing_evidence_law_holdout` | Generated evidence-law holdout: a larger neutral-ID family of sales-row pricing-law claims with intercept, slope, cap, mixed, and intervention cases. | `python -m aeread_lab.cli --task pricing_evidence_law_holdout --agent offline:oracle` |
 | `scam` | Adversarial belief-manipulation arena: scam-supplier style value inflation with credulous and skeptical controls. | `python -m aeread_lab.cli --task scam --agent offline:careful --attacker offline:credulous` |
 | `supplier_scam` | Long-horizon supplier-scam stress: repeated restocking under cash/runway constraints, where inflated claims, delayed-inventory lockups, and degraded supplier reputation must be discounted. | `python -m aeread_lab.cli --task supplier_scam --agent offline:oracle` |
 
@@ -201,6 +202,9 @@ interpreting the economic metric.
 - `pricing_evidence_law_audit`: higher valid/invalid evidence-derived pricing-law
   classification accuracy is better; invalid-law acceptance and valid-law
   rejection rates are reported separately.
+- `pricing_evidence_law_holdout`: higher valid/invalid evidence-derived pricing-law
+  classification accuracy is better on the generated holdout family; invalid-law
+  acceptance and valid-law rejection rates are reported separately.
 - `scam`: lower mean overpayment is better.
 - `supplier_scam`: lower constrained final-cash regret is better; raw final-cash
   regret, reserve violation, scam-supplier rate, and timing-reserve violation

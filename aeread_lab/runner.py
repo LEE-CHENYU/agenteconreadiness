@@ -74,6 +74,7 @@ TASK_ORDER = (
     "pricing_counterfactual",
     "pricing_law_audit",
     "pricing_evidence_law_audit",
+    "pricing_evidence_law_holdout",
     "scam",
     "supplier_scam",
 )
@@ -182,6 +183,10 @@ _CASE_TASKS = {
     "pricing_evidence_law_audit": (
         pricing_task.run_pricing_evidence_law_audit_game,
         pricing_task.EVIDENCE_LAW_CASES,
+    ),
+    "pricing_evidence_law_holdout": (
+        pricing_task.run_pricing_evidence_law_holdout_game,
+        pricing_task.HOLDOUT_EVIDENCE_LAW_CASES,
     ),
     "supplier_scam": (supplier_scam_task.run_supplier_scam_game, supplier_scam_task.DEFAULT_CASES),
 }

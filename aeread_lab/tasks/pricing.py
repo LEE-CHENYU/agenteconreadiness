@@ -204,7 +204,7 @@ DEFAULT_LAW_CASES = [
         law_family="mixed_shift",
     ),
     PricingLawCase(
-        "small_intercept_up_valid",
+        "small_intercept_up_case",
         base_alpha=150.0,
         base_beta=5.0,
         base_p_max=50.0,
@@ -309,54 +309,132 @@ COUNTERFACTUAL_SETS = [
 
 EVIDENCE_LAW_CASES = [
     PricingEvidenceLawCase(
-        "snack_downshift_new_lt_base_valid",
+        "evidence_case_01",
         case_set=COUNTERFACTUAL_SETS[0],
         relation="new_lt_base",
         law_family="evidence_downshift",
     ),
     PricingEvidenceLawCase(
-        "snack_downshift_new_ge_base_invalid",
+        "evidence_case_02",
         case_set=COUNTERFACTUAL_SETS[0],
         relation="new_ge_base",
         law_family="evidence_downshift",
     ),
     PricingEvidenceLawCase(
-        "premium_upswing_new_gt_base_valid",
+        "evidence_case_03",
         case_set=COUNTERFACTUAL_SETS[1],
         relation="new_gt_base",
         law_family="evidence_upswing",
     ),
     PricingEvidenceLawCase(
-        "premium_upswing_new_le_base_invalid",
+        "evidence_case_04",
         case_set=COUNTERFACTUAL_SETS[1],
         relation="new_le_base",
         law_family="evidence_upswing",
     ),
     PricingEvidenceLawCase(
-        "noisy_snack_new_lt_base_valid",
+        "evidence_case_05",
         case_set=COUNTERFACTUAL_SETS[2],
         relation="new_lt_base",
         law_family="noisy_downshift",
     ),
     PricingEvidenceLawCase(
-        "noisy_snack_new_gt_base_invalid",
+        "evidence_case_06",
         case_set=COUNTERFACTUAL_SETS[2],
         relation="new_gt_base",
         law_family="noisy_downshift",
     ),
     PricingEvidenceLawCase(
-        "noisy_enterprise_new_gt_base_valid",
+        "evidence_case_07",
         case_set=COUNTERFACTUAL_SETS[3],
         relation="new_gt_base",
         law_family="noisy_upswing",
     ),
     PricingEvidenceLawCase(
-        "noisy_enterprise_new_le_base_invalid",
+        "evidence_case_08",
         case_set=COUNTERFACTUAL_SETS[3],
         relation="new_le_base",
         law_family="noisy_upswing",
     ),
 ]
+
+def _build_holdout_evidence_law_cases() -> list[PricingEvidenceLawCase]:
+    specs = [
+        ("intercept", 168.0, 4.8, 60.0, 204.0, 4.8, 60.0),
+        ("intercept", 220.0, 5.0, 60.0, 180.0, 5.0, 60.0),
+        ("slope", 220.0, 4.0, 70.0, 220.0, 5.5, 70.0),
+        ("slope", 200.0, 6.0, 60.0, 200.0, 4.8, 60.0),
+        ("cap", 260.0, 4.0, 28.0, 260.0, 4.0, 36.0),
+        ("cap", 260.0, 4.0, 36.0, 260.0, 4.0, 28.0),
+        ("mixed", 210.0, 5.8, 60.0, 240.0, 5.2, 60.0),
+        ("mixed", 260.0, 5.0, 70.0, 255.0, 7.0, 70.0),
+        ("intervention", 220.0, 4.0, 25.0, 300.0, 5.0, 24.0),
+        ("intervention", 260.0, 6.0, 30.0, 210.0, 4.0, 30.0),
+        ("intervention", 230.0, 4.0, 20.0, 210.0, 4.0, 26.0),
+        ("intervention", 210.0, 5.0, 26.0, 240.0, 5.0, 18.0),
+    ]
+    cases: list[PricingEvidenceLawCase] = []
+    for idx, (family, base_alpha, base_beta, base_cap, new_alpha, new_beta, new_cap) in enumerate(
+        specs,
+        start=1,
+    ):
+        case_set = PricingCounterfactualSet(
+            key=f"holdout_set_{idx:02d}",
+            base=_generated_evidence_case(
+                f"holdout_set_{idx:02d}_baseline",
+                alpha=base_alpha,
+                beta=base_beta,
+                p_max=base_cap,
+            ),
+            perturbed=_generated_evidence_case(
+                f"holdout_set_{idx:02d}_updated",
+                alpha=new_alpha,
+                beta=new_beta,
+                p_max=new_cap,
+            ),
+        )
+        base_price = evidence_oracle_price(case_set.base)
+        new_price = evidence_oracle_price(case_set.perturbed)
+        valid_relation, invalid_relation = _paired_relations(base_price, new_price)
+        cases.append(
+            PricingEvidenceLawCase(
+                key=f"holdout_case_{2 * idx - 1:02d}",
+                case_set=case_set,
+                relation=valid_relation,
+                law_family=f"holdout_{family}",
+            )
+        )
+        cases.append(
+            PricingEvidenceLawCase(
+                key=f"holdout_case_{2 * idx:02d}",
+                case_set=case_set,
+                relation=invalid_relation,
+                law_family=f"holdout_{family}",
+            )
+        )
+    return cases
+
+
+def _generated_evidence_case(key: str, alpha: float, beta: float, p_max: float) -> PricingEvidenceCase:
+    prices = [0.22 * p_max, 0.34 * p_max, 0.46 * p_max, 0.58 * p_max, 0.70 * p_max, 0.82 * p_max]
+    return PricingEvidenceCase(
+        key=key,
+        p_max=p_max,
+        scenario_note="Evidence batch from the same product line; use only the rows and price cap.",
+        observations=tuple(
+            (round(price, 2), round(max(0.0, alpha - beta * price), 2))
+            for price in prices
+        ),
+    )
+
+
+def _paired_relations(base_price: float, new_price: float) -> tuple[str, str]:
+    if new_price > base_price + 1e-9:
+        return "new_gt_base", "new_le_base"
+    if new_price < base_price - 1e-9:
+        return "new_lt_base", "new_ge_base"
+    return "new_ge_base", "new_gt_base"
+
 
 
 def demand(case: PricingCase, price: float) -> float:
@@ -437,6 +515,9 @@ def _ols_fit(rows: list[tuple[float, float]]) -> tuple[float, float]:
     beta_hat = max(0.001, -slope)
     alpha_hat = y_bar + beta_hat * x_bar
     return alpha_hat, beta_hat
+
+
+HOLDOUT_EVIDENCE_LAW_CASES = _build_holdout_evidence_law_cases()
 
 
 def run_pricing_game(agent: Agent, cases: list[PricingCase] | None = None) -> dict:
@@ -595,6 +676,30 @@ def run_pricing_evidence_law_audit_game(
     cases: list[PricingEvidenceLawCase] | None = None,
 ) -> dict:
     cases = cases or EVIDENCE_LAW_CASES
+    return _run_pricing_evidence_law_game(
+        agent,
+        cases=cases,
+        task_name="pricing_evidence_law_audit",
+    )
+
+
+def run_pricing_evidence_law_holdout_game(
+    agent: Agent,
+    cases: list[PricingEvidenceLawCase] | None = None,
+) -> dict:
+    cases = cases or HOLDOUT_EVIDENCE_LAW_CASES
+    return _run_pricing_evidence_law_game(
+        agent,
+        cases=cases,
+        task_name="pricing_evidence_law_holdout",
+    )
+
+
+def _run_pricing_evidence_law_game(
+    agent: Agent,
+    cases: list[PricingEvidenceLawCase],
+    task_name: str,
+) -> dict:
     rows: list[PricingEvidenceLawTrial] = []
     for case in cases:
         base_price = evidence_oracle_price(case.case_set.base)
@@ -617,7 +722,7 @@ def run_pricing_evidence_law_audit_game(
                 raw_response=response,
             )
         )
-    return summarize_pricing_evidence_law_trials(agent.name, rows)
+    return summarize_pricing_evidence_law_trials(agent.name, rows, task_name=task_name)
 
 
 def summarize_pricing_law_trials(agent_name: str, trials: list[PricingLawTrial]) -> dict:
@@ -652,6 +757,7 @@ def summarize_pricing_law_trials(agent_name: str, trials: list[PricingLawTrial])
 def summarize_pricing_evidence_law_trials(
     agent_name: str,
     trials: list[PricingEvidenceLawTrial],
+    task_name: str = "pricing_evidence_law_audit",
 ) -> dict:
     parsed = [trial for trial in trials if trial.chosen_label is not None]
     correct = sum(trial.correct for trial in trials)
@@ -669,7 +775,7 @@ def summarize_pricing_evidence_law_trials(
             "invalid_count": sum(trial.oracle_label == "invalid" for trial in subset),
         }
     return {
-        "task": "pricing_evidence_law_audit",
+        "task": task_name,
         "agent": agent_name,
         "n_trials": len(trials),
         "accuracy": correct / len(trials) if trials else 0.0,
