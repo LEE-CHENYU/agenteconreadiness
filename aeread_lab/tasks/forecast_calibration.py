@@ -357,6 +357,80 @@ CURVE_CASES = [
 ]
 
 
+NOISY_CURVE_CASES = [
+    ForecastCurveCase(
+        key="churn_noisy_slope_reversal",
+        real_case="held-out renewal score from a segment with non-monotone historical calibration bins",
+        target_event="account churns before renewal",
+        raw_model_probability=0.64,
+        global_base_rate=0.20,
+        prior_strength=35.0,
+        bins=(
+            CalibrationBin("b08_large", 0.08, 26, 200),
+            CalibrationBin("b18_sparse", 0.18, 4, 44),
+            CalibrationBin("b31_large", 0.31, 55, 150),
+            CalibrationBin("b44_sparse_high", 0.44, 22, 38),
+            CalibrationBin("b59_large", 0.59, 44, 120),
+            CalibrationBin("b72_sparse_low", 0.72, 8, 28),
+            CalibrationBin("b87_large", 0.87, 52, 90),
+        ),
+    ),
+    ForecastCurveCase(
+        key="fraud_noisy_underconfident",
+        real_case="held-out fraud score from a merchant cohort with noisy middle bins",
+        target_event="merchant account has a confirmed fraud escalation",
+        raw_model_probability=0.49,
+        global_base_rate=0.16,
+        prior_strength=45.0,
+        bins=(
+            CalibrationBin("b06_large", 0.06, 4, 180),
+            CalibrationBin("b16_mid", 0.16, 12, 65),
+            CalibrationBin("b29_sparse_low", 0.29, 9, 42),
+            CalibrationBin("b41_large", 0.41, 38, 110),
+            CalibrationBin("b55_sparse_high", 0.55, 29, 35),
+            CalibrationBin("b69_large", 0.69, 71, 130),
+            CalibrationBin("b83_sparse", 0.83, 20, 29),
+            CalibrationBin("b94_large", 0.94, 54, 80),
+        ),
+    ),
+    ForecastCurveCase(
+        key="credit_noisy_middle_shift",
+        real_case="held-out credit score where the middle calibration bands are shifted upward",
+        target_event="borrower becomes 60 days delinquent",
+        raw_model_probability=0.53,
+        global_base_rate=0.28,
+        prior_strength=30.0,
+        bins=(
+            CalibrationBin("b09_large", 0.09, 31, 220),
+            CalibrationBin("b21_mid", 0.21, 16, 55),
+            CalibrationBin("b34_large", 0.34, 50, 140),
+            CalibrationBin("b47_sparse", 0.47, 13, 26),
+            CalibrationBin("b58_large", 0.58, 82, 160),
+            CalibrationBin("b71_sparse", 0.71, 21, 32),
+            CalibrationBin("b86_large", 0.86, 61, 100),
+        ),
+    ),
+    ForecastCurveCase(
+        key="defect_noisy_sparse_high",
+        real_case="held-out defect score where sparse high bins are noisy around a low baseline",
+        target_event="batch exceeds the defect escalation threshold",
+        raw_model_probability=0.58,
+        global_base_rate=0.12,
+        prior_strength=60.0,
+        bins=(
+            CalibrationBin("b05_large", 0.05, 7, 260),
+            CalibrationBin("b14_mid", 0.14, 11, 90),
+            CalibrationBin("b26_sparse", 0.26, 4, 22),
+            CalibrationBin("b38_large", 0.38, 34, 130),
+            CalibrationBin("b51_sparse_high", 0.51, 13, 25),
+            CalibrationBin("b63_large", 0.63, 57, 140),
+            CalibrationBin("b77_sparse", 0.77, 11, 18),
+            CalibrationBin("b91_large", 0.91, 39, 70),
+        ),
+    ),
+]
+
+
 def posterior_probability(case: ForecastCase) -> float:
     odds = case.base_rate / max(1e-12, 1.0 - case.base_rate)
     for signal in case.signals:
@@ -519,6 +593,18 @@ def run_forecast_curve_implicit_game(
         cases,
         prompt_fn=_curve_implicit_prompt,
         task_name="forecast_curve_implicit",
+    )
+
+
+def run_forecast_curve_noisy_game(
+    agent: Agent,
+    cases: list[ForecastCurveCase] | None = None,
+) -> dict:
+    return _run_forecast_curve_game(
+        agent,
+        cases or NOISY_CURVE_CASES,
+        prompt_fn=_curve_noisy_prompt,
+        task_name="forecast_curve_noisy",
     )
 
 
@@ -816,6 +902,38 @@ def _curve_implicit_prompt(case: ForecastCurveCase) -> str:
             "trend rather than snapping blindly to one row.",
             "Do not assume the raw score is already calibrated.",
             "Estimate the event probability for the next held-out item.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _curve_noisy_prompt(case: ForecastCurveCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"target_event={case.target_event}",
+        f"raw_model_probability={case.raw_model_probability:.4f}",
+        f"base_rate={case.global_base_rate:.4f}",
+        f"global_base_rate={case.global_base_rate:.4f}",
+        f"prior_strength={case.prior_strength:.1f}",
+        "Historical holdout calibration slices from the shifted segment:",
+    ]
+    for bin_ in case.bins:
+        lines.append(
+            f"  bin_id={bin_.bin_id} "
+            f"raw_mean_probability={bin_.raw_mean_probability:.4f} "
+            f"observed_event_count={bin_.observed_event_count} "
+            f"observed_total={bin_.observed_total}"
+        )
+    lines.extend(
+        [
+            "Some slices are sparse and visibly noisy. The global baseline is a "
+            "stabilizing reference with the listed prior-equivalent strength, not "
+            "a replacement for the shifted-segment evidence.",
+            "Estimate the held-out event probability for the next item at the raw "
+            "score above. Use the neighboring calibration pattern while accounting "
+            "for sample size; avoid treating one noisy nearby row or the raw score "
+            "itself as decisive.",
         ]
     )
     return "\n".join(lines)
