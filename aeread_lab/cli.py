@@ -68,6 +68,7 @@ TASKS = (
     "procurement_bundle_history",
     "procurement_bundle_reserve",
     "procurement_vendor_update",
+    "procurement_vendor_update_noisy",
     "pricing",
     "pricing_counterfactual",
     "pricing_cross_elasticity",
@@ -568,7 +569,7 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"budget_violate={result['budget_violation_rate']:.2f} "
                 f"compat_miss={result['compatibility_blind_miss_rate']:.2f}"
             )
-        elif task == "procurement_vendor_update":
+        elif task in {"procurement_vendor_update", "procurement_vendor_update_noisy"}:
             print(
                 f"{task}: n={result['n_trials']} score_regret="
                 f"{_fmt(result['mean_score_regret'])} "

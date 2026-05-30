@@ -61,6 +61,12 @@ PROCUREMENT_VENDOR_UPDATE_SYSTEM = (
     "Return one final line only: FINAL_VENDOR_PLAN: <vendor_id>,<vendor_id>,<vendor_id>."
 )
 
+PROCUREMENT_VENDOR_UPDATE_NOISY_SYSTEM = (
+    "TASK: procurement_vendor_update_noisy\n"
+    "Choose one vendor for each procurement round after reading noisy receiving history. "
+    "Return one final line only: FINAL_VENDOR_PLAN: <vendor_id>,<vendor_id>,<vendor_id>."
+)
+
 
 @dataclass(frozen=True)
 class Product:
@@ -624,6 +630,8 @@ PROCUREMENT_VENDOR_UPDATE_CASES = [
     ),
 ]
 
+PROCUREMENT_VENDOR_UPDATE_NOISY_CASES = PROCUREMENT_VENDOR_UPDATE_CASES
+
 
 def run_procurement_game(agent: Agent, cases: list[ProcurementCase] | None = None) -> dict:
     cases = cases or DEFAULT_CASES
@@ -739,13 +747,42 @@ def run_procurement_vendor_update_game(
     agent: Agent,
     cases: list[ProcurementVendorUpdateCase] | None = None,
 ) -> dict:
-    cases = cases or PROCUREMENT_VENDOR_UPDATE_CASES
+    return _run_procurement_vendor_update_game(
+        agent,
+        cases=cases or PROCUREMENT_VENDOR_UPDATE_CASES,
+        system=PROCUREMENT_VENDOR_UPDATE_SYSTEM,
+        prompt_builder=_vendor_update_prompt,
+        task_name="procurement_vendor_update",
+    )
+
+
+def run_procurement_vendor_update_noisy_game(
+    agent: Agent,
+    cases: list[ProcurementVendorUpdateCase] | None = None,
+) -> dict:
+    return _run_procurement_vendor_update_game(
+        agent,
+        cases=cases or PROCUREMENT_VENDOR_UPDATE_NOISY_CASES,
+        system=PROCUREMENT_VENDOR_UPDATE_NOISY_SYSTEM,
+        prompt_builder=_vendor_update_noisy_prompt,
+        task_name="procurement_vendor_update_noisy",
+    )
+
+
+def _run_procurement_vendor_update_game(
+    agent: Agent,
+    *,
+    cases: list[ProcurementVendorUpdateCase],
+    system: str,
+    prompt_builder,
+    task_name: str,
+) -> dict:
     rows = []
     for case in cases:
         oracle = oracle_vendor_plan(case)
         reputation_blind = reputation_blind_vendor_plan(case)
         myopic = myopic_vendor_plan(case)
-        response = agent.complete(PROCUREMENT_VENDOR_UPDATE_SYSTEM, _vendor_update_prompt(case))
+        response = agent.complete(system, prompt_builder(case))
         chosen = _parse_vendor_plan(response, len(case.rounds))
         row = _score_vendor_plan_case(case, chosen, response)
         row["oracle_plan"] = oracle
@@ -759,7 +796,7 @@ def run_procurement_vendor_update_game(
     ]
     myopic_missable = [row for row in rows if row["myopic_plan"] != row["oracle_plan"]]
     return {
-        "task": "procurement_vendor_update",
+        "task": task_name,
         "agent": agent.name,
         "n_trials": total,
         "accuracy": sum(row["correct"] for row in rows) / total if total else 0.0,
@@ -1493,6 +1530,106 @@ def _vendor_update_prompt(case: ProcurementVendorUpdateCase) -> str:
         "cost when changing vendors, and penalize reserve shortfalls below the floor."
     )
     return "\n".join(lines)
+
+
+def _vendor_update_noisy_prompt(case: ProcurementVendorUpdateCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"starting_reserve={case.starting_reserve:.2f}",
+        f"reserve_floor={case.reserve_floor:.2f}",
+        f"reserve_penalty={case.reserve_penalty:.4f}",
+        f"switch_cost={case.switch_cost:.2f}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note.replace("delivery history", "noisy receiving history"))
+    lines.append("Procurement rounds:")
+    for round_case in case.rounds:
+        lines.append(
+            "  "
+            + " ".join(
+                [
+                    f"round={round_case.round_id}",
+                    f"service_value={round_case.service_value:.2f}",
+                    f"late_penalty={round_case.late_penalty:.2f}",
+                ]
+            )
+        )
+    lines.append("Candidate vendors:")
+    for vendor in case.vendors:
+        lines.append(
+            "  "
+            + " ".join(
+                [
+                    f"vendor_id={vendor.vendor_id}",
+                    f"invoice={vendor.invoice:.2f}",
+                    f"operational_fit={vendor.operational_fit:.2f}",
+                ]
+            )
+        )
+    lines.append("Noisy receiving ledger:")
+    for vendor in case.vendors:
+        for receiving_area, deliveries, on_window in _vendor_receiving_rows(vendor):
+            lines.append(
+                "  "
+                + " ".join(
+                    [
+                        f"vendor_id={vendor.vendor_id}",
+                        f"receiving_area={receiving_area}",
+                        f"deliveries={deliveries}",
+                        f"on_window_deliveries={on_window}",
+                        f"late_or_incomplete={deliveries - on_window}",
+                    ]
+                )
+            )
+    lines.append(
+        "Treat the receiving ledger as noisy field evidence. Aggregate deliveries by "
+        "vendor to estimate late risk, subtract invoices from reserve as rounds are "
+        "ordered, pay the switch cost when changing vendors, and penalize reserve "
+        "shortfalls below the floor."
+    )
+    return "\n".join(lines)
+
+
+def _vendor_receiving_rows(vendor: VendorOption) -> tuple[tuple[str, int, int], ...]:
+    deliveries = _split_count(vendor.shipments_observed, weights=(0.45, 0.30, 0.25))
+    late = vendor.shipments_observed - vendor.on_time_shipments
+    late_parts = _split_capped_count(late, deliveries, weights=(0.20, 0.50, 0.30))
+    areas = ("north_dock", "south_dock", "after_hours")
+    return tuple(
+        (area, delivered, delivered - late_count)
+        for area, delivered, late_count in zip(areas, deliveries, late_parts)
+    )
+
+
+def _split_count(total: int, *, weights: tuple[float, ...]) -> tuple[int, ...]:
+    parts = [int(total * weight) for weight in weights]
+    remainder = total - sum(parts)
+    for index in range(remainder):
+        parts[index % len(parts)] += 1
+    return tuple(parts)
+
+
+def _split_capped_count(
+    total: int,
+    caps: tuple[int, ...],
+    *,
+    weights: tuple[float, ...],
+) -> tuple[int, ...]:
+    parts = [min(cap, int(total * weight)) for cap, weight in zip(caps, weights)]
+    remaining = total - sum(parts)
+    order = sorted(range(len(caps)), key=lambda index: weights[index], reverse=True)
+    while remaining > 0:
+        progressed = False
+        for index in order:
+            if parts[index] < caps[index]:
+                parts[index] += 1
+                remaining -= 1
+                progressed = True
+                if remaining == 0:
+                    break
+        if not progressed:
+            break
+    return tuple(parts)
 
 
 def _parse_bundle(response: str) -> tuple[str, str] | None:

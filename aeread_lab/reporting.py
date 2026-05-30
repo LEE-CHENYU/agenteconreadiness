@@ -60,6 +60,7 @@ PRIMARY_METRICS = {
     "procurement_bundle_history": ("mean_score_regret", "lower"),
     "procurement_bundle_reserve": ("mean_score_regret", "lower"),
     "procurement_vendor_update": ("mean_score_regret", "lower"),
+    "procurement_vendor_update_noisy": ("mean_score_regret", "lower"),
     "pricing": ("mean_revenue_gap", "lower"),
     "pricing_counterfactual": ("mean_absolute_price_error", "lower"),
     "pricing_cross_elasticity": ("mean_absolute_price_error", "lower"),

@@ -190,6 +190,9 @@ from aeread_lab.tasks.procurement import COUNTERFACTUAL_SETS
 from aeread_lab.tasks.procurement import DEFAULT_CASES as PROCUREMENT_CASES
 from aeread_lab.tasks.procurement import PROCUREMENT_BUNDLE_CASES
 from aeread_lab.tasks.procurement import PROCUREMENT_VENDOR_UPDATE_CASES
+from aeread_lab.tasks.procurement import (
+    PROCUREMENT_VENDOR_UPDATE_NOISY_CASES,
+)
 from aeread_lab.tasks.procurement import _bundle_evidence_prompt as procurement_bundle_evidence_prompt
 from aeread_lab.tasks.procurement import _bundle_history_prompt as procurement_bundle_history_prompt
 from aeread_lab.tasks.procurement import _bundle_natural_prompt as procurement_bundle_natural_prompt
@@ -198,6 +201,9 @@ from aeread_lab.tasks.procurement import _bundle_prompt as procurement_bundle_pr
 from aeread_lab.tasks.procurement import _bundle_reserve_prompt as procurement_bundle_reserve_prompt
 from aeread_lab.tasks.procurement import _prompt as procurement_prompt
 from aeread_lab.tasks.procurement import _vendor_update_prompt as procurement_vendor_update_prompt
+from aeread_lab.tasks.procurement import (
+    _vendor_update_noisy_prompt as procurement_vendor_update_noisy_prompt,
+)
 from aeread_lab.tasks.procurement import run_procurement_bundle_evidence_game
 from aeread_lab.tasks.procurement import run_procurement_bundle_game
 from aeread_lab.tasks.procurement import run_procurement_bundle_history_game
@@ -207,6 +213,7 @@ from aeread_lab.tasks.procurement import run_procurement_bundle_reserve_game
 from aeread_lab.tasks.procurement import run_procurement_counterfactual_game
 from aeread_lab.tasks.procurement import run_procurement_game
 from aeread_lab.tasks.procurement import run_procurement_vendor_update_game
+from aeread_lab.tasks.procurement import run_procurement_vendor_update_noisy_game
 from aeread_lab.tasks.regime import (
     DEFAULT_GAMBLES,
     DEFAULT_HOLDOUT_GAMBLES,
@@ -497,6 +504,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_score_regret"], 1e-9)
 
+    def test_sample_limit_slices_procurement_vendor_update_noisy_cases(self):
+        results = run_tasks("procurement_vendor_update_noisy", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
     def test_sample_limit_slices_mechanism_repeated_cases(self):
         results = run_tasks("mechanism_repeated", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
@@ -635,6 +647,18 @@ class TaskSmokeTests(unittest.TestCase):
         myopic = run_procurement_vendor_update_game(OfflineAgent("myopic"))
         self.assertEqual(configured["task"], "procurement_vendor_update")
         self.assertEqual(configured["n_trials"], len(PROCUREMENT_VENDOR_UPDATE_CASES))
+        self.assertEqual(configured["accuracy"], 1.0)
+        self.assertLess(configured["mean_score_regret"], 1e-9)
+        self.assertGreater(reputation_blind["mean_score_regret"], 5.0)
+        self.assertGreater(reputation_blind["reputation_blind_miss_rate"], 0.5)
+        self.assertGreater(myopic["mean_score_regret"], 1.0)
+
+    def test_procurement_vendor_update_noisy_flags_reputation_blindness(self):
+        configured = run_procurement_vendor_update_noisy_game(OfflineAgent("oracle"))
+        reputation_blind = run_procurement_vendor_update_noisy_game(OfflineAgent("reputation_blind"))
+        myopic = run_procurement_vendor_update_noisy_game(OfflineAgent("myopic"))
+        self.assertEqual(configured["task"], "procurement_vendor_update_noisy")
+        self.assertEqual(configured["n_trials"], len(PROCUREMENT_VENDOR_UPDATE_NOISY_CASES))
         self.assertEqual(configured["accuracy"], 1.0)
         self.assertLess(configured["mean_score_regret"], 1e-9)
         self.assertGreater(reputation_blind["mean_score_regret"], 5.0)
@@ -840,6 +864,9 @@ class TaskSmokeTests(unittest.TestCase):
         procurement_bundle_history = procurement_bundle_history_prompt(PROCUREMENT_BUNDLE_CASES[0])
         procurement_bundle_reserve = procurement_bundle_reserve_prompt(PROCUREMENT_BUNDLE_CASES[0])
         procurement_vendor_update = procurement_vendor_update_prompt(PROCUREMENT_VENDOR_UPDATE_CASES[0])
+        procurement_vendor_update_noisy = procurement_vendor_update_noisy_prompt(
+            PROCUREMENT_VENDOR_UPDATE_NOISY_CASES[0]
+        )
         procurement_counterfactual = procurement_prompt(COUNTERFACTUAL_SETS[0].preference_flip)
         pricing = pricing_prompt(PRICING_CASES[0], "reveal")
         pricing_counterfactual = pricing_counterfactual_prompt(
@@ -1097,6 +1124,10 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle_plan", procurement_vendor_update)
         self.assertNotIn("expected_reliability", procurement_vendor_update)
         self.assertNotIn("score_regret", procurement_vendor_update)
+        self.assertNotIn("oracle", procurement_vendor_update_noisy)
+        self.assertNotIn("oracle_plan", procurement_vendor_update_noisy)
+        self.assertNotIn("expected_reliability", procurement_vendor_update_noisy)
+        self.assertNotIn("score_regret", procurement_vendor_update_noisy)
 
     def test_regime_relationship_flags_law_and_fit_failures(self):
         configured = run_regime_relationship_verifier(OfflineAgent("oracle"))
@@ -2274,6 +2305,17 @@ class TaskSmokeTests(unittest.TestCase):
         )
         rows = rank_rows(comparison_table(sweep))
         procurement_rows = [row for row in rows if row["task"] == "procurement_vendor_update"]
+        self.assertEqual(procurement_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(procurement_rows[1]["agent"], "offline:myopic")
+        self.assertEqual(procurement_rows[2]["agent"], "offline:reputation_blind")
+
+    def test_offline_sweep_ranks_oracle_above_reputation_blind_on_noisy_procurement_vendor_update(self):
+        sweep = run_sweep(
+            task="procurement_vendor_update_noisy",
+            agent_specs=["offline:oracle", "offline:reputation_blind", "offline:myopic"],
+        )
+        rows = rank_rows(comparison_table(sweep))
+        procurement_rows = [row for row in rows if row["task"] == "procurement_vendor_update_noisy"]
         self.assertEqual(procurement_rows[0]["agent"], "offline:oracle")
         self.assertEqual(procurement_rows[1]["agent"], "offline:myopic")
         self.assertEqual(procurement_rows[2]["agent"], "offline:reputation_blind")

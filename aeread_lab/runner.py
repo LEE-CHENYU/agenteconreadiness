@@ -89,6 +89,7 @@ TASK_ORDER = (
     "procurement_bundle_history",
     "procurement_bundle_reserve",
     "procurement_vendor_update",
+    "procurement_vendor_update_noisy",
     "pricing",
     "pricing_counterfactual",
     "pricing_cross_elasticity",
@@ -276,6 +277,10 @@ _CASE_TASKS = {
     "procurement_vendor_update": (
         procurement_task.run_procurement_vendor_update_game,
         procurement_task.PROCUREMENT_VENDOR_UPDATE_CASES,
+    ),
+    "procurement_vendor_update_noisy": (
+        procurement_task.run_procurement_vendor_update_noisy_game,
+        procurement_task.PROCUREMENT_VENDOR_UPDATE_NOISY_CASES,
     ),
     "pricing": (pricing_task.run_pricing_game, pricing_task.DEFAULT_CASES),
     "pricing_counterfactual": (

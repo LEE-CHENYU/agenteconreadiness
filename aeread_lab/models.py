@@ -1790,6 +1790,40 @@ def _extract_procurement_vendor_update_vendors(text: str) -> dict[str, dict[str,
             "shipments_observed": float(match.group(4)),
             "on_time_shipments": float(match.group(5)),
         }
+    if vendors:
+        return vendors
+
+    candidate_pattern = re.compile(
+        r"vendor_id=([a-zA-Z0-9_-]+)\s+"
+        r"invoice=([-+]?\d+(?:\.\d+)?)\s+"
+        r"operational_fit=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in candidate_pattern.finditer(text):
+        vendors[match.group(1)] = {
+            "invoice": float(match.group(2)),
+            "operational_fit": float(match.group(3)),
+            "shipments_observed": 0.0,
+            "on_time_shipments": 0.0,
+        }
+
+    receiving_pattern = re.compile(
+        r"vendor_id=([a-zA-Z0-9_-]+)\s+"
+        r"receiving_area=([a-zA-Z0-9_-]+)\s+"
+        r"deliveries=([-+]?\d+(?:\.\d+)?)\s+"
+        r"on_window_deliveries=([-+]?\d+(?:\.\d+)?)\s+"
+        r"late_or_incomplete=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in receiving_pattern.finditer(text):
+        vendor_id = match.group(1)
+        if vendor_id not in vendors:
+            continue
+        vendors[vendor_id]["shipments_observed"] += float(match.group(3))
+        vendors[vendor_id]["on_time_shipments"] += float(match.group(4))
+    vendors = {
+        vendor_id: vendor
+        for vendor_id, vendor in vendors.items()
+        if vendor["shipments_observed"] > 0
+    }
     return vendors
 
 
