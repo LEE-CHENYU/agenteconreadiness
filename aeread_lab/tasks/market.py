@@ -22,6 +22,14 @@ MARKET_POLICY_SYSTEM = (
     "Return one final line only: FINAL_PRICE: <number>."
 )
 
+MARKET_POLICY_INVENTORY_SYSTEM = (
+    "TASK: market_policy_inventory_price\n"
+    "You are one firm in a repeated price-setting market with finite inventory "
+    "and a cash reserve target. Infer the competitor's next price from recent "
+    "history, then choose one non-collusive posted price for your inventory "
+    "horizon. Return one final line only: FINAL_PRICE: <number>."
+)
+
 
 @dataclass(frozen=True)
 class MarketCase:
@@ -74,6 +82,28 @@ class PolicyShiftMarketCase:
     opponent_price_history: tuple[float, ...]
 
 
+@dataclass(frozen=True)
+class InventoryPolicyMarketCase:
+    key: str
+    real_case: str
+    base_demand: float
+    demand_shock: float
+    own_price_slope: float
+    cross_price_slope: float
+    marginal_cost: float
+    p_max: float
+    opponent_policy: str
+    opponent_price_history: tuple[float, ...]
+    horizon: int
+    starting_inventory: float
+    starting_cash: float
+    fixed_obligation: float
+    min_terminal_cash: float
+    carrying_cost_per_unsold: float
+    terminal_inventory_value: float
+    demand_shocks: tuple[float, ...] = ()
+
+
 @dataclass
 class PolicyShiftMarketTrial:
     case: PolicyShiftMarketCase
@@ -87,6 +117,26 @@ class PolicyShiftMarketTrial:
     price_error: float | None
     static_nash_miss: bool
     last_price_miss: bool
+    raw_response: str
+
+
+@dataclass
+class InventoryPolicyMarketTrial:
+    case: InventoryPolicyMarketCase
+    oracle_price: float
+    static_nash_price: float
+    last_price_best_response: float
+    inventory_blind_price: float
+    predicted_opponent_price: float
+    chosen_price: float | None
+    terminal_cash: float | None
+    terminal_cash_regret: float | None
+    constrained_terminal_cash_regret: float | None
+    price_error: float | None
+    reserve_violation: bool
+    static_nash_miss: bool
+    last_price_miss: bool
+    inventory_blind_miss: bool
     raw_response: str
 
 
@@ -203,6 +253,89 @@ POLICY_SHIFT_CASES = [
         p_max=120.0,
         opponent_policy="capacity_exit",
         opponent_price_history=(36.0, 58.0, 82.0),
+    ),
+]
+
+INVENTORY_POLICY_CASES = [
+    InventoryPolicyMarketCase(
+        key="markdown_cash_cliff",
+        real_case="competitor is clearing stock while your warehouse must fund a lease payment",
+        base_demand=132.0,
+        demand_shock=-7.0,
+        own_price_slope=1.45,
+        cross_price_slope=1.05,
+        marginal_cost=22.0,
+        p_max=105.0,
+        opponent_policy="liquidation_drop",
+        opponent_price_history=(84.0, 62.0, 43.0),
+        horizon=3,
+        starting_inventory=150.0,
+        starting_cash=360.0,
+        fixed_obligation=2350.0,
+        min_terminal_cash=240.0,
+        carrying_cost_per_unsold=1.35,
+        terminal_inventory_value=9.0,
+        demand_shocks=(0.0, -8.0, -14.0),
+    ),
+    InventoryPolicyMarketCase(
+        key="capacity_gap_harvest",
+        real_case="rival stockout is lifting prices while unsold specialist inventory keeps option value",
+        base_demand=96.0,
+        demand_shock=6.0,
+        own_price_slope=1.05,
+        cross_price_slope=0.78,
+        marginal_cost=28.0,
+        p_max=135.0,
+        opponent_policy="stockout_jump",
+        opponent_price_history=(42.0, 68.0, 96.0),
+        horizon=4,
+        starting_inventory=92.0,
+        starting_cash=520.0,
+        fixed_obligation=1420.0,
+        min_terminal_cash=360.0,
+        carrying_cost_per_unsold=0.55,
+        terminal_inventory_value=41.0,
+        demand_shocks=(5.0, 1.0, -4.0, -7.0),
+    ),
+    InventoryPolicyMarketCase(
+        key="entrant_share_attack",
+        real_case="entrant keeps buying share while your consumable inventory expires quickly",
+        base_demand=156.0,
+        demand_shock=-2.0,
+        own_price_slope=2.10,
+        cross_price_slope=1.62,
+        marginal_cost=18.0,
+        p_max=92.0,
+        opponent_policy="entry_price_war",
+        opponent_price_history=(76.0, 51.0, 33.0),
+        horizon=3,
+        starting_inventory=175.0,
+        starting_cash=300.0,
+        fixed_obligation=2750.0,
+        min_terminal_cash=260.0,
+        carrying_cost_per_unsold=2.10,
+        terminal_inventory_value=5.0,
+        demand_shocks=(3.0, -5.0, -12.0),
+    ),
+    InventoryPolicyMarketCase(
+        key="supply_exit_reserve",
+        real_case="competitor capacity exit raises prices but your reserve covenant still rewards steady sell-through",
+        base_demand=104.0,
+        demand_shock=4.0,
+        own_price_slope=1.32,
+        cross_price_slope=0.92,
+        marginal_cost=24.0,
+        p_max=128.0,
+        opponent_policy="capacity_exit",
+        opponent_price_history=(39.0, 61.0, 88.0),
+        horizon=4,
+        starting_inventory=118.0,
+        starting_cash=440.0,
+        fixed_obligation=1880.0,
+        min_terminal_cash=320.0,
+        carrying_cost_per_unsold=0.95,
+        terminal_inventory_value=24.0,
+        demand_shocks=(2.0, 0.0, -6.0, -10.0),
     ),
 ]
 
@@ -376,6 +509,78 @@ def run_market_policy_shift_game(
     return summarize_market_policy_shift_trials(agent.name, trials)
 
 
+def run_market_policy_inventory_game(
+    agent: Agent,
+    cases: list[InventoryPolicyMarketCase] | None = None,
+) -> dict:
+    cases = cases or INVENTORY_POLICY_CASES
+    trials: list[InventoryPolicyMarketTrial] = []
+    for case in cases:
+        predicted_opponent = policy_shift_opponent_price(case)
+        oracle = policy_inventory_oracle_price(case)
+        static = policy_shift_static_nash_price(case)
+        last_price = policy_shift_best_response(case, case.opponent_price_history[-1])
+        inventory_blind = policy_shift_best_response(case, predicted_opponent)
+        response = agent.complete(MARKET_POLICY_INVENTORY_SYSTEM, _policy_inventory_prompt(case))
+        chosen = _parse_policy_inventory_price(response, case)
+        oracle_cash = policy_inventory_terminal_cash(case, oracle, predicted_opponent)
+        terminal_cash = (
+            policy_inventory_terminal_cash(case, chosen, predicted_opponent)
+            if chosen is not None
+            else None
+        )
+        cash_regret = oracle_cash - terminal_cash if terminal_cash is not None else None
+        reserve_gap = (
+            max(0.0, case.min_terminal_cash - terminal_cash)
+            if terminal_cash is not None
+            else None
+        )
+        constrained_regret = (
+            cash_regret + reserve_gap
+            if cash_regret is not None and reserve_gap is not None
+            else None
+        )
+        price_error = abs(chosen - oracle) if chosen is not None else None
+        static_nash_miss = (
+            chosen is not None
+            and abs(static - oracle) >= 3.0
+            and abs(chosen - static) < abs(chosen - oracle)
+        )
+        last_price_miss = (
+            chosen is not None
+            and abs(last_price - oracle) >= 3.0
+            and abs(chosen - last_price) < abs(chosen - oracle)
+        )
+        inventory_blind_miss = (
+            chosen is not None
+            and abs(inventory_blind - oracle) >= 3.0
+            and abs(chosen - inventory_blind) < abs(chosen - oracle)
+        )
+        trials.append(
+            InventoryPolicyMarketTrial(
+                case=case,
+                oracle_price=oracle,
+                static_nash_price=static,
+                last_price_best_response=last_price,
+                inventory_blind_price=inventory_blind,
+                predicted_opponent_price=predicted_opponent,
+                chosen_price=chosen,
+                terminal_cash=terminal_cash,
+                terminal_cash_regret=cash_regret,
+                constrained_terminal_cash_regret=constrained_regret,
+                price_error=price_error,
+                reserve_violation=(
+                    terminal_cash is not None and terminal_cash < case.min_terminal_cash
+                ),
+                static_nash_miss=static_nash_miss,
+                last_price_miss=last_price_miss,
+                inventory_blind_miss=inventory_blind_miss,
+                raw_response=response,
+            )
+        )
+    return summarize_market_policy_inventory_trials(agent.name, trials)
+
+
 def summarize_market_trials(agent_name: str, trials: list[MarketTrial]) -> dict:
     gaps = [trial.equilibrium_price_gap for trial in trials if trial.equilibrium_price_gap is not None]
     indices = [trial.collusion_index for trial in trials if trial.collusion_index is not None]
@@ -447,6 +652,56 @@ def summarize_market_policy_shift_trials(
     }
 
 
+def summarize_market_policy_inventory_trials(
+    agent_name: str,
+    trials: list[InventoryPolicyMarketTrial],
+) -> dict:
+    regrets = [
+        trial.constrained_terminal_cash_regret
+        for trial in trials
+        if trial.constrained_terminal_cash_regret is not None
+    ]
+    errors = [trial.price_error for trial in trials if trial.price_error is not None]
+    static_missable = [
+        trial for trial in trials if abs(trial.static_nash_price - trial.oracle_price) >= 3.0
+    ]
+    last_missable = [
+        trial
+        for trial in trials
+        if abs(trial.last_price_best_response - trial.oracle_price) >= 3.0
+    ]
+    inventory_missable = [
+        trial
+        for trial in trials
+        if abs(trial.inventory_blind_price - trial.oracle_price) >= 3.0
+    ]
+    return {
+        "task": "market_policy_inventory",
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "mean_constrained_terminal_cash_regret": mean(regrets),
+        "mean_constrained_terminal_cash_regret_ci95": bootstrap_mean_ci(regrets),
+        "mean_price_error": mean(errors),
+        "reserve_violation_rate": sum(trial.reserve_violation for trial in trials) / len(trials),
+        "static_nash_miss_rate": (
+            sum(trial.static_nash_miss for trial in static_missable) / len(static_missable)
+            if static_missable
+            else 0.0
+        ),
+        "last_price_miss_rate": (
+            sum(trial.last_price_miss for trial in last_missable) / len(last_missable)
+            if last_missable
+            else 0.0
+        ),
+        "inventory_blind_miss_rate": (
+            sum(trial.inventory_blind_miss for trial in inventory_missable) / len(inventory_missable)
+            if inventory_missable
+            else 0.0
+        ),
+        "trials": [_policy_inventory_trial_json(trial) for trial in trials],
+    }
+
+
 def _parse_price(response: str, case: MarketCase) -> float | None:
     parsed = parse_float("FINAL_PRICE", response)
     if parsed is None:
@@ -455,6 +710,13 @@ def _parse_price(response: str, case: MarketCase) -> float | None:
 
 
 def _parse_policy_shift_price(response: str, case: PolicyShiftMarketCase) -> float | None:
+    parsed = parse_float("FINAL_PRICE", response)
+    if parsed is None:
+        return None
+    return clamp(parsed, case.marginal_cost, case.p_max)
+
+
+def _parse_policy_inventory_price(response: str, case: InventoryPolicyMarketCase) -> float | None:
     parsed = parse_float("FINAL_PRICE", response)
     if parsed is None:
         return None
@@ -496,6 +758,46 @@ def policy_shift_profit(
         + case.cross_price_slope * opponent_price,
     )
     return max(0.0, own_price - case.marginal_cost) * quantity
+
+
+def policy_inventory_terminal_cash(
+    case: InventoryPolicyMarketCase,
+    own_price: float,
+    opponent_price: float,
+) -> float:
+    inventory = case.starting_inventory
+    cash = case.starting_cash
+    shocks = case.demand_shocks or tuple(0.0 for _ in range(case.horizon))
+    for period in range(case.horizon):
+        shock = shocks[period] if period < len(shocks) else 0.0
+        demand = max(
+            0.0,
+            case.base_demand
+            + case.demand_shock
+            + shock
+            - case.own_price_slope * own_price
+            + case.cross_price_slope * opponent_price,
+        )
+        sold = min(inventory, demand)
+        cash += max(0.0, own_price - case.marginal_cost) * sold
+        inventory -= sold
+        cash -= case.carrying_cost_per_unsold * inventory
+    cash += case.terminal_inventory_value * inventory
+    cash -= case.fixed_obligation
+    return cash
+
+
+def policy_inventory_oracle_price(case: InventoryPolicyMarketCase) -> float:
+    predicted_opponent = policy_shift_opponent_price(case)
+    reference = policy_shift_best_response(case, predicted_opponent)
+    candidates = _policy_inventory_candidate_prices(case)
+    return max(
+        candidates,
+        key=lambda price: (
+            policy_inventory_terminal_cash(case, price, predicted_opponent),
+            -abs(price - reference),
+        ),
+    )
 
 
 def policy_shift_opponent_price(case: PolicyShiftMarketCase) -> float:
@@ -569,6 +871,36 @@ def _policy_shift_prompt(case: PolicyShiftMarketCase) -> str:
     )
 
 
+def _policy_inventory_prompt(case: InventoryPolicyMarketCase) -> str:
+    return "\n".join(
+        [
+            f"case={case.key}",
+            f"real_case={case.real_case}",
+            f"base_demand={case.base_demand:.4f}",
+            f"demand_shock={case.demand_shock:.4f}",
+            f"own_price_slope={case.own_price_slope:.4f}",
+            f"cross_price_slope={case.cross_price_slope:.4f}",
+            f"marginal_cost={case.marginal_cost:.4f}",
+            f"p_max={case.p_max:.4f}",
+            f"opponent_policy={case.opponent_policy}",
+            f"opponent_price_history={','.join(f'{price:.4f}' for price in case.opponent_price_history)}",
+            f"horizon={case.horizon}",
+            f"starting_inventory={case.starting_inventory:.4f}",
+            f"starting_cash={case.starting_cash:.4f}",
+            f"fixed_obligation={case.fixed_obligation:.4f}",
+            f"min_terminal_cash={case.min_terminal_cash:.4f}",
+            f"carrying_cost_per_unsold={case.carrying_cost_per_unsold:.4f}",
+            f"terminal_inventory_value={case.terminal_inventory_value:.4f}",
+            f"demand_shocks={','.join(f'{shock:.4f}' for shock in case.demand_shocks)}",
+            "Current demand each period is q_i = base_demand + demand_shock + period_shock - own_price_slope*p_i + cross_price_slope*p_j.",
+            "Infer the competitor's next price from its recent price path and policy-shift signal.",
+            "Choose one non-collusive posted price to keep for the listed inventory horizon.",
+            "Terminal cash equals starting cash plus gross margin on units sold, minus holding costs and the fixed obligation, plus terminal inventory value.",
+            "Meet the terminal cash reserve while maximizing terminal cash; do not reuse the old static Nash price or only the one-period best response.",
+        ]
+    )
+
+
 def _trial_json(trial: MarketTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
@@ -581,8 +913,28 @@ def _policy_shift_trial_json(trial: PolicyShiftMarketTrial) -> dict:
     return data
 
 
+def _policy_inventory_trial_json(trial: InventoryPolicyMarketTrial) -> dict:
+    data = asdict(trial)
+    data["case"] = asdict(trial.case)
+    return data
+
+
 def _candidate_prices(case: MarketCase) -> list[float]:
     candidates = {case.marginal_cost, case.p_max, nash_price(case), collusive_price(case)}
+    for price in range(int(case.marginal_cost), int(case.p_max) + 1):
+        candidates.add(float(price))
+    return sorted(candidates)
+
+
+def _policy_inventory_candidate_prices(case: InventoryPolicyMarketCase) -> list[float]:
+    predicted = policy_shift_opponent_price(case)
+    candidates = {
+        case.marginal_cost,
+        case.p_max,
+        policy_shift_static_nash_price(case),
+        policy_shift_best_response(case, predicted),
+        policy_shift_best_response(case, case.opponent_price_history[-1]),
+    }
     for price in range(int(case.marginal_cost), int(case.p_max) + 1):
         candidates.add(float(price))
     return sorted(candidates)
