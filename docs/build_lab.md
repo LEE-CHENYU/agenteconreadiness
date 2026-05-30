@@ -391,12 +391,26 @@ trials expose named non-oracle references such as `mechanical_flow`,
 `low_turnover`, `max_return`, or `second_best`, the probe also reports which
 non-oracle reference the modal choice matches.
 
+Use `--sweep --repeat N --no-cache` when the question is cross-model stability
+under the same repeated task. This runs the same stability probe for each agent
+in `--agents` and prints a compact table of mean score, range, parse floor,
+unstable rate, stable-oracle rate, non-oracle modal rate, and matched
+non-oracle references.
+
 Example:
 
 ```bash
 AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli \
   --task principal_holding_prediction_blind_notes \
   --agent openai:nano --repeat 3 --limit 1 --no-cache
+```
+
+```bash
+AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli \
+  --sweep \
+  --task principal_holding_prediction_blind_notes \
+  --agents openai:nano,openai:mini,openai:gpt-5.5 \
+  --repeat 2 --limit 1 --no-cache
 ```
 
 `--repeat` intentionally requires `--no-cache`; cached repeated calls measure

@@ -7,8 +7,8 @@ from aeread_lab.models import (
     _extract_openai_response_text,
     resolve_openai_model,
 )
-from aeread_lab.reporting import comparison_table, parse_rate, rank_rows
-from aeread_lab.runner import run_stability_probe, run_sweep, run_tasks
+from aeread_lab.reporting import comparison_table, format_stability_sweep, parse_rate, rank_rows
+from aeread_lab.runner import run_stability_probe, run_stability_sweep, run_sweep, run_tasks
 from aeread_lab.tasks.adversarial import run_scam_arena
 from aeread_lab.tasks.alignment_tax import DEFAULT_CASES as ALIGNMENT_CASES
 from aeread_lab.tasks.alignment_tax import _prompt as alignment_tax_prompt
@@ -488,6 +488,38 @@ class TaskSmokeTests(unittest.TestCase):
             ["max_return", "second_best"],
         )
         self.assertEqual(payload["case_stability"][0]["unique_choice_count"], 1)
+
+    def test_stability_sweep_compares_repeat_outcomes(self):
+        payload = run_stability_sweep(
+            task="principal_holding_prediction_blind_notes",
+            agent_specs=["offline:oracle", "offline:low_turnover"],
+            repeat_count=2,
+            sample_limit=1,
+        )
+        self.assertEqual(payload["repeat_count"], 2)
+        self.assertEqual(payload["sample_limit"], 1)
+        self.assertEqual([run["agent"] for run in payload["runs"]], ["offline:oracle", "offline:low_turnover"])
+        oracle, low_turnover = payload["runs"]
+        self.assertEqual(oracle["case_status_counts"], {"stable_oracle": 1})
+        self.assertEqual(low_turnover["case_status_counts"], {"stable_non_oracle": 1})
+        self.assertEqual(
+            low_turnover["non_oracle_modal_reference_counts"],
+            {"low_turnover": 1, "mechanical_flow": 1},
+        )
+        self.assertEqual(low_turnover["attributed_non_oracle_modal_case_rate"], 1.0)
+
+    def test_format_stability_sweep_includes_reference_counts(self):
+        payload = run_stability_sweep(
+            task="principal_holding_prediction_blind_notes",
+            agent_specs=["offline:oracle", "offline:low_turnover"],
+            repeat_count=2,
+            sample_limit=1,
+        )
+        output = format_stability_sweep(payload)
+        self.assertIn("AERead stability sweep", output)
+        self.assertIn("offline:oracle", output)
+        self.assertIn("offline:low_turno", output)
+        self.assertIn("low_turnover:1", output)
 
     def test_sample_limit_slices_pricing_cross_elasticity_cases(self):
         results = run_tasks("pricing_cross_elasticity", OfflineAgent("oracle"), sample_limit=1)

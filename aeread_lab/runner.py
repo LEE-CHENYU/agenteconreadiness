@@ -471,6 +471,40 @@ def run_sweep(
     return {"task": task, "agents": specs, "sample_limit": limit, "runs": runs}
 
 
+def run_stability_sweep(
+    *,
+    task: str,
+    agent_specs: Iterable[str],
+    attacker_spec: str = "offline:credulous",
+    repeat_count: int = 3,
+    sample_limit: int | None = None,
+) -> dict[str, Any]:
+    if repeat_count < 1:
+        raise ValueError("repeat_count must be positive")
+    if task == "all":
+        raise ValueError("stability sweeps require one explicit task")
+    limit = _normalize_sample_limit(sample_limit)
+    attacker = build_agent(attacker_spec)
+    specs = list(agent_specs)
+    runs = [
+        run_stability_probe(
+            task=task,
+            agent=build_agent(spec),
+            attacker=attacker,
+            repeat_count=repeat_count,
+            sample_limit=limit,
+        )
+        for spec in specs
+    ]
+    return {
+        "task": task,
+        "agents": specs,
+        "repeat_count": repeat_count,
+        "sample_limit": limit,
+        "runs": runs,
+    }
+
+
 def run_stability_probe(
     *,
     task: str,

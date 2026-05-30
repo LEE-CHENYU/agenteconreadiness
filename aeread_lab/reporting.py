@@ -180,6 +180,75 @@ def format_sweep(sweep: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def stability_sweep_table(sweep: dict[str, Any]) -> list[dict[str, Any]]:
+    rows = []
+    for run in sweep["runs"]:
+        rows.append(
+            {
+                "agent": run["agent"],
+                "primary_metric": run["primary_metric"],
+                "direction": run["direction"],
+                "primary_mean": run.get("primary_mean"),
+                "primary_range": run.get("primary_range"),
+                "parse_rate_min": run.get("parse_rate_min"),
+                "accuracy_mean": run.get("accuracy_mean"),
+                "unstable_case_rate": run.get("unstable_case_rate"),
+                "stable_oracle_case_rate": run.get("stable_oracle_case_rate"),
+                "non_oracle_modal_case_rate": _sum_optional_rates(
+                    run.get("stable_non_oracle_case_rate"),
+                    run.get("unstable_non_oracle_modal_case_rate"),
+                ),
+                "unstable_non_oracle_modal_case_rate": run.get(
+                    "unstable_non_oracle_modal_case_rate"
+                ),
+                "modal_reference_counts": run.get("non_oracle_modal_reference_counts") or {},
+            }
+        )
+    if not rows:
+        return rows
+    direction = rows[0]["direction"]
+    present = [row for row in rows if row["primary_mean"] is not None]
+    missing = [row for row in rows if row["primary_mean"] is None]
+    present.sort(key=lambda row: row["primary_mean"], reverse=direction == "higher")
+    ordered = present + missing
+    return [{**row, "rank": idx} for idx, row in enumerate(ordered, start=1)]
+
+
+def format_stability_sweep(sweep: dict[str, Any]) -> str:
+    limit = sweep.get("sample_limit")
+    limit_text = "" if limit is None else f" sample_limit={limit}"
+    rows = stability_sweep_table(sweep)
+    lines = [
+        (
+            f"AERead stability sweep: task={sweep['task']} "
+            f"agents={', '.join(sweep['agents'])} repeats={sweep['repeat_count']}{limit_text}"
+        ),
+        "=" * 112,
+        (
+            f"{'rank':>4} {'agent':<18} {'metric':<24} {'mean':>10} {'range':>10} "
+            f"{'parse_min':>9} {'acc_mean':>9} {'unstable':>9} {'stable_oracle':>13} "
+            f"{'non_oracle':>11} {'refs':<18}"
+        ),
+        "-" * 112,
+    ]
+    for row in rows:
+        refs = ", ".join(
+            f"{reference}:{count}"
+            for reference, count in sorted(row["modal_reference_counts"].items())
+        )
+        lines.append(
+            f"{row['rank']:>4} {row['agent']:<18.18} {row['primary_metric']:<24.24} "
+            f"{_fmt(row['primary_mean']):>10} {_fmt(row['primary_range']):>10} "
+            f"{_fmt(row['parse_rate_min']):>9} {_fmt(row['accuracy_mean']):>9} "
+            f"{_fmt(row['unstable_case_rate']):>9} "
+            f"{_fmt(row['stable_oracle_case_rate']):>13} "
+            f"{_fmt(row['non_oracle_modal_case_rate']):>11} "
+            f"{refs:<18.18}"
+        )
+    lines.append("=" * 112)
+    return "\n".join(lines)
+
+
 def format_stability(stability: dict[str, Any]) -> str:
     limit = stability.get("sample_limit")
     limit_text = "" if limit is None else f" sample_limit={limit}"
@@ -276,3 +345,10 @@ def _fmt(value: Any) -> str:
     if isinstance(value, (int, float)):
         return f"{value:.6g}"
     return str(value)
+
+
+def _sum_optional_rates(*values: Any) -> float | None:
+    present = [value for value in values if isinstance(value, (int, float))]
+    if not present:
+        return None
+    return sum(present)
