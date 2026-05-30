@@ -24,7 +24,7 @@ only.
 | `moral_hazard` | Hidden-action contract design: choose incentive contracts that actually induce effort instead of assuming first-best effort for free. | `python -m aeread_lab.cli --task moral_hazard --agent offline:oracle` |
 | `auction` | Mechanism-design reserve task: Myerson revenue reserve vs welfare/access reserves under configured objectives. | `python -m aeread_lab.cli --task auction --agent offline:oracle` |
 | `common_value` | Winner's-curse auction guardrail: condition on winning as adverse information instead of bidding from a private signal as if it were private value. Live smoke: smaller OpenAI models miss; `gpt-5.5` solves. | `python -m aeread_lab.cli --task common_value --agent offline:oracle` |
-| `mechanism` | Mechanism-choice task: choose among auction/allocation rules using configured principal weights and strategic-risk penalties. | `python -m aeread_lab.cli --task mechanism --agent offline:oracle` |
+| `mechanism` | Mechanism-choice task: choose among auction/allocation rules using configured principal weights, strategic-risk penalties, and incentive-compatibility checks. | `python -m aeread_lab.cli --task mechanism --agent offline:oracle` |
 | `strategic_drift` | γ-Bench-style repeated strategic discipline: preserve long-horizon relationship value instead of drifting to myopic grabs. | `python -m aeread_lab.cli --task strategic_drift --agent offline:oracle` |
 | `exploration` | EconEvals-style unknown-environment learning: decide when information value justifies a pilot before deployment. | `python -m aeread_lab.cli --task exploration --agent offline:oracle` |
 | `experiment_design` | Imperfect-signal experiment design: choose whether and how to run a noisy experiment before deployment, then update by Bayes rule. | `python -m aeread_lab.cli --task experiment_design --agent offline:oracle` |
@@ -97,8 +97,8 @@ interpreting the economic metric.
   oracle is better.
 - `common_value`: lower expected-profit regret is better; winner's-curse miss
   and negative-profit rates are reported separately.
-- `mechanism`: lower configured score regret is better; revenue-default and
-  risk-blind miss rates are reported separately.
+- `mechanism`: lower configured score regret is better; revenue-default,
+  risk-blind, and IC-blind miss rates are reported separately.
 - `strategic_drift`: lower long-horizon drift rate is better.
 - `exploration`: lower expected-value gap is better; exploration miss rate is
   reported separately.
@@ -151,10 +151,8 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    smokes show parse stability but no separation.
 2. Replace the stylized revealed-allocation traces with real 13F-style
    holdings-derived traces once a clean data source is selected.
-3. Broaden `mechanism` from scored static choices to equilibrium simulation
-   and incentive-compatibility probes.
-4. Expand `market` from symmetric price competition to inventory, capital
+3. Expand `market` from symmetric price competition to inventory, capital
    appreciation, and multi-period survival.
-5. Broaden `retail` into multi-period inventory and supplier-scam variants.
-6. Broaden `strategic_drift` into imperfect-information and N-player games.
-7. Broaden `experiment_design` into multi-step adaptive tests.
+4. Broaden `retail` into multi-period inventory and supplier-scam variants.
+5. Broaden `strategic_drift` into imperfect-information and N-player games.
+6. Broaden `experiment_design` into multi-step adaptive tests.

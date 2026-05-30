@@ -242,7 +242,9 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"{_fmt(result['mean_score_regret'])} "
                 f"ci95={_fmt_ci(result.get('mean_score_regret_ci95'))} "
                 f"revenue_miss={result['revenue_default_miss_rate']:.2f} "
-                f"risk_blind_miss={result['risk_blind_miss_rate']:.2f}"
+                f"risk_blind_miss={result['risk_blind_miss_rate']:.2f} "
+                f"ic_blind_miss={result.get('ic_blind_miss_rate', 0.0):.2f} "
+                f"ic_violation={_fmt(result.get('mean_incentive_violation'))}"
             )
         elif task == "strategic_drift":
             print(

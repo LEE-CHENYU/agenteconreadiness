@@ -376,7 +376,8 @@ class OfflineAgent:
             mechanism_id = max(mechanisms, key=lambda item: mechanisms[item]["access"])
         else:
             risk_blind = self.policy in {"risk_blind", "strategy_blind"}
-            mechanism_id = _best_mechanism_choice(user, mechanisms, risk_blind=risk_blind)
+            ic_blind = self.policy in {"ic_blind", "incentive_blind"}
+            mechanism_id = _best_mechanism_choice(user, mechanisms, risk_blind=risk_blind, ic_blind=ic_blind)
         return f"FINAL_MECHANISM: {mechanism_id}"
 
     def _matching_choice(self, user: str) -> str:
@@ -1253,7 +1254,23 @@ def _extract_mechanisms(text: str) -> dict[str, dict[str, float]]:
             "welfare": float(match.group(3)),
             "access": float(match.group(4)),
             "strategic_risk": float(match.group(5)),
+            "incentive_violation": 0.0,
         }
+    ic_pattern = re.compile(
+        r"ic_check mechanism_id=([a-zA-Z0-9_-]+)\s+"
+        r"type_id=[a-zA-Z0-9_-]+\s+"
+        r"probability=([-+]?\d+(?:\.\d+)?)\s+"
+        r"truthful_utility=([-+]?\d+(?:\.\d+)?)\s+"
+        r"best_deviation_utility=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in ic_pattern.finditer(text):
+        mechanism_id = match.group(1)
+        if mechanism_id not in mechanisms:
+            continue
+        probability = max(0.0, float(match.group(2)))
+        truthful = float(match.group(3))
+        deviation = float(match.group(4))
+        mechanisms[mechanism_id]["incentive_violation"] += probability * max(0.0, deviation - truthful)
     return mechanisms
 
 
@@ -1262,11 +1279,13 @@ def _best_mechanism_choice(
     mechanisms: dict[str, dict[str, float]],
     *,
     risk_blind: bool,
+    ic_blind: bool = False,
 ) -> str:
     revenue_weight = _extract_float(text, "revenue_weight")
     welfare_weight = _extract_float(text, "welfare_weight")
     access_weight = _extract_float(text, "access_weight")
     risk_penalty = 0.0 if risk_blind else _extract_float(text, "strategic_risk_penalty")
+    ic_penalty = 0.0 if ic_blind else _extract_float(text, "incentive_violation_penalty")
 
     def score(mechanism_id: str) -> float:
         mechanism = mechanisms[mechanism_id]
@@ -1275,6 +1294,7 @@ def _best_mechanism_choice(
             + welfare_weight * mechanism["welfare"]
             + access_weight * mechanism["access"]
             - risk_penalty * mechanism["strategic_risk"]
+            - ic_penalty * mechanism["incentive_violation"]
         )
 
     return max(mechanisms, key=score)

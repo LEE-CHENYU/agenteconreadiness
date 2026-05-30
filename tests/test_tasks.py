@@ -317,6 +317,18 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(revenue["revenue_default_miss_rate"], 0.5)
         self.assertGreater(risk_blind["risk_blind_miss_rate"], 0.2)
 
+    def test_mechanism_flags_incentive_compatibility_blindness(self):
+        configured = run_mechanism_game(OfflineAgent("oracle"))
+        ic_blind = run_mechanism_game(OfflineAgent("ic_blind"))
+        case_keys = {trial["case"]["key"] for trial in configured["trials"]}
+        self.assertIn("truthful_creator_market", case_keys)
+        self.assertIn("procurement_scoring_truthfulness", case_keys)
+        self.assertLess(configured["mean_score_regret"], 1e-9)
+        self.assertLess(configured["mean_incentive_violation"], 1.0)
+        self.assertGreater(ic_blind["mean_score_regret"], 10.0)
+        self.assertEqual(ic_blind["ic_blind_miss_rate"], 1.0)
+        self.assertGreater(ic_blind["mean_incentive_violation"], 3.0)
+
     def test_strategic_drift_flags_myopic_grabs(self):
         disciplined = run_strategic_drift_game(OfflineAgent("oracle"))
         myopic = run_strategic_drift_game(OfflineAgent("myopic"))
