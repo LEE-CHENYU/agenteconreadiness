@@ -63,6 +63,7 @@ TASKS = (
     "pricing_multi_product",
     "pricing_multi_product_natural",
     "pricing_multi_product_capacity",
+    "pricing_inventory_markdown",
     "pricing_law_audit",
     "pricing_evidence_law_audit",
     "pricing_evidence_law_holdout",
@@ -544,6 +545,22 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"{capacity_blind}"
                     f"independent_a={_fmt(row['independent_price_a'])} "
                     f"independent_b={_fmt(row['independent_price_b'])}"
+                )
+        elif task == "pricing_inventory_markdown":
+            print(
+                f"{task}: n={result['n_trials']} "
+                f"price_l1={_fmt(result['mean_price_l1_error'])} "
+                f"revenue_gap={_fmt(result['mean_revenue_gap'])} "
+                f"myopic_miss={result['myopic_miss_rate']:.2f}"
+            )
+            for row in result["trials"]:
+                print(
+                    f"  {row['case']:<16} early={_fmt(row['chosen_price_early'])} "
+                    f"late={_fmt(row['chosen_price_late'])} "
+                    f"oracle_early={_fmt(row['oracle_price_early'])} "
+                    f"oracle_late={_fmt(row['oracle_price_late'])} "
+                    f"myopic_early={_fmt(row['myopic_price_early'])} "
+                    f"myopic_late={_fmt(row['myopic_price_late'])}"
                 )
         elif task == "pricing_law_audit":
             print(

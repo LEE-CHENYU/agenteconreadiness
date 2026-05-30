@@ -35,6 +35,12 @@ PRICING_MULTI_CAPACITY_SYSTEM = (
     "FINAL_PRICE_A: <number> and FINAL_PRICE_B: <number>."
 )
 
+PRICING_INVENTORY_MARKDOWN_SYSTEM = (
+    "TASK: pricing_inventory_markdown_prices\n"
+    "Choose early and late campaign prices for one shared inventory pool. Return two final lines only: "
+    "FINAL_PRICE_EARLY: <number> and FINAL_PRICE_LATE: <number>."
+)
+
 PRICING_LAW_SYSTEM = (
     "TASK: pricing_law_label\n"
     "You are verifying a proposed comparative-static claim about the revenue-maximizing price. "
@@ -91,6 +97,17 @@ class PricingMultiProductCapacityCase:
     p_max_b: float
     inventory_a: float
     inventory_b: float
+    observations: tuple[tuple[float, float, float, float], ...]
+    scenario_note: str = ""
+
+
+@dataclass(frozen=True)
+class PricingInventoryMarkdownCase:
+    key: str
+    p_max_early: float
+    p_max_late: float
+    inventory: float
+    salvage_value: float
     observations: tuple[tuple[float, float, float, float], ...]
     scenario_note: str = ""
 
@@ -185,6 +202,26 @@ def _multi_product_observations(
             round(max(0.0, alpha_b - own_beta_b * b_ratio * p_max_b + cross_ba * a_ratio * p_max_a), 2),
         )
         for a_ratio, b_ratio in pairs
+    )
+
+
+def _markdown_observations(
+    early_alpha: float,
+    early_beta: float,
+    late_alpha: float,
+    late_beta: float,
+    p_max_early: float,
+    p_max_late: float,
+) -> tuple[tuple[float, float, float, float], ...]:
+    pairs = ((0.24, 0.30), (0.36, 0.42), (0.48, 0.54), (0.60, 0.66), (0.72, 0.78), (0.84, 0.90))
+    return tuple(
+        (
+            round(early_ratio * p_max_early, 2),
+            round(max(0.0, early_alpha - early_beta * early_ratio * p_max_early), 2),
+            round(late_ratio * p_max_late, 2),
+            round(max(0.0, late_alpha - late_beta * late_ratio * p_max_late), 2),
+        )
+        for early_ratio, late_ratio in pairs
     )
 
 
@@ -330,6 +367,58 @@ MULTI_PRODUCT_CAPACITY_CASES = [
             "A high-demand complement bundle has limited sellable units for each product."
         ),
         observations=MULTI_PRODUCT_CASES[3].observations,
+    ),
+]
+
+
+INVENTORY_MARKDOWN_CASES = [
+    PricingInventoryMarkdownCase(
+        key="markdown_case_01",
+        p_max_early=60.0,
+        p_max_late=55.0,
+        inventory=85.0,
+        salvage_value=4.0,
+        scenario_note=(
+            "The launch window has strong volume, but holding some units for the later "
+            "campaign can be valuable because late buyers are less price-sensitive."
+        ),
+        observations=_markdown_observations(170.0, 3.2, 150.0, 2.0, 60.0, 55.0),
+    ),
+    PricingInventoryMarkdownCase(
+        key="markdown_case_02",
+        p_max_early=58.0,
+        p_max_late=60.0,
+        inventory=70.0,
+        salvage_value=5.0,
+        scenario_note=(
+            "The early list can clear stock quickly, but the follow-up channel has a "
+            "higher willingness to pay if inventory remains."
+        ),
+        observations=_markdown_observations(130.0, 2.4, 200.0, 3.0, 58.0, 60.0),
+    ),
+    PricingInventoryMarkdownCase(
+        key="markdown_case_03",
+        p_max_early=65.0,
+        p_max_late=62.0,
+        inventory=120.0,
+        salvage_value=6.0,
+        scenario_note=(
+            "Early demand is broad, while the late campaign is smaller but more profitable "
+            "per unit when stock is preserved."
+        ),
+        observations=_markdown_observations(260.0, 4.4, 210.0, 3.0, 65.0, 62.0),
+    ),
+    PricingInventoryMarkdownCase(
+        key="markdown_case_04",
+        p_max_early=70.0,
+        p_max_late=68.0,
+        inventory=95.0,
+        salvage_value=3.0,
+        scenario_note=(
+            "A fast early channel competes with a scarce late allocation; unsold units "
+            "can be liquidated only at low salvage value."
+        ),
+        observations=_markdown_observations(180.0, 2.8, 130.0, 1.6, 70.0, 68.0),
     ),
 ]
 
@@ -819,6 +908,49 @@ def multi_product_capacity_independent_prices(case: PricingMultiProductCapacityC
     return multi_product_independent_prices(_capacity_base_case(case))
 
 
+def inventory_markdown_posterior(case: PricingInventoryMarkdownCase) -> tuple[float, float, float, float]:
+    early_alpha, early_beta = _ols_fit([(price, units) for price, units, _, _ in case.observations])
+    late_alpha, late_beta = _ols_fit([(price, units) for _, _, price, units in case.observations])
+    return early_alpha, early_beta, late_alpha, late_beta
+
+
+def inventory_markdown_revenue(
+    case: PricingInventoryMarkdownCase,
+    price_early: float,
+    price_late: float,
+) -> float:
+    early_alpha, early_beta, late_alpha, late_beta = inventory_markdown_posterior(case)
+    early_demand = max(0.0, early_alpha - early_beta * price_early)
+    early_sold = min(early_demand, case.inventory)
+    remaining = max(0.0, case.inventory - early_sold)
+    late_demand = max(0.0, late_alpha - late_beta * price_late)
+    late_sold = min(late_demand, remaining)
+    unsold = max(0.0, remaining - late_sold)
+    return price_early * early_sold + price_late * late_sold + case.salvage_value * unsold
+
+
+def inventory_markdown_oracle_prices(case: PricingInventoryMarkdownCase) -> tuple[float, float]:
+    early_alpha, early_beta, late_alpha, late_beta = inventory_markdown_posterior(case)
+    return _best_inventory_markdown_prices(
+        early_alpha=early_alpha,
+        early_beta=early_beta,
+        late_alpha=late_alpha,
+        late_beta=late_beta,
+        p_max_early=case.p_max_early,
+        p_max_late=case.p_max_late,
+        inventory=case.inventory,
+        salvage_value=case.salvage_value,
+    )
+
+
+def inventory_markdown_myopic_prices(case: PricingInventoryMarkdownCase) -> tuple[float, float]:
+    early_alpha, early_beta, late_alpha, late_beta = inventory_markdown_posterior(case)
+    return (
+        clamp(early_alpha / (2.0 * early_beta), 0.0, case.p_max_early),
+        clamp(late_alpha / (2.0 * late_beta), 0.0, case.p_max_late),
+    )
+
+
 def _best_multi_product_prices(
     *,
     alpha_a: float,
@@ -889,6 +1021,35 @@ def _best_multi_product_capacity_prices(
             if value > best_value:
                 best_value = value
                 best_pair = (price_a, price_b)
+    return best_pair
+
+
+def _best_inventory_markdown_prices(
+    *,
+    early_alpha: float,
+    early_beta: float,
+    late_alpha: float,
+    late_beta: float,
+    p_max_early: float,
+    p_max_late: float,
+    inventory: float,
+    salvage_value: float,
+) -> tuple[float, float]:
+    step = 0.25
+    best_pair = (0.0, 0.0)
+    best_value = -1.0
+    for price_early in _price_grid(p_max_early, step):
+        for price_late in _price_grid(p_max_late, step):
+            early_demand = max(0.0, early_alpha - early_beta * price_early)
+            early_sold = min(early_demand, inventory)
+            remaining = max(0.0, inventory - early_sold)
+            late_demand = max(0.0, late_alpha - late_beta * price_late)
+            late_sold = min(late_demand, remaining)
+            unsold = max(0.0, remaining - late_sold)
+            value = price_early * early_sold + price_late * late_sold + salvage_value * unsold
+            if value > best_value:
+                best_value = value
+                best_pair = (price_early, price_late)
     return best_pair
 
 
@@ -1253,6 +1414,74 @@ def run_pricing_multi_product_capacity_game(
     }
 
 
+def run_pricing_inventory_markdown_game(
+    agent: Agent,
+    cases: list[PricingInventoryMarkdownCase] | None = None,
+) -> dict:
+    cases = cases or INVENTORY_MARKDOWN_CASES
+    rows = []
+    for case in cases:
+        oracle_early, oracle_late = inventory_markdown_oracle_prices(case)
+        myopic_early, myopic_late = inventory_markdown_myopic_prices(case)
+        oracle_rev = inventory_markdown_revenue(case, oracle_early, oracle_late)
+        response = agent.complete(PRICING_INVENTORY_MARKDOWN_SYSTEM, _inventory_markdown_prompt(case))
+        parsed_early = parse_float("FINAL_PRICE_EARLY", response)
+        parsed_late = parse_float("FINAL_PRICE_LATE", response)
+        chosen_early = clamp(parsed_early, 0.0, case.p_max_early) if parsed_early is not None else None
+        chosen_late = clamp(parsed_late, 0.0, case.p_max_late) if parsed_late is not None else None
+        revenue = (
+            inventory_markdown_revenue(case, chosen_early, chosen_late)
+            if chosen_early is not None and chosen_late is not None
+            else None
+        )
+        price_l1 = (
+            abs(chosen_early - oracle_early) + abs(chosen_late - oracle_late)
+            if chosen_early is not None and chosen_late is not None
+            else None
+        )
+        myopic_l1 = abs(myopic_early - oracle_early) + abs(myopic_late - oracle_late)
+        rows.append(
+            {
+                "case": case.key,
+                "oracle_price_early": oracle_early,
+                "oracle_price_late": oracle_late,
+                "myopic_price_early": myopic_early,
+                "myopic_price_late": myopic_late,
+                "chosen_price_early": chosen_early,
+                "chosen_price_late": chosen_late,
+                "price_l1_error": price_l1,
+                "oracle_revenue": oracle_rev,
+                "chosen_revenue": revenue,
+                "revenue_gap": oracle_rev - revenue if revenue is not None else None,
+                "myopic_miss": (
+                    chosen_early is not None
+                    and chosen_late is not None
+                    and abs(chosen_early - myopic_early) + abs(chosen_late - myopic_late) < 1.5
+                    and myopic_l1 > 5.0
+                ),
+                "raw_response": response,
+            }
+        )
+    errors = [row["price_l1_error"] for row in rows if row["price_l1_error"] is not None]
+    gaps = [row["revenue_gap"] for row in rows if row["revenue_gap"] is not None]
+    parsed = [
+        row
+        for row in rows
+        if row["chosen_price_early"] is not None and row["chosen_price_late"] is not None
+    ]
+    myopic_misses = sum(row["myopic_miss"] for row in rows)
+    return {
+        "task": "pricing_inventory_markdown",
+        "agent": agent.name,
+        "n_trials": len(rows),
+        "mean_price_l1_error": sum(errors) / len(errors) if errors else None,
+        "mean_revenue_gap": sum(gaps) / len(gaps) if gaps else None,
+        "parse_rate": len(parsed) / len(rows) if rows else 0.0,
+        "myopic_miss_rate": myopic_misses / len(rows) if rows else 0.0,
+        "trials": rows,
+    }
+
+
 def _run_pricing_multi_product_game(
     agent: Agent,
     *,
@@ -1588,6 +1817,32 @@ def _multi_product_capacity_prompt(case: PricingMultiProductCapacityCase) -> str
         "Use the joint sales history to set the next campaign prices for both products. "
         "Unit sales can be affected by both prices. Revenue is earned only on units available "
         "for the campaign, so demand above available units is capped by stock."
+    )
+    return "\n".join(lines)
+
+
+def _inventory_markdown_prompt(case: PricingInventoryMarkdownCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"price_ceiling_early={case.p_max_early:.2f}",
+        f"price_ceiling_late={case.p_max_late:.2f}",
+        f"starting_inventory={case.inventory:.2f}",
+        f"salvage_value={case.salvage_value:.2f}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note)
+    lines.append("Prior campaign outcome rows:")
+    lines.extend(
+        (
+            f"  row={idx} early_price={early_price:.2f}, early_units={early_units:.2f}, "
+            f"late_price={late_price:.2f}, late_units={late_units:.2f}"
+        )
+        for idx, (early_price, early_units, late_price, late_units) in enumerate(case.observations, start=1)
+    )
+    lines.append(
+        "Set one launch-window price and one later markdown-window price for the same starting inventory. "
+        "Units sold early reduce the units available later; unsold units after the late window receive only "
+        "the salvage value."
     )
     return "\n".join(lines)
 

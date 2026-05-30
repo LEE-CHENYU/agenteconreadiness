@@ -113,6 +113,8 @@ class OfflineAgent:
             return self._pricing_multi_product_prices(user)
         if "TASK: pricing_multi_product_capacity_prices" in system:
             return self._pricing_multi_product_capacity_prices(user)
+        if "TASK: pricing_inventory_markdown_prices" in system:
+            return self._pricing_inventory_markdown_prices(user)
         if "TASK: pricing_law_label" in system:
             return self._pricing_law_label(user)
         if "TASK: pricing_evidence_law_label" in system:
@@ -479,6 +481,35 @@ class OfflineAgent:
             price_a = round(price_a / 10.0) * 10.0
             price_b = round(price_b / 10.0) * 10.0
         return f"FINAL_PRICE_A: {price_a:.2f}\nFINAL_PRICE_B: {price_b:.2f}"
+
+    def _pricing_inventory_markdown_prices(self, user: str) -> str:
+        p_max_early = _extract_float(user, "p_max_early", _extract_float(user, "price_ceiling_early", 1e9))
+        p_max_late = _extract_float(user, "p_max_late", _extract_float(user, "price_ceiling_late", 1e9))
+        inventory = _extract_float(user, "starting_inventory", math.inf)
+        salvage_value = _extract_float(user, "salvage_value", 0.0)
+        rows = _extract_inventory_markdown_rows(user)
+        fit_early = _fit_pricing_rows([(price, units) for price, units, _, _ in rows])
+        fit_late = _fit_pricing_rows([(price, units) for _, _, price, units in rows])
+        early_alpha, early_beta = fit_early if fit_early is not None else (1.0, 1.0)
+        late_alpha, late_beta = fit_late if fit_late is not None else (1.0, 1.0)
+        if self.policy in {"myopic", "single_period", "inventory_blind"}:
+            price_early = max(0.0, min(p_max_early, early_alpha / (2.0 * max(early_beta, 1e-9))))
+            price_late = max(0.0, min(p_max_late, late_alpha / (2.0 * max(late_beta, 1e-9))))
+        else:
+            price_early, price_late = _best_inventory_markdown_prices(
+                early_alpha=early_alpha,
+                early_beta=early_beta,
+                late_alpha=late_alpha,
+                late_beta=late_beta,
+                p_max_early=p_max_early,
+                p_max_late=p_max_late,
+                inventory=inventory,
+                salvage_value=salvage_value,
+            )
+        if self.policy == "round":
+            price_early = round(price_early / 10.0) * 10.0
+            price_late = round(price_late / 10.0) * 10.0
+        return f"FINAL_PRICE_EARLY: {price_early:.2f}\nFINAL_PRICE_LATE: {price_late:.2f}"
 
     def _pricing_law_label(self, user: str) -> str:
         oracle = _pricing_law_label(user)
@@ -2017,6 +2048,19 @@ def _extract_multi_product_natural_rows(text: str) -> list[tuple[float, float, f
     ]
 
 
+def _extract_inventory_markdown_rows(text: str) -> list[tuple[float, float, float, float]]:
+    return [
+        (float(early_price), float(early_units), float(late_price), float(late_units))
+        for early_price, early_units, late_price, late_units in re.findall(
+            r"early_price=([-+]?\d+(?:\.\d+)?),\s+"
+            r"early_units=([-+]?\d+(?:\.\d+)?),\s+"
+            r"late_price=([-+]?\d+(?:\.\d+)?),\s+"
+            r"late_units=([-+]?\d+(?:\.\d+)?)",
+            text,
+        )
+    ]
+
+
 def _fit_pricing_rows(rows: list[tuple[float, float]]) -> tuple[float, float] | None:
     if len(rows) < 2:
         return None
@@ -2112,6 +2156,35 @@ def _best_multi_product_capacity_prices(
             if value > best_value:
                 best_value = value
                 best_pair = (price_a, price_b)
+    return best_pair
+
+
+def _best_inventory_markdown_prices(
+    *,
+    early_alpha: float,
+    early_beta: float,
+    late_alpha: float,
+    late_beta: float,
+    p_max_early: float,
+    p_max_late: float,
+    inventory: float,
+    salvage_value: float,
+) -> tuple[float, float]:
+    step = 0.25
+    best_pair = (0.0, 0.0)
+    best_value = -1.0
+    for price_early in _price_grid(p_max_early, step):
+        for price_late in _price_grid(p_max_late, step):
+            early_demand = max(0.0, early_alpha - early_beta * price_early)
+            early_sold = min(early_demand, inventory)
+            remaining = max(0.0, inventory - early_sold)
+            late_demand = max(0.0, late_alpha - late_beta * price_late)
+            late_sold = min(late_demand, remaining)
+            unsold = max(0.0, remaining - late_sold)
+            value = price_early * early_sold + price_late * late_sold + salvage_value * unsold
+            if value > best_value:
+                best_value = value
+                best_pair = (price_early, price_late)
     return best_pair
 
 
