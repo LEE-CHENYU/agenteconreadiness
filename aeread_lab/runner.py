@@ -50,6 +50,7 @@ TASK_ORDER = (
     "market_policy_inventory",
     "market_trace_inventory",
     "market_trace_markdown",
+    "market_trace_replenishment",
     "matching",
     "screening",
     "moral_hazard",
@@ -138,6 +139,10 @@ _CASE_TASKS = {
     "market_trace_markdown": (
         market_task.run_market_trace_markdown_game,
         market_task.TRACE_INVENTORY_CASES,
+    ),
+    "market_trace_replenishment": (
+        market_task.run_market_trace_replenishment_game,
+        market_task.TRACE_REPLENISHMENT_CASES,
     ),
     "matching": (matching_task.run_matching_game, matching_task.DEFAULT_CASES),
     "screening": (screening_task.run_screening_game, screening_task.DEFAULT_CASES),

@@ -33,6 +33,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `market_policy_inventory` | Inventory-constrained opponent-policy adaptation: infer the competitor's next price, then choose a non-collusive posted price that maximizes terminal cash across finite inventory, holding costs, obligations, and reserve constraints. | `python -m aeread_lab.cli --task market_policy_inventory --agent offline:oracle` |
 | `market_trace_inventory` | Trace-based inventory pricing: infer competitor next price from observed price, fill-rate, and remaining-stock rows before optimizing finite-inventory terminal cash. | `python -m aeread_lab.cli --task market_trace_inventory --agent offline:oracle` |
 | `market_trace_markdown` | Trace-based staged inventory pricing: infer competitor next price from market trace rows, then choose early and late prices across the inventory horizon. | `python -m aeread_lab.cli --task market_trace_markdown --agent offline:oracle` |
+| `market_trace_replenishment` | Trace-based replenishment planning: infer competitor next price from market trace rows, then choose early/late prices and whether to buy inventory before the late window. | `python -m aeread_lab.cli --task market_trace_replenishment --agent offline:oracle` |
 | `matching` | Matching-market design: choose stable/access-aware matching rules instead of value-only assignments with blocking-pair risk. | `python -m aeread_lab.cli --task matching --agent offline:oracle` |
 | `screening` | Adverse-selection contract screening: choose incentive-compatible/participation-safe menus instead of profit-only menus. | `python -m aeread_lab.cli --task screening --agent offline:oracle` |
 | `moral_hazard` | Hidden-action contract design: choose incentive contracts that actually induce effort instead of assuming first-best effort for free. | `python -m aeread_lab.cli --task moral_hazard --agent offline:oracle` |
@@ -162,6 +163,9 @@ interpreting the economic metric.
 - `market_trace_markdown`: lower constrained terminal-cash regret is better;
   early/late price L1 error, reserve-violation, static-Nash, one-price,
   trace-blind, and inventory-blind miss rates are reported separately.
+- `market_trace_replenishment`: lower constrained terminal-cash regret is
+  better; decision L1 error, reserve-violation, no-replenishment, one-price,
+  trace-blind, and replenishment-blind miss rates are reported separately.
 - `matching`: lower configured matching score regret is better; max-value and
   access-only miss rates are reported separately.
 - `screening`: lower configured contract-menu regret is better; max-profit and

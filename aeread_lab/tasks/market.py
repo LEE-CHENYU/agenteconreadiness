@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, replace
 
 from aeread_lab.models import Agent
 from aeread_lab.parsing import clamp, parse_float
@@ -45,6 +45,17 @@ MARKET_TRACE_MARKDOWN_SYSTEM = (
     "market trace rows, then choose an early and late non-collusive price plan. "
     "Return exactly two final lines: FINAL_PRICE_EARLY: <number> and "
     "FINAL_PRICE_LATE: <number>."
+)
+
+MARKET_TRACE_REPLENISHMENT_SYSTEM = (
+    "TASK: market_trace_replenishment_plan\n"
+    "You are one firm in a repeated price-setting market with finite inventory, "
+    "a cash reserve target, and an optional replenishment buy before the late "
+    "selling window. Infer the competitor's next price from observed market "
+    "trace rows, then choose early and late non-collusive prices and how many "
+    "units to replenish. Return exactly three final lines: "
+    "FINAL_PRICE_EARLY: <number>, FINAL_PRICE_LATE: <number>, and "
+    "FINAL_REPLENISH_UNITS: <number>."
 )
 
 
@@ -148,6 +159,10 @@ class TraceInventoryMarketCase:
     carrying_cost_per_unsold: float
     terminal_inventory_value: float
     demand_shocks: tuple[float, ...] = ()
+    replenishment_unit_cost: float = 0.0
+    replenishment_setup_cost: float = 0.0
+    max_replenishment_units: float = 0.0
+    replenishment_storage_capacity: float = 0.0
 
 
 @dataclass
@@ -225,6 +240,27 @@ class TraceMarkdownMarketTrial:
     one_price_miss: bool
     trace_blind_miss: bool
     inventory_blind_miss: bool
+    raw_response: str
+
+
+@dataclass
+class TraceReplenishmentMarketTrial:
+    case: TraceInventoryMarketCase
+    oracle_decision: tuple[float, float, float]
+    no_replenishment_decision: tuple[float, float, float]
+    one_price_decision: tuple[float, float, float]
+    trace_blind_decision: tuple[float, float, float]
+    replenishment_blind_decision: tuple[float, float, float]
+    predicted_opponent_price: float
+    chosen_decision: tuple[float, float, float] | None
+    terminal_cash: float | None
+    constrained_terminal_cash_regret: float | None
+    decision_l1_error: float | None
+    reserve_violation: bool
+    no_replenishment_miss: bool
+    one_price_miss: bool
+    trace_blind_miss: bool
+    replenishment_blind_miss: bool
     raw_response: str
 
 
@@ -520,6 +556,38 @@ TRACE_INVENTORY_CASES = [
         carrying_cost_per_unsold=0.95,
         terminal_inventory_value=24.0,
         demand_shocks=(2.0, 0.0, -6.0, -10.0),
+    ),
+]
+
+
+TRACE_REPLENISHMENT_CASES = [
+    replace(
+        TRACE_INVENTORY_CASES[0],
+        replenishment_unit_cost=27.0,
+        replenishment_setup_cost=8.0,
+        max_replenishment_units=75.0,
+        replenishment_storage_capacity=180.0,
+    ),
+    replace(
+        TRACE_INVENTORY_CASES[1],
+        replenishment_unit_cost=34.0,
+        replenishment_setup_cost=18.0,
+        max_replenishment_units=90.0,
+        replenishment_storage_capacity=165.0,
+    ),
+    replace(
+        TRACE_INVENTORY_CASES[2],
+        replenishment_unit_cost=23.0,
+        replenishment_setup_cost=10.0,
+        max_replenishment_units=100.0,
+        replenishment_storage_capacity=210.0,
+    ),
+    replace(
+        TRACE_INVENTORY_CASES[3],
+        replenishment_unit_cost=30.0,
+        replenishment_setup_cost=16.0,
+        max_replenishment_units=90.0,
+        replenishment_storage_capacity=185.0,
     ),
 ]
 
@@ -932,6 +1000,111 @@ def run_market_trace_markdown_game(
     return summarize_market_trace_markdown_trials(agent.name, trials)
 
 
+def run_market_trace_replenishment_game(
+    agent: Agent,
+    cases: list[TraceInventoryMarketCase] | None = None,
+) -> dict:
+    cases = cases or TRACE_REPLENISHMENT_CASES
+    trials: list[TraceReplenishmentMarketTrial] = []
+    for case in cases:
+        predicted_opponent = trace_inventory_opponent_price(case)
+        oracle = trace_replenishment_oracle_decision(case)
+        no_replenishment_prices = trace_markdown_oracle_prices(case)
+        no_replenishment = (no_replenishment_prices[0], no_replenishment_prices[1], 0.0)
+        one_price = trace_replenishment_oracle_decision(case, fixed_price=True)
+        last_opponent = case.trace[-1].opponent_price
+        trace_blind = trace_replenishment_oracle_decision(case, opponent_price=last_opponent)
+        replenishment_blind = trace_replenishment_oracle_decision(
+            case,
+            forced_replenishment=case.max_replenishment_units,
+        )
+        response = agent.complete(
+            MARKET_TRACE_REPLENISHMENT_SYSTEM,
+            _trace_replenishment_prompt(case),
+        )
+        chosen = _parse_trace_replenishment_decision(response, case)
+        oracle_cash = trace_replenishment_terminal_cash(
+            case,
+            oracle[0],
+            oracle[1],
+            oracle[2],
+            predicted_opponent,
+        )
+        terminal_cash = (
+            trace_replenishment_terminal_cash(
+                case,
+                chosen[0],
+                chosen[1],
+                chosen[2],
+                predicted_opponent,
+            )
+            if chosen is not None
+            else None
+        )
+        cash_regret = oracle_cash - terminal_cash if terminal_cash is not None else None
+        reserve_gap = (
+            max(0.0, case.min_terminal_cash - terminal_cash)
+            if terminal_cash is not None
+            else None
+        )
+        constrained_regret = (
+            cash_regret + reserve_gap
+            if cash_regret is not None and reserve_gap is not None
+            else None
+        )
+        decision_l1_error = (
+            _replenishment_decision_distance(chosen, oracle) if chosen is not None else None
+        )
+        no_replenishment_miss = (
+            chosen is not None
+            and _replenishment_decision_distance(no_replenishment, oracle) >= 5.0
+            and _replenishment_decision_distance(chosen, no_replenishment)
+            < _replenishment_decision_distance(chosen, oracle)
+        )
+        one_price_miss = (
+            chosen is not None
+            and _replenishment_decision_distance(one_price, oracle) >= 5.0
+            and _replenishment_decision_distance(chosen, one_price)
+            < _replenishment_decision_distance(chosen, oracle)
+        )
+        trace_blind_miss = (
+            chosen is not None
+            and _replenishment_decision_distance(trace_blind, oracle) >= 5.0
+            and _replenishment_decision_distance(chosen, trace_blind)
+            < _replenishment_decision_distance(chosen, oracle)
+        )
+        replenishment_blind_miss = (
+            chosen is not None
+            and _replenishment_decision_distance(replenishment_blind, oracle) >= 5.0
+            and _replenishment_decision_distance(chosen, replenishment_blind)
+            < _replenishment_decision_distance(chosen, oracle)
+        )
+        trials.append(
+            TraceReplenishmentMarketTrial(
+                case=case,
+                oracle_decision=oracle,
+                no_replenishment_decision=no_replenishment,
+                one_price_decision=one_price,
+                trace_blind_decision=trace_blind,
+                replenishment_blind_decision=replenishment_blind,
+                predicted_opponent_price=predicted_opponent,
+                chosen_decision=chosen,
+                terminal_cash=terminal_cash,
+                constrained_terminal_cash_regret=constrained_regret,
+                decision_l1_error=decision_l1_error,
+                reserve_violation=(
+                    terminal_cash is not None and terminal_cash < case.min_terminal_cash
+                ),
+                no_replenishment_miss=no_replenishment_miss,
+                one_price_miss=one_price_miss,
+                trace_blind_miss=trace_blind_miss,
+                replenishment_blind_miss=replenishment_blind_miss,
+                raw_response=response,
+            )
+        )
+    return summarize_market_trace_replenishment_trials(agent.name, trials)
+
+
 def summarize_market_trials(agent_name: str, trials: list[MarketTrial]) -> dict:
     gaps = [trial.equilibrium_price_gap for trial in trials if trial.equilibrium_price_gap is not None]
     indices = [trial.collusion_index for trial in trials if trial.collusion_index is not None]
@@ -1167,6 +1340,82 @@ def summarize_market_trace_markdown_trials(
     }
 
 
+def summarize_market_trace_replenishment_trials(
+    agent_name: str,
+    trials: list[TraceReplenishmentMarketTrial],
+) -> dict:
+    regrets = [
+        trial.constrained_terminal_cash_regret
+        for trial in trials
+        if trial.constrained_terminal_cash_regret is not None
+    ]
+    decision_errors = [
+        trial.decision_l1_error for trial in trials if trial.decision_l1_error is not None
+    ]
+    no_replenishment_missable = [
+        trial
+        for trial in trials
+        if _replenishment_decision_distance(
+            trial.no_replenishment_decision,
+            trial.oracle_decision,
+        )
+        >= 5.0
+    ]
+    one_price_missable = [
+        trial
+        for trial in trials
+        if _replenishment_decision_distance(trial.one_price_decision, trial.oracle_decision)
+        >= 5.0
+    ]
+    trace_missable = [
+        trial
+        for trial in trials
+        if _replenishment_decision_distance(trial.trace_blind_decision, trial.oracle_decision)
+        >= 5.0
+    ]
+    replenishment_missable = [
+        trial
+        for trial in trials
+        if _replenishment_decision_distance(
+            trial.replenishment_blind_decision,
+            trial.oracle_decision,
+        )
+        >= 5.0
+    ]
+    return {
+        "task": "market_trace_replenishment",
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "mean_constrained_terminal_cash_regret": mean(regrets),
+        "mean_constrained_terminal_cash_regret_ci95": bootstrap_mean_ci(regrets),
+        "mean_decision_l1_error": mean(decision_errors),
+        "reserve_violation_rate": sum(trial.reserve_violation for trial in trials) / len(trials),
+        "no_replenishment_miss_rate": (
+            sum(trial.no_replenishment_miss for trial in no_replenishment_missable)
+            / len(no_replenishment_missable)
+            if no_replenishment_missable
+            else 0.0
+        ),
+        "one_price_miss_rate": (
+            sum(trial.one_price_miss for trial in one_price_missable) / len(one_price_missable)
+            if one_price_missable
+            else 0.0
+        ),
+        "trace_blind_miss_rate": (
+            sum(trial.trace_blind_miss for trial in trace_missable) / len(trace_missable)
+            if trace_missable
+            else 0.0
+        ),
+        "replenishment_blind_miss_rate": (
+            sum(trial.replenishment_blind_miss for trial in replenishment_missable)
+            / len(replenishment_missable)
+            if replenishment_missable
+            else 0.0
+        ),
+        "trials": [_trace_replenishment_trial_json(trial) for trial in trials],
+    }
+
+
 def _parse_price(response: str, case: MarketCase) -> float | None:
     parsed = parse_float("FINAL_PRICE", response)
     if parsed is None:
@@ -1206,6 +1455,22 @@ def _parse_trace_markdown_prices(
     return (
         clamp(early, case.marginal_cost, case.p_max),
         clamp(late, case.marginal_cost, case.p_max),
+    )
+
+
+def _parse_trace_replenishment_decision(
+    response: str,
+    case: TraceInventoryMarketCase,
+) -> tuple[float, float, float] | None:
+    early = parse_float("FINAL_PRICE_EARLY", response)
+    late = parse_float("FINAL_PRICE_LATE", response)
+    units = parse_float("FINAL_REPLENISH_UNITS", response)
+    if early is None or late is None or units is None:
+        return None
+    return (
+        clamp(early, case.marginal_cost, case.p_max),
+        clamp(late, case.marginal_cost, case.p_max),
+        clamp(units, 0.0, case.max_replenishment_units),
     )
 
 
@@ -1386,6 +1651,53 @@ def trace_markdown_terminal_cash(
     return cash
 
 
+def trace_replenishment_terminal_cash(
+    case: TraceInventoryMarketCase,
+    early_price: float,
+    late_price: float,
+    replenishment_units: float,
+    opponent_price: float,
+) -> float:
+    inventory = case.starting_inventory
+    cash = case.starting_cash
+    shocks = case.demand_shocks or tuple(0.0 for _ in range(case.horizon))
+    switch_period = max(1, case.horizon // 2)
+    storage_capacity = (
+        case.replenishment_storage_capacity
+        if case.replenishment_storage_capacity > 0
+        else case.starting_inventory + case.max_replenishment_units
+    )
+    for period in range(case.horizon):
+        if period == switch_period and replenishment_units > 0:
+            received_units = min(
+                replenishment_units,
+                max(0.0, storage_capacity - inventory),
+            )
+            if received_units > 0:
+                inventory += received_units
+                cash -= (
+                    case.replenishment_unit_cost * received_units
+                    + case.replenishment_setup_cost
+                )
+        own_price = early_price if period < switch_period else late_price
+        shock = shocks[period] if period < len(shocks) else 0.0
+        demand = max(
+            0.0,
+            case.base_demand
+            + case.demand_shock
+            + shock
+            - case.own_price_slope * own_price
+            + case.cross_price_slope * opponent_price,
+        )
+        sold = min(inventory, demand)
+        cash += max(0.0, own_price - case.marginal_cost) * sold
+        inventory -= sold
+        cash -= case.carrying_cost_per_unsold * inventory
+    cash += case.terminal_inventory_value * inventory
+    cash -= case.fixed_obligation
+    return cash
+
+
 def trace_inventory_oracle_price(
     case: TraceInventoryMarketCase,
     *,
@@ -1421,6 +1733,51 @@ def trace_markdown_oracle_prices(
     )
 
 
+def trace_replenishment_oracle_decision(
+    case: TraceInventoryMarketCase,
+    *,
+    opponent_price: float | None = None,
+    forced_replenishment: float | None = None,
+    fixed_price: bool = False,
+) -> tuple[float, float, float]:
+    predicted_opponent = trace_inventory_opponent_price(case) if opponent_price is None else opponent_price
+    price_candidates = _trace_inventory_candidate_prices(case, predicted_opponent)
+    replenishment_candidates = (
+        [clamp(forced_replenishment, 0.0, case.max_replenishment_units)]
+        if forced_replenishment is not None
+        else _trace_replenishment_candidate_units(case)
+    )
+    reference = trace_markdown_oracle_prices(case, opponent_price=predicted_opponent)
+    if fixed_price:
+        decisions = (
+            (price, price, units)
+            for price in price_candidates
+            for units in replenishment_candidates
+        )
+    else:
+        decisions = (
+            (early, late, units)
+            for early in price_candidates
+            for late in price_candidates
+            for units in replenishment_candidates
+        )
+    return max(
+        decisions,
+        key=lambda decision: (
+            trace_replenishment_terminal_cash(
+                case,
+                decision[0],
+                decision[1],
+                decision[2],
+                predicted_opponent,
+            ),
+            -abs(decision[0] - reference[0])
+            - abs(decision[1] - reference[1])
+            - 0.25 * abs(decision[2]),
+        ),
+    )
+
+
 def trace_inventory_opponent_price(case: TraceInventoryMarketCase) -> float:
     trace = case.trace
     if not trace:
@@ -1443,6 +1800,13 @@ def trace_inventory_opponent_price(case: TraceInventoryMarketCase) -> float:
 
 def _pair_l1(left: tuple[float, float], right: tuple[float, float]) -> float:
     return abs(left[0] - right[0]) + abs(left[1] - right[1])
+
+
+def _replenishment_decision_distance(
+    left: tuple[float, float, float],
+    right: tuple[float, float, float],
+) -> float:
+    return abs(left[0] - right[0]) + abs(left[1] - right[1]) + 0.5 * abs(left[2] - right[2])
 
 
 def _prompt(case: MarketCase, firm_id: str) -> str:
@@ -1606,6 +1970,53 @@ def _trace_markdown_prompt(case: TraceInventoryMarketCase) -> str:
     return "\n".join(lines)
 
 
+def _trace_replenishment_prompt(case: TraceInventoryMarketCase) -> str:
+    switch_period = max(1, case.horizon // 2)
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"base_demand={case.base_demand:.4f}",
+        f"demand_shock={case.demand_shock:.4f}",
+        f"own_price_slope={case.own_price_slope:.4f}",
+        f"cross_price_slope={case.cross_price_slope:.4f}",
+        f"marginal_cost={case.marginal_cost:.4f}",
+        f"p_max={case.p_max:.4f}",
+        f"horizon={case.horizon}",
+        f"early_price_periods=1_to_{switch_period}",
+        f"late_price_periods={switch_period + 1}_to_{case.horizon}",
+        f"replenishment_arrives_before_period={switch_period + 1}",
+        f"starting_inventory={case.starting_inventory:.4f}",
+        f"starting_cash={case.starting_cash:.4f}",
+        f"fixed_obligation={case.fixed_obligation:.4f}",
+        f"min_terminal_cash={case.min_terminal_cash:.4f}",
+        f"carrying_cost_per_unsold={case.carrying_cost_per_unsold:.4f}",
+        f"terminal_inventory_value={case.terminal_inventory_value:.4f}",
+        f"replenishment_unit_cost={case.replenishment_unit_cost:.4f}",
+        f"replenishment_setup_cost={case.replenishment_setup_cost:.4f}",
+        f"max_replenishment_units={case.max_replenishment_units:.4f}",
+        f"replenishment_storage_capacity={case.replenishment_storage_capacity:.4f}",
+        f"demand_shocks={','.join(f'{shock:.4f}' for shock in case.demand_shocks)}",
+        "Recent competitor market trace rows:",
+    ]
+    for point in case.trace:
+        lines.append(
+            f"  trace period={point.period} "
+            f"opponent_price={point.opponent_price:.4f} "
+            f"opponent_fill_rate={point.opponent_fill_rate:.4f} "
+            f"opponent_remaining_inventory_share={point.opponent_remaining_inventory_share:.4f}"
+        )
+    lines.extend(
+        [
+            "Demand each period is q_i = base_demand + demand_shock + period_shock - own_price_slope*p_i + cross_price_slope*p_j.",
+            "The trace rows indicate whether the competitor is likely to keep cutting, ration capacity, or raise price next.",
+            "If replenishment units are ordered, they arrive before the late window, cost the unit cost plus the setup cost, and cannot push on-hand inventory above storage capacity.",
+            "Choose early and late posted prices plus replenishment units to maximize terminal cash while meeting the terminal cash reserve.",
+            "A no-replenishment plan can stock out, but a blind replenishment plan can overbuy into a clearance market.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _trial_json(trial: MarketTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
@@ -1631,6 +2042,12 @@ def _trace_inventory_trial_json(trial: TraceInventoryMarketTrial) -> dict:
 
 
 def _trace_markdown_trial_json(trial: TraceMarkdownMarketTrial) -> dict:
+    data = asdict(trial)
+    data["case"] = asdict(trial.case)
+    return data
+
+
+def _trace_replenishment_trial_json(trial: TraceReplenishmentMarketTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
     return data
@@ -1672,3 +2089,11 @@ def _trace_inventory_candidate_prices(
     for price in range(int(case.marginal_cost), int(case.p_max) + 1):
         candidates.add(float(price))
     return sorted(candidates)
+
+
+def _trace_replenishment_candidate_units(case: TraceInventoryMarketCase) -> list[float]:
+    max_units = case.max_replenishment_units
+    if max_units <= 0:
+        return [0.0]
+    candidates = {0.0, max_units, max_units / 2.0}
+    return sorted(clamp(units, 0.0, max_units) for units in candidates)

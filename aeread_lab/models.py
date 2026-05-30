@@ -141,6 +141,8 @@ class OfflineAgent:
             return self._market_trace_inventory_price(user)
         if "TASK: market_trace_markdown_prices" in system:
             return self._market_trace_markdown_prices(user)
+        if "TASK: market_trace_replenishment_plan" in system:
+            return self._market_trace_replenishment_plan(user)
         if "TASK: auction_reserve" in system:
             return self._auction_reserve(user)
         if "TASK: common_value_bid" in system:
@@ -799,6 +801,46 @@ class OfflineAgent:
         early = max(cost, min(p_max, prices[0]))
         late = max(cost, min(p_max, prices[1]))
         return f"FINAL_PRICE_EARLY: {early:.8f}\nFINAL_PRICE_LATE: {late:.8f}"
+
+    def _market_trace_replenishment_plan(self, user: str) -> str:
+        cost = _extract_float(user, "marginal_cost")
+        p_max = _extract_float(user, "p_max", 1e9)
+        max_units = _extract_float(user, "max_replenishment_units")
+        history = _extract_market_trace_prices(user)
+        last_opponent = history[-1] if history else _market_policy_static_nash(user)
+        predicted_opponent = _market_trace_opponent_price(user)
+        if self.policy in {"nash", "competitive"}:
+            static = _market_policy_static_nash(user)
+            decision = (static, static, 0.0)
+        elif self.policy in {"no_replenishment", "no_restock", "order_blind"}:
+            prices = _best_market_trace_markdown_prices(user, predicted_opponent)
+            decision = (prices[0], prices[1], 0.0)
+        elif self.policy in {"one_price", "fixed_price"}:
+            decision = _best_market_trace_replenishment_plan(
+                user,
+                predicted_opponent,
+                fixed_price=True,
+            )
+        elif self.policy in {"trace_blind", "policy_blind", "trend_blind"}:
+            decision = _best_market_trace_replenishment_plan(user, last_opponent)
+        elif self.policy in {"replenishment_blind", "restock_blind", "always_restock"}:
+            decision = _best_market_trace_replenishment_plan(
+                user,
+                predicted_opponent,
+                forced_replenishment=max_units,
+            )
+        elif self.policy in {"cost", "liquidate", "clearance"}:
+            decision = (cost, cost, 0.0)
+        else:
+            decision = _best_market_trace_replenishment_plan(user, predicted_opponent)
+        early = max(cost, min(p_max, decision[0]))
+        late = max(cost, min(p_max, decision[1]))
+        units = max(0.0, min(max_units, decision[2]))
+        return (
+            f"FINAL_PRICE_EARLY: {early:.8f}\n"
+            f"FINAL_PRICE_LATE: {late:.8f}\n"
+            f"FINAL_REPLENISH_UNITS: {units:.8f}"
+        )
 
     def _auction_reserve(self, user: str) -> str:
         objective = _extract_word(user, "objective")
@@ -2101,6 +2143,58 @@ def _market_trace_markdown_terminal_cash(
     return cash
 
 
+def _market_trace_replenishment_terminal_cash(
+    text: str,
+    early_price: float,
+    late_price: float,
+    replenishment_units: float,
+    other_price: float,
+) -> float:
+    base = _extract_float(text, "base_demand")
+    shock = _extract_float(text, "demand_shock")
+    own_slope = _extract_float(text, "own_price_slope")
+    cross_slope = _extract_float(text, "cross_price_slope")
+    cost = _extract_float(text, "marginal_cost")
+    horizon = int(round(_extract_float(text, "horizon", 1.0)))
+    inventory = _extract_float(text, "starting_inventory")
+    cash = _extract_float(text, "starting_cash")
+    carrying_cost = _extract_float(text, "carrying_cost_per_unsold")
+    terminal_value = _extract_float(text, "terminal_inventory_value")
+    fixed_obligation = _extract_float(text, "fixed_obligation")
+    unit_cost = _extract_float(text, "replenishment_unit_cost")
+    setup_cost = _extract_float(text, "replenishment_setup_cost")
+    max_units = _extract_float(text, "max_replenishment_units")
+    storage_capacity = _extract_float(
+        text,
+        "replenishment_storage_capacity",
+        inventory + max_units,
+    )
+    shocks = _extract_float_list(text, "demand_shocks")
+    switch_period = max(1, horizon // 2)
+    for period in range(max(1, horizon)):
+        if period == switch_period and replenishment_units > 0:
+            received_units = min(
+                replenishment_units,
+                max(0.0, storage_capacity - inventory),
+            )
+            if received_units > 0:
+                inventory += received_units
+                cash -= unit_cost * received_units + setup_cost
+        price = early_price if period < switch_period else late_price
+        period_shock = shocks[period] if period < len(shocks) else 0.0
+        demand = max(
+            0.0,
+            base + shock + period_shock - own_slope * price + cross_slope * other_price,
+        )
+        sold = min(inventory, demand)
+        cash += max(0.0, price - cost) * sold
+        inventory -= sold
+        cash -= carrying_cost * inventory
+    cash += terminal_value * inventory
+    cash -= fixed_obligation
+    return cash
+
+
 def _best_market_survival_price(text: str, other_price: float) -> float:
     cost = _extract_float(text, "marginal_cost")
     p_max = _extract_float(text, "p_max", cost)
@@ -2161,6 +2255,72 @@ def _best_market_trace_markdown_prices(text: str, other_price: float) -> tuple[f
             -abs(pair[0] - reference) - abs(pair[1] - reference),
         ),
     )
+
+
+def _best_market_trace_replenishment_plan(
+    text: str,
+    other_price: float,
+    *,
+    forced_replenishment: float | None = None,
+    fixed_price: bool = False,
+) -> tuple[float, float, float]:
+    cost = _extract_float(text, "marginal_cost")
+    p_max = _extract_float(text, "p_max", cost)
+    max_units = _extract_float(text, "max_replenishment_units")
+    candidates = {
+        cost,
+        p_max,
+        _market_policy_static_nash(text),
+        _market_policy_best_response(text, other_price),
+        _best_market_policy_inventory_price(text, other_price),
+    }
+    history = _extract_market_trace_prices(text)
+    if history:
+        candidates.add(_market_policy_best_response(text, history[-1]))
+    for price in range(int(cost), int(p_max) + 1):
+        candidates.add(float(price))
+    replenishment_candidates = (
+        [max(0.0, min(max_units, forced_replenishment))]
+        if forced_replenishment is not None
+        else _market_trace_replenishment_candidate_units(text)
+    )
+    reference = _best_market_trace_markdown_prices(text, other_price)
+    if fixed_price:
+        decisions = (
+            (price, price, units)
+            for price in candidates
+            for units in replenishment_candidates
+        )
+    else:
+        decisions = (
+            (early, late, units)
+            for early in candidates
+            for late in candidates
+            for units in replenishment_candidates
+        )
+    return max(
+        decisions,
+        key=lambda decision: (
+            _market_trace_replenishment_terminal_cash(
+                text,
+                decision[0],
+                decision[1],
+                decision[2],
+                other_price,
+            ),
+            -abs(decision[0] - reference[0])
+            - abs(decision[1] - reference[1])
+            - 0.25 * abs(decision[2]),
+        ),
+    )
+
+
+def _market_trace_replenishment_candidate_units(text: str) -> list[float]:
+    max_units = _extract_float(text, "max_replenishment_units")
+    if max_units <= 0:
+        return [0.0]
+    candidates = {0.0, max_units, max_units / 2.0}
+    return sorted(max(0.0, min(max_units, units)) for units in candidates)
 
 
 def _common_value_expected_profit(

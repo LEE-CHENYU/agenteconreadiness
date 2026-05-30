@@ -57,16 +57,19 @@ from aeread_lab.tasks.forecast_calibration import run_forecast_shift_calibration
 from aeread_lab.tasks.market import INVENTORY_POLICY_CASES as MARKET_INVENTORY_POLICY_CASES
 from aeread_lab.tasks.market import POLICY_SHIFT_CASES as MARKET_POLICY_CASES
 from aeread_lab.tasks.market import TRACE_INVENTORY_CASES as MARKET_TRACE_INVENTORY_CASES
+from aeread_lab.tasks.market import TRACE_REPLENISHMENT_CASES as MARKET_TRACE_REPLENISHMENT_CASES
 from aeread_lab.tasks.market import _policy_inventory_prompt as market_policy_inventory_prompt
 from aeread_lab.tasks.market import _policy_shift_prompt as market_policy_prompt
 from aeread_lab.tasks.market import _trace_inventory_prompt as market_trace_inventory_prompt
 from aeread_lab.tasks.market import _trace_markdown_prompt as market_trace_markdown_prompt
+from aeread_lab.tasks.market import _trace_replenishment_prompt as market_trace_replenishment_prompt
 from aeread_lab.tasks.market import (
     run_market_game,
     run_market_policy_inventory_game,
     run_market_policy_shift_game,
     run_market_trace_inventory_game,
     run_market_trace_markdown_game,
+    run_market_trace_replenishment_game,
 )
 from aeread_lab.tasks.matching import DEFAULT_CASES as MATCHING_CASES
 from aeread_lab.tasks.matching import _prompt as matching_prompt
@@ -380,6 +383,11 @@ class TaskSmokeTests(unittest.TestCase):
 
     def test_sample_limit_slices_market_trace_markdown_cases(self):
         results = run_tasks("market_trace_markdown", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_constrained_terminal_cash_regret"], 1e-6)
+
+    def test_sample_limit_slices_market_trace_replenishment_cases(self):
+        results = run_tasks("market_trace_replenishment", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_constrained_terminal_cash_regret"], 1e-6)
 
@@ -727,6 +735,9 @@ class TaskSmokeTests(unittest.TestCase):
         market_policy_inventory = market_policy_inventory_prompt(MARKET_INVENTORY_POLICY_CASES[0])
         market_trace_inventory = market_trace_inventory_prompt(MARKET_TRACE_INVENTORY_CASES[0])
         market_trace_markdown = market_trace_markdown_prompt(MARKET_TRACE_INVENTORY_CASES[0])
+        market_trace_replenishment = market_trace_replenishment_prompt(
+            MARKET_TRACE_REPLENISHMENT_CASES[0]
+        )
         belief_bargaining = belief_bargaining_prompt(BELIEF_BARGAINING_CASES[0])
         belief_interaction = belief_interaction_prompt(BELIEF_INTERACTION_CASES[0])
         principal = principal_prompt(PRINCIPAL_CASES[0])
@@ -798,6 +809,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", market_policy_inventory)
         self.assertNotIn("oracle", market_trace_inventory)
         self.assertNotIn("oracle", market_trace_markdown)
+        self.assertNotIn("oracle", market_trace_replenishment)
         self.assertNotIn("oracle", belief_bargaining)
         self.assertNotIn("oracle", belief_interaction)
         self.assertNotIn("oracle", principal)
@@ -839,6 +851,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle_price", market_policy_inventory)
         self.assertNotIn("oracle_price", market_trace_inventory)
         self.assertNotIn("oracle_price", market_trace_markdown)
+        self.assertNotIn("oracle_price", market_trace_replenishment)
         self.assertNotIn("raw_mean_probability", forecast_curve_natural)
         self.assertNotIn("observed_event_count", forecast_curve_natural)
         self.assertNotIn("first_period_revenue", mechanism_repeated_natural)
@@ -1112,6 +1125,27 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(trace_blind["trace_blind_miss_rate"], 0.25)
         self.assertGreater(inventory_blind["mean_constrained_terminal_cash_regret"], 20.0)
         self.assertGreater(inventory_blind["inventory_blind_miss_rate"], 0.25)
+
+    def test_market_trace_replenishment_flags_trace_and_order_blindness(self):
+        adaptive = run_market_trace_replenishment_game(OfflineAgent("oracle"))
+        no_replenishment = run_market_trace_replenishment_game(OfflineAgent("no_replenishment"))
+        one_price = run_market_trace_replenishment_game(OfflineAgent("one_price"))
+        trace_blind = run_market_trace_replenishment_game(OfflineAgent("trace_blind"))
+        replenishment_blind = run_market_trace_replenishment_game(
+            OfflineAgent("replenishment_blind")
+        )
+        self.assertLess(adaptive["mean_constrained_terminal_cash_regret"], 1e-6)
+        self.assertEqual(adaptive["reserve_violation_rate"], 0.0)
+        self.assertGreater(no_replenishment["mean_constrained_terminal_cash_regret"], 1000.0)
+        self.assertGreater(no_replenishment["no_replenishment_miss_rate"], 0.25)
+        self.assertGreater(one_price["mean_constrained_terminal_cash_regret"], 5.0)
+        self.assertGreater(trace_blind["mean_constrained_terminal_cash_regret"], 20.0)
+        self.assertGreater(trace_blind["trace_blind_miss_rate"], 0.25)
+        self.assertGreater(
+            replenishment_blind["mean_constrained_terminal_cash_regret"],
+            100.0,
+        )
+        self.assertGreater(replenishment_blind["replenishment_blind_miss_rate"], 0.25)
 
     def test_matching_splits_value_from_stability_and_access(self):
         configured = run_matching_game(OfflineAgent("oracle"))

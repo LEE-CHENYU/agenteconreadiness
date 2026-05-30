@@ -24,6 +24,7 @@ from .market import (
     run_market_policy_shift_game,
     run_market_trace_inventory_game,
     run_market_trace_markdown_game,
+    run_market_trace_replenishment_game,
 )
 from .matching import run_matching_game
 from .mechanism import (
@@ -99,6 +100,7 @@ __all__ = [
     "run_market_policy_shift_game",
     "run_market_trace_inventory_game",
     "run_market_trace_markdown_game",
+    "run_market_trace_replenishment_game",
     "run_matching_game",
     "run_mechanism_elasticity_inference_game",
     "run_mechanism_game",
