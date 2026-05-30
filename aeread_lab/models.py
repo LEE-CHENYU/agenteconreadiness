@@ -139,6 +139,8 @@ class OfflineAgent:
             return self._market_policy_inventory_price(user)
         if "TASK: market_trace_inventory_price" in system:
             return self._market_trace_inventory_price(user)
+        if "TASK: market_trace_markdown_prices" in system:
+            return self._market_trace_markdown_prices(user)
         if "TASK: auction_reserve" in system:
             return self._auction_reserve(user)
         if "TASK: common_value_bid" in system:
@@ -764,6 +766,39 @@ class OfflineAgent:
             price = _best_market_policy_inventory_price(user, predicted_opponent)
         price = max(cost, min(p_max, price))
         return f"FINAL_PRICE: {price:.4f}"
+
+    def _market_trace_markdown_prices(self, user: str) -> str:
+        cost = _extract_float(user, "marginal_cost")
+        p_max = _extract_float(user, "p_max", 1e9)
+        history = _extract_market_trace_prices(user)
+        last_opponent = history[-1] if history else _market_policy_static_nash(user)
+        predicted_opponent = _market_trace_opponent_price(user)
+        base = _extract_float(user, "base_demand")
+        shock = _extract_float(user, "demand_shock")
+        own_slope = _extract_float(user, "own_price_slope")
+        cross_slope = _extract_float(user, "cross_price_slope")
+        denom = 2.0 * own_slope - cross_slope
+        static_nash = cost if denom <= 0 else (base + shock + own_slope * cost) / denom
+        if self.policy in {"nash", "competitive"}:
+            prices = (static_nash, static_nash)
+        elif self.policy in {"last_price", "sticky"}:
+            last_price = _market_policy_best_response(user, last_opponent)
+            prices = (last_price, last_price)
+        elif self.policy in {"trace_blind", "policy_blind", "trend_blind"}:
+            prices = _best_market_trace_markdown_prices(user, last_opponent)
+        elif self.policy in {"one_price", "fixed_price"}:
+            fixed = _best_market_policy_inventory_price(user, predicted_opponent)
+            prices = (fixed, fixed)
+        elif self.policy in {"inventory_blind", "policy_only"}:
+            blind = _market_policy_best_response(user, predicted_opponent)
+            prices = (blind, blind)
+        elif self.policy in {"cost", "liquidate", "clearance"}:
+            prices = (cost, cost)
+        else:
+            prices = _best_market_trace_markdown_prices(user, predicted_opponent)
+        early = max(cost, min(p_max, prices[0]))
+        late = max(cost, min(p_max, prices[1]))
+        return f"FINAL_PRICE_EARLY: {early:.8f}\nFINAL_PRICE_LATE: {late:.8f}"
 
     def _auction_reserve(self, user: str) -> str:
         objective = _extract_word(user, "objective")
@@ -2031,6 +2066,41 @@ def _market_policy_inventory_terminal_cash(text: str, price: float, other_price:
     return cash
 
 
+def _market_trace_markdown_terminal_cash(
+    text: str,
+    early_price: float,
+    late_price: float,
+    other_price: float,
+) -> float:
+    base = _extract_float(text, "base_demand")
+    shock = _extract_float(text, "demand_shock")
+    own_slope = _extract_float(text, "own_price_slope")
+    cross_slope = _extract_float(text, "cross_price_slope")
+    cost = _extract_float(text, "marginal_cost")
+    horizon = int(round(_extract_float(text, "horizon", 1.0)))
+    inventory = _extract_float(text, "starting_inventory")
+    cash = _extract_float(text, "starting_cash")
+    carrying_cost = _extract_float(text, "carrying_cost_per_unsold")
+    terminal_value = _extract_float(text, "terminal_inventory_value")
+    fixed_obligation = _extract_float(text, "fixed_obligation")
+    shocks = _extract_float_list(text, "demand_shocks")
+    switch_period = max(1, horizon // 2)
+    for period in range(max(1, horizon)):
+        price = early_price if period < switch_period else late_price
+        period_shock = shocks[period] if period < len(shocks) else 0.0
+        demand = max(
+            0.0,
+            base + shock + period_shock - own_slope * price + cross_slope * other_price,
+        )
+        sold = min(inventory, demand)
+        cash += max(0.0, price - cost) * sold
+        inventory -= sold
+        cash -= carrying_cost * inventory
+    cash += terminal_value * inventory
+    cash -= fixed_obligation
+    return cash
+
+
 def _best_market_survival_price(text: str, other_price: float) -> float:
     cost = _extract_float(text, "marginal_cost")
     p_max = _extract_float(text, "p_max", cost)
@@ -2063,6 +2133,32 @@ def _best_market_policy_inventory_price(text: str, other_price: float) -> float:
         key=lambda price: (
             _market_policy_inventory_terminal_cash(text, price, other_price),
             -abs(price - reference),
+        ),
+    )
+
+
+def _best_market_trace_markdown_prices(text: str, other_price: float) -> tuple[float, float]:
+    cost = _extract_float(text, "marginal_cost")
+    p_max = _extract_float(text, "p_max", cost)
+    candidates = {
+        cost,
+        p_max,
+        _market_policy_static_nash(text),
+        _market_policy_best_response(text, other_price),
+        _best_market_policy_inventory_price(text, other_price),
+    }
+    history = _extract_market_trace_prices(text)
+    if history:
+        candidates.add(_market_policy_best_response(text, history[-1]))
+    for price in range(int(cost), int(p_max) + 1):
+        candidates.add(float(price))
+    reference = _market_policy_best_response(text, other_price)
+    pairs = ((early, late) for early in candidates for late in candidates)
+    return max(
+        pairs,
+        key=lambda pair: (
+            _market_trace_markdown_terminal_cash(text, pair[0], pair[1], other_price),
+            -abs(pair[0] - reference) - abs(pair[1] - reference),
         ),
     )
 

@@ -38,6 +38,15 @@ MARKET_TRACE_INVENTORY_SYSTEM = (
     "inventory horizon. Return one final line only: FINAL_PRICE: <number>."
 )
 
+MARKET_TRACE_MARKDOWN_SYSTEM = (
+    "TASK: market_trace_markdown_prices\n"
+    "You are one firm in a repeated price-setting market with finite inventory "
+    "and a cash reserve target. Infer the competitor's next price from observed "
+    "market trace rows, then choose an early and late non-collusive price plan. "
+    "Return exactly two final lines: FINAL_PRICE_EARLY: <number> and "
+    "FINAL_PRICE_LATE: <number>."
+)
+
 
 @dataclass(frozen=True)
 class MarketCase:
@@ -193,6 +202,27 @@ class TraceInventoryMarketTrial:
     reserve_violation: bool
     static_nash_miss: bool
     last_price_miss: bool
+    trace_blind_miss: bool
+    inventory_blind_miss: bool
+    raw_response: str
+
+
+@dataclass
+class TraceMarkdownMarketTrial:
+    case: TraceInventoryMarketCase
+    oracle_prices: tuple[float, float]
+    static_prices: tuple[float, float]
+    one_price_baseline: tuple[float, float]
+    trace_blind_prices: tuple[float, float]
+    inventory_blind_prices: tuple[float, float]
+    predicted_opponent_price: float
+    chosen_prices: tuple[float, float] | None
+    terminal_cash: float | None
+    constrained_terminal_cash_regret: float | None
+    price_l1_error: float | None
+    reserve_violation: bool
+    static_nash_miss: bool
+    one_price_miss: bool
     trace_blind_miss: bool
     inventory_blind_miss: bool
     raw_response: str
@@ -815,6 +845,93 @@ def run_market_trace_inventory_game(
     return summarize_market_trace_inventory_trials(agent.name, trials)
 
 
+def run_market_trace_markdown_game(
+    agent: Agent,
+    cases: list[TraceInventoryMarketCase] | None = None,
+) -> dict:
+    cases = cases or TRACE_INVENTORY_CASES
+    trials: list[TraceMarkdownMarketTrial] = []
+    for case in cases:
+        predicted_opponent = trace_inventory_opponent_price(case)
+        oracle = trace_markdown_oracle_prices(case)
+        static_price = trace_inventory_static_nash_price(case)
+        static = (static_price, static_price)
+        one_price = trace_inventory_oracle_price(case)
+        one_price_baseline = (one_price, one_price)
+        last_opponent = case.trace[-1].opponent_price
+        trace_blind = trace_markdown_oracle_prices(case, opponent_price=last_opponent)
+        inventory_blind_price = trace_inventory_best_response(case, predicted_opponent)
+        inventory_blind = (inventory_blind_price, inventory_blind_price)
+        response = agent.complete(MARKET_TRACE_MARKDOWN_SYSTEM, _trace_markdown_prompt(case))
+        chosen = _parse_trace_markdown_prices(response, case)
+        oracle_cash = trace_markdown_terminal_cash(case, oracle[0], oracle[1], predicted_opponent)
+        terminal_cash = (
+            trace_markdown_terminal_cash(case, chosen[0], chosen[1], predicted_opponent)
+            if chosen is not None
+            else None
+        )
+        cash_regret = oracle_cash - terminal_cash if terminal_cash is not None else None
+        reserve_gap = (
+            max(0.0, case.min_terminal_cash - terminal_cash)
+            if terminal_cash is not None
+            else None
+        )
+        constrained_regret = (
+            cash_regret + reserve_gap
+            if cash_regret is not None and reserve_gap is not None
+            else None
+        )
+        price_l1_error = (
+            abs(chosen[0] - oracle[0]) + abs(chosen[1] - oracle[1])
+            if chosen is not None
+            else None
+        )
+        static_nash_miss = (
+            chosen is not None
+            and _pair_l1(static, oracle) >= 3.0
+            and _pair_l1(chosen, static) < _pair_l1(chosen, oracle)
+        )
+        one_price_miss = (
+            chosen is not None
+            and _pair_l1(one_price_baseline, oracle) >= 3.0
+            and _pair_l1(chosen, one_price_baseline) < _pair_l1(chosen, oracle)
+        )
+        trace_blind_miss = (
+            chosen is not None
+            and _pair_l1(trace_blind, oracle) >= 3.0
+            and _pair_l1(chosen, trace_blind) < _pair_l1(chosen, oracle)
+        )
+        inventory_blind_miss = (
+            chosen is not None
+            and _pair_l1(inventory_blind, oracle) >= 3.0
+            and _pair_l1(chosen, inventory_blind) < _pair_l1(chosen, oracle)
+        )
+        trials.append(
+            TraceMarkdownMarketTrial(
+                case=case,
+                oracle_prices=oracle,
+                static_prices=static,
+                one_price_baseline=one_price_baseline,
+                trace_blind_prices=trace_blind,
+                inventory_blind_prices=inventory_blind,
+                predicted_opponent_price=predicted_opponent,
+                chosen_prices=chosen,
+                terminal_cash=terminal_cash,
+                constrained_terminal_cash_regret=constrained_regret,
+                price_l1_error=price_l1_error,
+                reserve_violation=(
+                    terminal_cash is not None and terminal_cash < case.min_terminal_cash
+                ),
+                static_nash_miss=static_nash_miss,
+                one_price_miss=one_price_miss,
+                trace_blind_miss=trace_blind_miss,
+                inventory_blind_miss=inventory_blind_miss,
+                raw_response=response,
+            )
+        )
+    return summarize_market_trace_markdown_trials(agent.name, trials)
+
+
 def summarize_market_trials(agent_name: str, trials: list[MarketTrial]) -> dict:
     gaps = [trial.equilibrium_price_gap for trial in trials if trial.equilibrium_price_gap is not None]
     indices = [trial.collusion_index for trial in trials if trial.collusion_index is not None]
@@ -994,6 +1111,62 @@ def summarize_market_trace_inventory_trials(
     }
 
 
+def summarize_market_trace_markdown_trials(
+    agent_name: str,
+    trials: list[TraceMarkdownMarketTrial],
+) -> dict:
+    regrets = [
+        trial.constrained_terminal_cash_regret
+        for trial in trials
+        if trial.constrained_terminal_cash_regret is not None
+    ]
+    price_errors = [trial.price_l1_error for trial in trials if trial.price_l1_error is not None]
+    static_missable = [
+        trial for trial in trials if _pair_l1(trial.static_prices, trial.oracle_prices) >= 3.0
+    ]
+    one_price_missable = [
+        trial for trial in trials if _pair_l1(trial.one_price_baseline, trial.oracle_prices) >= 3.0
+    ]
+    trace_missable = [
+        trial for trial in trials if _pair_l1(trial.trace_blind_prices, trial.oracle_prices) >= 3.0
+    ]
+    inventory_missable = [
+        trial
+        for trial in trials
+        if _pair_l1(trial.inventory_blind_prices, trial.oracle_prices) >= 3.0
+    ]
+    return {
+        "task": "market_trace_markdown",
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "mean_constrained_terminal_cash_regret": mean(regrets),
+        "mean_constrained_terminal_cash_regret_ci95": bootstrap_mean_ci(regrets),
+        "mean_price_l1_error": mean(price_errors),
+        "reserve_violation_rate": sum(trial.reserve_violation for trial in trials) / len(trials),
+        "static_nash_miss_rate": (
+            sum(trial.static_nash_miss for trial in static_missable) / len(static_missable)
+            if static_missable
+            else 0.0
+        ),
+        "one_price_miss_rate": (
+            sum(trial.one_price_miss for trial in one_price_missable) / len(one_price_missable)
+            if one_price_missable
+            else 0.0
+        ),
+        "trace_blind_miss_rate": (
+            sum(trial.trace_blind_miss for trial in trace_missable) / len(trace_missable)
+            if trace_missable
+            else 0.0
+        ),
+        "inventory_blind_miss_rate": (
+            sum(trial.inventory_blind_miss for trial in inventory_missable) / len(inventory_missable)
+            if inventory_missable
+            else 0.0
+        ),
+        "trials": [_trace_markdown_trial_json(trial) for trial in trials],
+    }
+
+
 def _parse_price(response: str, case: MarketCase) -> float | None:
     parsed = parse_float("FINAL_PRICE", response)
     if parsed is None:
@@ -1020,6 +1193,20 @@ def _parse_trace_inventory_price(response: str, case: TraceInventoryMarketCase) 
     if parsed is None:
         return None
     return clamp(parsed, case.marginal_cost, case.p_max)
+
+
+def _parse_trace_markdown_prices(
+    response: str,
+    case: TraceInventoryMarketCase,
+) -> tuple[float, float] | None:
+    early = parse_float("FINAL_PRICE_EARLY", response)
+    late = parse_float("FINAL_PRICE_LATE", response)
+    if early is None or late is None:
+        return None
+    return (
+        clamp(early, case.marginal_cost, case.p_max),
+        clamp(late, case.marginal_cost, case.p_max),
+    )
 
 
 def policy_shift_static_nash_price(case: PolicyShiftMarketCase) -> float:
@@ -1169,6 +1356,36 @@ def trace_inventory_terminal_cash(
     return cash
 
 
+def trace_markdown_terminal_cash(
+    case: TraceInventoryMarketCase,
+    early_price: float,
+    late_price: float,
+    opponent_price: float,
+) -> float:
+    inventory = case.starting_inventory
+    cash = case.starting_cash
+    shocks = case.demand_shocks or tuple(0.0 for _ in range(case.horizon))
+    switch_period = max(1, case.horizon // 2)
+    for period in range(case.horizon):
+        own_price = early_price if period < switch_period else late_price
+        shock = shocks[period] if period < len(shocks) else 0.0
+        demand = max(
+            0.0,
+            case.base_demand
+            + case.demand_shock
+            + shock
+            - case.own_price_slope * own_price
+            + case.cross_price_slope * opponent_price,
+        )
+        sold = min(inventory, demand)
+        cash += max(0.0, own_price - case.marginal_cost) * sold
+        inventory -= sold
+        cash -= case.carrying_cost_per_unsold * inventory
+    cash += case.terminal_inventory_value * inventory
+    cash -= case.fixed_obligation
+    return cash
+
+
 def trace_inventory_oracle_price(
     case: TraceInventoryMarketCase,
     *,
@@ -1182,6 +1399,24 @@ def trace_inventory_oracle_price(
         key=lambda price: (
             trace_inventory_terminal_cash(case, price, predicted_opponent),
             -abs(price - reference),
+        ),
+    )
+
+
+def trace_markdown_oracle_prices(
+    case: TraceInventoryMarketCase,
+    *,
+    opponent_price: float | None = None,
+) -> tuple[float, float]:
+    predicted_opponent = trace_inventory_opponent_price(case) if opponent_price is None else opponent_price
+    reference = trace_inventory_best_response(case, predicted_opponent)
+    candidates = _trace_inventory_candidate_prices(case, predicted_opponent)
+    pairs = ((early, late) for early in candidates for late in candidates)
+    return max(
+        pairs,
+        key=lambda pair: (
+            trace_markdown_terminal_cash(case, pair[0], pair[1], predicted_opponent),
+            -abs(pair[0] - reference) - abs(pair[1] - reference),
         ),
     )
 
@@ -1204,6 +1439,10 @@ def trace_inventory_opponent_price(case: TraceInventoryMarketCase) -> float:
         - 30.0 * clearance_pressure
     )
     return clamp(price, case.marginal_cost, case.p_max)
+
+
+def _pair_l1(left: tuple[float, float], right: tuple[float, float]) -> float:
+    return abs(left[0] - right[0]) + abs(left[1] - right[1])
 
 
 def _prompt(case: MarketCase, firm_id: str) -> str:
@@ -1325,6 +1564,48 @@ def _trace_inventory_prompt(case: TraceInventoryMarketCase) -> str:
     return "\n".join(lines)
 
 
+def _trace_markdown_prompt(case: TraceInventoryMarketCase) -> str:
+    switch_period = max(1, case.horizon // 2)
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"base_demand={case.base_demand:.4f}",
+        f"demand_shock={case.demand_shock:.4f}",
+        f"own_price_slope={case.own_price_slope:.4f}",
+        f"cross_price_slope={case.cross_price_slope:.4f}",
+        f"marginal_cost={case.marginal_cost:.4f}",
+        f"p_max={case.p_max:.4f}",
+        f"horizon={case.horizon}",
+        f"early_price_periods=1_to_{switch_period}",
+        f"late_price_periods={switch_period + 1}_to_{case.horizon}",
+        f"starting_inventory={case.starting_inventory:.4f}",
+        f"starting_cash={case.starting_cash:.4f}",
+        f"fixed_obligation={case.fixed_obligation:.4f}",
+        f"min_terminal_cash={case.min_terminal_cash:.4f}",
+        f"carrying_cost_per_unsold={case.carrying_cost_per_unsold:.4f}",
+        f"terminal_inventory_value={case.terminal_inventory_value:.4f}",
+        f"demand_shocks={','.join(f'{shock:.4f}' for shock in case.demand_shocks)}",
+        "Recent competitor market trace rows:",
+    ]
+    for point in case.trace:
+        lines.append(
+            f"  trace period={point.period} "
+            f"opponent_price={point.opponent_price:.4f} "
+            f"opponent_fill_rate={point.opponent_fill_rate:.4f} "
+            f"opponent_remaining_inventory_share={point.opponent_remaining_inventory_share:.4f}"
+        )
+    lines.extend(
+        [
+            "Demand each period is q_i = base_demand + demand_shock + period_shock - own_price_slope*p_i + cross_price_slope*p_j.",
+            "The trace rows indicate whether the competitor is likely to keep cutting, ration capacity, or raise price next.",
+            "Choose an early posted price for the early periods and a late posted price for the remaining periods.",
+            "Terminal cash equals starting cash plus gross margin on units sold, minus holding costs and the fixed obligation, plus terminal inventory value.",
+            "Meet the terminal cash reserve while maximizing terminal cash; a single fixed price may be dominated by a staged plan.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _trial_json(trial: MarketTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
@@ -1344,6 +1625,12 @@ def _policy_inventory_trial_json(trial: InventoryPolicyMarketTrial) -> dict:
 
 
 def _trace_inventory_trial_json(trial: TraceInventoryMarketTrial) -> dict:
+    data = asdict(trial)
+    data["case"] = asdict(trial.case)
+    return data
+
+
+def _trace_markdown_trial_json(trial: TraceMarkdownMarketTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
     return data
