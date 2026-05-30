@@ -3,6 +3,7 @@ import unittest
 from aeread_lab.models import OfflineAgent
 from aeread_lab.tasks.regime import (
     DEFAULT_GAMBLES,
+    DEFAULT_RELATIONSHIP_GAMBLES,
     Gamble,
     crra_fraction,
     cvar_fraction,
@@ -10,7 +11,10 @@ from aeread_lab.tasks.regime import (
     ev_fraction,
     kelly_fraction,
     log_growth,
+    relationship_laws_hold,
+    relationship_oracle_fractions,
     run_regime_battery,
+    run_regime_relationship_verifier,
 )
 
 
@@ -77,6 +81,27 @@ class RegimeMathTests(unittest.TestCase):
         summary = run_regime_battery(OfflineAgent("ev"))
         self.assertGreater(summary["by_regime"]["cvar"]["drawdown_violation_rate"], 0.5)
         self.assertGreater(summary["cvar_drawdown_violation_rate"], 0.5)
+
+    def test_relationship_gambles_have_expected_oracle_laws(self):
+        self.assertEqual(len(DEFAULT_RELATIONSHIP_GAMBLES), 4)
+        for gamble in DEFAULT_RELATIONSHIP_GAMBLES:
+            fractions = relationship_oracle_fractions(gamble)
+            self.assertTrue(relationship_laws_hold(fractions), gamble.key)
+            self.assertGreater(fractions["ev"], fractions["kelly"])
+            self.assertGreater(fractions["kelly"], fractions["cvar"])
+            self.assertGreater(fractions["kelly"], fractions["crra"])
+
+    def test_relationship_verifier_pairs_law_and_fit_signal(self):
+        oracle = run_regime_relationship_verifier(OfflineAgent("oracle"))
+        ev = run_regime_relationship_verifier(OfflineAgent("ev"))
+        wrong = run_regime_relationship_verifier(OfflineAgent("wrong_regime"))
+        self.assertEqual(oracle["n_groups"], 4)
+        self.assertAlmostEqual(oracle["mean_absolute_error"], 0.0, places=6)
+        self.assertEqual(oracle["relationship_violation_rate"], 0.0)
+        self.assertEqual(oracle["fit_fail_rate"], 0.0)
+        self.assertEqual(ev["relationship_violation_rate"], 0.0)
+        self.assertEqual(ev["fit_fail_rate"], 1.0)
+        self.assertGreater(wrong["relationship_violation_rate"], 0.5)
 
 
 if __name__ == "__main__":

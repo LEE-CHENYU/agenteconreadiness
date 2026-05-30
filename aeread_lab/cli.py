@@ -13,6 +13,7 @@ from aeread_lab.runner import run_sweep, run_tasks
 
 TASKS = (
     "regime",
+    "regime_relationship",
     "alignment_tax",
     "principal_inference",
     "portfolio",
@@ -133,6 +134,21 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"destroy_ci={_fmt_ci(row.get('wealth_destruction_ci95'))} "
                     f"drawdown_violate={row.get('drawdown_violation_rate', 0.0):.2f} "
                     f"case={row['real_case']}"
+                )
+        elif task == "regime_relationship":
+            print(
+                f"regime_relationship: groups={result['n_groups']} n={result['n_trials']} "
+                f"mean_abs_error={_fmt(result['mean_absolute_error'])} "
+                f"ci95={_fmt_ci(result.get('mean_absolute_error_ci95'))} "
+                f"law_violate={result.get('relationship_violation_rate', 0.0):.2f} "
+                f"fit_fail={result.get('fit_fail_rate', 0.0):.2f} "
+                f"law_or_fit_fail={result.get('relationship_or_fit_fail_rate', 0.0):.2f}"
+            )
+            for key, row in result["by_group"].items():
+                print(
+                    f"  {key:<12} error={_fmt(row['mean_absolute_error'])} "
+                    f"law_violate={row['relationship_violation']} "
+                    f"fit_fail={row['fit_fail']}"
                 )
         elif task == "alignment_tax":
             print(

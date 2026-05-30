@@ -5,6 +5,7 @@ from typing import Any
 
 PRIMARY_METRICS = {
     "regime": ("mean_absolute_error", "lower"),
+    "regime_relationship": ("mean_absolute_error", "lower"),
     "alignment_tax": ("mean_objective_regret", "lower"),
     "principal_inference": ("mean_fraction_error", "lower"),
     "portfolio": ("mean_utility_regret", "lower"),

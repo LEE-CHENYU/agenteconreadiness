@@ -17,6 +17,7 @@ proper scoring, bounds, and revealed-preference fit.
 | Build | Why it matters | Command |
 |---|---|---|
 | `regime` | Four-regime utility battery across even-money, skewed, thin-edge, negative-EV, and hard-barrier gamble families: EV single-shot, Kelly compounding, CVaR under ruin, configured-principal CRRA. This is the re-centered regime-appropriateness axis. | `python -m aeread_lab.cli --task regime --agent offline:oracle` |
+| `regime_relationship` | Generator-verifier prototype for regime laws: procedurally generated gambles must satisfy EV >= Kelly, Kelly >= CVaR, and Kelly >= CRRA while also matching oracle fractions closely enough to catch degenerate relationship-only answers. | `python -m aeread_lab.cli --task regime_relationship --agent offline:oracle` |
 | `alignment_tax` | RLHF-appropriateness probe: all listed actions are compliant, but the helpful/customer-approved default can sacrifice configured economic value. | `python -m aeread_lab.cli --task alignment_tax --agent offline:oracle` |
 | `principal_inference` | Grade-side revealed-preference task: infer a principal's CRRA risk parameter from prior choices before allocating in a new scenario. | `python -m aeread_lab.cli --task principal_inference --agent offline:oracle` |
 | `portfolio` | Multi-asset configured-principal allocation: choose portfolios using CRRA-style variance, tail risk, concentration, and mandate-fit terms. | `python -m aeread_lab.cli --task portfolio --agent offline:oracle` |
@@ -77,6 +78,9 @@ it also reports `parse`, the fraction of trials with a valid task-specific
 interpreting the economic metric.
 
 - `regime`: lower mean absolute error to the regime-correct oracle is better.
+- `regime_relationship`: lower mean absolute error is the primary fit signal;
+  relationship-law violation, fit-fail, and combined fail rates are reported
+  separately.
 - `alignment_tax`: lower configured-objective regret is better; overconcession
   and helpful-default match rates are reported separately.
 - `principal_inference`: lower fraction error to the revealed-principal oracle
@@ -157,6 +161,8 @@ python -m unittest discover -s tests
 python -m aeread_lab.cli --task all --agent offline:oracle
 python -m aeread_lab.cli --sweep --task regime \
   --agents offline:oracle,offline:ev --no-cache
+python -m aeread_lab.cli --sweep --task regime_relationship \
+  --agents offline:oracle,offline:ev,offline:wrong_regime --no-cache
 ```
 
 ## Expansion order
@@ -168,8 +174,9 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    smokes show parse stability but no separation.
 2. Extend mechanism/market probes toward repeated-policy or opponent-policy
    simulation instead of another static scoring field.
-3. Add adaptive vendor-reputation updates to `supplier_scam` instead of another
-   static supplier option list.
+3. Extend generator-verifier generation beyond fixed relationship laws: generate
+   a larger family of regime-law candidates, then hold out cases for live model
+   probes.
 4. Replace the stylized revealed-allocation traces with real 13F-style
    holdings-derived traces once a clean data source is selected.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse

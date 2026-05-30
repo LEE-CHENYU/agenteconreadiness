@@ -146,6 +146,15 @@ class OfflineAgent:
             value = kelly
         elif self.policy == "cvar":
             value = cvar
+        elif self.policy in {"wrong_regime", "inverse_regime"}:
+            if regime == "ev":
+                value = cvar
+            elif regime == "cvar":
+                value = ev
+            elif regime == "kelly":
+                value = kelly
+            else:
+                value = oracle
         elif self.policy == "half":
             value = 0.5
         else:

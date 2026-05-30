@@ -16,7 +16,7 @@ from .portfolio import run_portfolio_game
 from .pricing import run_pricing_game
 from .principal_inference import run_principal_inference_game
 from .procurement import run_procurement_game
-from .regime import run_regime_battery
+from .regime import run_regime_battery, run_regime_relationship_verifier
 from .revealed_allocation import run_revealed_allocation_game
 from .retail import run_retail_game
 from .screening import run_screening_game
@@ -43,6 +43,7 @@ __all__ = [
     "run_principal_inference_game",
     "run_procurement_game",
     "run_regime_battery",
+    "run_regime_relationship_verifier",
     "run_revealed_allocation_game",
     "run_retail_game",
     "run_screening_game",

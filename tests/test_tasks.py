@@ -55,7 +55,13 @@ from aeread_lab.tasks.principal_inference import run_principal_inference_game
 from aeread_lab.tasks.procurement import DEFAULT_CASES as PROCUREMENT_CASES
 from aeread_lab.tasks.procurement import _prompt as procurement_prompt
 from aeread_lab.tasks.procurement import run_procurement_game
-from aeread_lab.tasks.regime import DEFAULT_GAMBLES, _prompt as regime_prompt
+from aeread_lab.tasks.regime import (
+    DEFAULT_GAMBLES,
+    DEFAULT_RELATIONSHIP_GAMBLES,
+    _prompt as regime_prompt,
+    _relationship_prompt as regime_relationship_prompt,
+    run_regime_relationship_verifier,
+)
 from aeread_lab.tasks.revealed_allocation import DEFAULT_CASES as REVEALED_ALLOCATION_CASES
 from aeread_lab.tasks.revealed_allocation import _prompt as revealed_allocation_prompt
 from aeread_lab.tasks.revealed_allocation import run_revealed_allocation_game
@@ -123,6 +129,13 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(sweep["sample_limit"], 1)
         self.assertEqual(result["n_trials"], 4)
 
+    def test_sample_limit_slices_regime_relationship_gambles(self):
+        sweep = run_sweep(task="regime_relationship", agent_specs=["offline:oracle"], sample_limit=1)
+        result = sweep["runs"][0]["results"][0]
+        self.assertEqual(sweep["sample_limit"], 1)
+        self.assertEqual(result["n_groups"], 1)
+        self.assertEqual(result["n_trials"], 4)
+
     def test_sample_limit_slices_task_cases(self):
         results = run_tasks("procurement", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
@@ -138,6 +151,7 @@ class TaskSmokeTests(unittest.TestCase):
 
     def test_prompts_do_not_expose_oracle_answers(self):
         regime = regime_prompt(DEFAULT_GAMBLES[0], "kelly")
+        regime_relationship = regime_relationship_prompt(DEFAULT_RELATIONSHIP_GAMBLES[0], "kelly")
         alignment_tax = alignment_tax_prompt(ALIGNMENT_CASES[0])
         procurement = procurement_prompt(PROCUREMENT_CASES[0])
         pricing = pricing_prompt(PRICING_CASES[0], "reveal")
@@ -163,6 +177,7 @@ class TaskSmokeTests(unittest.TestCase):
             SUPPLIER_SCAM_CASES[0].initial_cash,
         )
         self.assertNotIn("oracle", regime)
+        self.assertNotIn("oracle", regime_relationship)
         self.assertNotIn("oracle", alignment_tax)
         self.assertNotIn("oracle", procurement)
         self.assertNotIn("oracle", pricing)
@@ -183,7 +198,18 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", retail)
         self.assertNotIn("oracle", supplier_scam)
         self.assertNotIn("kelly_fraction", regime)
+        self.assertNotIn("kelly_fraction", regime_relationship)
         self.assertNotIn("oracle_price", pricing)
+
+    def test_regime_relationship_flags_law_and_fit_failures(self):
+        configured = run_regime_relationship_verifier(OfflineAgent("oracle"))
+        ev = run_regime_relationship_verifier(OfflineAgent("ev"))
+        wrong = run_regime_relationship_verifier(OfflineAgent("wrong_regime"))
+        self.assertLess(configured["mean_absolute_error"], 1e-9)
+        self.assertEqual(configured["relationship_or_fit_fail_rate"], 0.0)
+        self.assertEqual(ev["relationship_violation_rate"], 0.0)
+        self.assertEqual(ev["fit_fail_rate"], 1.0)
+        self.assertGreater(wrong["relationship_violation_rate"], 0.5)
 
     def test_principal_inference_flags_generic_gamma(self):
         inferred = run_principal_inference_game(OfflineAgent("oracle"))
