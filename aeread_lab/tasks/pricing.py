@@ -17,6 +17,12 @@ PRICING_CROSS_SYSTEM = (
     "Choose the focal product price. Return one final line only: FINAL_PRICE: <number>."
 )
 
+PRICING_MULTI_SYSTEM = (
+    "TASK: pricing_multi_product_prices\n"
+    "Choose prices for both products. Return two final lines only: "
+    "FINAL_PRICE_A: <number> and FINAL_PRICE_B: <number>."
+)
+
 PRICING_LAW_SYSTEM = (
     "TASK: pricing_law_label\n"
     "You are verifying a proposed comparative-static claim about the revenue-maximizing price. "
@@ -54,6 +60,15 @@ class PricingCrossCase:
     p_max: float
     planned_related_price: float
     observations: tuple[tuple[float, float, float], ...]
+    scenario_note: str = ""
+
+
+@dataclass(frozen=True)
+class PricingMultiProductCase:
+    key: str
+    p_max_a: float
+    p_max_b: float
+    observations: tuple[tuple[float, float, float, float], ...]
     scenario_note: str = ""
 
 
@@ -128,6 +143,28 @@ def _cross_observations(
     )
 
 
+def _multi_product_observations(
+    alpha_a: float,
+    own_beta_a: float,
+    cross_ab: float,
+    alpha_b: float,
+    own_beta_b: float,
+    cross_ba: float,
+    p_max_a: float,
+    p_max_b: float,
+) -> tuple[tuple[float, float, float, float], ...]:
+    pairs = ((0.24, 0.28), (0.36, 0.72), (0.48, 0.40), (0.60, 0.84), (0.72, 0.55), (0.84, 0.92))
+    return tuple(
+        (
+            round(a_ratio * p_max_a, 2),
+            round(b_ratio * p_max_b, 2),
+            round(max(0.0, alpha_a - own_beta_a * a_ratio * p_max_a + cross_ab * b_ratio * p_max_b), 2),
+            round(max(0.0, alpha_b - own_beta_b * b_ratio * p_max_b + cross_ba * a_ratio * p_max_a), 2),
+        )
+        for a_ratio, b_ratio in pairs
+    )
+
+
 DEFAULT_CASES = [
     PricingCase("snack_box", alpha=180.0, beta=6.0, sigma=4.0, p_max=30.0, seed=11),
     PricingCase("premium_widget", alpha=260.0, beta=4.0, sigma=6.0, p_max=55.0, seed=29),
@@ -175,6 +212,51 @@ CROSS_ELASTICITY_CASES = [
         planned_related_price=9.0,
         scenario_note="Set the focal product price using the observed related-product variation.",
         observations=_cross_observations(alpha=220.0, own_beta=6.0, related_beta=-3.0, p_max=42.0),
+    ),
+]
+
+MULTI_PRODUCT_CASES = [
+    PricingMultiProductCase(
+        key="multi_case_01",
+        p_max_a=50.0,
+        p_max_b=48.0,
+        scenario_note="Two substitute products are promoted together; choose both prices jointly.",
+        observations=_multi_product_observations(110.0, 4.5, 3.0, 105.0, 4.2, 3.0, 50.0, 48.0),
+    ),
+    PricingMultiProductCase(
+        key="multi_case_02",
+        p_max_a=65.0,
+        p_max_b=60.0,
+        scenario_note="The related products substitute asymmetrically; choose the joint campaign prices.",
+        observations=_multi_product_observations(120.0, 4.0, 3.6, 125.0, 4.2, 3.6, 65.0, 60.0),
+    ),
+    PricingMultiProductCase(
+        key="multi_case_03",
+        p_max_a=55.0,
+        p_max_b=55.0,
+        scenario_note="The products are complements, so raising one price can reduce demand for the other.",
+        observations=_multi_product_observations(330.0, 5.0, -3.2, 310.0, 4.8, -3.0, 55.0, 55.0),
+    ),
+    PricingMultiProductCase(
+        key="multi_case_04",
+        p_max_a=70.0,
+        p_max_b=68.0,
+        scenario_note="A high-demand bundle has asymmetric complement effects across products.",
+        observations=_multi_product_observations(500.0, 5.0, -4.0, 480.0, 5.2, -3.8, 70.0, 68.0),
+    ),
+    PricingMultiProductCase(
+        key="multi_case_05",
+        p_max_a=45.0,
+        p_max_b=44.0,
+        scenario_note="Both product prices have tight campaign caps under substitute demand.",
+        observations=_multi_product_observations(100.0, 4.0, 3.0, 100.0, 4.2, 3.2, 45.0, 44.0),
+    ),
+    PricingMultiProductCase(
+        key="multi_case_06",
+        p_max_a=60.0,
+        p_max_b=52.0,
+        scenario_note="Both capped products are complements with strong joint-demand effects.",
+        observations=_multi_product_observations(360.0, 5.5, -3.5, 300.0, 4.6, -2.6, 60.0, 52.0),
     ),
 ]
 
@@ -575,6 +657,82 @@ def cross_revenue(case: PricingCrossCase, price: float) -> float:
     return price * quantity
 
 
+def multi_product_posterior(case: PricingMultiProductCase) -> tuple[float, float, float, float, float, float]:
+    product_a = _cross_fit([(price_a, price_b, quantity_a) for price_a, price_b, quantity_a, _ in case.observations])
+    product_b = _cross_fit([(price_b, price_a, quantity_b) for price_a, price_b, _, quantity_b in case.observations])
+    alpha_a, own_beta_a, cross_ab = product_a
+    alpha_b, own_beta_b, cross_ba = product_b
+    return alpha_a, own_beta_a, cross_ab, alpha_b, own_beta_b, cross_ba
+
+
+def multi_product_revenue(case: PricingMultiProductCase, price_a: float, price_b: float) -> float:
+    alpha_a, own_beta_a, cross_ab, alpha_b, own_beta_b, cross_ba = multi_product_posterior(case)
+    quantity_a = max(0.0, alpha_a - own_beta_a * price_a + cross_ab * price_b)
+    quantity_b = max(0.0, alpha_b - own_beta_b * price_b + cross_ba * price_a)
+    return price_a * quantity_a + price_b * quantity_b
+
+
+def multi_product_oracle_prices(case: PricingMultiProductCase) -> tuple[float, float]:
+    alpha_a, own_beta_a, cross_ab, alpha_b, own_beta_b, cross_ba = multi_product_posterior(case)
+    return _best_multi_product_prices(
+        alpha_a=alpha_a,
+        own_beta_a=own_beta_a,
+        cross_ab=cross_ab,
+        alpha_b=alpha_b,
+        own_beta_b=own_beta_b,
+        cross_ba=cross_ba,
+        p_max_a=case.p_max_a,
+        p_max_b=case.p_max_b,
+    )
+
+
+def multi_product_independent_prices(case: PricingMultiProductCase) -> tuple[float, float]:
+    alpha_a, beta_a = _ols_fit([(price_a, quantity_a) for price_a, _, quantity_a, _ in case.observations])
+    alpha_b, beta_b = _ols_fit([(price_b, quantity_b) for _, price_b, _, quantity_b in case.observations])
+    return (
+        clamp(alpha_a / (2.0 * beta_a), 0.0, case.p_max_a),
+        clamp(alpha_b / (2.0 * beta_b), 0.0, case.p_max_b),
+    )
+
+
+def _best_multi_product_prices(
+    *,
+    alpha_a: float,
+    own_beta_a: float,
+    cross_ab: float,
+    alpha_b: float,
+    own_beta_b: float,
+    cross_ba: float,
+    p_max_a: float,
+    p_max_b: float,
+) -> tuple[float, float]:
+    cross_sum = cross_ab + cross_ba
+    candidates: list[tuple[float, float]] = []
+    determinant = 4.0 * own_beta_a * own_beta_b - cross_sum * cross_sum
+    if abs(determinant) > 1e-12:
+        candidates.append(
+            (
+                (alpha_a * 2.0 * own_beta_b + cross_sum * alpha_b) / determinant,
+                (2.0 * own_beta_a * alpha_b + cross_sum * alpha_a) / determinant,
+            )
+        )
+    for price_a in (0.0, p_max_a):
+        candidates.append((price_a, (alpha_b + cross_sum * price_a) / (2.0 * own_beta_b)))
+    for price_b in (0.0, p_max_b):
+        candidates.append(((alpha_a + cross_sum * price_b) / (2.0 * own_beta_a), price_b))
+    candidates.extend((price_a, price_b) for price_a in (0.0, p_max_a) for price_b in (0.0, p_max_b))
+
+    def objective(pair: tuple[float, float]) -> float:
+        price_a = clamp(pair[0], 0.0, p_max_a)
+        price_b = clamp(pair[1], 0.0, p_max_b)
+        quantity_a = max(0.0, alpha_a - own_beta_a * price_a + cross_ab * price_b)
+        quantity_b = max(0.0, alpha_b - own_beta_b * price_b + cross_ba * price_a)
+        return price_a * quantity_a + price_b * quantity_b
+
+    best = max(candidates, key=objective)
+    return clamp(best[0], 0.0, p_max_a), clamp(best[1], 0.0, p_max_b)
+
+
 def param_oracle_price(alpha: float, beta: float, p_max: float) -> float:
     return clamp(alpha / (2.0 * beta), 0.0, p_max)
 
@@ -826,6 +984,70 @@ def run_pricing_cross_elasticity_game(
     }
 
 
+def run_pricing_multi_product_game(
+    agent: Agent,
+    cases: list[PricingMultiProductCase] | None = None,
+) -> dict:
+    cases = cases or MULTI_PRODUCT_CASES
+    rows = []
+    for case in cases:
+        oracle_a, oracle_b = multi_product_oracle_prices(case)
+        independent_a, independent_b = multi_product_independent_prices(case)
+        oracle_rev = multi_product_revenue(case, oracle_a, oracle_b)
+        response = agent.complete(PRICING_MULTI_SYSTEM, _multi_product_prompt(case))
+        parsed_a = parse_float("FINAL_PRICE_A", response)
+        parsed_b = parse_float("FINAL_PRICE_B", response)
+        chosen_a = clamp(parsed_a, 0.0, case.p_max_a) if parsed_a is not None else None
+        chosen_b = clamp(parsed_b, 0.0, case.p_max_b) if parsed_b is not None else None
+        revenue = (
+            multi_product_revenue(case, chosen_a, chosen_b)
+            if chosen_a is not None and chosen_b is not None
+            else None
+        )
+        price_l1 = (
+            abs(chosen_a - oracle_a) + abs(chosen_b - oracle_b)
+            if chosen_a is not None and chosen_b is not None
+            else None
+        )
+        independent_l1 = abs(independent_a - oracle_a) + abs(independent_b - oracle_b)
+        rows.append(
+            {
+                "case": case.key,
+                "oracle_price_a": oracle_a,
+                "oracle_price_b": oracle_b,
+                "independent_price_a": independent_a,
+                "independent_price_b": independent_b,
+                "chosen_price_a": chosen_a,
+                "chosen_price_b": chosen_b,
+                "price_l1_error": price_l1,
+                "oracle_revenue": oracle_rev,
+                "chosen_revenue": revenue,
+                "revenue_gap": oracle_rev - revenue if revenue is not None else None,
+                "independent_miss": (
+                    chosen_a is not None
+                    and chosen_b is not None
+                    and abs(chosen_a - independent_a) + abs(chosen_b - independent_b) < 1.5
+                    and independent_l1 > 5.0
+                ),
+                "raw_response": response,
+            }
+        )
+    errors = [row["price_l1_error"] for row in rows if row["price_l1_error"] is not None]
+    gaps = [row["revenue_gap"] for row in rows if row["revenue_gap"] is not None]
+    parsed = [row for row in rows if row["chosen_price_a"] is not None and row["chosen_price_b"] is not None]
+    independent_misses = sum(row["independent_miss"] for row in rows)
+    return {
+        "task": "pricing_multi_product",
+        "agent": agent.name,
+        "n_trials": len(rows),
+        "mean_price_l1_error": sum(errors) / len(errors) if errors else None,
+        "mean_revenue_gap": sum(gaps) / len(gaps) if gaps else None,
+        "parse_rate": len(parsed) / len(rows) if rows else 0.0,
+        "independent_miss_rate": independent_misses / len(rows) if rows else 0.0,
+        "trials": rows,
+    }
+
+
 def run_pricing_law_audit_game(agent: Agent, cases: list[PricingLawCase] | None = None) -> dict:
     cases = cases or DEFAULT_LAW_CASES
     rows: list[PricingLawTrial] = []
@@ -1018,6 +1240,30 @@ def _cross_elasticity_prompt(case: PricingCrossCase) -> str:
     lines.append(
         "Fit demand as quantity = alpha - own_beta * own_price + related_beta * related_price, "
         "then choose the focal price that maximizes focal price * quantity under p_max."
+    )
+    return "\n".join(lines)
+
+
+def _multi_product_prompt(case: PricingMultiProductCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"p_max_a={case.p_max_a:.2f}",
+        f"p_max_b={case.p_max_b:.2f}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note)
+    lines.append("Historical sales observations:")
+    lines.extend(
+        (
+            f"  price_a={price_a:.2f}, price_b={price_b:.2f}, "
+            f"quantity_a={quantity_a:.2f}, quantity_b={quantity_b:.2f}"
+        )
+        for price_a, price_b, quantity_a, quantity_b in case.observations
+    )
+    lines.append(
+        "Fit product A demand as quantity_a = alpha_a - own_beta_a * price_a + cross_ab * price_b. "
+        "Fit product B demand as quantity_b = alpha_b - own_beta_b * price_b + cross_ba * price_a. "
+        "Choose both prices jointly to maximize price_a * quantity_a + price_b * quantity_b under the caps."
     )
     return "\n".join(lines)
 

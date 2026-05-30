@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from statistics import median
 from typing import Protocol
 
@@ -38,7 +38,9 @@ class OpenAIResponsesAgent:
     """
 
     model: str = "nano"
-    max_output_tokens: int = 4096
+    max_output_tokens: int = field(
+        default_factory=lambda: int(os.environ.get("AEREAD_OPENAI_MAX_OUTPUT_TOKENS", "4096"))
+    )
     reasoning_effort: str = "low"
     text_verbosity: str = "low"
     name: str = "openai"
@@ -102,6 +104,8 @@ class OfflineAgent:
             return self._pricing_price(user)
         if "TASK: pricing_cross_price" in system:
             return self._pricing_cross_price(user)
+        if "TASK: pricing_multi_product_prices" in system:
+            return self._pricing_multi_product_prices(user)
         if "TASK: pricing_law_label" in system:
             return self._pricing_law_label(user)
         if "TASK: pricing_evidence_law_label" in system:
@@ -367,6 +371,39 @@ class OfflineAgent:
         if self.policy == "round":
             price = round(price / 10.0) * 10.0
         return f"FINAL_PRICE: {price:.2f}"
+
+    def _pricing_multi_product_prices(self, user: str) -> str:
+        p_max_a = _extract_float(user, "p_max_a", 1e9)
+        p_max_b = _extract_float(user, "p_max_b", 1e9)
+        rows = _extract_multi_product_rows(user)
+        if self.policy in {"independent", "single_product", "own_only"}:
+            fit_a = _fit_pricing_rows([(price_a, quantity_a) for price_a, _, quantity_a, _ in rows])
+            fit_b = _fit_pricing_rows([(price_b, quantity_b) for _, price_b, _, quantity_b in rows])
+            alpha_a, beta_a = fit_a if fit_a is not None else (1.0, 1.0)
+            alpha_b, beta_b = fit_b if fit_b is not None else (1.0, 1.0)
+            price_a = max(0.0, min(p_max_a, alpha_a / (2.0 * max(beta_a, 1e-9))))
+            price_b = max(0.0, min(p_max_b, alpha_b / (2.0 * max(beta_b, 1e-9))))
+        else:
+            alpha_a, own_beta_a, cross_ab = _fit_cross_pricing_rows(
+                [(price_a, price_b, quantity_a) for price_a, price_b, quantity_a, _ in rows]
+            )
+            alpha_b, own_beta_b, cross_ba = _fit_cross_pricing_rows(
+                [(price_b, price_a, quantity_b) for price_a, price_b, _, quantity_b in rows]
+            )
+            price_a, price_b = _best_multi_product_prices(
+                alpha_a=alpha_a,
+                own_beta_a=own_beta_a,
+                cross_ab=cross_ab,
+                alpha_b=alpha_b,
+                own_beta_b=own_beta_b,
+                cross_ba=cross_ba,
+                p_max_a=p_max_a,
+                p_max_b=p_max_b,
+            )
+        if self.policy == "round":
+            price_a = round(price_a / 10.0) * 10.0
+            price_b = round(price_b / 10.0) * 10.0
+        return f"FINAL_PRICE_A: {price_a:.2f}\nFINAL_PRICE_B: {price_b:.2f}"
 
     def _pricing_law_label(self, user: str) -> str:
         oracle = _pricing_law_label(user)
@@ -1591,6 +1628,19 @@ def _extract_cross_pricing_rows(text: str) -> list[tuple[float, float, float]]:
     ]
 
 
+def _extract_multi_product_rows(text: str) -> list[tuple[float, float, float, float]]:
+    return [
+        (float(price_a), float(price_b), float(quantity_a), float(quantity_b))
+        for price_a, price_b, quantity_a, quantity_b in re.findall(
+            r"price_a=([-+]?\d+(?:\.\d+)?),\s+"
+            r"price_b=([-+]?\d+(?:\.\d+)?),\s+"
+            r"quantity_a=([-+]?\d+(?:\.\d+)?),\s+"
+            r"quantity_b=([-+]?\d+(?:\.\d+)?)",
+            text,
+        )
+    ]
+
+
 def _fit_pricing_rows(rows: list[tuple[float, float]]) -> tuple[float, float] | None:
     if len(rows) < 2:
         return None
@@ -1622,6 +1672,44 @@ def _fit_cross_pricing_rows(rows: list[tuple[float, float, float]]) -> tuple[flo
     except ValueError:
         return 1.0, 1.0, 0.0
     return intercept, max(0.001, -own_slope), related_slope
+
+
+def _best_multi_product_prices(
+    *,
+    alpha_a: float,
+    own_beta_a: float,
+    cross_ab: float,
+    alpha_b: float,
+    own_beta_b: float,
+    cross_ba: float,
+    p_max_a: float,
+    p_max_b: float,
+) -> tuple[float, float]:
+    cross_sum = cross_ab + cross_ba
+    candidates: list[tuple[float, float]] = []
+    determinant = 4.0 * own_beta_a * own_beta_b - cross_sum * cross_sum
+    if abs(determinant) > 1e-12:
+        candidates.append(
+            (
+                (alpha_a * 2.0 * own_beta_b + cross_sum * alpha_b) / determinant,
+                (2.0 * own_beta_a * alpha_b + cross_sum * alpha_a) / determinant,
+            )
+        )
+    for price_a in (0.0, p_max_a):
+        candidates.append((price_a, (alpha_b + cross_sum * price_a) / (2.0 * own_beta_b)))
+    for price_b in (0.0, p_max_b):
+        candidates.append(((alpha_a + cross_sum * price_b) / (2.0 * own_beta_a), price_b))
+    candidates.extend((price_a, price_b) for price_a in (0.0, p_max_a) for price_b in (0.0, p_max_b))
+
+    def objective(pair: tuple[float, float]) -> float:
+        price_a = max(0.0, min(p_max_a, pair[0]))
+        price_b = max(0.0, min(p_max_b, pair[1]))
+        quantity_a = max(0.0, alpha_a - own_beta_a * price_a + cross_ab * price_b)
+        quantity_b = max(0.0, alpha_b - own_beta_b * price_b + cross_ba * price_a)
+        return price_a * quantity_a + price_b * quantity_b
+
+    best = max(candidates, key=objective)
+    return max(0.0, min(p_max_a, best[0])), max(0.0, min(p_max_b, best[1]))
 
 
 def _solve_linear_3(matrix: list[list[float]], vector: list[float]) -> tuple[float, float, float]:

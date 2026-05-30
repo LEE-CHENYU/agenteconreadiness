@@ -34,6 +34,7 @@ from .pricing import (
     run_pricing_evidence_law_holdout_game,
     run_pricing_game,
     run_pricing_law_audit_game,
+    run_pricing_multi_product_game,
 )
 from .principal_inference import run_principal_inference_game
 from .procurement import run_procurement_counterfactual_game, run_procurement_game
@@ -80,6 +81,7 @@ __all__ = [
     "run_pricing_game",
     "run_pricing_counterfactual_game",
     "run_pricing_cross_elasticity_game",
+    "run_pricing_multi_product_game",
     "run_pricing_law_audit_game",
     "run_pricing_evidence_law_audit_game",
     "run_pricing_evidence_law_holdout_game",

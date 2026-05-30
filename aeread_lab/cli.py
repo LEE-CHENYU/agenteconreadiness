@@ -52,6 +52,7 @@ TASKS = (
     "pricing",
     "pricing_counterfactual",
     "pricing_cross_elasticity",
+    "pricing_multi_product",
     "pricing_law_audit",
     "pricing_evidence_law_audit",
     "pricing_evidence_law_holdout",
@@ -460,6 +461,22 @@ def _print_human(payload: dict[str, Any]) -> None:
                 print(
                     f"  {row['case']:<14} chosen={_fmt(row['chosen_price'])} "
                     f"oracle={_fmt(row['oracle_price'])} own_only={_fmt(row['own_only_price'])}"
+                )
+        elif task == "pricing_multi_product":
+            print(
+                f"pricing_multi_product: n={result['n_trials']} "
+                f"price_l1={_fmt(result['mean_price_l1_error'])} "
+                f"revenue_gap={_fmt(result['mean_revenue_gap'])} "
+                f"independent_miss={result['independent_miss_rate']:.2f}"
+            )
+            for row in result["trials"]:
+                print(
+                    f"  {row['case']:<14} a={_fmt(row['chosen_price_a'])} "
+                    f"b={_fmt(row['chosen_price_b'])} "
+                    f"oracle_a={_fmt(row['oracle_price_a'])} "
+                    f"oracle_b={_fmt(row['oracle_price_b'])} "
+                    f"independent_a={_fmt(row['independent_price_a'])} "
+                    f"independent_b={_fmt(row['independent_price_b'])}"
                 )
         elif task == "pricing_law_audit":
             print(

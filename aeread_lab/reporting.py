@@ -44,6 +44,7 @@ PRIMARY_METRICS = {
     "pricing": ("mean_revenue_gap", "lower"),
     "pricing_counterfactual": ("mean_absolute_price_error", "lower"),
     "pricing_cross_elasticity": ("mean_absolute_price_error", "lower"),
+    "pricing_multi_product": ("mean_price_l1_error", "lower"),
     "pricing_law_audit": ("accuracy", "higher"),
     "pricing_evidence_law_audit": ("accuracy", "higher"),
     "pricing_evidence_law_holdout": ("accuracy", "higher"),
