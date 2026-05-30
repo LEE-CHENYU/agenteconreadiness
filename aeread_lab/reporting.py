@@ -14,6 +14,7 @@ PRIMARY_METRICS = {
     "bargaining": ("mean_grade_error", "lower"),
     "belief_bargaining": ("mean_expected_surplus_gap", "lower"),
     "market": ("mean_equilibrium_price_gap", "lower"),
+    "market_policy_shift": ("mean_profit_regret", "lower"),
     "matching": ("mean_score_regret", "lower"),
     "screening": ("mean_score_regret", "lower"),
     "moral_hazard": ("mean_profit_regret", "lower"),

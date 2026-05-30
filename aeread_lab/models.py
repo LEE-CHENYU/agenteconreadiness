@@ -104,6 +104,8 @@ class OfflineAgent:
             return self._belief_bargain_price(user)
         if "TASK: market_price" in system:
             return self._market_price(user)
+        if "TASK: market_policy_price" in system:
+            return self._market_policy_price(user)
         if "TASK: auction_reserve" in system:
             return self._auction_reserve(user)
         if "TASK: common_value_bid" in system:
@@ -373,6 +375,33 @@ class OfflineAgent:
             price = nash
         price = max(cost, min(p_max, price))
         return f"FINAL_PRICE: {price:.2f}"
+
+    def _market_policy_price(self, user: str) -> str:
+        base = _extract_float(user, "base_demand")
+        shock = _extract_float(user, "demand_shock")
+        own_slope = _extract_float(user, "own_price_slope")
+        cross_slope = _extract_float(user, "cross_price_slope")
+        cost = _extract_float(user, "marginal_cost")
+        p_max = _extract_float(user, "p_max", 1e9)
+        history = _extract_float_list(user, "opponent_price_history")
+        last_opponent = history[-1] if history else _market_policy_static_nash(user)
+        predicted_opponent = _market_policy_opponent_price(user)
+        denom = 2.0 * own_slope - cross_slope
+        static_nash = cost if denom <= 0 else (base + shock + own_slope * cost) / denom
+        net_slope = own_slope - cross_slope
+        collusive = p_max if net_slope <= 0 else (base + shock + net_slope * cost) / (2.0 * net_slope)
+        if self.policy in {"nash", "competitive"}:
+            price = static_nash
+        elif self.policy in {"last_price", "sticky", "trend_blind"}:
+            price = _market_policy_best_response(user, last_opponent)
+        elif self.policy in {"collusive", "monopoly"}:
+            price = collusive
+        elif self.policy in {"cost", "liquidate", "clearance"}:
+            price = cost
+        else:
+            price = _market_policy_best_response(user, predicted_opponent)
+        price = max(cost, min(p_max, price))
+        return f"FINAL_PRICE: {price:.4f}"
 
     def _auction_reserve(self, user: str) -> str:
         objective = _extract_word(user, "objective")
@@ -999,6 +1028,55 @@ def _extract_common_value_bids(text: str) -> dict[str, dict[str, float]]:
 
 def _market_has_survival_dynamics(text: str) -> bool:
     return _extract_float(text, "horizon", 1.0) > 1.0 and _extract_float(text, "starting_inventory") > 0.0
+
+
+def _market_policy_static_nash(text: str) -> float:
+    base = _extract_float(text, "base_demand")
+    shock = _extract_float(text, "demand_shock")
+    own_slope = _extract_float(text, "own_price_slope")
+    cross_slope = _extract_float(text, "cross_price_slope")
+    cost = _extract_float(text, "marginal_cost")
+    p_max = _extract_float(text, "p_max", cost)
+    denom = 2.0 * own_slope - cross_slope
+    price = cost if denom <= 0 else (base + shock + own_slope * cost) / denom
+    return max(cost, min(p_max, price))
+
+
+def _market_policy_best_response(text: str, opponent_price: float) -> float:
+    base = _extract_float(text, "base_demand")
+    shock = _extract_float(text, "demand_shock")
+    own_slope = _extract_float(text, "own_price_slope")
+    cross_slope = _extract_float(text, "cross_price_slope")
+    cost = _extract_float(text, "marginal_cost")
+    p_max = _extract_float(text, "p_max", cost)
+    price = (base + shock + cross_slope * opponent_price + own_slope * cost) / (
+        2.0 * own_slope
+    )
+    return max(cost, min(p_max, price))
+
+
+def _market_policy_opponent_price(text: str) -> float:
+    cost = _extract_float(text, "marginal_cost")
+    p_max = _extract_float(text, "p_max", cost)
+    history = _extract_float_list(text, "opponent_price_history")
+    if not history:
+        return _market_policy_static_nash(text)
+    if len(history) == 1:
+        return max(cost, min(p_max, history[-1]))
+    policy = _extract_word(text, "opponent_policy")
+    last = history[-1]
+    step = last - history[-2]
+    if policy == "liquidation_drop":
+        price = last + 1.5 * step
+    elif policy == "stockout_jump":
+        price = last + 1.5 * max(0.0, step)
+    elif policy == "entry_price_war":
+        price = last + 1.5 * step
+    elif policy == "capacity_exit":
+        price = last + 2.0 * max(0.0, step)
+    else:
+        price = last
+    return max(cost, min(p_max, price))
 
 
 def _market_survival_terminal_cash(text: str, price: float, other_price: float) -> float:

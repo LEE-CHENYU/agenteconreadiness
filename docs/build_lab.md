@@ -26,6 +26,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
 | `market` | Market-Bench-style price competition plus inventory-survival pricing: competitive Nash pricing vs collusive/high-price drift, liquidation, and reserve-aware inventory pricing. | `python -m aeread_lab.cli --task market --agent offline:oracle` |
+| `market_policy_shift` | Repeated-market opponent-policy shift: infer a competitor's next price from observed price history and choose the current best response instead of reusing static Nash or last-period behavior. | `python -m aeread_lab.cli --task market_policy_shift --agent offline:oracle` |
 | `matching` | Matching-market design: choose stable/access-aware matching rules instead of value-only assignments with blocking-pair risk. | `python -m aeread_lab.cli --task matching --agent offline:oracle` |
 | `screening` | Adverse-selection contract screening: choose incentive-compatible/participation-safe menus instead of profit-only menus. | `python -m aeread_lab.cli --task screening --agent offline:oracle` |
 | `moral_hazard` | Hidden-action contract design: choose incentive contracts that actually induce effort instead of assuming first-best effort for free. | `python -m aeread_lab.cli --task moral_hazard --agent offline:oracle` |
@@ -107,6 +108,9 @@ interpreting the economic metric.
 - `market`: lower competitive/survival oracle price gap is better; collusion
   index, reserve-violation rate, survival cash gap, and liquidation miss rate
   are reported separately.
+- `market_policy_shift`: lower profit regret to the opponent-policy-aware best
+  response is better; static-Nash and last-price miss rates are reported
+  separately.
 - `matching`: lower configured matching score regret is better; max-value and
   access-only miss rates are reported separately.
 - `screening`: lower configured contract-menu regret is better; max-profit and

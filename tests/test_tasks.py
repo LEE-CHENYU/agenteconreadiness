@@ -48,7 +48,9 @@ from aeread_lab.tasks.forecast_calibration import run_forecast_curve_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_curve_implicit_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_curve_natural_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_curve_noisy_game
-from aeread_lab.tasks.market import run_market_game
+from aeread_lab.tasks.market import POLICY_SHIFT_CASES as MARKET_POLICY_CASES
+from aeread_lab.tasks.market import _policy_shift_prompt as market_policy_prompt
+from aeread_lab.tasks.market import run_market_game, run_market_policy_shift_game
 from aeread_lab.tasks.matching import DEFAULT_CASES as MATCHING_CASES
 from aeread_lab.tasks.matching import _prompt as matching_prompt
 from aeread_lab.tasks.matching import run_matching_game
@@ -198,6 +200,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_expected_brier_regret"], 1e-9)
 
+    def test_sample_limit_slices_market_policy_shift_cases(self):
+        results = run_tasks("market_policy_shift", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_profit_regret"], 1e-9)
+
     def test_procurement_oracle_offline(self):
         summary = run_procurement_game(OfflineAgent("oracle"))
         self.assertEqual(summary["accuracy"], 1.0)
@@ -244,6 +251,7 @@ class TaskSmokeTests(unittest.TestCase):
         forecast_curve_noisy = forecast_curve_noisy_prompt(FORECAST_NOISY_CURVE_CASES[0])
         forecast_curve_natural = forecast_curve_natural_prompt(FORECAST_NOISY_CURVE_CASES[0])
         exploration = exploration_prompt(EXPLORATION_CASES[0])
+        market_policy = market_policy_prompt(MARKET_POLICY_CASES[0])
         belief_bargaining = belief_bargaining_prompt(BELIEF_BARGAINING_CASES[0])
         principal = principal_prompt(PRINCIPAL_CASES[0])
         portfolio = portfolio_prompt(PORTFOLIO_CASES[0])
@@ -277,6 +285,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", forecast_curve_noisy)
         self.assertNotIn("oracle", forecast_curve_natural)
         self.assertNotIn("oracle", exploration)
+        self.assertNotIn("oracle", market_policy)
         self.assertNotIn("oracle", belief_bargaining)
         self.assertNotIn("oracle", principal)
         self.assertNotIn("oracle", portfolio)
@@ -432,6 +441,16 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(liquidation["mean_survival_cash_gap"], 1000.0)
         self.assertEqual(liquidation["survival_reserve_violation_rate"], 1.0)
         self.assertEqual(liquidation["liquidation_miss_rate"], 1.0)
+
+    def test_market_policy_shift_flags_static_and_sticky_opponent_failures(self):
+        adaptive = run_market_policy_shift_game(OfflineAgent("oracle"))
+        static = run_market_policy_shift_game(OfflineAgent("nash"))
+        sticky = run_market_policy_shift_game(OfflineAgent("last_price"))
+        self.assertLess(adaptive["mean_profit_regret"], 1e-9)
+        self.assertGreater(static["mean_profit_regret"], 20.0)
+        self.assertGreater(static["static_nash_miss_rate"], 0.5)
+        self.assertGreater(sticky["mean_profit_regret"], 5.0)
+        self.assertGreater(sticky["last_price_miss_rate"], 0.5)
 
     def test_matching_splits_value_from_stability_and_access(self):
         configured = run_matching_game(OfflineAgent("oracle"))
@@ -730,6 +749,13 @@ class TaskSmokeTests(unittest.TestCase):
         market_rows = [row for row in rows if row["task"] == "market"]
         self.assertEqual(market_rows[0]["agent"], "offline:oracle")
         self.assertEqual(market_rows[1]["agent"], "offline:collusive")
+
+    def test_offline_sweep_ranks_adaptive_above_static_on_market_policy_shift(self):
+        sweep = run_sweep(task="market_policy_shift", agent_specs=["offline:oracle", "offline:nash"])
+        rows = rank_rows(comparison_table(sweep))
+        market_rows = [row for row in rows if row["task"] == "market_policy_shift"]
+        self.assertEqual(market_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(market_rows[1]["agent"], "offline:nash")
 
     def test_offline_sweep_ranks_configured_above_max_value_on_matching(self):
         sweep = run_sweep(task="matching", agent_specs=["offline:oracle", "offline:max_value"])

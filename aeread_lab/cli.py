@@ -22,6 +22,7 @@ TASKS = (
     "bargaining",
     "belief_bargaining",
     "market",
+    "market_policy_shift",
     "matching",
     "screening",
     "moral_hazard",
@@ -226,6 +227,15 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"survival_gap={_fmt(result.get('mean_survival_cash_gap'))} "
                 f"reserve_violate={result.get('survival_reserve_violation_rate', 0.0):.2f} "
                 f"liquidation_miss={result.get('liquidation_miss_rate', 0.0):.2f}"
+            )
+        elif task == "market_policy_shift":
+            print(
+                f"market_policy_shift: n={result['n_trials']} profit_regret="
+                f"{_fmt(result['mean_profit_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_profit_regret_ci95'))} "
+                f"price_error={_fmt(result['mean_price_error'])} "
+                f"static_nash_miss={result['static_nash_miss_rate']:.2f} "
+                f"last_price_miss={result['last_price_miss_rate']:.2f}"
             )
         elif task == "matching":
             print(

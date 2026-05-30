@@ -43,6 +43,7 @@ TASK_ORDER = (
     "bargaining",
     "belief_bargaining",
     "market",
+    "market_policy_shift",
     "matching",
     "screening",
     "moral_hazard",
@@ -86,6 +87,10 @@ _CASE_TASKS = {
         belief_bargaining_task.DEFAULT_CASES,
     ),
     "market": (market_task.run_market_game, market_task.DEFAULT_CASES),
+    "market_policy_shift": (
+        market_task.run_market_policy_shift_game,
+        market_task.POLICY_SHIFT_CASES,
+    ),
     "matching": (matching_task.run_matching_game, matching_task.DEFAULT_CASES),
     "screening": (screening_task.run_screening_game, screening_task.DEFAULT_CASES),
     "moral_hazard": (moral_hazard_task.run_moral_hazard_game, moral_hazard_task.DEFAULT_CASES),
