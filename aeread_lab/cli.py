@@ -178,7 +178,9 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"{result['agreement_rate']:.2f} mean_grade_error="
                 f"{_fmt(result['mean_grade_error'])} "
                 f"ci95={_fmt_ci(result.get('mean_grade_error_ci95'))} "
-                f"gate_gap={_fmt(result['mean_gate_surplus_gap'])}"
+                f"gate_gap={_fmt(result['mean_gate_surplus_gap'])} "
+                f"alt_miss={result.get('alternating_offer_miss_rate', 0.0):.2f} "
+                f"hidden_miss={result.get('hidden_reservation_miss_rate', 0.0):.2f}"
             )
         elif task == "belief_bargaining":
             print(

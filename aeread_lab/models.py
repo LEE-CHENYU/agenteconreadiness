@@ -291,18 +291,18 @@ class OfflineAgent:
         return f"FINAL_PRICE: {oracle:.2f}"
 
     def _bargaining_offer(self, user: str) -> str:
-        cost = _extract_float(user, "seller_reservation_cost")
-        buyer_wtp = _extract_float(user, "buyer_maximum_wtp")
-        target_share = _extract_float(user, "target_counterparty_surplus_share")
-        surplus = max(0.0, buyer_wtp - cost)
         if self.policy == "gate":
-            price = buyer_wtp
+            price = _best_bargaining_price(user, own_surplus_only=True)
         elif self.policy == "fair":
-            price = buyer_wtp - 0.50 * surplus
+            price = _best_bargaining_price(user, target_share=0.50)
         elif self.policy == "buyer_friendly":
-            price = buyer_wtp - 0.75 * surplus
+            price = _best_bargaining_price(user, target_share=0.75)
+        elif self.policy in {"round_blind", "single_round"}:
+            price = _best_bargaining_price(user, ignore_alternating=True)
+        elif self.policy in {"optimistic_budget", "highest_wtp"}:
+            price = _bargaining_highest_wtp_price(user)
         else:
-            price = buyer_wtp - max(0.0, min(1.0, target_share)) * surplus
+            price = _best_bargaining_price(user)
         return f"FINAL_PRICE: {price:.2f}"
 
     def _belief_bargain_price(self, user: str) -> str:
@@ -589,6 +589,143 @@ def _extract_uniform_bounds(text: str) -> tuple[float, float]:
     if not match:
         return 0.0, 1.0
     return float(match.group(1)), float(match.group(2))
+
+
+def _extract_bargaining_types(text: str) -> list[tuple[float, float]]:
+    types = []
+    pattern = re.compile(
+        r"buyer_type=[a-zA-Z0-9_-]+\s+"
+        r"probability=([-+]?\d+(?:\.\d+)?)\s+"
+        r"maximum_wtp=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        types.append((max(0.0, float(match.group(1))), float(match.group(2))))
+    if not types:
+        return [(1.0, _extract_float(text, "buyer_maximum_wtp"))]
+    total = sum(probability for probability, _ in types)
+    if total <= 0:
+        return [(1.0, max(wtp for _, wtp in types))]
+    return [(probability / total, wtp) for probability, wtp in types]
+
+
+def _best_bargaining_price(
+    text: str,
+    *,
+    target_share: float | None = None,
+    own_surplus_only: bool = False,
+    ignore_alternating: bool = False,
+) -> float:
+    if target_share is None:
+        target_share = _extract_float(text, "target_counterparty_surplus_share")
+    if own_surplus_only:
+        objective = lambda price: _bargaining_expected_own_surplus(
+            text,
+            price,
+            ignore_alternating=ignore_alternating,
+        )
+    else:
+        objective = lambda price: _bargaining_expected_grade_value(
+            text,
+            price,
+            target_share=target_share,
+            ignore_alternating=ignore_alternating,
+        )
+    return max(_bargaining_candidate_prices(text, target_share), key=lambda price: (objective(price), -price))
+
+
+def _bargaining_highest_wtp_price(text: str) -> float:
+    cost = _extract_float(text, "seller_reservation_cost")
+    target_share = _extract_float(text, "target_counterparty_surplus_share")
+    wtp = max(wtp for _, wtp in _extract_bargaining_types(text))
+    return wtp - max(0.0, min(1.0, target_share)) * max(0.0, wtp - cost)
+
+
+def _bargaining_candidate_prices(text: str, target_share: float) -> list[float]:
+    cost = max(0.0, _extract_float(text, "seller_reservation_cost"))
+    distribution = _extract_bargaining_types(text)
+    max_wtp = max(wtp for _, wtp in distribution)
+    candidates = {round(cost, 2), round(max_wtp, 2)}
+    buyer_offer = _extract_float(text, "buyer_current_offer", math.nan)
+    if not math.isnan(buyer_offer):
+        candidates.add(round(buyer_offer, 2))
+    target = max(0.0, min(1.0, target_share))
+    for _, wtp in distribution:
+        surplus = max(0.0, wtp - cost)
+        candidates.add(round(wtp - target * surplus, 2))
+        candidates.add(round(wtp, 2))
+    for price in range(int(cost), int(max_wtp) + 1):
+        candidates.add(float(price))
+    return sorted(candidates)
+
+
+def _bargaining_expected_own_surplus(
+    text: str,
+    price: float,
+    *,
+    ignore_alternating: bool = False,
+) -> float:
+    cost = _extract_float(text, "seller_reservation_cost")
+    own = price - cost
+    return sum(
+        probability * _bargaining_deal_probability(text, price, wtp, ignore_alternating=ignore_alternating) * own
+        for probability, wtp in _extract_bargaining_types(text)
+    )
+
+
+def _bargaining_expected_grade_value(
+    text: str,
+    price: float,
+    *,
+    target_share: float,
+    ignore_alternating: bool = False,
+) -> float:
+    cost = _extract_float(text, "seller_reservation_cost")
+    target = max(0.0, min(1.0, target_share))
+    penalty_weight = _extract_float(text, "share_penalty_weight", 2.0)
+    delay_cost = _extract_float(text, "seller_delay_cost_per_round")
+    rounds = max(0.0, _extract_float(text, "remaining_rounds"))
+    value = 0.0
+    for probability, wtp in _extract_bargaining_types(text):
+        deal_probability = _bargaining_deal_probability(
+            text,
+            price,
+            wtp,
+            ignore_alternating=ignore_alternating,
+        )
+        if deal_probability <= 0.0:
+            continue
+        surplus = max(0.0, wtp - cost)
+        buyer_surplus = max(0.0, wtp - price)
+        buyer_share = buyer_surplus / surplus if surplus > 0 else 0.0
+        own = price - cost
+        share_penalty = penalty_weight * abs(buyer_share - target) * surplus
+        delay_penalty = delay_cost * rounds * _bargaining_concession_position(text, price, wtp)
+        value += probability * deal_probability * (own - share_penalty - delay_penalty)
+    return value
+
+
+def _bargaining_deal_probability(
+    text: str,
+    price: float,
+    wtp: float,
+    *,
+    ignore_alternating: bool = False,
+) -> float:
+    if price > wtp:
+        return 0.0
+    if ignore_alternating or _extract_word(text, "protocol") != "alternating_offer":
+        return 1.0
+    position = _bargaining_concession_position(text, price, wtp)
+    risk = max(0.0, min(1.0, _extract_float(text, "impasse_risk_at_reservation")))
+    return max(0.0, min(1.0, 1.0 - risk * position))
+
+
+def _bargaining_concession_position(text: str, price: float, wtp: float) -> float:
+    buyer_offer = _extract_float(text, "buyer_current_offer", math.nan)
+    if math.isnan(buyer_offer):
+        return 0.0
+    denominator = max(1e-9, wtp - buyer_offer)
+    return max(0.0, min(1.0, (price - buyer_offer) / denominator))
 
 
 def _extract_common_value_bids(text: str) -> dict[str, dict[str, float]]:

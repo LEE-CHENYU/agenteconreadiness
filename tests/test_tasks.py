@@ -230,6 +230,17 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(gate_summary["mean_gate_surplus_gap"], 0.0)
         self.assertGreater(gate_summary["mean_grade_error"], 0.1)
 
+    def test_bargaining_flags_alternating_and_hidden_reservation_failures(self):
+        configured = run_bargaining_game(OfflineAgent("oracle"))
+        round_blind = run_bargaining_game(OfflineAgent("round_blind"))
+        optimistic = run_bargaining_game(OfflineAgent("optimistic_budget"))
+        case_keys = {trial["case"]["key"] for trial in configured["trials"]}
+        self.assertIn("enterprise_counteroffer", case_keys)
+        self.assertIn("hidden_budget_vendor", case_keys)
+        self.assertLess(configured["mean_grade_error"], 1e-9)
+        self.assertEqual(round_blind["alternating_offer_miss_rate"], 1.0)
+        self.assertEqual(optimistic["hidden_reservation_miss_rate"], 1.0)
+
     def test_belief_bargaining_flags_ignored_cues(self):
         calibrated = run_belief_bargaining_game(OfflineAgent("oracle"))
         prior = run_belief_bargaining_game(OfflineAgent("prior"))

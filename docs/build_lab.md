@@ -16,7 +16,7 @@ only.
 | `portfolio` | Multi-asset configured-principal allocation: choose portfolios using CRRA-style variance, tail risk, concentration, and mandate-fit terms. | `python -m aeread_lab.cli --task portfolio --agent offline:oracle` |
 | `revealed_allocation` | Stylized 13F-style revealed-preference allocation: infer risk preference from historical portfolio choices, then output continuous target weights. | `python -m aeread_lab.cli --task revealed_allocation --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
-| `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
+| `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from noisy cues before pricing. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
 | `market` | Market-Bench-style simultaneous price competition: competitive Nash pricing vs collusive/high-price drift. | `python -m aeread_lab.cli --task market --agent offline:oracle` |
 | `matching` | Matching-market design: choose stable/access-aware matching rules instead of value-only assignments with blocking-pair risk. | `python -m aeread_lab.cli --task matching --agent offline:oracle` |
@@ -81,7 +81,8 @@ interpreting the economic metric.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
-  surplus gap is reported separately.
+  surplus gap, alternating-offer miss rate, and hidden-reservation miss rate are
+  reported separately.
 - `belief_bargaining`: lower posterior expected-surplus gap is better; cue
   switch miss rate is reported separately.
 - `market`: lower competitive-equilibrium price gap is better; collusion index
@@ -147,19 +148,16 @@ The next builds should keep the same discipline: add a deterministic generator,
 a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
 
 1. Run cached model-version smokes with `--limit` for alignment-shift
-   diagnostics across
-   `gpt-5.5`, `mini`, and `nano`.
-2. Run live sampled alignment-tax and supplier-scam smokes across `gpt-5.5`, `mini`, and `nano`
-   once an API key is available in the shell.
+   diagnostics across `gpt-5.5`, `mini`, and `nano`.
+2. Run live sampled alignment-tax, bargaining, and supplier-scam smokes across
+   `gpt-5.5`, `mini`, and `nano` when the API key is available in the shell.
 3. Replace the stylized revealed-allocation traces with real 13F-style
    holdings-derived traces once a clean data source is selected.
-4. Broaden the `bargaining` wrapper from take-it-or-leave-it offers to
-   alternating-offer and hidden-reservation variants.
-5. Broaden `belief_bargaining` into multi-turn opponent modeling.
-6. Broaden `mechanism` from scored static choices to equilibrium simulation
+4. Broaden `belief_bargaining` into multi-turn opponent modeling.
+5. Broaden `mechanism` from scored static choices to equilibrium simulation
    and incentive-compatibility probes.
-7. Expand `market` from symmetric price competition to inventory, capital
+6. Expand `market` from symmetric price competition to inventory, capital
    appreciation, and multi-period survival.
-8. Broaden `retail` into multi-period inventory and supplier-scam variants.
-9. Broaden `strategic_drift` into imperfect-information and N-player games.
-10. Broaden `experiment_design` into multi-step adaptive tests.
+7. Broaden `retail` into multi-period inventory and supplier-scam variants.
+8. Broaden `strategic_drift` into imperfect-information and N-player games.
+9. Broaden `experiment_design` into multi-step adaptive tests.
