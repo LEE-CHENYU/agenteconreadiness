@@ -76,6 +76,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `pricing_multi_product` | Joint multi-product pricing: fit two cross-demand equations and choose both prices together, catching independent single-product pricing under substitution or complement effects. | `python -m aeread_lab.cli --task pricing_multi_product --agent offline:oracle` |
 | `pricing_multi_product_natural` | Natural-label joint pricing: use campaign outcome rows without the explicit demand-equation recipe while preserving the same two-price oracle. | `python -m aeread_lab.cli --task pricing_multi_product_natural --agent offline:oracle` |
 | `pricing_multi_product_capacity` | Capacity-constrained joint pricing: choose two cross-demand prices with finite stock caps, catching unconstrained joint pricing that over-demands available inventory. | `python -m aeread_lab.cli --task pricing_multi_product_capacity --agent offline:oracle` |
+| `pricing_multi_product_capacity_noisy` | Noisy capacity-constrained joint pricing: fit cross-demand from lumpy regional two-product sales rows, then choose finite-stock prices instead of unconstrained or independent prices. | `python -m aeread_lab.cli --task pricing_multi_product_capacity_noisy --agent offline:oracle` |
 | `pricing_inventory_markdown` | Sequential markdown pricing: choose early and late prices for one shared inventory pool, catching myopic single-period pricing that sells through stock before the later window. | `python -m aeread_lab.cli --task pricing_inventory_markdown --agent offline:oracle` |
 | `pricing_inventory_markdown_noisy` | Noisy sequential markdown pricing: infer launch and clearance demand from lumpy regional rows before choosing prices for one shared stock pool. | `python -m aeread_lab.cli --task pricing_inventory_markdown_noisy --agent offline:oracle` |
 | `pricing_hidden_intervention` | Hidden-intervention pricing: remove fixed intervention units and exposure multipliers from observed sales before fitting normal demand and choosing the next campaign price. | `python -m aeread_lab.cli --task pricing_hidden_intervention --agent offline:oracle` |
@@ -284,6 +285,9 @@ interpreting the economic metric.
 - `pricing_multi_product_capacity`: lower two-price L1 error is better under
   finite stock caps; capacity-blind and independent miss rates are reported
   separately.
+- `pricing_multi_product_capacity_noisy`: lower two-price L1 error is better
+  under lumpy regional evidence and finite stock caps; capacity-blind and
+  independent miss rates are reported separately.
 - `pricing_inventory_markdown`: lower early/late-price L1 error is better;
   myopic miss reports answers that ignore shared inventory across windows.
 - `pricing_inventory_markdown_noisy`: same early/late-price L1 metric under

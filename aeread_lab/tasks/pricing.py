@@ -35,6 +35,12 @@ PRICING_MULTI_CAPACITY_SYSTEM = (
     "FINAL_PRICE_A: <number> and FINAL_PRICE_B: <number>."
 )
 
+PRICING_MULTI_CAPACITY_NOISY_SYSTEM = (
+    "TASK: pricing_multi_product_capacity_noisy_prices\n"
+    "Choose prices for both products using lumpy sales evidence and finite stock available. "
+    "Return two final lines only: FINAL_PRICE_A: <number> and FINAL_PRICE_B: <number>."
+)
+
 PRICING_INVENTORY_MARKDOWN_SYSTEM = (
     "TASK: pricing_inventory_markdown_prices\n"
     "Choose early and late campaign prices for one shared inventory pool. Return two final lines only: "
@@ -222,6 +228,39 @@ def _multi_product_observations(
             round(max(0.0, alpha_b - own_beta_b * b_ratio * p_max_b + cross_ba * a_ratio * p_max_a), 2),
         )
         for a_ratio, b_ratio in pairs
+    )
+
+
+def _noisy_multi_product_observations(
+    alpha_a: float,
+    own_beta_a: float,
+    cross_ab: float,
+    alpha_b: float,
+    own_beta_b: float,
+    cross_ba: float,
+    p_max_a: float,
+    p_max_b: float,
+    noise_a: tuple[float, ...],
+    noise_b: tuple[float, ...],
+) -> tuple[tuple[float, float, float, float], ...]:
+    base = _multi_product_observations(
+        alpha_a,
+        own_beta_a,
+        cross_ab,
+        alpha_b,
+        own_beta_b,
+        cross_ba,
+        p_max_a,
+        p_max_b,
+    )
+    return tuple(
+        (
+            price_a,
+            price_b,
+            round(max(0.0, quantity_a + noise_a[idx]), 2),
+            round(max(0.0, quantity_b + noise_b[idx]), 2),
+        )
+        for idx, (price_a, price_b, quantity_a, quantity_b) in enumerate(base)
     )
 
 
@@ -440,6 +479,102 @@ MULTI_PRODUCT_CAPACITY_CASES = [
             "A high-demand complement bundle has limited sellable units for each product."
         ),
         observations=MULTI_PRODUCT_CASES[3].observations,
+    ),
+]
+
+
+MULTI_PRODUCT_CAPACITY_NOISY_CASES = [
+    PricingMultiProductCapacityCase(
+        key="noisy_capacity_case_01",
+        p_max_a=50.0,
+        p_max_b=48.0,
+        inventory_a=46.0,
+        inventory_b=44.0,
+        scenario_note=(
+            "Regional joint-campaign rows are lumpy, but finite stock still caps sellable "
+            "units for the next campaign."
+        ),
+        observations=_noisy_multi_product_observations(
+            110.0,
+            4.5,
+            3.0,
+            105.0,
+            4.2,
+            3.0,
+            50.0,
+            48.0,
+            (5.0, -4.0, 6.0, -5.0, 4.0, -3.0),
+            (-3.0, 5.0, -4.0, 6.0, -5.0, 4.0),
+        ),
+    ),
+    PricingMultiProductCapacityCase(
+        key="noisy_capacity_case_02",
+        p_max_a=65.0,
+        p_max_b=60.0,
+        inventory_a=58.0,
+        inventory_b=56.0,
+        scenario_note=(
+            "The two substitute products share traffic, and several observed rows include "
+            "local demand noise around the joint price effect."
+        ),
+        observations=_noisy_multi_product_observations(
+            120.0,
+            4.0,
+            3.6,
+            125.0,
+            4.2,
+            3.6,
+            65.0,
+            60.0,
+            (6.0, -5.0, 7.0, -6.0, 4.0, -4.0),
+            (-4.0, 6.0, -5.0, 5.0, -6.0, 4.0),
+        ),
+    ),
+    PricingMultiProductCapacityCase(
+        key="noisy_capacity_case_03",
+        p_max_a=55.0,
+        p_max_b=55.0,
+        inventory_a=90.0,
+        inventory_b=85.0,
+        scenario_note=(
+            "Complement-product rows are noisy and stock-constrained; pricing only to the "
+            "unconstrained demand curve can waste scarce units."
+        ),
+        observations=_noisy_multi_product_observations(
+            330.0,
+            5.0,
+            -3.2,
+            310.0,
+            4.8,
+            -3.0,
+            55.0,
+            55.0,
+            (8.0, -7.0, 6.0, -5.0, 7.0, -6.0),
+            (-6.0, 7.0, -8.0, 6.0, -5.0, 7.0),
+        ),
+    ),
+    PricingMultiProductCapacityCase(
+        key="noisy_capacity_case_04",
+        p_max_a=70.0,
+        p_max_b=68.0,
+        inventory_a=150.0,
+        inventory_b=145.0,
+        scenario_note=(
+            "A high-demand complement bundle has noisy regional measurements and limited "
+            "sellable units for each product."
+        ),
+        observations=_noisy_multi_product_observations(
+            500.0,
+            5.0,
+            -4.0,
+            480.0,
+            5.2,
+            -3.8,
+            70.0,
+            68.0,
+            (9.0, -8.0, 7.0, -9.0, 6.0, -7.0),
+            (-8.0, 9.0, -7.0, 8.0, -9.0, 6.0),
+        ),
     ),
 ]
 
@@ -1603,14 +1738,43 @@ def run_pricing_multi_product_capacity_game(
     agent: Agent,
     cases: list[PricingMultiProductCapacityCase] | None = None,
 ) -> dict:
-    cases = cases or MULTI_PRODUCT_CAPACITY_CASES
+    return _run_pricing_multi_product_capacity_game(
+        agent,
+        cases=cases or MULTI_PRODUCT_CAPACITY_CASES,
+        system=PRICING_MULTI_CAPACITY_SYSTEM,
+        prompt_builder=_multi_product_capacity_prompt,
+        task_name="pricing_multi_product_capacity",
+    )
+
+
+def run_pricing_multi_product_capacity_noisy_game(
+    agent: Agent,
+    cases: list[PricingMultiProductCapacityCase] | None = None,
+) -> dict:
+    return _run_pricing_multi_product_capacity_game(
+        agent,
+        cases=cases or MULTI_PRODUCT_CAPACITY_NOISY_CASES,
+        system=PRICING_MULTI_CAPACITY_NOISY_SYSTEM,
+        prompt_builder=_multi_product_capacity_noisy_prompt,
+        task_name="pricing_multi_product_capacity_noisy",
+    )
+
+
+def _run_pricing_multi_product_capacity_game(
+    agent: Agent,
+    *,
+    cases: list[PricingMultiProductCapacityCase],
+    system: str,
+    prompt_builder,
+    task_name: str,
+) -> dict:
     rows = []
     for case in cases:
         oracle_a, oracle_b = multi_product_capacity_oracle_prices(case)
         capacity_blind_a, capacity_blind_b = multi_product_capacity_blind_prices(case)
         independent_a, independent_b = multi_product_capacity_independent_prices(case)
         oracle_rev = multi_product_capacity_revenue(case, oracle_a, oracle_b)
-        response = agent.complete(PRICING_MULTI_CAPACITY_SYSTEM, _multi_product_capacity_prompt(case))
+        response = agent.complete(system, prompt_builder(case))
         parsed_a = parse_float("FINAL_PRICE_A", response)
         parsed_b = parse_float("FINAL_PRICE_B", response)
         chosen_a = clamp(parsed_a, 0.0, case.p_max_a) if parsed_a is not None else None
@@ -1663,7 +1827,7 @@ def run_pricing_multi_product_capacity_game(
     capacity_blind_misses = sum(row["capacity_blind_miss"] for row in rows)
     independent_misses = sum(row["independent_miss"] for row in rows)
     return {
-        "task": "pricing_multi_product_capacity",
+        "task": task_name,
         "agent": agent.name,
         "n_trials": len(rows),
         "mean_price_l1_error": sum(errors) / len(errors) if errors else None,
@@ -2160,6 +2324,33 @@ def _multi_product_capacity_prompt(case: PricingMultiProductCapacityCase) -> str
         "Use the joint sales history to set the next campaign prices for both products. "
         "Unit sales can be affected by both prices. Revenue is earned only on units available "
         "for the campaign, so demand above available units is capped by stock."
+    )
+    return "\n".join(lines)
+
+
+def _multi_product_capacity_noisy_prompt(case: PricingMultiProductCapacityCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"price_ceiling_a={case.p_max_a:.2f}",
+        f"price_ceiling_b={case.p_max_b:.2f}",
+        f"available_units_a={case.inventory_a:.2f}",
+        f"available_units_b={case.inventory_b:.2f}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note)
+    lines.append("Lumpy regional joint-campaign outcomes:")
+    lines.extend(
+        (
+            f"  campaign_row={idx} product_a_price={price_a:.2f}, "
+            f"product_b_price={price_b:.2f}, product_a_units={quantity_a:.2f}, "
+            f"product_b_units={quantity_b:.2f}"
+        )
+        for idx, (price_a, price_b, quantity_a, quantity_b) in enumerate(case.observations, start=1)
+    )
+    lines.append(
+        "Use the regional sales pattern rather than one unusually high or low row. "
+        "Set both campaign prices jointly because each product can move the other's sales. "
+        "Revenue is earned only on units available for the campaign."
     )
     return "\n".join(lines)
 

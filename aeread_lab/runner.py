@@ -93,6 +93,7 @@ TASK_ORDER = (
     "pricing_multi_product",
     "pricing_multi_product_natural",
     "pricing_multi_product_capacity",
+    "pricing_multi_product_capacity_noisy",
     "pricing_inventory_markdown",
     "pricing_inventory_markdown_noisy",
     "pricing_hidden_intervention",
@@ -284,6 +285,10 @@ _CASE_TASKS = {
     "pricing_multi_product_capacity": (
         pricing_task.run_pricing_multi_product_capacity_game,
         pricing_task.MULTI_PRODUCT_CAPACITY_CASES,
+    ),
+    "pricing_multi_product_capacity_noisy": (
+        pricing_task.run_pricing_multi_product_capacity_noisy_game,
+        pricing_task.MULTI_PRODUCT_CAPACITY_NOISY_CASES,
     ),
     "pricing_inventory_markdown": (
         pricing_task.run_pricing_inventory_markdown_game,

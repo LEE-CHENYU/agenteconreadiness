@@ -113,7 +113,10 @@ class OfflineAgent:
             return self._pricing_multi_product_prices(user)
         if "TASK: pricing_multi_product_natural_prices" in system:
             return self._pricing_multi_product_prices(user)
-        if "TASK: pricing_multi_product_capacity_prices" in system:
+        if (
+            "TASK: pricing_multi_product_capacity_prices" in system
+            or "TASK: pricing_multi_product_capacity_noisy_prices" in system
+        ):
             return self._pricing_multi_product_capacity_prices(user)
         if "TASK: pricing_inventory_markdown_prices" in system:
             return self._pricing_inventory_markdown_prices(user)

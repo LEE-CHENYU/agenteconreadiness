@@ -72,6 +72,7 @@ TASKS = (
     "pricing_multi_product",
     "pricing_multi_product_natural",
     "pricing_multi_product_capacity",
+    "pricing_multi_product_capacity_noisy",
     "pricing_inventory_markdown",
     "pricing_inventory_markdown_noisy",
     "pricing_hidden_intervention",
@@ -610,10 +611,15 @@ def _print_human(payload: dict[str, Any]) -> None:
             "pricing_multi_product",
             "pricing_multi_product_natural",
             "pricing_multi_product_capacity",
+            "pricing_multi_product_capacity_noisy",
         }:
+            capacity_tasks = {
+                "pricing_multi_product_capacity",
+                "pricing_multi_product_capacity_noisy",
+            }
             capacity_miss = (
                 f" capacity_blind_miss={result['capacity_blind_miss_rate']:.2f}"
-                if task == "pricing_multi_product_capacity"
+                if task in capacity_tasks
                 else ""
             )
             print(
@@ -627,7 +633,7 @@ def _print_human(payload: dict[str, Any]) -> None:
                 capacity_blind = (
                     f"capacity_blind_a={_fmt(row['capacity_blind_price_a'])} "
                     f"capacity_blind_b={_fmt(row['capacity_blind_price_b'])} "
-                    if task == "pricing_multi_product_capacity"
+                    if task in capacity_tasks
                     else ""
                 )
                 print(

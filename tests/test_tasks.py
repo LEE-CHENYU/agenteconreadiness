@@ -123,6 +123,9 @@ from aeread_lab.tasks.pricing import HOLDOUT_EVIDENCE_LAW_CASES as PRICING_EVIDE
 from aeread_lab.tasks.pricing import HIDDEN_INTERVENTION_CASES as PRICING_HIDDEN_INTERVENTION_CASES
 from aeread_lab.tasks.pricing import INVENTORY_MARKDOWN_CASES as PRICING_INVENTORY_MARKDOWN_CASES
 from aeread_lab.tasks.pricing import INVENTORY_MARKDOWN_NOISY_CASES as PRICING_INVENTORY_MARKDOWN_NOISY_CASES
+from aeread_lab.tasks.pricing import (
+    MULTI_PRODUCT_CAPACITY_NOISY_CASES as PRICING_MULTI_CAPACITY_NOISY_CASES,
+)
 from aeread_lab.tasks.pricing import MULTI_PRODUCT_CAPACITY_CASES as PRICING_MULTI_CAPACITY_CASES
 from aeread_lab.tasks.pricing import MULTI_PRODUCT_CASES as PRICING_MULTI_CASES
 from aeread_lab.tasks.pricing import _counterfactual_prompt as pricing_counterfactual_prompt
@@ -132,6 +135,9 @@ from aeread_lab.tasks.pricing import _inventory_markdown_noisy_prompt as pricing
 from aeread_lab.tasks.pricing import _inventory_markdown_prompt as pricing_inventory_markdown_prompt
 from aeread_lab.tasks.pricing import _hidden_intervention_prompt as pricing_hidden_intervention_prompt
 from aeread_lab.tasks.pricing import _law_audit_prompt as pricing_law_audit_prompt
+from aeread_lab.tasks.pricing import (
+    _multi_product_capacity_noisy_prompt as pricing_multi_capacity_noisy_prompt,
+)
 from aeread_lab.tasks.pricing import _multi_product_capacity_prompt as pricing_multi_capacity_prompt
 from aeread_lab.tasks.pricing import _multi_product_natural_prompt as pricing_multi_natural_prompt
 from aeread_lab.tasks.pricing import _multi_product_prompt as pricing_multi_prompt
@@ -145,6 +151,7 @@ from aeread_lab.tasks.pricing import run_pricing_hidden_intervention_game
 from aeread_lab.tasks.pricing import run_pricing_inventory_markdown_game
 from aeread_lab.tasks.pricing import run_pricing_inventory_markdown_noisy_game
 from aeread_lab.tasks.pricing import run_pricing_law_audit_game
+from aeread_lab.tasks.pricing import run_pricing_multi_product_capacity_noisy_game
 from aeread_lab.tasks.pricing import run_pricing_multi_product_capacity_game
 from aeread_lab.tasks.pricing import run_pricing_multi_product_game
 from aeread_lab.tasks.pricing import run_pricing_multi_product_natural_game
@@ -309,6 +316,11 @@ class TaskSmokeTests(unittest.TestCase):
 
     def test_sample_limit_slices_pricing_multi_product_capacity_cases(self):
         results = run_tasks("pricing_multi_product_capacity", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_price_l1_error"], 0.01)
+
+    def test_sample_limit_slices_pricing_multi_product_capacity_noisy_cases(self):
+        results = run_tasks("pricing_multi_product_capacity_noisy", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_price_l1_error"], 0.01)
 
@@ -636,6 +648,20 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(capacity_blind["capacity_blind_miss_rate"], 0.5)
         self.assertGreater(independent["mean_price_l1_error"], 5.0)
 
+    def test_pricing_multi_product_capacity_noisy_flags_capacity_blind_pricing(self):
+        configured = run_pricing_multi_product_capacity_noisy_game(OfflineAgent("oracle"))
+        capacity_blind = run_pricing_multi_product_capacity_noisy_game(
+            OfflineAgent("capacity_blind")
+        )
+        independent = run_pricing_multi_product_capacity_noisy_game(OfflineAgent("independent"))
+        self.assertEqual(configured["task"], "pricing_multi_product_capacity_noisy")
+        self.assertEqual(configured["n_trials"], len(PRICING_MULTI_CAPACITY_NOISY_CASES))
+        self.assertLess(configured["mean_price_l1_error"], 0.01)
+        self.assertEqual(configured["capacity_blind_miss_rate"], 0.0)
+        self.assertGreater(capacity_blind["mean_price_l1_error"], 5.0)
+        self.assertGreater(capacity_blind["capacity_blind_miss_rate"], 0.5)
+        self.assertGreater(independent["mean_price_l1_error"], 5.0)
+
     def test_pricing_inventory_markdown_flags_myopic_pricing(self):
         configured = run_pricing_inventory_markdown_game(OfflineAgent("oracle"))
         myopic = run_pricing_inventory_markdown_game(OfflineAgent("myopic"))
@@ -740,6 +766,9 @@ class TaskSmokeTests(unittest.TestCase):
         pricing_multi = pricing_multi_prompt(PRICING_MULTI_CASES[0])
         pricing_multi_natural = pricing_multi_natural_prompt(PRICING_MULTI_CASES[0])
         pricing_multi_capacity = pricing_multi_capacity_prompt(PRICING_MULTI_CAPACITY_CASES[0])
+        pricing_multi_capacity_noisy = pricing_multi_capacity_noisy_prompt(
+            PRICING_MULTI_CAPACITY_NOISY_CASES[0]
+        )
         pricing_inventory_markdown = pricing_inventory_markdown_prompt(PRICING_INVENTORY_MARKDOWN_CASES[0])
         pricing_inventory_markdown_noisy = pricing_inventory_markdown_noisy_prompt(
             PRICING_INVENTORY_MARKDOWN_NOISY_CASES[0]
@@ -825,6 +854,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", pricing_multi)
         self.assertNotIn("oracle", pricing_multi_natural)
         self.assertNotIn("oracle", pricing_multi_capacity)
+        self.assertNotIn("oracle", pricing_multi_capacity_noisy)
         self.assertNotIn("oracle", pricing_inventory_markdown)
         self.assertNotIn("oracle", pricing_inventory_markdown_noisy)
         self.assertNotIn("oracle", pricing_hidden_intervention)
@@ -880,6 +910,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle_price", pricing_multi)
         self.assertNotIn("oracle_price", pricing_multi_natural)
         self.assertNotIn("oracle_price", pricing_multi_capacity)
+        self.assertNotIn("oracle_price", pricing_multi_capacity_noisy)
         self.assertNotIn("oracle_price", pricing_inventory_markdown)
         self.assertNotIn("oracle_price", pricing_inventory_markdown_noisy)
         self.assertNotIn("oracle_price", pricing_hidden_intervention)
@@ -1668,6 +1699,16 @@ class TaskSmokeTests(unittest.TestCase):
         )
         rows = rank_rows(comparison_table(sweep))
         pricing_rows = [row for row in rows if row["task"] == "pricing_multi_product_capacity"]
+        self.assertEqual(pricing_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(pricing_rows[1]["agent"], "offline:capacity_blind")
+
+    def test_offline_sweep_ranks_oracle_above_capacity_blind_on_pricing_multi_product_capacity_noisy(self):
+        sweep = run_sweep(
+            task="pricing_multi_product_capacity_noisy",
+            agent_specs=["offline:oracle", "offline:capacity_blind", "offline:independent"],
+        )
+        rows = rank_rows(comparison_table(sweep))
+        pricing_rows = [row for row in rows if row["task"] == "pricing_multi_product_capacity_noisy"]
         self.assertEqual(pricing_rows[0]["agent"], "offline:oracle")
         self.assertEqual(pricing_rows[1]["agent"], "offline:capacity_blind")
 
