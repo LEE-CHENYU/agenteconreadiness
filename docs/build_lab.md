@@ -58,6 +58,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `procurement_bundle` | Combinatorial procurement bundle choice: pick exactly two products under budget and category coverage, adding pairwise compatibility to item utility. | `python -m aeread_lab.cli --task procurement_bundle --agent offline:oracle` |
 | `procurement_bundle_natural` | Natural-label procurement bundle choice: same two-product oracle as `procurement_bundle`, but product rows use SKU/package-fit language instead of explicit compatibility-bonus labels. | `python -m aeread_lab.cli --task procurement_bundle_natural --agent offline:oracle` |
 | `procurement_bundle_evidence` | Outcome-evidence procurement bundle choice: infer two-SKU package fit from prior deployment rows rather than listed compatibility bonuses. | `python -m aeread_lab.cli --task procurement_bundle_evidence --agent offline:oracle` |
+| `procurement_bundle_noisy_evidence` | Noisy outcome-evidence bundle choice: aggregate multiple conflicting deployment rows per SKU pair before selecting the two-product package. | `python -m aeread_lab.cli --task procurement_bundle_noisy_evidence --agent offline:oracle` |
 | `pricing` | v0 `SimplePricingGame`: continuous price choice with base/posterior/reveal conditions and a closed-form revenue oracle. | `python -m aeread_lab.cli --task pricing --agent offline:oracle` |
 | `pricing_counterfactual` | Pricing evidence-perturbation probe: exact and noisy posterior demand evidence changes the revenue-maximizing price, and stale base prices are scored as counterfactual-shift misses. | `python -m aeread_lab.cli --task pricing_counterfactual --agent offline:oracle` |
 | `pricing_cross_elasticity` | Cross-product pricing evidence: fit focal demand from own-price and related-price variation, catching single-product fits that ignore substitution or complement effects. | `python -m aeread_lab.cli --task pricing_cross_elasticity --agent offline:oracle` |
@@ -218,6 +219,10 @@ interpreting the economic metric.
 - `procurement_bundle_evidence`: lower bundle score regret is better when pair
   fit must be inferred from deployment outcome rows; the same invalid,
   category, budget, and compatibility-blind diagnostics are reported.
+- `procurement_bundle_noisy_evidence`: lower bundle score regret is better when
+  pair fit must be inferred by aggregating noisy deployment outcome rows; the
+  same invalid, category, budget, and compatibility-blind diagnostics are
+  reported.
 - `pricing`: lower revenue gap to the closed-form optimum is better.
 - `pricing_counterfactual`: lower posterior price error is better;
   counterfactual-shift miss and sticky-base-price rates are reported separately.

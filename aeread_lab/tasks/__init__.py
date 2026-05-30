@@ -49,6 +49,7 @@ from .procurement import (
     run_procurement_bundle_evidence_game,
     run_procurement_bundle_game,
     run_procurement_bundle_natural_game,
+    run_procurement_bundle_noisy_evidence_game,
     run_procurement_counterfactual_game,
     run_procurement_game,
 )
@@ -108,6 +109,7 @@ __all__ = [
     "run_procurement_bundle_game",
     "run_procurement_bundle_natural_game",
     "run_procurement_bundle_evidence_game",
+    "run_procurement_bundle_noisy_evidence_game",
     "run_regime_battery",
     "run_regime_holdout_verifier",
     "run_regime_law_audit_game",
