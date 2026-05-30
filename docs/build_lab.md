@@ -147,17 +147,15 @@ python -m aeread_lab.cli --sweep --task regime \
 The next builds should keep the same discipline: add a deterministic generator,
 a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
 
-1. Run cached model-version smokes with `--limit` for alignment-shift
-   diagnostics across `gpt-5.5`, `mini`, and `nano`.
-2. Run live sampled alignment-tax, bargaining, and supplier-scam smokes across
-   `gpt-5.5`, `mini`, and `nano` when the API key is available in the shell.
-3. Replace the stylized revealed-allocation traces with real 13F-style
+1. Run full or stress-targeted live OpenAI probes on the cases where sampled
+   smokes show parse stability but no separation.
+2. Replace the stylized revealed-allocation traces with real 13F-style
    holdings-derived traces once a clean data source is selected.
-4. Broaden `belief_bargaining` into multi-turn opponent modeling.
-5. Broaden `mechanism` from scored static choices to equilibrium simulation
+3. Broaden `belief_bargaining` into multi-turn opponent modeling.
+4. Broaden `mechanism` from scored static choices to equilibrium simulation
    and incentive-compatibility probes.
-6. Expand `market` from symmetric price competition to inventory, capital
+5. Expand `market` from symmetric price competition to inventory, capital
    appreciation, and multi-period survival.
-7. Broaden `retail` into multi-period inventory and supplier-scam variants.
-8. Broaden `strategic_drift` into imperfect-information and N-player games.
-9. Broaden `experiment_design` into multi-step adaptive tests.
+6. Broaden `retail` into multi-period inventory and supplier-scam variants.
+7. Broaden `strategic_drift` into imperfect-information and N-player games.
+8. Broaden `experiment_design` into multi-step adaptive tests.
