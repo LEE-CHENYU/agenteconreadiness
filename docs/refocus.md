@@ -44,6 +44,25 @@ These are **points on one CRRA-γ × dynamics × barrier axis** (EV = γ0 single
 2. A single-seed "ruin at horizon N=3" **shifted to N=2** under multi-seed — direction robust, exact value an artifact → **report the curve, not point values.**
 3. An adversarial test that **nulled** (reinforced rule unbreakable by honest persuasion) was diagnosed and rebuilt to target a *documented* vulnerability with a control that proves it fires → **a working adversarial test needs a real target + a validity control.**
 
+## Why the decision-making gap exists: post-training optimizes appropriateness, not economic optimality
+
+A working hypothesis that *explains* the findings above and motivates the whole project. **There is no economic oracle in the RLHF loop.** Human raters (or a reward model trained on their preferences) reward answers that *look* helpful, clear, reasonable, safe, and appropriately hedged — they cannot, at scale, check whether a bet was Kelly-optimal, a posterior Bayes-correct, or surplus maximized. So RLHF shapes the *presentation and disposition* of decision-making, not its *optimality against ground truth*. Component coverage (tied to our fingerprints):
+
+| Component | Covered by classic RLHF? | Mechanism / fingerprint |
+|---|---|---|
+| Rationality *computation* (the gate) | mostly **no** — it's pretraining (knowledge) + SFT (deploy on request); RLHF polishes the *presentation* | explains why the gate is saturated + un-de-telegraphable (capability is in the weights, not the preference signal) |
+| Instruction-following / steering mechanism | **yes** | the precondition for configuring a persona at all |
+| Helpful/safe "reasonable" default persona | **yes — RLHF's core product** | the sticky (≈risk-neutral) default the grade measures steering *against* |
+| Regime-appropriateness (EV→Kelly→CVaR→CRRA) | **no** | no reward for geometric-growth / ruin-avoidance / regime-switching → regime-blindness |
+| Alignment-shift of economic behavior | **yes — RLHF's direct footprint** | safety/honesty post-training penalizes deception/collusion/ruthless anchoring = the surplus-maximizing strategies → more alignment, less surplus (Andon Opus 4.8; TERMS 4.6>4.7) |
+| Long-horizon coherence under stress | **no** | RLHF trains on short interactions; the signal never reaches a 20M-token trajectory |
+
+**Synthesis**: RLHF covers decision-making partially and indirectly — it saturates the *display* of pretrained rationality, installs the sticky default the grade tests against, **actively shifts** economic behavior toward aligned-but-suboptimal (the alignment-shift is RLHF's fingerprint, not noise), and leaves regime-appropriateness + long-horizon coherence essentially uncovered. The decision-making axes are precisely the behaviors post-training optimizes only *indirectly* (via human-judged appropriateness) or *distorts* (via alignment) — never against an economic ground truth. That is *why* the gap exists, and why it needs an independent economic diagnostic.
+
+**Temporal nuance**: this is classic RLHF (human-preference reward). The frontier is shifting to RLVR / agentic-RL (verifiable / economic-outcome rewards — incl. economic-agent task environments). That stage *can* cover decision-making directly. So the alignment-shift may partly be safety-RLHF vs outcome-RL pulling the economic distribution in opposite directions — and AERead is positioned to measure the question: **does training on economic-outcome rewards actually improve regime-appropriateness, or only sharpen the already-saturated gate and restore the surplus-extraction the safety stage suppressed?** (Same training-signal thread as Q5/Q10.)
+
+**Open / caveat**: lab post-training recipes are proprietary — this is a theory consistent with the measured fingerprints (SFT→reward-model→PPO/DPO, human-preference reward, RLVR for verifiable domains), not a confirmed account of any model's reward function. Falsification: if a model trained *without* economic-outcome RL nonetheless deploys regime-appropriate utilities (Kelly under compounding, CVaR under ruin) spontaneously, the "RLHF doesn't cover regime-appropriateness" position is wrong. Engagement invited.
+
 ## The methodological moat (why this is citable)
 
 Gate/grade separation · multi-seed CIs + "report the distribution/curve" · orthogonality-not-residual (the extra axes are scope-extensions of TERMS Eq.4, not residual-capture — Eq.4 telescopes to zero residual within-task) · the retrieval-resistance half-life (gate hardness decays with capability; grade hardness is permanent) · stress as a cross-cutting axis (rationality is a floor at rest, a cliff under load). Frontier-lab reviewers cite rigor; "we ran the rigorous version and it corrected us, with receipts" is the channel.
