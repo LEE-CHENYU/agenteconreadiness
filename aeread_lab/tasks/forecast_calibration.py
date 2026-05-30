@@ -49,6 +49,35 @@ class ForecastTrial:
     raw_response: str
 
 
+@dataclass(frozen=True)
+class AggregateForecastCase:
+    key: str
+    real_case: str
+    target_event: str
+    raw_model_probability: float
+    global_base_rate: float
+    prior_strength: float
+    observed_event_count: int
+    observed_total: int
+    bin_label: str
+
+
+@dataclass
+class AggregateForecastTrial:
+    case: AggregateForecastCase
+    calibrated_probability: float
+    raw_model_probability: float
+    empirical_bin_probability: float
+    chosen_probability: float | None
+    expected_brier_regret: float | None
+    realized_brier_score: float | None
+    calibrated_realized_brier_score: float
+    probability_error: float | None
+    raw_score_miss: bool
+    shrinkage_miss: bool
+    raw_response: str
+
+
 DEFAULT_CASES = [
     ForecastCase(
         key="enterprise_churn_warning",
@@ -190,6 +219,64 @@ DEFAULT_CASES = [
     ),
 ]
 
+AGGREGATE_CASES = [
+    AggregateForecastCase(
+        key="checkout_low_score_hidden_risk",
+        real_case="payment fraud calibration bin after a new merchant cohort shift",
+        target_event="transaction later becomes a chargeback",
+        raw_model_probability=0.18,
+        global_base_rate=0.22,
+        prior_strength=40.0,
+        observed_event_count=26,
+        observed_total=50,
+        bin_label="raw_score_0.15_to_0.25",
+    ),
+    AggregateForecastCase(
+        key="renewal_high_score_regression",
+        real_case="enterprise churn model high-risk bin after sales-led retention changes",
+        target_event="account churns before renewal",
+        raw_model_probability=0.78,
+        global_base_rate=0.22,
+        prior_strength=40.0,
+        observed_event_count=7,
+        observed_total=20,
+        bin_label="raw_score_0.70_to_0.85",
+    ),
+    AggregateForecastCase(
+        key="support_defect_stable_mid",
+        real_case="support-defect forecast bin with enough history to trust the calibration table",
+        target_event="batch exceeds the defect escalation threshold",
+        raw_model_probability=0.42,
+        global_base_rate=0.40,
+        prior_strength=30.0,
+        observed_event_count=35,
+        observed_total=80,
+        bin_label="raw_score_0.35_to_0.50",
+    ),
+    AggregateForecastCase(
+        key="small_sample_spike",
+        real_case="small regional default bin with a high but very noisy observed spike",
+        target_event="supplier misses the delivery window",
+        raw_model_probability=0.62,
+        global_base_rate=0.25,
+        prior_strength=60.0,
+        observed_event_count=8,
+        observed_total=9,
+        bin_label="raw_score_0.55_to_0.70",
+    ),
+    AggregateForecastCase(
+        key="large_bin_persistent_low",
+        real_case="large mature credit bin where realized risk is persistently below the model score",
+        target_event="borrower becomes 60 days delinquent",
+        raw_model_probability=0.52,
+        global_base_rate=0.35,
+        prior_strength=30.0,
+        observed_event_count=70,
+        observed_total=240,
+        bin_label="raw_score_0.45_to_0.60",
+    ),
+]
+
 
 def posterior_probability(case: ForecastCase) -> float:
     odds = case.base_rate / max(1e-12, 1.0 - case.base_rate)
@@ -217,6 +304,11 @@ def realized_brier_score(realized_rate: float, forecast: float) -> float:
 def realized_log_loss(realized_rate: float, forecast: float) -> float:
     clipped = clamp(forecast, 1e-6, 1.0 - 1e-6)
     return -(realized_rate * math.log(clipped) + (1.0 - realized_rate) * math.log(1.0 - clipped))
+
+
+def aggregate_calibrated_probability(case: AggregateForecastCase) -> float:
+    prior_events = case.prior_strength * case.global_base_rate
+    return (case.observed_event_count + prior_events) / (case.observed_total + case.prior_strength)
 
 
 def run_forecast_calibration_game(agent: Agent, cases: list[ForecastCase] | None = None) -> dict:
@@ -252,6 +344,52 @@ def run_forecast_calibration_game(agent: Agent, cases: list[ForecastCase] | None
             )
         )
     return summarize_forecast_trials(agent.name, trials)
+
+
+def run_forecast_aggregate_game(
+    agent: Agent,
+    cases: list[AggregateForecastCase] | None = None,
+) -> dict:
+    cases = cases or AGGREGATE_CASES
+    trials: list[AggregateForecastTrial] = []
+    for case in cases:
+        calibrated = aggregate_calibrated_probability(case)
+        empirical = case.observed_event_count / case.observed_total
+        response = agent.complete(FORECAST_SYSTEM, _aggregate_prompt(case))
+        parsed = parse_float("FINAL_PROBABILITY", response)
+        chosen = clamp(parsed, 0.0, 1.0) if parsed is not None else None
+        realized_brier = realized_brier_score(empirical, chosen) if chosen is not None else None
+        calibrated_brier = realized_brier_score(empirical, calibrated)
+        raw_score_miss = (
+            chosen is not None
+            and abs(case.raw_model_probability - calibrated) >= 0.10
+            and abs(chosen - case.raw_model_probability) < abs(chosen - calibrated)
+        )
+        shrinkage_miss = (
+            chosen is not None
+            and case.observed_total < case.prior_strength
+            and abs(empirical - calibrated) >= 0.10
+            and abs(chosen - empirical) < abs(chosen - calibrated)
+        )
+        trials.append(
+            AggregateForecastTrial(
+                case=case,
+                calibrated_probability=calibrated,
+                raw_model_probability=case.raw_model_probability,
+                empirical_bin_probability=empirical,
+                chosen_probability=chosen,
+                expected_brier_regret=expected_brier_regret(calibrated, chosen)
+                if chosen is not None
+                else None,
+                realized_brier_score=realized_brier,
+                calibrated_realized_brier_score=calibrated_brier,
+                probability_error=abs(chosen - calibrated) if chosen is not None else None,
+                raw_score_miss=raw_score_miss,
+                shrinkage_miss=shrinkage_miss,
+                raw_response=response,
+            )
+        )
+    return summarize_aggregate_forecast_trials(agent.name, trials)
 
 
 def summarize_forecast_trials(agent_name: str, trials: list[ForecastTrial]) -> dict:
@@ -320,6 +458,50 @@ def summarize_forecast_trials(agent_name: str, trials: list[ForecastTrial]) -> d
     }
 
 
+def summarize_aggregate_forecast_trials(
+    agent_name: str,
+    trials: list[AggregateForecastTrial],
+) -> dict:
+    regrets = [
+        trial.expected_brier_regret
+        for trial in trials
+        if trial.expected_brier_regret is not None
+    ]
+    realized_scores = [
+        trial.realized_brier_score for trial in trials if trial.realized_brier_score is not None
+    ]
+    errors = [trial.probability_error for trial in trials if trial.probability_error is not None]
+    shifted = [
+        trial
+        for trial in trials
+        if abs(trial.raw_model_probability - trial.calibrated_probability) >= 0.10
+    ]
+    shrinkage_cases = [
+        trial
+        for trial in trials
+        if trial.case.observed_total < trial.case.prior_strength
+        and abs(trial.empirical_bin_probability - trial.calibrated_probability) >= 0.10
+    ]
+    return {
+        "task": "forecast_aggregate",
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "mean_expected_brier_regret": mean(regrets),
+        "mean_expected_brier_regret_ci95": bootstrap_mean_ci(regrets),
+        "mean_realized_brier_score": mean(realized_scores),
+        "mean_probability_error": mean(errors),
+        "raw_score_miss_rate": (
+            sum(trial.raw_score_miss for trial in shifted) / len(shifted) if shifted else 0.0
+        ),
+        "shrinkage_miss_rate": (
+            sum(trial.shrinkage_miss for trial in shrinkage_cases) / len(shrinkage_cases)
+            if shrinkage_cases
+            else 0.0
+        ),
+        "trials": [_aggregate_trial_json(trial) for trial in trials],
+    }
+
+
 def _prompt(case: ForecastCase) -> str:
     lines = [
         f"case={case.key}",
@@ -344,7 +526,34 @@ def _prompt(case: ForecastCase) -> str:
     return "\n".join(lines)
 
 
+def _aggregate_prompt(case: AggregateForecastCase) -> str:
+    return "\n".join(
+        [
+            f"case={case.key}",
+            f"real_case={case.real_case}",
+            f"target_event={case.target_event}",
+            f"bin_label={case.bin_label}",
+            f"raw_model_probability={case.raw_model_probability:.4f}",
+            f"base_rate={case.global_base_rate:.4f}",
+            f"global_base_rate={case.global_base_rate:.4f}",
+            f"prior_strength={case.prior_strength:.1f}",
+            f"observed_event_count={case.observed_event_count}",
+            f"observed_total={case.observed_total}",
+            "Use aggregate calibration for this raw-score bin. Treat prior_strength as "
+            "the equivalent sample size at the global base rate, then combine it with "
+            "the observed calibration-bin event count before forecasting.",
+            "Estimate the calibrated probability of the target event for the next item in this bin.",
+        ]
+    )
+
+
 def _trial_json(trial: ForecastTrial) -> dict:
+    data = asdict(trial)
+    data["case"] = asdict(trial.case)
+    return data
+
+
+def _aggregate_trial_json(trial: AggregateForecastTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
     return data

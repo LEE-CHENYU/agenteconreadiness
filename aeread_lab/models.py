@@ -488,6 +488,18 @@ class OfflineAgent:
         return f"FINAL_ACTION: {action}"
 
     def _forecast_probability(self, user: str) -> str:
+        if "raw_model_probability=" in user and "observed_event_count=" in user:
+            if self.policy in {"raw_score", "uncalibrated"}:
+                probability = _extract_float(user, "raw_model_probability")
+            elif self.policy in {"empirical_bin", "no_shrink"}:
+                total = _extract_float(user, "observed_total", 1.0)
+                probability = _extract_float(user, "observed_event_count") / max(total, 1e-9)
+            elif self.policy in {"base_rate", "prior", "unconditional"}:
+                probability = _extract_float(user, "global_base_rate", _extract_float(user, "base_rate"))
+            else:
+                probability = _forecast_aggregate_probability(user)
+            probability = max(0.0, min(1.0, probability))
+            return f"FINAL_PROBABILITY: {probability:.12f}"
         posterior = _forecast_posterior_probability(user)
         base_rate = _extract_float(user, "base_rate")
         if self.policy in {"base_rate", "prior", "unconditional"}:
@@ -766,6 +778,14 @@ def _forecast_posterior_probability(text: str, *, use_reliability: bool = True) 
         reliability_weight = _extract_float(line, "reliability_weight", 1.0) if use_reliability else 1.0
         odds *= likelihood_ratio ** reliability_weight
     return odds / (1.0 + odds)
+
+
+def _forecast_aggregate_probability(text: str) -> float:
+    event_count = _extract_float(text, "observed_event_count")
+    total = _extract_float(text, "observed_total", 1.0)
+    global_base_rate = _extract_float(text, "global_base_rate", _extract_float(text, "base_rate", 0.5))
+    prior_strength = _extract_float(text, "prior_strength", 0.0)
+    return (event_count + prior_strength * global_base_rate) / max(total + prior_strength, 1e-9)
 
 
 def _extract_bargaining_types(text: str) -> list[tuple[float, float]]:

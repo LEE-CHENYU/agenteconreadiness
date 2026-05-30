@@ -22,6 +22,7 @@ PRIMARY_METRICS = {
     "mechanism": ("mean_score_regret", "lower"),
     "strategic_drift": ("drift_rate", "lower"),
     "forecast_calibration": ("mean_expected_brier_regret", "lower"),
+    "forecast_aggregate": ("mean_expected_brier_regret", "lower"),
     "exploration": ("mean_expected_value_gap", "lower"),
     "experiment_design": ("mean_expected_value_gap", "lower"),
     "retail": ("mean_order_error", "lower"),
