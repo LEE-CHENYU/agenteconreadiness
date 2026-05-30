@@ -99,6 +99,8 @@ class OfflineAgent:
             return self._revealed_allocation(user)
         if "TASK: ambiguity_action" in system:
             return self._ambiguity_action(user)
+        if "TASK: procurement_vendor_update" in system:
+            return self._procurement_vendor_update(user)
         if "TASK: procurement_bundle" in system:
             return self._procurement_bundle(user)
         if "TASK: procurement_choice" in system:
@@ -356,6 +358,24 @@ class OfflineAgent:
             pair = _best_procurement_bundle(user, products, self.policy)
         left, right = sorted(pair)
         return f"FINAL_BUNDLE: {left},{right}"
+
+    def _procurement_vendor_update(self, user: str) -> str:
+        vendors = _extract_procurement_vendor_update_vendors(user)
+        rounds = _extract_procurement_vendor_update_rounds(user)
+        if not vendors or not rounds:
+            return "FINAL_VENDOR_PLAN: ,,"
+        if self.policy in {"first", "first_vendor"}:
+            plan = tuple([next(iter(vendors))] * len(rounds))
+        elif self.policy in {"cheapest", "price", "low_bid"}:
+            cheapest = min(vendors, key=lambda item: vendors[item]["invoice"])
+            plan = tuple([cheapest] * len(rounds))
+        elif self.policy in {"myopic", "single_round"}:
+            plan = _myopic_procurement_vendor_update_plan(vendors, rounds)
+        elif self.policy in {"reputation_blind", "history_blind", "delivery_blind"}:
+            plan = _best_procurement_vendor_update_plan(user, vendors, rounds, reputation_blind=True)
+        else:
+            plan = _best_procurement_vendor_update_plan(user, vendors, rounds)
+        return f"FINAL_VENDOR_PLAN: {','.join(plan)}"
 
     def _pricing_price(self, user: str) -> str:
         case_key = _extract_word(user, "case")
@@ -1323,6 +1343,124 @@ def _procurement_bundle_compatibility(text: str, pair: tuple[str, str]) -> float
     if reserve_scores:
         return sum(reserve_scores) / len(reserve_scores)
     return 0.0
+
+
+def _extract_procurement_vendor_update_vendors(text: str) -> dict[str, dict[str, float]]:
+    vendors: dict[str, dict[str, float]] = {}
+    vendor_pattern = re.compile(
+        r"vendor_id=([a-zA-Z0-9_-]+)\s+"
+        r"invoice=([-+]?\d+(?:\.\d+)?)\s+"
+        r"operational_fit=([-+]?\d+(?:\.\d+)?)\s+"
+        r"shipments_observed=([-+]?\d+(?:\.\d+)?)\s+"
+        r"on_time_shipments=([-+]?\d+(?:\.\d+)?)\s+"
+        r"late_shipments=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in vendor_pattern.finditer(text):
+        vendors[match.group(1)] = {
+            "invoice": float(match.group(2)),
+            "operational_fit": float(match.group(3)),
+            "shipments_observed": float(match.group(4)),
+            "on_time_shipments": float(match.group(5)),
+        }
+    return vendors
+
+
+def _extract_procurement_vendor_update_rounds(text: str) -> list[dict[str, float]]:
+    rounds = []
+    round_pattern = re.compile(
+        r"round=([a-zA-Z0-9_-]+)\s+"
+        r"service_value=([-+]?\d+(?:\.\d+)?)\s+"
+        r"late_penalty=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in round_pattern.finditer(text):
+        rounds.append(
+            {
+                "service_value": float(match.group(2)),
+                "late_penalty": float(match.group(3)),
+            }
+        )
+    return rounds
+
+
+def _vendor_update_reliability(vendor: dict[str, float], *, reputation_blind: bool = False) -> float:
+    if reputation_blind:
+        return 0.80
+    return (vendor["on_time_shipments"] + 2.0) / (vendor["shipments_observed"] + 4.0)
+
+
+def _vendor_update_round_score(
+    vendor: dict[str, float],
+    round_case: dict[str, float],
+    *,
+    reputation_blind: bool = False,
+) -> float:
+    reliability = _vendor_update_reliability(vendor, reputation_blind=reputation_blind)
+    return (
+        round_case["service_value"] * vendor["operational_fit"]
+        - vendor["invoice"]
+        - (1.0 - reliability) * round_case["late_penalty"]
+    )
+
+
+def _procurement_vendor_update_plan_score(
+    text: str,
+    vendors: dict[str, dict[str, float]],
+    rounds: list[dict[str, float]],
+    plan: tuple[str, ...],
+    *,
+    reputation_blind: bool = False,
+    include_switch_and_reserve: bool = True,
+) -> float:
+    cash = _extract_float(text, "starting_reserve", math.inf)
+    reserve_floor = _extract_float(text, "reserve_floor", -math.inf)
+    reserve_penalty = _extract_float(text, "reserve_penalty", 0.0)
+    switch_cost_config = _extract_float(text, "switch_cost", 0.0)
+    previous_vendor = None
+    score = 0.0
+    for vendor_id, round_case in zip(plan, rounds):
+        vendor = vendors[vendor_id]
+        switch_cost = (
+            switch_cost_config
+            if include_switch_and_reserve and previous_vendor is not None and previous_vendor != vendor_id
+            else 0.0
+        )
+        cash -= vendor["invoice"] + switch_cost
+        score += _vendor_update_round_score(vendor, round_case, reputation_blind=reputation_blind) - switch_cost
+        if include_switch_and_reserve:
+            score -= reserve_penalty * max(0.0, reserve_floor - cash)
+            score -= 4.0 * max(0.0, -cash)
+        previous_vendor = vendor_id
+    return score
+
+
+def _best_procurement_vendor_update_plan(
+    text: str,
+    vendors: dict[str, dict[str, float]],
+    rounds: list[dict[str, float]],
+    *,
+    reputation_blind: bool = False,
+) -> tuple[str, ...]:
+    vendor_ids = list(vendors)
+    return max(
+        itertools.product(vendor_ids, repeat=len(rounds)),
+        key=lambda plan: _procurement_vendor_update_plan_score(
+            text,
+            vendors,
+            rounds,
+            plan,
+            reputation_blind=reputation_blind,
+        ),
+    )
+
+
+def _myopic_procurement_vendor_update_plan(
+    vendors: dict[str, dict[str, float]],
+    rounds: list[dict[str, float]],
+) -> tuple[str, ...]:
+    return tuple(
+        max(vendors, key=lambda vendor_id: _vendor_update_round_score(vendors[vendor_id], round_case))
+        for round_case in rounds
+    )
 
 
 def _extract_uniform_bounds(text: str) -> tuple[float, float]:

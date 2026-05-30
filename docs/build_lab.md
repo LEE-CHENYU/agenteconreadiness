@@ -61,6 +61,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `procurement_bundle_noisy_evidence` | Noisy outcome-evidence bundle choice: aggregate multiple conflicting deployment rows per SKU pair before selecting the two-product package. | `python -m aeread_lab.cli --task procurement_bundle_noisy_evidence --agent offline:oracle` |
 | `procurement_bundle_history` | Deployment-history bundle choice: aggregate multi-period rollout history through an operational field-value conversion before selecting the two-product package. | `python -m aeread_lab.cli --task procurement_bundle_history --agent offline:oracle` |
 | `procurement_bundle_reserve` | Reserve-sensitive bundle choice: combine item priorities with support-tail cost and reserve shortfall before selecting the two-product package. | `python -m aeread_lab.cli --task procurement_bundle_reserve --agent offline:oracle` |
+| `procurement_vendor_update` | Sequential vendor-update procurement: choose a three-round vendor plan after delivery-history updates, switch costs, and reserve-floor penalties. | `python -m aeread_lab.cli --task procurement_vendor_update --agent offline:oracle` |
 | `pricing` | v0 `SimplePricingGame`: continuous price choice with base/posterior/reveal conditions and a closed-form revenue oracle. | `python -m aeread_lab.cli --task pricing --agent offline:oracle` |
 | `pricing_counterfactual` | Pricing evidence-perturbation probe: exact and noisy posterior demand evidence changes the revenue-maximizing price, and stale base prices are scored as counterfactual-shift misses. | `python -m aeread_lab.cli --task pricing_counterfactual --agent offline:oracle` |
 | `pricing_cross_elasticity` | Cross-product pricing evidence: fit focal demand from own-price and related-price variation, catching single-product fits that ignore substitution or complement effects. | `python -m aeread_lab.cli --task pricing_cross_elasticity --agent offline:oracle` |
@@ -234,6 +235,9 @@ interpreting the economic metric.
 - `procurement_bundle_reserve`: lower bundle score regret is better when pair
   fit includes support-reserve shortfall risk; the same invalid, category,
   budget, and compatibility-blind diagnostics are reported.
+- `procurement_vendor_update`: lower sequential procurement score regret is
+  better; reputation-blind and myopic miss rates report vendor-history and
+  round-by-round planning failures.
 - `pricing`: lower revenue gap to the closed-form optimum is better.
 - `pricing_counterfactual`: lower posterior price error is better;
   counterfactual-shift miss and sticky-base-price rates are reported separately.

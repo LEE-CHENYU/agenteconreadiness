@@ -57,6 +57,7 @@ TASKS = (
     "procurement_bundle_noisy_evidence",
     "procurement_bundle_history",
     "procurement_bundle_reserve",
+    "procurement_vendor_update",
     "pricing",
     "pricing_counterfactual",
     "pricing_cross_elasticity",
@@ -480,6 +481,23 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"budget_violate={result['budget_violation_rate']:.2f} "
                 f"compat_miss={result['compatibility_blind_miss_rate']:.2f}"
             )
+        elif task == "procurement_vendor_update":
+            print(
+                f"{task}: n={result['n_trials']} score_regret="
+                f"{_fmt(result['mean_score_regret'])} "
+                f"accuracy={result['accuracy']:.2f} "
+                f"parse={result['parse_rate']:.2f} "
+                f"reputation_miss={result['reputation_blind_miss_rate']:.2f} "
+                f"myopic_miss={result['myopic_miss_rate']:.2f}"
+            )
+            for row in result["trials"]:
+                chosen = ",".join(row["chosen_plan"]) if row["chosen_plan"] else "None"
+                print(
+                    f"  {row['case']:<24} chosen={chosen} "
+                    f"oracle={','.join(row['oracle_plan'])} "
+                    f"reputation_blind={','.join(row['reputation_blind_plan'])} "
+                    f"myopic={','.join(row['myopic_plan'])}"
+                )
         elif task == "pricing":
             print(
                 f"pricing: n={result['n_trials']} mean_revenue_gap="

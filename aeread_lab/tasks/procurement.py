@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import asdict, dataclass
-from itertools import combinations
+from itertools import combinations, product as cartesian_product
 
 from aeread_lab.models import Agent
 from aeread_lab.parsing import parse_token
@@ -53,6 +53,12 @@ PROCUREMENT_BUNDLE_RESERVE_SYSTEM = (
     "Select exactly two SKU values for the procurement package. "
     "Respect the spend limit, required product lines, and support-reserve risk. "
     "Return one final line only: FINAL_BUNDLE: <sku>,<sku>."
+)
+
+PROCUREMENT_VENDOR_UPDATE_SYSTEM = (
+    "TASK: procurement_vendor_update\n"
+    "Choose one vendor for each procurement round after reading delivery history. "
+    "Return one final line only: FINAL_VENDOR_PLAN: <vendor_id>,<vendor_id>,<vendor_id>."
 )
 
 
@@ -111,6 +117,34 @@ class ProcurementBundleCase:
     required_categories: tuple[str, str]
     products: tuple[BundleProduct, ...]
     compatibility_bonuses: tuple[tuple[str, str, float], ...]
+    scenario_note: str = ""
+
+
+@dataclass(frozen=True)
+class VendorOption:
+    vendor_id: str
+    invoice: float
+    operational_fit: float
+    shipments_observed: int
+    on_time_shipments: int
+
+
+@dataclass(frozen=True)
+class VendorRound:
+    round_id: str
+    service_value: float
+    late_penalty: float
+
+
+@dataclass(frozen=True)
+class ProcurementVendorUpdateCase:
+    key: str
+    starting_reserve: float
+    reserve_floor: float
+    reserve_penalty: float
+    switch_cost: float
+    vendors: tuple[VendorOption, ...]
+    rounds: tuple[VendorRound, ...]
     scenario_note: str = ""
 
 
@@ -503,6 +537,93 @@ PROCUREMENT_BUNDLE_RESERVE_CASES = [
     reserve_adjusted_case(case) for case in PROCUREMENT_BUNDLE_CASES
 ]
 
+PROCUREMENT_VENDOR_UPDATE_CASES = [
+    ProcurementVendorUpdateCase(
+        key="clinic_kiosk_rollout",
+        starting_reserve=410.0,
+        reserve_floor=120.0,
+        reserve_penalty=0.035,
+        switch_cost=12.0,
+        scenario_note=(
+            "The clinic needs three sequential kiosk batches. A late batch causes rebooking "
+            "and temporary staffing cost, so delivery history should update vendor choice."
+        ),
+        vendors=(
+            VendorOption("budget_lane", 76.0, 0.92, 20, 8),
+            VendorOption("steady_med", 108.0, 0.88, 24, 21),
+            VendorOption("white_glove", 142.0, 0.93, 18, 18),
+        ),
+        rounds=(
+            VendorRound("batch_1", 168.0, 58.0),
+            VendorRound("batch_2", 185.0, 135.0),
+            VendorRound("batch_3", 174.0, 92.0),
+        ),
+    ),
+    ProcurementVendorUpdateCase(
+        key="field_sensor_refresh",
+        starting_reserve=455.0,
+        reserve_floor=135.0,
+        reserve_penalty=0.04,
+        switch_cost=16.0,
+        scenario_note=(
+            "Field sensors are replaced in waves. The middle wave supports a regulatory "
+            "inspection, while the first and last waves have more scheduling slack."
+        ),
+        vendors=(
+            VendorOption("low_bid", 82.0, 0.95, 22, 10),
+            VendorOption("regional_reliable", 118.0, 0.90, 26, 23),
+            VendorOption("expedite_prime", 154.0, 0.92, 20, 20),
+        ),
+        rounds=(
+            VendorRound("wave_1", 176.0, 48.0),
+            VendorRound("wave_2", 208.0, 168.0),
+            VendorRound("wave_3", 181.0, 70.0),
+        ),
+    ),
+    ProcurementVendorUpdateCase(
+        key="training_room_cutover",
+        starting_reserve=390.0,
+        reserve_floor=115.0,
+        reserve_penalty=0.045,
+        switch_cost=10.0,
+        scenario_note=(
+            "Training-room hardware is installed over three weekends. Late delivery in the "
+            "final weekend blocks a client launch, but overpaying every weekend strains reserve."
+        ),
+        vendors=(
+            VendorOption("discount_av", 72.0, 0.86, 18, 7),
+            VendorOption("campus_supply", 104.0, 0.87, 25, 21),
+            VendorOption("launch_ready", 138.0, 0.91, 16, 16),
+        ),
+        rounds=(
+            VendorRound("weekend_1", 150.0, 46.0),
+            VendorRound("weekend_2", 161.0, 78.0),
+            VendorRound("weekend_3", 190.0, 172.0),
+        ),
+    ),
+    ProcurementVendorUpdateCase(
+        key="warehouse_scanner_rollout",
+        starting_reserve=430.0,
+        reserve_floor=130.0,
+        reserve_penalty=0.04,
+        switch_cost=14.0,
+        scenario_note=(
+            "Scanner kits deploy across three warehouses. The first site can absorb delay; "
+            "later sites depend on synchronized labor windows and need reliability updates."
+        ),
+        vendors=(
+            VendorOption("auction_liquidator", 68.0, 0.82, 16, 5),
+            VendorOption("fleet_supplier", 112.0, 0.90, 28, 25),
+            VendorOption("priority_fulfill", 148.0, 0.91, 19, 19),
+        ),
+        rounds=(
+            VendorRound("site_1", 145.0, 38.0),
+            VendorRound("site_2", 188.0, 142.0),
+            VendorRound("site_3", 202.0, 156.0),
+        ),
+    ),
+]
+
 
 def run_procurement_game(agent: Agent, cases: list[ProcurementCase] | None = None) -> dict:
     cases = cases or DEFAULT_CASES
@@ -612,6 +733,51 @@ def run_procurement_bundle_reserve_game(
         prompt_builder=_bundle_reserve_prompt,
         task_name="procurement_bundle_reserve",
     )
+
+
+def run_procurement_vendor_update_game(
+    agent: Agent,
+    cases: list[ProcurementVendorUpdateCase] | None = None,
+) -> dict:
+    cases = cases or PROCUREMENT_VENDOR_UPDATE_CASES
+    rows = []
+    for case in cases:
+        oracle = oracle_vendor_plan(case)
+        reputation_blind = reputation_blind_vendor_plan(case)
+        myopic = myopic_vendor_plan(case)
+        response = agent.complete(PROCUREMENT_VENDOR_UPDATE_SYSTEM, _vendor_update_prompt(case))
+        chosen = _parse_vendor_plan(response, len(case.rounds))
+        row = _score_vendor_plan_case(case, chosen, response)
+        row["oracle_plan"] = oracle
+        row["correct"] = chosen == oracle
+        row["reputation_blind_plan"] = reputation_blind
+        row["myopic_plan"] = myopic
+        rows.append(row)
+    total = len(rows)
+    reputation_blind_missable = [
+        row for row in rows if row["reputation_blind_plan"] != row["oracle_plan"]
+    ]
+    myopic_missable = [row for row in rows if row["myopic_plan"] != row["oracle_plan"]]
+    return {
+        "task": "procurement_vendor_update",
+        "agent": agent.name,
+        "n_trials": total,
+        "accuracy": sum(row["correct"] for row in rows) / total if total else 0.0,
+        "mean_score_regret": sum(row["score_regret"] for row in rows) / total if total else 0.0,
+        "parse_rate": sum(row["chosen_plan"] is not None for row in rows) / total if total else 0.0,
+        "reputation_blind_miss_rate": (
+            sum(row["reputation_blind_miss"] for row in reputation_blind_missable)
+            / len(reputation_blind_missable)
+            if reputation_blind_missable
+            else 0.0
+        ),
+        "myopic_miss_rate": (
+            sum(row["myopic_miss"] for row in myopic_missable) / len(myopic_missable)
+            if myopic_missable
+            else 0.0
+        ),
+        "trials": rows,
+    }
 
 
 def _run_procurement_bundle_game(
@@ -776,6 +942,108 @@ def _score_bundle_case(
         "raw_response": response,
         "case_data": asdict(case),
     }
+
+
+def _score_vendor_plan_case(
+    case: ProcurementVendorUpdateCase,
+    chosen: tuple[str, ...] | None,
+    response: str,
+) -> dict:
+    oracle = oracle_vendor_plan(case)
+    best_score = vendor_plan_score(case, oracle)
+    valid_ids = {vendor.vendor_id for vendor in case.vendors}
+    valid = chosen is not None and len(chosen) == len(case.rounds) and all(item in valid_ids for item in chosen)
+    chosen_score = vendor_plan_score(case, chosen) if chosen is not None and valid else best_score - 1000.0
+    reputation_blind = reputation_blind_vendor_plan(case)
+    myopic = myopic_vendor_plan(case)
+    return {
+        "case": case.key,
+        "oracle_plan": oracle,
+        "chosen_plan": chosen,
+        "score": chosen_score,
+        "score_regret": best_score - chosen_score,
+        "invalid": not valid,
+        "reputation_blind_plan": reputation_blind,
+        "reputation_blind_miss": chosen == reputation_blind and reputation_blind != oracle,
+        "myopic_plan": myopic,
+        "myopic_miss": chosen == myopic and myopic != oracle,
+        "raw_response": response,
+        "case_data": asdict(case),
+    }
+
+
+def vendor_reliability(vendor: VendorOption, *, reputation_blind: bool = False) -> float:
+    if reputation_blind:
+        return 0.80
+    return (vendor.on_time_shipments + 2.0) / (vendor.shipments_observed + 4.0)
+
+
+def vendor_round_score(
+    vendor: VendorOption,
+    round_case: VendorRound,
+    *,
+    reputation_blind: bool = False,
+) -> float:
+    reliability = vendor_reliability(vendor, reputation_blind=reputation_blind)
+    return (
+        round_case.service_value * vendor.operational_fit
+        - vendor.invoice
+        - (1.0 - reliability) * round_case.late_penalty
+    )
+
+
+def vendor_plan_score(
+    case: ProcurementVendorUpdateCase,
+    plan: tuple[str, ...],
+    *,
+    reputation_blind: bool = False,
+    include_switch_and_reserve: bool = True,
+) -> float:
+    vendors = {vendor.vendor_id: vendor for vendor in case.vendors}
+    cash = case.starting_reserve
+    previous_vendor = None
+    score = 0.0
+    for vendor_id, round_case in zip(plan, case.rounds):
+        vendor = vendors[vendor_id]
+        switch_cost = (
+            case.switch_cost
+            if include_switch_and_reserve and previous_vendor is not None and previous_vendor != vendor_id
+            else 0.0
+        )
+        cash -= vendor.invoice + switch_cost
+        score += vendor_round_score(vendor, round_case, reputation_blind=reputation_blind) - switch_cost
+        if include_switch_and_reserve:
+            score -= case.reserve_penalty * max(0.0, case.reserve_floor - cash)
+            score -= 4.0 * max(0.0, -cash)
+        previous_vendor = vendor_id
+    return score
+
+
+def oracle_vendor_plan(case: ProcurementVendorUpdateCase) -> tuple[str, ...]:
+    return _best_vendor_plan(case)
+
+
+def reputation_blind_vendor_plan(case: ProcurementVendorUpdateCase) -> tuple[str, ...]:
+    return _best_vendor_plan(case, reputation_blind=True)
+
+
+def myopic_vendor_plan(case: ProcurementVendorUpdateCase) -> tuple[str, ...]:
+    plan = []
+    for round_case in case.rounds:
+        plan.append(max(case.vendors, key=lambda vendor: vendor_round_score(vendor, round_case)).vendor_id)
+    return tuple(plan)
+
+
+def _best_vendor_plan(
+    case: ProcurementVendorUpdateCase,
+    *,
+    reputation_blind: bool = False,
+) -> tuple[str, ...]:
+    vendor_ids = [vendor.vendor_id for vendor in case.vendors]
+    return max(
+        cartesian_product(vendor_ids, repeat=len(case.rounds)),
+        key=lambda plan: vendor_plan_score(case, plan, reputation_blind=reputation_blind),
+    )
 
 
 def _compatibility_blind_bundle(case: ProcurementBundleCase) -> tuple[str, str]:
@@ -1181,6 +1449,52 @@ def _bundle_reserve_prompt(case: ProcurementBundleCase) -> str:
     return "\n".join(lines)
 
 
+def _vendor_update_prompt(case: ProcurementVendorUpdateCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"starting_reserve={case.starting_reserve:.2f}",
+        f"reserve_floor={case.reserve_floor:.2f}",
+        f"reserve_penalty={case.reserve_penalty:.4f}",
+        f"switch_cost={case.switch_cost:.2f}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note)
+    lines.append("Procurement rounds:")
+    for round_case in case.rounds:
+        lines.append(
+            "  "
+            + " ".join(
+                [
+                    f"round={round_case.round_id}",
+                    f"service_value={round_case.service_value:.2f}",
+                    f"late_penalty={round_case.late_penalty:.2f}",
+                ]
+            )
+        )
+    lines.append("Vendor delivery history:")
+    for vendor in case.vendors:
+        late = vendor.shipments_observed - vendor.on_time_shipments
+        lines.append(
+            "  "
+            + " ".join(
+                [
+                    f"vendor_id={vendor.vendor_id}",
+                    f"invoice={vendor.invoice:.2f}",
+                    f"operational_fit={vendor.operational_fit:.2f}",
+                    f"shipments_observed={vendor.shipments_observed}",
+                    f"on_time_shipments={vendor.on_time_shipments}",
+                    f"late_shipments={late}",
+                ]
+            )
+        )
+    lines.append(
+        "Choose one vendor for each round in order. Use delivery history to estimate "
+        "late risk, subtract invoices from reserve as rounds are ordered, pay the switch "
+        "cost when changing vendors, and penalize reserve shortfalls below the floor."
+    )
+    return "\n".join(lines)
+
+
 def _parse_bundle(response: str) -> tuple[str, str] | None:
     match = re.search(
         r"FINAL_BUNDLE\s*:\s*([a-zA-Z0-9_-]+)\s*,\s*([a-zA-Z0-9_-]+)",
@@ -1193,3 +1507,15 @@ def _parse_bundle(response: str) -> tuple[str, str] | None:
     if left == right:
         return None
     return tuple(sorted((left, right)))
+
+
+def _parse_vendor_plan(response: str, expected_len: int) -> tuple[str, ...] | None:
+    match = re.search(
+        r"FINAL_VENDOR_PLAN\s*:\s*([a-zA-Z0-9_,-]+)",
+        response,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    plan = tuple(item for item in match.group(1).split(",") if item)
+    return plan if len(plan) == expected_len else None

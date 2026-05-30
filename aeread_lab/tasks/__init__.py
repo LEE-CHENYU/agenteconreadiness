@@ -57,6 +57,7 @@ from .procurement import (
     run_procurement_bundle_reserve_game,
     run_procurement_counterfactual_game,
     run_procurement_game,
+    run_procurement_vendor_update_game,
 )
 from .regime import (
     run_regime_battery,
@@ -120,6 +121,7 @@ __all__ = [
     "run_procurement_bundle_history_game",
     "run_procurement_bundle_noisy_evidence_game",
     "run_procurement_bundle_reserve_game",
+    "run_procurement_vendor_update_game",
     "run_regime_battery",
     "run_regime_holdout_verifier",
     "run_regime_law_audit_game",
