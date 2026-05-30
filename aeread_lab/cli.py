@@ -57,6 +57,7 @@ TASKS = (
     "forecast_curve_natural",
     "forecast_shift_calibration",
     "forecast_rolling_calibration",
+    "forecast_rolling_log_calibration",
     "exploration",
     "experiment_design",
     "retail",
@@ -489,8 +490,20 @@ def _print_human(payload: dict[str, Any]) -> None:
             "forecast_curve_natural",
             "forecast_shift_calibration",
             "forecast_rolling_calibration",
+            "forecast_rolling_log_calibration",
         }:
-            if task in {"forecast_shift_calibration", "forecast_rolling_calibration"}:
+            if task == "forecast_rolling_log_calibration":
+                print(
+                    f"{task}: n={result['n_trials']} expected_brier_regret="
+                    f"{_fmt(result['mean_expected_brier_regret'])} "
+                    f"ci95={_fmt_ci(result.get('mean_expected_brier_regret_ci95'))} "
+                    f"prob_error={_fmt(result['mean_probability_error'])} "
+                    f"raw_score_miss={result['raw_score_miss_rate']:.2f} "
+                    f"stale_window_miss={result.get('stale_window_miss_rate', 0.0):.2f} "
+                    f"pooled_history_miss={result.get('pooled_history_miss_rate', 0.0):.2f} "
+                    f"latest_window_miss={result.get('latest_window_miss_rate', 0.0):.2f}"
+                )
+            elif task in {"forecast_shift_calibration", "forecast_rolling_calibration"}:
                 miss_fields = (
                     (
                         "source_curve_miss",

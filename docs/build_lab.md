@@ -61,6 +61,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `forecast_curve_natural` | Natural-label calibration-curve stress: present the dense/noisy table with outcome-row labels instead of machine-readable calibration terms. | `python -m aeread_lab.cli --task forecast_curve_natural --agent offline:oracle` |
 | `forecast_shift_calibration` | Cohort-shift calibration stress: combine a source-cohort score curve with a small target-cohort bridge sample, catching raw-score reuse, source-curve-only reuse, and nearest-bridge shortcuts. | `python -m aeread_lab.cli --task forecast_shift_calibration --agent offline:oracle` |
 | `forecast_rolling_calibration` | Rolling time-local calibration stress: combine successive calibration windows with recency weights, catching raw-score reuse, stale-window reuse, and pooled-history shortcuts. | `python -m aeread_lab.cli --task forecast_rolling_calibration --agent offline:oracle` |
+| `forecast_rolling_log_calibration` | Natural time-log calibration stress: infer a recency-weighted score calibration from dated outcome batches, catching raw-score reuse, stale-window reuse, pooled-history shortcuts, and newest-batch overreaction. | `python -m aeread_lab.cli --task forecast_rolling_log_calibration --agent offline:oracle` |
 | `exploration` | EconEvals-style unknown-environment learning: decide when information value justifies a pilot before deployment. | `python -m aeread_lab.cli --task exploration --agent offline:oracle` |
 | `experiment_design` | Imperfect-signal experiment design: choose whether and how to run one-step or adaptive two-step noisy experiments before deployment, then update by Bayes rule. | `python -m aeread_lab.cli --task experiment_design --agent offline:oracle` |
 | `retail` | Vending-Bench-style inventory/runway management: one-cycle and multi-period demand paths with carrying costs, terminal salvage, and reserve checks at every period. | `python -m aeread_lab.cli --task retail --agent offline:oracle` |
@@ -256,6 +257,10 @@ interpreting the economic metric.
 - `forecast_rolling_calibration`: lower expected Brier regret to the
   recency-weighted rolling calibration target is better; raw-score,
   stale-window, and pooled-history miss rates are reported separately.
+- `forecast_rolling_log_calibration`: lower expected Brier regret to the
+  recency-weighted dated-log calibration target is better; raw-score,
+  stale-window, pooled-history, and latest-window miss rates are reported
+  separately.
 - `exploration`: lower expected-value gap is better; exploration miss rate is
   reported separately.
 - `experiment_design`: lower expected-value gap is better; experiment miss and

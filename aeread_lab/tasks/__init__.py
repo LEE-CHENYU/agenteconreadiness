@@ -16,6 +16,7 @@ from .forecast_calibration import (
     run_forecast_curve_implicit_game,
     run_forecast_curve_natural_game,
     run_forecast_curve_noisy_game,
+    run_forecast_rolling_log_calibration_game,
     run_forecast_rolling_calibration_game,
     run_forecast_shift_calibration_game,
 )
@@ -104,6 +105,7 @@ __all__ = [
     "run_forecast_curve_implicit_game",
     "run_forecast_curve_natural_game",
     "run_forecast_curve_noisy_game",
+    "run_forecast_rolling_log_calibration_game",
     "run_forecast_rolling_calibration_game",
     "run_forecast_shift_calibration_game",
     "run_market_game",
