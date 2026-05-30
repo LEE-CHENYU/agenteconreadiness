@@ -41,6 +41,12 @@ PRICING_INVENTORY_MARKDOWN_SYSTEM = (
     "FINAL_PRICE_EARLY: <number> and FINAL_PRICE_LATE: <number>."
 )
 
+PRICING_INVENTORY_MARKDOWN_NOISY_SYSTEM = (
+    "TASK: pricing_inventory_markdown_noisy_prices\n"
+    "Choose launch and clearance prices for one shared inventory pool. Return two final lines only: "
+    "FINAL_PRICE_EARLY: <number> and FINAL_PRICE_LATE: <number>."
+)
+
 PRICING_LAW_SYSTEM = (
     "TASK: pricing_law_label\n"
     "You are verifying a proposed comparative-static claim about the revenue-maximizing price. "
@@ -222,6 +228,34 @@ def _markdown_observations(
             round(max(0.0, late_alpha - late_beta * late_ratio * p_max_late), 2),
         )
         for early_ratio, late_ratio in pairs
+    )
+
+
+def _noisy_markdown_observations(
+    early_alpha: float,
+    early_beta: float,
+    late_alpha: float,
+    late_beta: float,
+    p_max_early: float,
+    p_max_late: float,
+    early_noise: tuple[float, ...],
+    late_noise: tuple[float, ...],
+) -> tuple[tuple[float, float, float, float], ...]:
+    pairs = ((0.22, 0.28), (0.31, 0.39), (0.43, 0.49), (0.52, 0.61), (0.64, 0.73), (0.76, 0.84), (0.88, 0.94))
+    return tuple(
+        (
+            round(early_ratio * p_max_early, 2),
+            round(
+                max(0.0, early_alpha - early_beta * early_ratio * p_max_early + early_noise[idx]),
+                2,
+            ),
+            round(late_ratio * p_max_late, 2),
+            round(
+                max(0.0, late_alpha - late_beta * late_ratio * p_max_late + late_noise[idx]),
+                2,
+            ),
+        )
+        for idx, (early_ratio, late_ratio) in enumerate(pairs)
     )
 
 
@@ -419,6 +453,94 @@ INVENTORY_MARKDOWN_CASES = [
             "can be liquidated only at low salvage value."
         ),
         observations=_markdown_observations(180.0, 2.8, 130.0, 1.6, 70.0, 68.0),
+    ),
+]
+
+
+INVENTORY_MARKDOWN_NOISY_CASES = [
+    PricingInventoryMarkdownCase(
+        key="noisy_markdown_01",
+        p_max_early=60.0,
+        p_max_late=55.0,
+        inventory=86.0,
+        salvage_value=4.0,
+        scenario_note=(
+            "Launch-week and clearance-week rows come from different regional tests; "
+            "use the pattern rather than one unusually high or low row."
+        ),
+        observations=_noisy_markdown_observations(
+            172.0,
+            3.25,
+            151.0,
+            2.0,
+            60.0,
+            55.0,
+            (4.0, -5.0, 6.5, -3.5, 2.0, -4.5, 3.0),
+            (-3.0, 5.5, -4.0, 3.0, -5.0, 4.0, -2.5),
+        ),
+    ),
+    PricingInventoryMarkdownCase(
+        key="noisy_markdown_02",
+        p_max_early=58.0,
+        p_max_late=60.0,
+        inventory=72.0,
+        salvage_value=5.0,
+        scenario_note=(
+            "The follow-up channel is valuable, but a few launch rows overstate sell-through "
+            "because of local promotion noise."
+        ),
+        observations=_noisy_markdown_observations(
+            132.0,
+            2.45,
+            202.0,
+            3.05,
+            58.0,
+            60.0,
+            (5.0, -4.0, 4.0, -6.0, 3.0, -5.5, 2.5),
+            (-4.5, 3.0, -3.5, 5.0, -2.0, 4.5, -3.0),
+        ),
+    ),
+    PricingInventoryMarkdownCase(
+        key="noisy_markdown_03",
+        p_max_early=65.0,
+        p_max_late=62.0,
+        inventory=121.0,
+        salvage_value=6.0,
+        scenario_note=(
+            "Broad launch demand and smaller late demand are both noisy; the decision still "
+            "needs to preserve stock for the late high-margin window."
+        ),
+        observations=_noisy_markdown_observations(
+            262.0,
+            4.45,
+            212.0,
+            3.05,
+            65.0,
+            62.0,
+            (7.0, -6.0, 4.5, -5.0, 6.0, -4.0, 3.5),
+            (-5.0, 4.0, -6.0, 5.5, -3.0, 4.5, -2.5),
+        ),
+    ),
+    PricingInventoryMarkdownCase(
+        key="noisy_markdown_04",
+        p_max_early=70.0,
+        p_max_late=68.0,
+        inventory=96.0,
+        salvage_value=3.0,
+        scenario_note=(
+            "Clearance data are lumpy, and the launch channel can drain inventory unless "
+            "the launch price is set above the single-period optimum."
+        ),
+        observations=_noisy_markdown_observations(
+            182.0,
+            2.85,
+            132.0,
+            1.62,
+            70.0,
+            68.0,
+            (6.0, -3.5, 5.0, -5.5, 4.0, -4.5, 2.0),
+            (-4.0, 5.0, -3.0, 4.5, -5.5, 3.5, -2.0),
+        ),
     ),
 ]
 
@@ -1418,13 +1540,46 @@ def run_pricing_inventory_markdown_game(
     agent: Agent,
     cases: list[PricingInventoryMarkdownCase] | None = None,
 ) -> dict:
-    cases = cases or INVENTORY_MARKDOWN_CASES
+    return _run_pricing_inventory_markdown_game(
+        agent,
+        cases=cases,
+        system=PRICING_INVENTORY_MARKDOWN_SYSTEM,
+        prompt_builder=_inventory_markdown_prompt,
+        task_name="pricing_inventory_markdown",
+        default_cases=INVENTORY_MARKDOWN_CASES,
+    )
+
+
+def run_pricing_inventory_markdown_noisy_game(
+    agent: Agent,
+    cases: list[PricingInventoryMarkdownCase] | None = None,
+) -> dict:
+    return _run_pricing_inventory_markdown_game(
+        agent,
+        cases=cases,
+        system=PRICING_INVENTORY_MARKDOWN_NOISY_SYSTEM,
+        prompt_builder=_inventory_markdown_noisy_prompt,
+        task_name="pricing_inventory_markdown_noisy",
+        default_cases=INVENTORY_MARKDOWN_NOISY_CASES,
+    )
+
+
+def _run_pricing_inventory_markdown_game(
+    agent: Agent,
+    *,
+    cases: list[PricingInventoryMarkdownCase] | None,
+    system: str,
+    prompt_builder,
+    task_name: str,
+    default_cases: list[PricingInventoryMarkdownCase],
+) -> dict:
+    cases = cases or default_cases
     rows = []
     for case in cases:
         oracle_early, oracle_late = inventory_markdown_oracle_prices(case)
         myopic_early, myopic_late = inventory_markdown_myopic_prices(case)
         oracle_rev = inventory_markdown_revenue(case, oracle_early, oracle_late)
-        response = agent.complete(PRICING_INVENTORY_MARKDOWN_SYSTEM, _inventory_markdown_prompt(case))
+        response = agent.complete(system, prompt_builder(case))
         parsed_early = parse_float("FINAL_PRICE_EARLY", response)
         parsed_late = parse_float("FINAL_PRICE_LATE", response)
         chosen_early = clamp(parsed_early, 0.0, case.p_max_early) if parsed_early is not None else None
@@ -1471,7 +1626,7 @@ def run_pricing_inventory_markdown_game(
     ]
     myopic_misses = sum(row["myopic_miss"] for row in rows)
     return {
-        "task": "pricing_inventory_markdown",
+        "task": task_name,
         "agent": agent.name,
         "n_trials": len(rows),
         "mean_price_l1_error": sum(errors) / len(errors) if errors else None,
@@ -1843,6 +1998,32 @@ def _inventory_markdown_prompt(case: PricingInventoryMarkdownCase) -> str:
         "Set one launch-window price and one later markdown-window price for the same starting inventory. "
         "Units sold early reduce the units available later; unsold units after the late window receive only "
         "the salvage value."
+    )
+    return "\n".join(lines)
+
+
+def _inventory_markdown_noisy_prompt(case: PricingInventoryMarkdownCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"launch_price_ceiling={case.p_max_early:.2f}",
+        f"clearance_price_ceiling={case.p_max_late:.2f}",
+        f"starting_units={case.inventory:.2f}",
+        f"liquidation_value={case.salvage_value:.2f}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note)
+    lines.append("Regional campaign evidence:")
+    lines.extend(
+        (
+            f"  region_row={idx} launch_price={early_price:.2f}, launch_units={early_units:.2f}, "
+            f"clearance_price={late_price:.2f}, clearance_units={late_units:.2f}"
+        )
+        for idx, (early_price, early_units, late_price, late_units) in enumerate(case.observations, start=1)
+    )
+    lines.append(
+        "Recommend a launch price and later clearance price for the same batch of units. "
+        "Launch sales happen first and reduce units available for clearance; leftover units "
+        "after clearance recover only the liquidation value."
     )
     return "\n".join(lines)
 

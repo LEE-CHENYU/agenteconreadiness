@@ -96,11 +96,13 @@ from aeread_lab.tasks.pricing import DEFAULT_LAW_CASES as PRICING_LAW_CASES
 from aeread_lab.tasks.pricing import EVIDENCE_LAW_CASES as PRICING_EVIDENCE_LAW_CASES
 from aeread_lab.tasks.pricing import HOLDOUT_EVIDENCE_LAW_CASES as PRICING_EVIDENCE_HOLDOUT_CASES
 from aeread_lab.tasks.pricing import INVENTORY_MARKDOWN_CASES as PRICING_INVENTORY_MARKDOWN_CASES
+from aeread_lab.tasks.pricing import INVENTORY_MARKDOWN_NOISY_CASES as PRICING_INVENTORY_MARKDOWN_NOISY_CASES
 from aeread_lab.tasks.pricing import MULTI_PRODUCT_CAPACITY_CASES as PRICING_MULTI_CAPACITY_CASES
 from aeread_lab.tasks.pricing import MULTI_PRODUCT_CASES as PRICING_MULTI_CASES
 from aeread_lab.tasks.pricing import _counterfactual_prompt as pricing_counterfactual_prompt
 from aeread_lab.tasks.pricing import _cross_elasticity_prompt as pricing_cross_prompt
 from aeread_lab.tasks.pricing import _evidence_law_audit_prompt as pricing_evidence_law_prompt
+from aeread_lab.tasks.pricing import _inventory_markdown_noisy_prompt as pricing_inventory_markdown_noisy_prompt
 from aeread_lab.tasks.pricing import _inventory_markdown_prompt as pricing_inventory_markdown_prompt
 from aeread_lab.tasks.pricing import _law_audit_prompt as pricing_law_audit_prompt
 from aeread_lab.tasks.pricing import _multi_product_capacity_prompt as pricing_multi_capacity_prompt
@@ -113,6 +115,7 @@ from aeread_lab.tasks.pricing import run_pricing_evidence_law_audit_game
 from aeread_lab.tasks.pricing import run_pricing_evidence_law_holdout_game
 from aeread_lab.tasks.pricing import run_pricing_game
 from aeread_lab.tasks.pricing import run_pricing_inventory_markdown_game
+from aeread_lab.tasks.pricing import run_pricing_inventory_markdown_noisy_game
 from aeread_lab.tasks.pricing import run_pricing_law_audit_game
 from aeread_lab.tasks.pricing import run_pricing_multi_product_capacity_game
 from aeread_lab.tasks.pricing import run_pricing_multi_product_game
@@ -280,6 +283,11 @@ class TaskSmokeTests(unittest.TestCase):
 
     def test_sample_limit_slices_pricing_inventory_markdown_cases(self):
         results = run_tasks("pricing_inventory_markdown", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_price_l1_error"], 0.01)
+
+    def test_sample_limit_slices_pricing_inventory_markdown_noisy_cases(self):
+        results = run_tasks("pricing_inventory_markdown_noisy", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_price_l1_error"], 0.01)
 
@@ -545,6 +553,16 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(myopic["mean_price_l1_error"], 5.0)
         self.assertGreater(myopic["myopic_miss_rate"], 0.5)
 
+    def test_pricing_inventory_markdown_noisy_flags_myopic_pricing(self):
+        configured = run_pricing_inventory_markdown_noisy_game(OfflineAgent("oracle"))
+        myopic = run_pricing_inventory_markdown_noisy_game(OfflineAgent("myopic"))
+        self.assertEqual(configured["task"], "pricing_inventory_markdown_noisy")
+        self.assertEqual(configured["n_trials"], len(PRICING_INVENTORY_MARKDOWN_NOISY_CASES))
+        self.assertLess(configured["mean_price_l1_error"], 0.01)
+        self.assertEqual(configured["myopic_miss_rate"], 0.0)
+        self.assertGreater(myopic["mean_price_l1_error"], 5.0)
+        self.assertGreater(myopic["myopic_miss_rate"], 0.5)
+
     def test_pricing_law_audit_flags_invalid_acceptance(self):
         configured = run_pricing_law_audit_game(OfflineAgent("oracle"))
         accept = run_pricing_law_audit_game(OfflineAgent("law_accept"))
@@ -617,6 +635,9 @@ class TaskSmokeTests(unittest.TestCase):
         pricing_multi_natural = pricing_multi_natural_prompt(PRICING_MULTI_CASES[0])
         pricing_multi_capacity = pricing_multi_capacity_prompt(PRICING_MULTI_CAPACITY_CASES[0])
         pricing_inventory_markdown = pricing_inventory_markdown_prompt(PRICING_INVENTORY_MARKDOWN_CASES[0])
+        pricing_inventory_markdown_noisy = pricing_inventory_markdown_noisy_prompt(
+            PRICING_INVENTORY_MARKDOWN_NOISY_CASES[0]
+        )
         pricing_law_audit = pricing_law_audit_prompt(PRICING_LAW_CASES[0])
         pricing_evidence_law = pricing_evidence_law_prompt(PRICING_EVIDENCE_LAW_CASES[0])
         pricing_evidence_holdout = pricing_evidence_law_prompt(PRICING_EVIDENCE_HOLDOUT_CASES[0])
@@ -681,6 +702,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", pricing_multi_natural)
         self.assertNotIn("oracle", pricing_multi_capacity)
         self.assertNotIn("oracle", pricing_inventory_markdown)
+        self.assertNotIn("oracle", pricing_inventory_markdown_noisy)
         self.assertNotIn("oracle", pricing_law_audit)
         self.assertNotIn("oracle", pricing_evidence_law)
         self.assertNotIn("oracle", pricing_evidence_holdout)
@@ -726,6 +748,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle_price", pricing_multi_natural)
         self.assertNotIn("oracle_price", pricing_multi_capacity)
         self.assertNotIn("oracle_price", pricing_inventory_markdown)
+        self.assertNotIn("oracle_price", pricing_inventory_markdown_noisy)
         self.assertNotIn("oracle_price", pricing_law_audit)
         self.assertNotIn("oracle_price", pricing_evidence_law)
         self.assertNotIn("oracle_price", pricing_evidence_holdout)
@@ -1359,6 +1382,16 @@ class TaskSmokeTests(unittest.TestCase):
         )
         rows = rank_rows(comparison_table(sweep))
         pricing_rows = [row for row in rows if row["task"] == "pricing_inventory_markdown"]
+        self.assertEqual(pricing_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(pricing_rows[1]["agent"], "offline:myopic")
+
+    def test_offline_sweep_ranks_oracle_above_myopic_on_pricing_inventory_markdown_noisy(self):
+        sweep = run_sweep(
+            task="pricing_inventory_markdown_noisy",
+            agent_specs=["offline:oracle", "offline:myopic"],
+        )
+        rows = rank_rows(comparison_table(sweep))
+        pricing_rows = [row for row in rows if row["task"] == "pricing_inventory_markdown_noisy"]
         self.assertEqual(pricing_rows[0]["agent"], "offline:oracle")
         self.assertEqual(pricing_rows[1]["agent"], "offline:myopic")
 

@@ -64,6 +64,7 @@ TASKS = (
     "pricing_multi_product_natural",
     "pricing_multi_product_capacity",
     "pricing_inventory_markdown",
+    "pricing_inventory_markdown_noisy",
     "pricing_law_audit",
     "pricing_evidence_law_audit",
     "pricing_evidence_law_holdout",
@@ -546,7 +547,7 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"independent_a={_fmt(row['independent_price_a'])} "
                     f"independent_b={_fmt(row['independent_price_b'])}"
                 )
-        elif task == "pricing_inventory_markdown":
+        elif task in {"pricing_inventory_markdown", "pricing_inventory_markdown_noisy"}:
             print(
                 f"{task}: n={result['n_trials']} "
                 f"price_l1={_fmt(result['mean_price_l1_error'])} "

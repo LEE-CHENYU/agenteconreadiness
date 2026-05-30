@@ -115,6 +115,8 @@ class OfflineAgent:
             return self._pricing_multi_product_capacity_prices(user)
         if "TASK: pricing_inventory_markdown_prices" in system:
             return self._pricing_inventory_markdown_prices(user)
+        if "TASK: pricing_inventory_markdown_noisy_prices" in system:
+            return self._pricing_inventory_markdown_prices(user)
         if "TASK: pricing_law_label" in system:
             return self._pricing_law_label(user)
         if "TASK: pricing_evidence_law_label" in system:
@@ -483,11 +485,19 @@ class OfflineAgent:
         return f"FINAL_PRICE_A: {price_a:.2f}\nFINAL_PRICE_B: {price_b:.2f}"
 
     def _pricing_inventory_markdown_prices(self, user: str) -> str:
-        p_max_early = _extract_float(user, "p_max_early", _extract_float(user, "price_ceiling_early", 1e9))
-        p_max_late = _extract_float(user, "p_max_late", _extract_float(user, "price_ceiling_late", 1e9))
-        inventory = _extract_float(user, "starting_inventory", math.inf)
-        salvage_value = _extract_float(user, "salvage_value", 0.0)
-        rows = _extract_inventory_markdown_rows(user)
+        p_max_early = _extract_float(
+            user,
+            "p_max_early",
+            _extract_float(user, "price_ceiling_early", _extract_float(user, "launch_price_ceiling", 1e9)),
+        )
+        p_max_late = _extract_float(
+            user,
+            "p_max_late",
+            _extract_float(user, "price_ceiling_late", _extract_float(user, "clearance_price_ceiling", 1e9)),
+        )
+        inventory = _extract_float(user, "starting_inventory", _extract_float(user, "starting_units", math.inf))
+        salvage_value = _extract_float(user, "salvage_value", _extract_float(user, "liquidation_value", 0.0))
+        rows = _extract_inventory_markdown_rows(user) or _extract_inventory_markdown_natural_rows(user)
         fit_early = _fit_pricing_rows([(price, units) for price, units, _, _ in rows])
         fit_late = _fit_pricing_rows([(price, units) for _, _, price, units in rows])
         early_alpha, early_beta = fit_early if fit_early is not None else (1.0, 1.0)
@@ -2056,6 +2066,19 @@ def _extract_inventory_markdown_rows(text: str) -> list[tuple[float, float, floa
             r"early_units=([-+]?\d+(?:\.\d+)?),\s+"
             r"late_price=([-+]?\d+(?:\.\d+)?),\s+"
             r"late_units=([-+]?\d+(?:\.\d+)?)",
+            text,
+        )
+    ]
+
+
+def _extract_inventory_markdown_natural_rows(text: str) -> list[tuple[float, float, float, float]]:
+    return [
+        (float(launch_price), float(launch_units), float(clearance_price), float(clearance_units))
+        for launch_price, launch_units, clearance_price, clearance_units in re.findall(
+            r"launch_price=([-+]?\d+(?:\.\d+)?),\s+"
+            r"launch_units=([-+]?\d+(?:\.\d+)?),\s+"
+            r"clearance_price=([-+]?\d+(?:\.\d+)?),\s+"
+            r"clearance_units=([-+]?\d+(?:\.\d+)?)",
             text,
         )
     ]
