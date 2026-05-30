@@ -4,17 +4,12 @@
 
 ## TL;DR
 
-Rationality-compliance ("is the agent rational?") is a **saturated floor** for frontier models — confirmed on our probes, on Chen et al. 2023's at-scale CCEI (≈0.998 > humans), and on TERMS-Bench's own leaderboard (deal rate maxed). It is *table stakes*, not the headline. The discriminating, durable, deployment-critical axes are: **(1) regime-appropriateness** (does the agent deploy the right utility for the regime — EV / Kelly / CVaR / CRRA?), **(2) the alignment↔economic-behavior shift** (replicated across two independent benchmarks), and **(3) steerability** (faithful representation of a configured principal). The contribution is the **diagnostic lens** (gate→grade + these axes + multi-seed rigor), not a new game suite. The moat is **methodological honesty** — the sprint corrected its own headline claims three times, on the record.
+Rationality-compliance ("is the agent rational?") is a **saturated floor** for frontier models — confirmed on our probes, on Chen et al. 2023's at-scale CCEI (≈0.998 > humans), and on TERMS-Bench's own leaderboard (deal rate maxed). It is *table stakes*, not the headline. The discriminating, durable, deployment-critical axes are: **(1) regime-appropriateness** (does the agent deploy the right utility for the regime — EV / Kelly / CVaR / CRRA?), **(2) the alignment↔economic-behavior shift** (replicated across two independent benchmarks), and **(3) steerability** (faithful representation of a configured principal). The contribution is the **diagnostic lens** (gate→grade + these axes + multi-seed rigor), not a new game suite. The moat is **methodological honesty** — the sprint corrected its own headline claims three times, on the record. The **gate → grade architecture is intact**: this is a re-prioritization of *which axis carries the discrimination*, not a re-architecture.
 
-## What refocuses, and what stays
-
-The **gate → grade architecture is intact** — this is a re-prioritization of *which axis carries the discrimination*, not a re-architecture.
-
-- **Floor (cite, don't headline):** rationality / axiom-compliance. Saturated. A regression-test gate.
-- **Headline axes (the differentiators):**
-  1. **Regime-appropriateness** — see the four-regime map below.
-  2. **Alignment-shift diagnostic** — *which* axis alignment training moves, and whether it helps or hurts. Our value-add is the systematic per-axis diagnostic, not the phenomenon (others observed it).
-  3. **Steerability** — does the agent maintain a configured principal's preferences? Lead with the predict-then-validate *mechanism*, not single-seed drama (see corrections below).
+Three clarifications on the axes:
+- **Floor (cite, don't headline):** rationality / axiom-compliance — saturated; a regression-test gate.
+- **Alignment-shift:** the value-add is the systematic *per-axis* diagnostic (which axis training moves, and whether it helps or hurts), not the phenomenon — others observed it.
+- **Steerability:** lead with the predict-then-validate *mechanism*, not single-seed drama (see corrections below).
 
 ## Regime-appropriateness: the four-regime utility map
 
@@ -27,11 +22,28 @@ The deployment regime determines the *correct* utility. EV-maximization (the fro
 | absorbing ruin barrier | **CVaR / drawdown** | ruin breaks EV's averaging; bound the worst tail (coherent, convex) | insurance/reinsurance; regulatory capital; startup runway |
 | configured principal | **CRRA(γ)** matched | a fiduciary optimizes the *principal's* utility, not the generic one | client wealth-mgmt; pension mandates; revealed-preference (13F) agents |
 
-These are **points on one CRRA-γ × dynamics × barrier axis** (EV = γ0 single-shot; Kelly = γ1 forced by compounding; CVaR = a barrier constraint; CRRA-γ = configured). Selecting EV/Kelly/CVaR correctly given the *dynamics* is **gate-side correctness**; matching the principal's *γ* is **grade-side fidelity**. Durable: the right utility for a compounding/ruin/configured-principal deployment does not become textbook-lookup-able as models scale.
+These are **points on one CRRA-γ × dynamics × barrier axis** (EV = γ0 single-shot; Kelly = γ1 forced by compounding; CVaR = a barrier constraint; CRRA-γ = configured). Selecting EV/Kelly/CVaR correctly given the *dynamics* is **gate-side correctness**; matching the principal's *γ* is **grade-side fidelity**. Durable: the right utility for a compounding/ruin/configured-principal deployment does not become textbook-lookup-able as models scale. (This is the *WHAT* slice of a larger goal-dimension space — see below, after the findings.)
+
+## Empirical findings — with confidence, and the corrections (the rigor is the point)
+
+| Finding | Evidence | Confidence |
+|---|---|---|
+| Rationality (gate) saturated for frontier | probes + Chen 2023 CCEI ≈0.998 + TERMS AGR⁺ 0.95–0.999 | **high** |
+| Persona-fit *mechanism* works | predict-then-validate diagonal dominance (stylized investors) | medium-high |
+| **EV-default is a liability (regime-blindness)** | a frontier model over-bet into ruin at the first compounding step before switching to Kelly | medium-high |
+| **Alignment↔economic tradeoff** | Andon Vending-Bench (Opus 4.8 better-aligned/worse-performance) + TERMS (Opus 4.6 > 4.7 surplus) | medium (2 benchmarks) |
+| Adversarial belief-manipulation test valid | scam-arena: control overpays while frontier resists single-decision scams | medium |
+
+**Three self-corrections, kept on the record** (this is the methodological signal, not an embarrassment):
+1. A dramatic single-seed "persona-collapse, model A vs B" separation **did not survive N-seed CIs** (overlapping; both robustly steerable). What survives is subtler: steering *stability* + *directional* fidelity. → **multi-seed CIs are mandatory before any leaderboard claim.**
+2. A single-seed "ruin at horizon N=3" **shifted to N=2** under multi-seed — direction robust, exact value an artifact → **report the curve, not point values.**
+3. An adversarial test that **nulled** (reinforced rule unbreakable by honest persuasion) was diagnosed and rebuilt to target a *documented* vulnerability with a control that proves it fires → **a working adversarial test needs a real target + a validity control.**
+
+**The sharpening these corrections imply — saturation is a property of `(primitive × regime)`, not of the primitive.** Falsify-optimality, measure-fit, and score-calibration are *measurement tools*, not difficulty levels. Run on **clean, static, textbook-framed, short** items they saturate — that is the gate, by design, and we tested exactly that. Run in the regimes that **defeat oracle-recognition or were never reward-shaped** — adversarial reframing (stressed consistency), long horizon + belief-manipulation (stressed calibration), degradation pressure + the configured-γ match (stressed fidelity) — the *same* tools discriminate. So the grade is not a *new* set of primitives; it is these three in the stressed regime. (Even clean *fit* is near-saturated — correction #1 — so the discriminator is fit-under-stress, not fit per se.) The durable subset is the tests with **no fixed target to converge to** (fit to an *arbitrary* principal; regime recognition in *novel* embeddings); where exactly the retrieval-resistance half-life cuts is what the project measures, not a settled claim.
 
 ## Goal-dimension space: "utility-max vs alignment" is a projection of a 6-D goal onto one axis
 
-The four-regime map above is the *WHAT* (risk-form) slice of a larger structure. An economic-agent goal is a **tuple, not a scalar** — and the headline "utility-max vs alignment" tension is what you get by collapsing that tuple onto one misleading axis. Six dimensions, split into **objectives** (what you maximize) and one **constraint** (what you're allowed to do):
+The four-regime map (above) is the *WHAT* (risk-form) slice of a larger structure that organizes the findings above. An economic-agent goal is a **tuple, not a scalar** — and the headline "utility-max vs alignment" tension is what you get by collapsing that tuple onto one misleading axis. Six dimensions, split into **objectives** (what you maximize) and one **constraint** (what you're allowed to do):
 
 | Dimension | Question | Range | In AERead |
 |---|---|---|---|
@@ -50,23 +62,6 @@ The first five are **objectives**; the last (HOW) is a **constraint** that carve
 - **Genuine Pareto trade-offs** (a frontier — can't max both): return↔risk; explore↔exploit; own-surplus↔joint-surplus/fairness; short-horizon gain↔long-horizon survival; fidelity-to-this-principal↔generality; and surplus↔means-legitimacy *in the binding band*. (CS329H's "preferences are often **not** separable — a helpful response may necessarily risk some harm" is exactly this regime.)
 
 **Why this matters for AERead** (it's a unification, not new scope): (1) the score is a **goal-profile vector**, never a scalar — collapsing it is the same error as the fake tradeoff, one level up (this is *why* "report the curve/profile, not the point" keeps recurring); (2) **alignment-shift is a *rotation* in goal-space, decomposable per-dimension** — Andon's "more aligned, worse economic" is a vector (means-legitimacy ↑, and *separately* regime-recognition ↓ or own-surplus ↓ from binding-band pruning), and reporting *which components moved* is the generalized Q14 deception-axis readout; (3) a **"frontier" claim is only honest on the ~6 genuine Pareto pairs** — calling an orthogonal pair a tradeoff (or vice versa) is a methodology error. **Honest caveat (falsifiable):** whether the five objective dimensions are *actually* orthogonal or secretly coupled is empirical (same family as the Layer-1+2-vs-residual claim) — if calibration and horizon-coherence turn out strongly coupled in frontier models, the space is lower-dimensional than it looks. The taxonomy is a *hypothesis about the structure of goal-space*, falsified by the cross-axis correlation matrix — which is itself clean to pre-register.
-
-## Empirical findings — with confidence, and the corrections (the rigor is the point)
-
-| Finding | Evidence | Confidence |
-|---|---|---|
-| Rationality (gate) saturated for frontier | probes + Chen 2023 CCEI ≈0.998 + TERMS AGR⁺ 0.95–0.999 | **high** |
-| Persona-fit *mechanism* works | predict-then-validate diagonal dominance (stylized investors) | medium-high |
-| **EV-default is a liability (regime-blindness)** | a frontier model over-bet into ruin at the first compounding step before switching to Kelly | medium-high |
-| **Alignment↔economic tradeoff** | Andon Vending-Bench (Opus 4.8 better-aligned/worse-performance) + TERMS (Opus 4.6 > 4.7 surplus) | medium (2 benchmarks) |
-| Adversarial belief-manipulation test valid | scam-arena: control overpays while frontier resists single-decision scams | medium |
-
-**Three self-corrections, kept on the record** (this is the methodological signal, not an embarrassment):
-1. A dramatic single-seed "persona-collapse, model A vs B" separation **did not survive N-seed CIs** (overlapping; both robustly steerable). What survives is subtler: steering *stability* + *directional* fidelity. → **multi-seed CIs are mandatory before any leaderboard claim.**
-2. A single-seed "ruin at horizon N=3" **shifted to N=2** under multi-seed — direction robust, exact value an artifact → **report the curve, not point values.**
-3. An adversarial test that **nulled** (reinforced rule unbreakable by honest persuasion) was diagnosed and rebuilt to target a *documented* vulnerability with a control that proves it fires → **a working adversarial test needs a real target + a validity control.**
-
-**The sharpening these corrections imply — saturation is a property of `(primitive × regime)`, not of the primitive.** Falsify-optimality, measure-fit, and score-calibration are *measurement tools*, not difficulty levels. Run on **clean, static, textbook-framed, short** items they saturate — that is the gate, by design, and we tested exactly that. Run in the regimes that **defeat oracle-recognition or were never reward-shaped** — adversarial reframing (stressed consistency), long horizon + belief-manipulation (stressed calibration), degradation pressure + the configured-γ match (stressed fidelity) — the *same* tools discriminate. So the grade is not a *new* set of primitives; it is these three in the stressed regime. (Even clean *fit* is near-saturated — correction #1 — so the discriminator is fit-under-stress, not fit per se.) The durable subset is the tests with **no fixed target to converge to** (fit to an *arbitrary* principal; regime recognition in *novel* embeddings); where exactly the retrieval-resistance half-life cuts is what the project measures, not a settled claim.
 
 ## Why the decision-making gap exists: post-training optimizes appropriateness, not economic optimality
 
@@ -92,6 +87,8 @@ A working hypothesis that *explains* the findings above and motivates the whole 
 ## The methodological moat (why this is citable)
 
 Gate/grade separation · multi-seed CIs + "report the distribution/curve" · orthogonality-not-residual (the extra axes are scope-extensions of TERMS Eq.4, not residual-capture — Eq.4 telescopes to zero residual within-task) · the retrieval-resistance half-life (gate hardness decays with capability; grade hardness is permanent) · stress as a cross-cutting axis (rationality is a floor at rest, a cliff under load). Frontier-lab reviewers cite rigor; "we ran the rigorous version and it corrected us, with receipts" is the channel.
+
+**One principle underneath three framings in this doc.** The findings' `(primitive × regime)` sharpening, the "durability is in the reference" direction call, and the "saturation tracks oracle-availability, not agent count" convergence note are three facets of a single claim: **saturation is a property of the (setup × reference × regime), never of the surface domain.** A task saturates when it has a recognizable oracle scored against a generic reference in a benign regime; it discriminates when any of those is removed (no recognizable oracle / configured-principal reference / stressed regime). Stated once here so the three local framings read as one through-line, not three passes.
 
 ## Direction: semi-verifiable is right, but durability is in the reference, not the environment
 
