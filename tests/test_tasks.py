@@ -8,7 +8,7 @@ from aeread_lab.models import (
     resolve_openai_model,
 )
 from aeread_lab.reporting import comparison_table, parse_rate, rank_rows
-from aeread_lab.runner import run_sweep
+from aeread_lab.runner import run_sweep, run_tasks
 from aeread_lab.tasks.adversarial import run_scam_arena
 from aeread_lab.tasks.ambiguity import DEFAULT_CASES as AMBIGUITY_CASES
 from aeread_lab.tasks.ambiguity import _prompt as ambiguity_prompt
@@ -102,6 +102,17 @@ class TaskSmokeTests(unittest.TestCase):
         response = {"status": "completed", "output_text": "", "output": [{"content": []}]}
         with self.assertRaisesRegex(RuntimeError, "no text output"):
             _extract_openai_response_text(response)
+
+    def test_sample_limit_slices_regime_gambles(self):
+        sweep = run_sweep(task="regime", agent_specs=["offline:oracle"], sample_limit=1)
+        result = sweep["runs"][0]["results"][0]
+        self.assertEqual(sweep["sample_limit"], 1)
+        self.assertEqual(result["n_trials"], 4)
+
+    def test_sample_limit_slices_task_cases(self):
+        results = run_tasks("procurement", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertEqual(results[0]["accuracy"], 1.0)
 
     def test_procurement_oracle_offline(self):
         summary = run_procurement_game(OfflineAgent("oracle"))

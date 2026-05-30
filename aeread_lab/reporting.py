@@ -96,8 +96,10 @@ def rank_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def format_sweep(sweep: dict[str, Any]) -> str:
     rows = rank_rows(comparison_table(sweep))
+    limit = sweep.get("sample_limit")
+    limit_text = "" if limit is None else f" sample_limit={limit}"
     lines = [
-        f"AERead model sweep: task={sweep['task']} agents={', '.join(sweep['agents'])}",
+        f"AERead model sweep: task={sweep['task']} agents={', '.join(sweep['agents'])}{limit_text}",
         "=" * 88,
         f"{'task':<18} {'rank':>4} {'agent':<18} {'metric':<24} "
         f"{'value':>12} {'parse':>6} {'direction':<7}",

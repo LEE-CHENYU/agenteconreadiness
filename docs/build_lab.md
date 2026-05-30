@@ -113,6 +113,14 @@ Live OpenAI responses are cached under `.aeread-cache/responses/` by default.
 Use `--cache-dir <path>` to relocate the cache or `--no-cache` to force fresh
 calls. Offline agents do not need the cache and never call the API.
 
+Use `--limit N` for cheap smoke checks against the first `N` deterministic
+cases/gambles before running a broad task. For example:
+
+```bash
+OPENAI_API_KEY=... python -m aeread_lab.cli --sweep --task regime \
+  --agents openai:mini,openai:nano --limit 1
+```
+
 ## Validation
 
 Run offline validation without API spend:
@@ -129,22 +137,21 @@ python -m aeread_lab.cli --sweep --task regime \
 The next builds should keep the same discipline: add a deterministic generator,
 a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
 
-1. Add sampled case limits so live OpenAI smokes can target cheap slices of
-   broad tasks before full sweeps.
-2. Run cached model-version sweeps for alignment-shift diagnostics across
+1. Run cached model-version smokes with `--limit` for alignment-shift
+   diagnostics across
    `gpt-5.5`, `mini`, and `nano`.
-3. Make the adversarial scam arena long-horizon, since the current single-shot
+2. Make the adversarial scam arena long-horizon, since the current single-shot
    OpenAI null does not reproduce Vending-Bench scam-supplier failures.
-4. Broaden `portfolio` from candidate portfolios to real 13F-style
+3. Broaden `portfolio` from candidate portfolios to real 13F-style
    revealed-preference traces and continuous allocation.
-5. Broaden `ambiguity` into maxmin/alpha-maxmin and multiple-prior updates.
-6. Broaden the `bargaining` wrapper from take-it-or-leave-it offers to
+4. Broaden `ambiguity` into maxmin/alpha-maxmin and multiple-prior updates.
+5. Broaden the `bargaining` wrapper from take-it-or-leave-it offers to
    alternating-offer and hidden-reservation variants.
-7. Broaden `belief_bargaining` into multi-turn opponent modeling.
-8. Broaden `mechanism` from scored static choices to equilibrium simulation
+6. Broaden `belief_bargaining` into multi-turn opponent modeling.
+7. Broaden `mechanism` from scored static choices to equilibrium simulation
    and incentive-compatibility probes.
-9. Expand `market` from symmetric price competition to inventory, capital
+8. Expand `market` from symmetric price competition to inventory, capital
    appreciation, and multi-period survival.
-10. Broaden `retail` into multi-period inventory and supplier-scam variants.
-11. Broaden `strategic_drift` into imperfect-information and N-player games.
-12. Broaden `experiment_design` into multi-step adaptive tests.
+9. Broaden `retail` into multi-period inventory and supplier-scam variants.
+10. Broaden `strategic_drift` into imperfect-information and N-player games.
+11. Broaden `experiment_design` into multi-step adaptive tests.

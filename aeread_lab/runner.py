@@ -5,26 +5,26 @@ from typing import Any
 
 from aeread_lab.models import Agent, build_agent
 from aeread_lab.tasks import (
-    run_auction_game,
-    run_ambiguity_game,
-    run_bargaining_game,
-    run_belief_bargaining_game,
-    run_common_value_game,
-    run_experiment_design_game,
-    run_exploration_game,
-    run_market_game,
-    run_matching_game,
-    run_mechanism_game,
-    run_moral_hazard_game,
-    run_portfolio_game,
-    run_pricing_game,
-    run_principal_inference_game,
-    run_procurement_game,
-    run_regime_battery,
-    run_retail_game,
-    run_scam_arena,
-    run_screening_game,
-    run_strategic_drift_game,
+    adversarial as adversarial_task,
+    ambiguity as ambiguity_task,
+    auction as auction_task,
+    bargaining as bargaining_task,
+    belief_bargaining as belief_bargaining_task,
+    common_value as common_value_task,
+    experiment_design as experiment_design_task,
+    exploration as exploration_task,
+    market as market_task,
+    matching as matching_task,
+    mechanism as mechanism_task,
+    moral_hazard as moral_hazard_task,
+    portfolio as portfolio_task,
+    pricing as pricing_task,
+    principal_inference as principal_inference_task,
+    procurement as procurement_task,
+    regime as regime_task,
+    retail as retail_task,
+    screening as screening_task,
+    strategic_drift as strategic_drift_task,
 )
 
 
@@ -52,47 +52,61 @@ TASK_ORDER = (
 )
 
 
-def run_task(task: str, agent: Agent, attacker: Agent | None = None) -> dict[str, Any]:
+_CASE_TASKS = {
+    "principal_inference": (
+        principal_inference_task.run_principal_inference_game,
+        principal_inference_task.DEFAULT_CASES,
+    ),
+    "portfolio": (portfolio_task.run_portfolio_game, portfolio_task.DEFAULT_CASES),
+    "ambiguity": (ambiguity_task.run_ambiguity_game, ambiguity_task.DEFAULT_CASES),
+    "bargaining": (bargaining_task.run_bargaining_game, bargaining_task.DEFAULT_CASES),
+    "belief_bargaining": (
+        belief_bargaining_task.run_belief_bargaining_game,
+        belief_bargaining_task.DEFAULT_CASES,
+    ),
+    "market": (market_task.run_market_game, market_task.DEFAULT_CASES),
+    "matching": (matching_task.run_matching_game, matching_task.DEFAULT_CASES),
+    "screening": (screening_task.run_screening_game, screening_task.DEFAULT_CASES),
+    "moral_hazard": (moral_hazard_task.run_moral_hazard_game, moral_hazard_task.DEFAULT_CASES),
+    "auction": (auction_task.run_auction_game, auction_task.DEFAULT_CASES),
+    "common_value": (common_value_task.run_common_value_game, common_value_task.DEFAULT_CASES),
+    "mechanism": (mechanism_task.run_mechanism_game, mechanism_task.DEFAULT_CASES),
+    "strategic_drift": (
+        strategic_drift_task.run_strategic_drift_game,
+        strategic_drift_task.DEFAULT_CASES,
+    ),
+    "exploration": (exploration_task.run_exploration_game, exploration_task.DEFAULT_CASES),
+    "experiment_design": (
+        experiment_design_task.run_experiment_design_game,
+        experiment_design_task.DEFAULT_CASES,
+    ),
+    "retail": (retail_task.run_retail_game, retail_task.DEFAULT_CASES),
+    "procurement": (procurement_task.run_procurement_game, procurement_task.DEFAULT_CASES),
+    "pricing": (pricing_task.run_pricing_game, pricing_task.DEFAULT_CASES),
+}
+
+
+def run_task(
+    task: str,
+    agent: Agent,
+    attacker: Agent | None = None,
+    sample_limit: int | None = None,
+) -> dict[str, Any]:
+    limit = _normalize_sample_limit(sample_limit)
     if task == "regime":
-        return run_regime_battery(agent)
-    if task == "principal_inference":
-        return run_principal_inference_game(agent)
-    if task == "portfolio":
-        return run_portfolio_game(agent)
-    if task == "ambiguity":
-        return run_ambiguity_game(agent)
-    if task == "bargaining":
-        return run_bargaining_game(agent)
-    if task == "belief_bargaining":
-        return run_belief_bargaining_game(agent)
-    if task == "market":
-        return run_market_game(agent)
-    if task == "matching":
-        return run_matching_game(agent)
-    if task == "screening":
-        return run_screening_game(agent)
-    if task == "moral_hazard":
-        return run_moral_hazard_game(agent)
-    if task == "auction":
-        return run_auction_game(agent)
-    if task == "common_value":
-        return run_common_value_game(agent)
-    if task == "mechanism":
-        return run_mechanism_game(agent)
-    if task == "strategic_drift":
-        return run_strategic_drift_game(agent)
-    if task == "exploration":
-        return run_exploration_game(agent)
-    if task == "experiment_design":
-        return run_experiment_design_game(agent)
-    if task == "retail":
-        return run_retail_game(agent)
-    if task == "procurement":
-        return run_procurement_game(agent)
-    if task == "pricing":
-        return run_pricing_game(agent)
+        return regime_task.run_regime_battery(
+            agent,
+            gambles=_sample(regime_task.DEFAULT_GAMBLES, limit),
+        )
     if task == "scam":
-        return run_scam_arena(defender=agent, attacker=attacker or build_agent("offline:credulous"))
+        return adversarial_task.run_scam_arena(
+            defender=agent,
+            attacker=attacker or build_agent("offline:credulous"),
+            items=_sample(adversarial_task.DEFAULT_ITEMS, limit),
+        )
+    if task in _CASE_TASKS:
+        runner, cases = _CASE_TASKS[task]
+        return runner(agent, cases=_sample(cases, limit))
     raise ValueError(f"Unknown task: {task}")
 
 
@@ -100,8 +114,13 @@ def expand_tasks(task: str) -> list[str]:
     return list(TASK_ORDER) if task == "all" else [task]
 
 
-def run_tasks(task: str, agent: Agent, attacker: Agent | None = None) -> list[dict[str, Any]]:
-    return [run_task(t, agent, attacker=attacker) for t in expand_tasks(task)]
+def run_tasks(
+    task: str,
+    agent: Agent,
+    attacker: Agent | None = None,
+    sample_limit: int | None = None,
+) -> list[dict[str, Any]]:
+    return [run_task(t, agent, attacker=attacker, sample_limit=sample_limit) for t in expand_tasks(task)]
 
 
 def run_sweep(
@@ -110,7 +129,9 @@ def run_sweep(
     agent_specs: Iterable[str],
     attacker_spec: str = "offline:credulous",
     wrap_cache=None,
+    sample_limit: int | None = None,
 ) -> dict[str, Any]:
+    limit = _normalize_sample_limit(sample_limit)
     attacker = build_agent(attacker_spec)
     if wrap_cache is not None:
         attacker = wrap_cache(attacker)
@@ -120,5 +141,19 @@ def run_sweep(
         agent = build_agent(spec)
         if wrap_cache is not None:
             agent = wrap_cache(agent)
-        runs.append({"agent": agent.name, "results": run_tasks(task, agent, attacker=attacker)})
-    return {"task": task, "agents": specs, "runs": runs}
+        runs.append({"agent": agent.name, "results": run_tasks(task, agent, attacker=attacker, sample_limit=limit)})
+    return {"task": task, "agents": specs, "sample_limit": limit, "runs": runs}
+
+
+def _normalize_sample_limit(sample_limit: int | None) -> int | None:
+    if sample_limit is None:
+        return None
+    if sample_limit < 1:
+        raise ValueError("sample_limit must be positive")
+    return sample_limit
+
+
+def _sample(items, sample_limit: int | None):
+    if sample_limit is None:
+        return None
+    return list(items)[:sample_limit]

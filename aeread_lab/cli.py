@@ -65,6 +65,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Response cache directory for sweeps and OpenAI calls.",
     )
     parser.add_argument("--no-cache", action="store_true", help="Disable response cache.")
+    parser.add_argument(
+        "--limit",
+        type=_positive_int,
+        default=None,
+        help="Run only the first N default cases/gambles for cheap smoke checks.",
+    )
     parser.add_argument("--json", action="store_true", help="Print raw JSON only.")
     args = parser.parse_args(argv)
 
@@ -78,6 +84,7 @@ def main(argv: list[str] | None = None) -> int:
             agent_specs=specs,
             attacker_spec=args.attacker,
             wrap_cache=_wrap,
+            sample_limit=args.limit,
         )
         if args.json:
             print(json.dumps(payload, indent=2, sort_keys=True))
@@ -90,8 +97,8 @@ def main(argv: list[str] | None = None) -> int:
     if not args.no_cache:
         agent = _wrap(agent)
         attacker = _wrap(attacker)
-    results: list[dict[str, Any]] = run_tasks(args.task, agent, attacker=attacker)
-    payload = {"agent": agent.name, "results": results}
+    results: list[dict[str, Any]] = run_tasks(args.task, agent, attacker=attacker, sample_limit=args.limit)
+    payload = {"agent": agent.name, "sample_limit": args.limit, "results": results}
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
@@ -101,6 +108,8 @@ def main(argv: list[str] | None = None) -> int:
 
 def _print_human(payload: dict[str, Any]) -> None:
     print(f"AERead build-lab report for {payload['agent']}")
+    if payload.get("sample_limit") is not None:
+        print(f"sample_limit={payload['sample_limit']}")
     print("=" * 72)
     for result in payload["results"]:
         task = result["task"]
@@ -282,6 +291,13 @@ def _fmt_ci(value: object) -> str:
         return "n/a"
     lo, hi = value
     return f"[{lo:.4f},{hi:.4f}]"
+
+
+def _positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("--limit must be positive")
+    return parsed
 
 
 if __name__ == "__main__":

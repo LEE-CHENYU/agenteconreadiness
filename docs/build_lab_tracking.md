@@ -64,6 +64,7 @@ judge-free, and API-testable while staying OpenAI-only.
 | 24 | `review/24-parse-rate-reporting` | parse-rate reporting in sweeps | live/offline sweeps display parse rate |
 | 25 | `review/25-master-tracking-doc` | this master tracking ledger | validation results recorded here |
 | 26 | `review/26-regime-breadth` | broader regime battery and barrier-violation reporting | oracle rank 1 on 32 trials; EV baseline error 0.586033 and CVaR violation 0.88 |
+| 27 | `review/27-sampled-runs` | sampled run limit for cheap live smokes | `--limit 1` slices broad tasks and JSON sweeps carry `sample_limit` |
 
 ## Task result ledger
 
@@ -97,14 +98,18 @@ explicitly marked as historical/upstream.
 
 Commands run from `/Users/lichenyu/aeread_review_split`. Full-stack checks before
 PR 26 were run on `review/25-master-tracking-doc`; PR 26-specific checks were
-run on `review/26-regime-breadth`.
+run on `review/26-regime-breadth`; PR 27-specific checks were run on
+`review/27-sampled-runs`.
 
 | Check | Command | Result |
 |---|---|---|
-| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 53 tests passed in 0.279s after PR 26 |
+| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 55 tests passed after PR 27 |
 | Full offline oracle task pass | `python3 -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 20 task runners executed; oracle errors/regrets zero or expected near-zero; scam control `instrument_fires=True` |
 | Regime differential sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev,offline:kelly,offline:cvar,offline:half --no-cache` | oracle rank 1; EV baseline error 0.586033; CVaR/Kelly baselines error 0.224185; half baseline error 0.429783; parse 1.00 for all rows |
 | Regime oracle/barrier smoke | `python3 -m aeread_lab.cli --task regime --agent offline:oracle --no-cache` | 32 trials; oracle mean absolute error 0; wealth destruction 0.00; CVaR drawdown violation 0.00 |
+| Sampled regime sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev --limit 1 --no-cache` | 4 regime trials from one gamble; oracle rank 1; parse 1.00 |
+| Sampled all-task oracle smoke | `python3 -m aeread_lab.cli --task all --agent offline:oracle --limit 1 --no-cache` | all 20 task runners execute with first deterministic case/gamble only; scam remains instrumented |
+| Sampled JSON smoke | `python3 -m aeread_lab.cli --sweep --task common_value --agents offline:oracle,offline:ev --limit 1 --no-cache --json` | JSON payload includes `sample_limit: 1` and one common-value trial per agent |
 | Principal/portfolio/ambiguity sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1 on all; bad baselines expose intended failure modes |
 | Bargaining/belief/market sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1 for bargaining and market; belief prior baseline fails; high-anchor ties current primary metric |
 | Matching/screening/mechanism sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1 on all; bad baselines expose intended failure modes |
