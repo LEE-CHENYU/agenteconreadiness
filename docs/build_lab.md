@@ -48,6 +48,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `mechanism_strategic_equilibrium` | Strategic-equilibrium mechanism task: solve the self-consistent strategic participant share before valuing the repeated program. | `python -m aeread_lab.cli --task mechanism_strategic_equilibrium --agent offline:oracle` |
 | `mechanism_interaction_trace` | Interaction-trace mechanism task: project future participant counts and strategic share from observed pilot traces before choosing the remaining program mechanism. | `python -m aeread_lab.cli --task mechanism_interaction_trace --agent offline:oracle` |
 | `mechanism_trace_equilibrium` | Trace-equilibrium mechanism task: infer the last pilot state and trace momentum, then solve the self-consistent strategic share before valuing the future program. | `python -m aeread_lab.cli --task mechanism_trace_equilibrium --agent offline:oracle` |
+| `mechanism_trace_equilibrium_natural` | Natural-label trace-equilibrium mechanism task: preserve the same trace/equilibrium oracle while hiding the strategic-response field names behind pilot outcome language. | `python -m aeread_lab.cli --task mechanism_trace_equilibrium_natural --agent offline:oracle` |
 | `strategic_drift` | γ-Bench-style repeated strategic discipline: preserve long-horizon relationship value under deterministic, imperfect-information, and N-player stress instead of drifting to myopic grabs. | `python -m aeread_lab.cli --task strategic_drift --agent offline:oracle` |
 | `forecast_calibration` | No-oracle-style probability calibration: combine base rates, likelihood-ratio signals, and reliability-weighted evidence, then score forecasts with proper Brier/log-loss metrics against realized outcome frequencies. | `python -m aeread_lab.cli --task forecast_calibration --agent offline:oracle` |
 | `forecast_aggregate` | Aggregate-bin calibration stress: recalibrate raw model scores from observed bin outcomes with empirical-Bayes shrinkage, catching both raw-score reuse and no-shrink small-bin overreaction. | `python -m aeread_lab.cli --task forecast_aggregate --agent offline:oracle` |
@@ -204,6 +205,9 @@ interpreting the economic metric.
 - `mechanism_trace_equilibrium`: lower trace-equilibrium score regret is better;
   revenue-default, trace-projection, equilibrium-blind, and trace-blind miss
   rates are reported separately.
+- `mechanism_trace_equilibrium_natural`: lower trace-equilibrium score regret is
+  better under natural pilot outcome labels; revenue-default, trace-projection,
+  equilibrium-blind, and trace-blind miss rates are reported separately.
 - `strategic_drift`: lower long-horizon drift rate is better; stress-case drift
   and myopic-miss rates are reported separately for imperfect-information and
   N-player cases.

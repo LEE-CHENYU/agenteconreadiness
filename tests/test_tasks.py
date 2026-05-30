@@ -90,6 +90,9 @@ from aeread_lab.tasks.mechanism import _strategic_response_prompt as mechanism_s
 from aeread_lab.tasks.mechanism import _interaction_trace_prompt as mechanism_interaction_trace_prompt
 from aeread_lab.tasks.mechanism import _trace_equilibrium_prompt as mechanism_trace_equilibrium_prompt
 from aeread_lab.tasks.mechanism import (
+    _trace_equilibrium_natural_prompt as mechanism_trace_equilibrium_natural_prompt,
+)
+from aeread_lab.tasks.mechanism import (
     run_mechanism_elasticity_inference_game,
     run_mechanism_game,
     run_mechanism_interaction_trace_game,
@@ -99,6 +102,7 @@ from aeread_lab.tasks.mechanism import (
     run_mechanism_strategic_equilibrium_game,
     run_mechanism_strategic_response_game,
     run_mechanism_trace_equilibrium_game,
+    run_mechanism_trace_equilibrium_natural_game,
 )
 from aeread_lab.tasks.moral_hazard import DEFAULT_CASES as MORAL_HAZARD_CASES
 from aeread_lab.tasks.moral_hazard import _prompt as moral_hazard_prompt
@@ -469,6 +473,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_score_regret"], 1e-9)
 
+    def test_sample_limit_slices_mechanism_trace_equilibrium_natural_cases(self):
+        results = run_tasks("mechanism_trace_equilibrium_natural", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
     def test_sample_limit_slices_supplier_scam_natural_cases(self):
         results = run_tasks("supplier_scam_natural", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], len(SUPPLIER_SCAM_CASES[0].rounds))
@@ -767,6 +776,9 @@ class TaskSmokeTests(unittest.TestCase):
         mechanism_trace_equilibrium = mechanism_trace_equilibrium_prompt(
             MECHANISM_TRACE_EQUILIBRIUM_CASES[0]
         )
+        mechanism_trace_equilibrium_natural = mechanism_trace_equilibrium_natural_prompt(
+            MECHANISM_TRACE_EQUILIBRIUM_CASES[0]
+        )
         experiment = experiment_prompt(EXPERIMENT_CASES[0])
         retail = retail_prompt(RETAIL_CASES[-1])
         supplier_scam = supplier_scam_prompt(
@@ -840,6 +852,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", mechanism_strategic_equilibrium)
         self.assertNotIn("oracle", mechanism_interaction_trace)
         self.assertNotIn("oracle", mechanism_trace_equilibrium)
+        self.assertNotIn("oracle", mechanism_trace_equilibrium_natural)
         self.assertNotIn("oracle", experiment)
         self.assertNotIn("oracle", retail)
         self.assertNotIn("oracle", supplier_scam)
@@ -876,6 +889,16 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("best_mechanism", mechanism_strategic_equilibrium)
         self.assertNotIn("best_mechanism", mechanism_interaction_trace)
         self.assertNotIn("best_mechanism", mechanism_trace_equilibrium)
+        self.assertNotIn("best_mechanism", mechanism_trace_equilibrium_natural)
+        self.assertNotIn("mechanism_id=", mechanism_trace_equilibrium_natural)
+        self.assertNotIn("sponsor_take", mechanism_trace_equilibrium_natural)
+        self.assertNotIn("strategic_gain", mechanism_trace_equilibrium_natural)
+        self.assertNotIn("peer_contagion", mechanism_trace_equilibrium_natural)
+        self.assertNotIn("audit_strength", mechanism_trace_equilibrium_natural)
+        self.assertNotIn("detection_cost", mechanism_trace_equilibrium_natural)
+        self.assertNotIn("response_update_rate", mechanism_trace_equilibrium_natural)
+        self.assertNotIn("active_participants", mechanism_trace_equilibrium_natural)
+        self.assertNotIn("strategic_share", mechanism_trace_equilibrium_natural)
         self.assertNotIn("compatibility bonuses", procurement_bundle_natural.lower())
         self.assertNotIn("durability_weight", procurement_bundle_natural)
         self.assertNotIn("price_weight", procurement_bundle_natural)
@@ -1322,6 +1345,20 @@ class TaskSmokeTests(unittest.TestCase):
         projection = run_mechanism_trace_equilibrium_game(OfflineAgent("trace_projection"))
         equilibrium_blind = run_mechanism_trace_equilibrium_game(OfflineAgent("equilibrium_blind"))
         self.assertEqual(configured["task"], "mechanism_trace_equilibrium")
+        self.assertLess(configured["mean_score_regret"], 1e-9)
+        self.assertGreater(revenue["mean_score_regret"], 100000.0)
+        self.assertEqual(revenue["revenue_default_miss_rate"], 1.0)
+        self.assertGreater(projection["mean_score_regret"], 100000.0)
+        self.assertGreater(projection["trace_projection_miss_rate"], 0.5)
+        self.assertGreater(equilibrium_blind["mean_score_regret"], 100000.0)
+        self.assertGreater(equilibrium_blind["equilibrium_blind_miss_rate"], 0.5)
+
+    def test_mechanism_trace_equilibrium_natural_preserves_oracle_and_baselines(self):
+        configured = run_mechanism_trace_equilibrium_natural_game(OfflineAgent("oracle"))
+        revenue = run_mechanism_trace_equilibrium_natural_game(OfflineAgent("revenue"))
+        projection = run_mechanism_trace_equilibrium_natural_game(OfflineAgent("trace_projection"))
+        equilibrium_blind = run_mechanism_trace_equilibrium_natural_game(OfflineAgent("equilibrium_blind"))
+        self.assertEqual(configured["task"], "mechanism_trace_equilibrium_natural")
         self.assertLess(configured["mean_score_regret"], 1e-9)
         self.assertGreater(revenue["mean_score_regret"], 100000.0)
         self.assertEqual(revenue["revenue_default_miss_rate"], 1.0)
@@ -1810,6 +1847,13 @@ class TaskSmokeTests(unittest.TestCase):
         sweep = run_sweep(task="mechanism_interaction_trace", agent_specs=["offline:oracle", "offline:revenue"])
         rows = rank_rows(comparison_table(sweep))
         mechanism_rows = [row for row in rows if row["task"] == "mechanism_interaction_trace"]
+        self.assertEqual(mechanism_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(mechanism_rows[1]["agent"], "offline:revenue")
+
+    def test_offline_sweep_ranks_trace_equilibrium_natural_above_revenue(self):
+        sweep = run_sweep(task="mechanism_trace_equilibrium_natural", agent_specs=["offline:oracle", "offline:revenue"])
+        rows = rank_rows(comparison_table(sweep))
+        mechanism_rows = [row for row in rows if row["task"] == "mechanism_trace_equilibrium_natural"]
         self.assertEqual(mechanism_rows[0]["agent"], "offline:oracle")
         self.assertEqual(mechanism_rows[1]["agent"], "offline:revenue")
 

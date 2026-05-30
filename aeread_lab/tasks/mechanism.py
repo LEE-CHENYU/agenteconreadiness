@@ -51,6 +51,13 @@ MECHANISM_TRACE_EQUILIBRIUM_SYSTEM = (
     "FINAL_MECHANISM: <mechanism_id>."
 )
 
+MECHANISM_TRACE_EQUILIBRIUM_NATURAL_SYSTEM = (
+    "TASK: mechanism_trace_equilibrium_natural\n"
+    "Choose the rule for the remaining program rounds after reading pilot outcome traces "
+    "and stable participant behavior. Return one final line only: "
+    "FINAL_MECHANISM: <mechanism_id>."
+)
+
 
 @dataclass(frozen=True)
 class IncentiveCheck:
@@ -2229,6 +2236,36 @@ def run_mechanism_trace_equilibrium_game(
     agent: Agent,
     cases: list[TraceEquilibriumMechanismCase] | None = None,
 ) -> dict:
+    return _run_trace_equilibrium_mechanism_game(
+        agent,
+        cases,
+        system=MECHANISM_TRACE_EQUILIBRIUM_SYSTEM,
+        prompt_fn=_trace_equilibrium_prompt,
+        task_name="mechanism_trace_equilibrium",
+    )
+
+
+def run_mechanism_trace_equilibrium_natural_game(
+    agent: Agent,
+    cases: list[TraceEquilibriumMechanismCase] | None = None,
+) -> dict:
+    return _run_trace_equilibrium_mechanism_game(
+        agent,
+        cases,
+        system=MECHANISM_TRACE_EQUILIBRIUM_NATURAL_SYSTEM,
+        prompt_fn=_trace_equilibrium_natural_prompt,
+        task_name="mechanism_trace_equilibrium_natural",
+    )
+
+
+def _run_trace_equilibrium_mechanism_game(
+    agent: Agent,
+    cases: list[TraceEquilibriumMechanismCase] | None,
+    *,
+    system: str,
+    prompt_fn: Callable[[TraceEquilibriumMechanismCase], str],
+    task_name: str,
+) -> dict:
     cases = cases or TRACE_EQUILIBRIUM_CASES
     trials: list[TraceEquilibriumMechanismTrial] = []
     for case in cases:
@@ -2238,8 +2275,8 @@ def run_mechanism_trace_equilibrium_game(
         equilibrium_blind = equilibrium_blind_trace_equilibrium_mechanism(case)
         trace_blind = trace_blind_trace_equilibrium_mechanism(case)
         response = agent.complete(
-            MECHANISM_TRACE_EQUILIBRIUM_SYSTEM,
-            _trace_equilibrium_prompt(case),
+            system,
+            prompt_fn(case),
         )
         chosen = parse_token("FINAL_MECHANISM", response)
         mechanism_by_id = {mechanism.mechanism_id: mechanism for mechanism in case.mechanisms}
@@ -2263,7 +2300,7 @@ def run_mechanism_trace_equilibrium_game(
                 raw_response=response,
             )
         )
-    return summarize_trace_equilibrium_mechanism_trials(agent.name, trials)
+    return summarize_trace_equilibrium_mechanism_trials(agent.name, trials, task_name=task_name)
 
 
 def summarize_mechanism_trials(agent_name: str, trials: list[MechanismTrial]) -> dict:
@@ -2477,6 +2514,8 @@ def summarize_interaction_trace_mechanism_trials(
 def summarize_trace_equilibrium_mechanism_trials(
     agent_name: str,
     trials: list[TraceEquilibriumMechanismTrial],
+    *,
+    task_name: str = "mechanism_trace_equilibrium",
 ) -> dict:
     regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
     revenue_missable = [trial for trial in trials if trial.revenue_mechanism != trial.best_mechanism]
@@ -2490,7 +2529,7 @@ def summarize_trace_equilibrium_mechanism_trials(
         trial for trial in trials if trial.trace_blind_mechanism != trial.best_mechanism
     ]
     return {
-        "task": "mechanism_trace_equilibrium",
+        "task": task_name,
         "agent": agent_name,
         "n_trials": len(trials),
         "mean_score_regret": mean(regrets),
@@ -2904,6 +2943,56 @@ def _trace_equilibrium_prompt(case: TraceEquilibriumMechanismCase) -> str:
             "that self-consistent strategic share.",
             "Pick the best repeated program value, not the largest sponsor take, simple trace "
             "projection, or initial strategic-share estimate.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _trace_equilibrium_natural_prompt(case: TraceEquilibriumMechanismCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"future_rounds_to_score={case.forecast_horizon}",
+        f"revenue_weight={case.revenue_weight:.4f}",
+        f"participant_value_weight={case.participant_value_weight:.4f}",
+        f"access_weight={case.access_weight:.4f}",
+        f"manipulation_penalty={case.manipulation_penalty:.4f}",
+        "Pilot outcome sheets for candidate rules:",
+    ]
+    for mechanism in case.mechanisms:
+        lines.append(
+            "  "
+            f"option_id={mechanism.mechanism_id} "
+            f"launch_take={mechanism.sponsor_take:.2f} "
+            f"participant_outcome={mechanism.participant_value:.2f} "
+            f"access_reach={mechanism.access_quality:.4f} "
+            f"gaming_damage={mechanism.manipulation_harm:.2f} "
+            f"oversight_cost={mechanism.review_cost:.2f} "
+            f"ordinary_stay={mechanism.base_stay_rate:.4f} "
+            f"departure_pressure={mechanism.exit_sensitivity:.4f} "
+            f"private_strategy_pull={mechanism.strategic_gain:.4f} "
+            f"copycat_pressure={mechanism.peer_contagion:.4f} "
+            f"review_deterrence={mechanism.audit_strength:.4f} "
+            f"review_consequence={mechanism.detection_cost:.4f} "
+            f"adaptation_speed={mechanism.response_update_rate:.4f}"
+        )
+        for point in mechanism.trace:
+            lines.append(
+                "    "
+                f"pilot option_id={mechanism.mechanism_id} "
+                f"wave={point.round_id} "
+                f"active_pool={point.active_participants:.2f} "
+                f"flagged_share={point.strategic_share:.4f}"
+            )
+    lines.extend(
+        [
+            "Start from the latest pilot wave and its recent movement.",
+            "Then estimate the stable share of participants who keep optimizing around the rule, "
+            "using private pull, copycat pressure, review deterrence, review consequence, "
+            "recent pilot movement, and adaptation speed.",
+            "Future active-pool retention falls as the stable flagged share rises.",
+            "Pick the rule with the best repeated program value, not the highest launch take, "
+            "a straight-line pilot projection, or the first-wave flagged-share read.",
         ]
     )
     return "\n".join(lines)

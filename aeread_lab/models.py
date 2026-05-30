@@ -3957,6 +3957,37 @@ def _extract_trace_equilibrium_mechanisms(text: str) -> dict[str, dict[str, obje
             "response_update_rate": float(match.group(13)),
             "trace": [],
         }
+    natural_pattern = re.compile(
+        r"option_id=([a-zA-Z0-9_-]+)\s+"
+        r"launch_take=([-+]?\d+(?:\.\d+)?)\s+"
+        r"participant_outcome=([-+]?\d+(?:\.\d+)?)\s+"
+        r"access_reach=([-+]?\d+(?:\.\d+)?)\s+"
+        r"gaming_damage=([-+]?\d+(?:\.\d+)?)\s+"
+        r"oversight_cost=([-+]?\d+(?:\.\d+)?)\s+"
+        r"ordinary_stay=([-+]?\d+(?:\.\d+)?)\s+"
+        r"departure_pressure=([-+]?\d+(?:\.\d+)?)\s+"
+        r"private_strategy_pull=([-+]?\d+(?:\.\d+)?)\s+"
+        r"copycat_pressure=([-+]?\d+(?:\.\d+)?)\s+"
+        r"review_deterrence=([-+]?\d+(?:\.\d+)?)\s+"
+        r"review_consequence=([-+]?\d+(?:\.\d+)?)\s+"
+        r"adaptation_speed=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in natural_pattern.finditer(text):
+        mechanisms[match.group(1)] = {
+            "sponsor_take": float(match.group(2)),
+            "participant_value": float(match.group(3)),
+            "access_quality": float(match.group(4)),
+            "manipulation_harm": float(match.group(5)),
+            "review_cost": float(match.group(6)),
+            "base_stay_rate": float(match.group(7)),
+            "exit_sensitivity": float(match.group(8)),
+            "strategic_gain": float(match.group(9)),
+            "peer_contagion": float(match.group(10)),
+            "audit_strength": float(match.group(11)),
+            "detection_cost": float(match.group(12)),
+            "response_update_rate": float(match.group(13)),
+            "trace": [],
+        }
     trace_pattern = re.compile(
         r"trace mechanism_id=([a-zA-Z0-9_-]+)\s+"
         r"round=\d+\s+"
@@ -3964,6 +3995,18 @@ def _extract_trace_equilibrium_mechanisms(text: str) -> dict[str, dict[str, obje
         r"strategic_share=([-+]?\d+(?:\.\d+)?)"
     )
     for match in trace_pattern.finditer(text):
+        mechanism_id = match.group(1)
+        if mechanism_id in mechanisms:
+            trace = mechanisms[mechanism_id]["trace"]
+            assert isinstance(trace, list)
+            trace.append((float(match.group(2)), float(match.group(3))))
+    natural_trace_pattern = re.compile(
+        r"pilot option_id=([a-zA-Z0-9_-]+)\s+"
+        r"wave=\d+\s+"
+        r"active_pool=([-+]?\d+(?:\.\d+)?)\s+"
+        r"flagged_share=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in natural_trace_pattern.finditer(text):
         mechanism_id = match.group(1)
         if mechanism_id in mechanisms:
             trace = mechanisms[mechanism_id]["trace"]
