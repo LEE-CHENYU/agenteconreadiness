@@ -15,6 +15,7 @@ PRIMARY_METRICS = {
     "ambiguity": ("mean_robust_regret", "lower"),
     "bargaining": ("mean_grade_error", "lower"),
     "belief_bargaining": ("mean_expected_surplus_gap", "lower"),
+    "belief_bargaining_interaction": ("mean_expected_surplus_gap", "lower"),
     "market": ("mean_equilibrium_price_gap", "lower"),
     "market_policy_shift": ("mean_profit_regret", "lower"),
     "market_policy_inventory": ("mean_constrained_terminal_cash_regret", "lower"),

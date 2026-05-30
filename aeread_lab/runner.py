@@ -44,6 +44,7 @@ TASK_ORDER = (
     "ambiguity",
     "bargaining",
     "belief_bargaining",
+    "belief_bargaining_interaction",
     "market",
     "market_policy_shift",
     "market_policy_inventory",
@@ -101,6 +102,10 @@ _CASE_TASKS = {
     "belief_bargaining": (
         belief_bargaining_task.run_belief_bargaining_game,
         belief_bargaining_task.DEFAULT_CASES,
+    ),
+    "belief_bargaining_interaction": (
+        belief_bargaining_task.run_belief_bargaining_interaction_game,
+        belief_bargaining_task.INTERACTION_CASES,
     ),
     "market": (market_task.run_market_game, market_task.DEFAULT_CASES),
     "market_policy_shift": (

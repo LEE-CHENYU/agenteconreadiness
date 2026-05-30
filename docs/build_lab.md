@@ -27,6 +27,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
+| `belief_bargaining_interaction` | Two-offer belief bargaining: choose an opening price and fallback price after rejection, using observed signals and the fact that rejection updates buyer WTP beliefs. | `python -m aeread_lab.cli --task belief_bargaining_interaction --agent offline:oracle` |
 | `market` | Market-Bench-style price competition plus inventory-survival pricing: competitive Nash pricing vs collusive/high-price drift, liquidation, and reserve-aware inventory pricing. | `python -m aeread_lab.cli --task market --agent offline:oracle` |
 | `market_policy_shift` | Repeated-market opponent-policy shift: infer a competitor's next price from observed price history and choose the current best response instead of reusing static Nash or last-period behavior. | `python -m aeread_lab.cli --task market_policy_shift --agent offline:oracle` |
 | `market_policy_inventory` | Inventory-constrained opponent-policy adaptation: infer the competitor's next price, then choose a non-collusive posted price that maximizes terminal cash across finite inventory, holding costs, obligations, and reserve constraints. | `python -m aeread_lab.cli --task market_policy_inventory --agent offline:oracle` |
@@ -128,6 +129,9 @@ interpreting the economic metric.
 - `belief_bargaining`: lower posterior expected-surplus gap is better; cue
   switch miss rate, multi-turn miss rate, strategic base gap, and posterior
   scaffold gap are reported separately.
+- `belief_bargaining_interaction`: lower two-offer expected-surplus gap is
+  better; first-price error, second-price error, prior-plan miss,
+  single-cue-plan miss, and single-offer miss rates are reported separately.
 - `market`: lower competitive/survival oracle price gap is better; collusion
   index, reserve-violation rate, survival cash gap, and liquidation miss rate
   are reported separately.

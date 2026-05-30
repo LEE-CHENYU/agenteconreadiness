@@ -116,6 +116,8 @@ class OfflineAgent:
             return self._bargaining_offer(user)
         if "TASK: belief_bargain_price" in system:
             return self._belief_bargain_price(user)
+        if "TASK: belief_bargain_interaction" in system:
+            return self._belief_bargain_interaction(user)
         if "TASK: market_price" in system:
             return self._market_price(user)
         if "TASK: market_policy_price" in system:
@@ -463,6 +465,44 @@ class OfflineAgent:
         else:
             price = _belief_best_price(seller_cost, states, use_posterior=use_posterior)
         return f"FINAL_PRICE: {price:.2f}"
+
+    def _belief_bargain_interaction(self, user: str) -> str:
+        seller_cost = _extract_float(user, "seller_cost")
+        states = _extract_buyer_states(user)
+        if self.policy in {"prior", "ignore_cue"}:
+            first, second = _belief_best_interaction_prices(
+                seller_cost,
+                states,
+                user,
+                use_posterior=False,
+            )
+        elif self.policy in {"single_cue", "first_cue"}:
+            first, second = _belief_best_interaction_prices(
+                seller_cost,
+                states,
+                user,
+                use_posterior=True,
+                signal_count=1,
+            )
+        elif self.policy in {"single_offer", "no_fallback"}:
+            first = second = _belief_best_interaction_single_offer(
+                seller_cost,
+                states,
+                user,
+                use_posterior=True,
+            )
+        elif self.policy in {"high_anchor", "max_wtp", "no_concession"}:
+            first = second = max(state["buyer_wtp"] for state in states)
+        elif self.policy in {"literal_claim", "cheap_talk_literal"}:
+            first = second = min(state["buyer_wtp"] for state in states)
+        else:
+            first, second = _belief_best_interaction_prices(
+                seller_cost,
+                states,
+                user,
+                use_posterior=True,
+            )
+        return f"FINAL_FIRST_PRICE: {first:.2f} FINAL_SECOND_PRICE: {second:.2f}"
 
     def _market_price(self, user: str) -> str:
         base = _extract_float(user, "base_demand")
@@ -2230,6 +2270,116 @@ def _belief_best_price(
 
     candidates = sorted({seller_cost, *(state["buyer_wtp"] for state in states)})
     return max(candidates, key=expected_surplus)
+
+
+def _belief_best_interaction_prices(
+    seller_cost: float,
+    states: list[dict[str, float]],
+    text: str,
+    *,
+    use_posterior: bool,
+    signal_count: int | None = None,
+) -> tuple[float, float]:
+    candidates = _belief_interaction_candidates(seller_cost, states)
+    pairs = [
+        (first, second)
+        for first in candidates
+        for second in candidates
+        if second <= first
+    ]
+    return max(
+        pairs,
+        key=lambda pair: (
+            _belief_interaction_expected_surplus(
+                seller_cost,
+                states,
+                text,
+                pair[0],
+                pair[1],
+                use_posterior=use_posterior,
+                signal_count=signal_count,
+            ),
+            pair[0],
+            pair[1],
+        ),
+    )
+
+
+def _belief_best_interaction_single_offer(
+    seller_cost: float,
+    states: list[dict[str, float]],
+    text: str,
+    *,
+    use_posterior: bool,
+    signal_count: int | None = None,
+) -> float:
+    candidates = _belief_interaction_candidates(seller_cost, states)
+    return max(
+        candidates,
+        key=lambda price: (
+            _belief_interaction_expected_surplus(
+                seller_cost,
+                states,
+                text,
+                price,
+                price,
+                use_posterior=use_posterior,
+                signal_count=signal_count,
+            ),
+            price,
+        ),
+    )
+
+
+def _belief_interaction_expected_surplus(
+    seller_cost: float,
+    states: list[dict[str, float]],
+    text: str,
+    first_price: float,
+    second_price: float,
+    *,
+    use_posterior: bool,
+    signal_count: int | None,
+) -> float:
+    if first_price < seller_cost or second_price < seller_cost:
+        return 0.0
+    probabilities = _belief_probabilities(states, use_posterior=use_posterior, signal_count=signal_count)
+    discount = _extract_float(text, "second_round_discount", 1.0)
+    delay_cost = _extract_float(text, "second_round_delay_cost")
+    value = 0.0
+    for probability, state in zip(probabilities, states):
+        if first_price <= state["buyer_wtp"]:
+            value += probability * (first_price - seller_cost)
+        elif second_price <= state["buyer_wtp"]:
+            value += probability * (discount * (second_price - seller_cost) - delay_cost)
+    return value
+
+
+def _belief_probabilities(
+    states: list[dict[str, float]],
+    *,
+    use_posterior: bool,
+    signal_count: int | None,
+) -> list[float]:
+    if not states:
+        return []
+    if not use_posterior:
+        return [state["prior"] for state in states]
+    weights = [state["prior"] * _belief_likelihood_product(state, signal_count=signal_count) for state in states]
+    total = sum(weights)
+    return [weight / total for weight in weights] if total > 0 else [state["prior"] for state in states]
+
+
+def _belief_interaction_candidates(
+    seller_cost: float,
+    states: list[dict[str, float]],
+) -> list[float]:
+    if not states:
+        return [seller_cost]
+    candidates = {seller_cost, *(state["buyer_wtp"] for state in states)}
+    for price in range(int(seller_cost), int(max(candidates)) + 1):
+        candidates.add(float(price))
+    return sorted(candidates)
 
 
 def _belief_likelihood_product(state: dict[str, float], *, signal_count: int | None) -> float:

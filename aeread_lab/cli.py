@@ -23,6 +23,7 @@ TASKS = (
     "ambiguity",
     "bargaining",
     "belief_bargaining",
+    "belief_bargaining_interaction",
     "market",
     "market_policy_shift",
     "market_policy_inventory",
@@ -244,6 +245,17 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"multi_turn_miss={result.get('multi_turn_miss_rate', 0.0):.2f} "
                 f"strategic_base_gap={_fmt(result.get('mean_strategic_base_gap'))} "
                 f"scaffold_gap={_fmt(result.get('mean_strategic_scaffold_gap'))}"
+            )
+        elif task == "belief_bargaining_interaction":
+            print(
+                f"belief_bargaining_interaction: n={result['n_trials']} surplus_gap="
+                f"{_fmt(result['mean_expected_surplus_gap'])} "
+                f"ci95={_fmt_ci(result.get('mean_expected_surplus_gap_ci95'))} "
+                f"first_error={_fmt(result['mean_first_price_error'])} "
+                f"second_error={_fmt(result['mean_second_price_error'])} "
+                f"prior_miss={result['prior_plan_miss_rate']:.2f} "
+                f"single_cue_miss={result['single_cue_plan_miss_rate']:.2f} "
+                f"single_offer_miss={result['single_offer_miss_rate']:.2f}"
             )
         elif task == "market":
             print(

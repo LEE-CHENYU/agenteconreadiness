@@ -19,8 +19,11 @@ from aeread_lab.tasks.ambiguity import run_ambiguity_game
 from aeread_lab.tasks.auction import run_auction_game
 from aeread_lab.tasks.bargaining import run_bargaining_game
 from aeread_lab.tasks.belief_bargaining import DEFAULT_CASES as BELIEF_BARGAINING_CASES
+from aeread_lab.tasks.belief_bargaining import INTERACTION_CASES as BELIEF_INTERACTION_CASES
+from aeread_lab.tasks.belief_bargaining import _interaction_prompt as belief_interaction_prompt
 from aeread_lab.tasks.belief_bargaining import _prompt as belief_bargaining_prompt
 from aeread_lab.tasks.belief_bargaining import run_belief_bargaining_game
+from aeread_lab.tasks.belief_bargaining import run_belief_bargaining_interaction_game
 from aeread_lab.tasks.common_value import DEFAULT_CASES as COMMON_VALUE_CASES
 from aeread_lab.tasks.common_value import _prompt as common_value_prompt
 from aeread_lab.tasks.common_value import run_common_value_game
@@ -291,6 +294,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_expected_brier_regret"], 1e-9)
 
+    def test_sample_limit_slices_belief_bargaining_interaction_cases(self):
+        results = run_tasks("belief_bargaining_interaction", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_expected_surplus_gap"], 1e-9)
+
     def test_sample_limit_slices_market_policy_shift_cases(self):
         results = run_tasks("market_policy_shift", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
@@ -471,6 +479,7 @@ class TaskSmokeTests(unittest.TestCase):
         market_policy = market_policy_prompt(MARKET_POLICY_CASES[0])
         market_policy_inventory = market_policy_inventory_prompt(MARKET_INVENTORY_POLICY_CASES[0])
         belief_bargaining = belief_bargaining_prompt(BELIEF_BARGAINING_CASES[0])
+        belief_interaction = belief_interaction_prompt(BELIEF_INTERACTION_CASES[0])
         principal = principal_prompt(PRINCIPAL_CASES[0])
         portfolio = portfolio_prompt(PORTFOLIO_CASES[0])
         revealed_allocation = revealed_allocation_prompt(REVEALED_ALLOCATION_CASES[0])
@@ -526,6 +535,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", market_policy)
         self.assertNotIn("oracle", market_policy_inventory)
         self.assertNotIn("oracle", belief_bargaining)
+        self.assertNotIn("oracle", belief_interaction)
         self.assertNotIn("oracle", principal)
         self.assertNotIn("oracle", portfolio)
         self.assertNotIn("oracle", revealed_allocation)
@@ -714,6 +724,18 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(scaffolded["strategic_scaffold_improvement"], 50.0)
         self.assertEqual(literal["strategic_base_miss_rate"], 1.0)
         self.assertGreater(literal["mean_strategic_base_gap"], 50.0)
+
+    def test_belief_bargaining_interaction_flags_single_offer_and_prior_plans(self):
+        calibrated = run_belief_bargaining_interaction_game(OfflineAgent("oracle"))
+        single_offer = run_belief_bargaining_interaction_game(OfflineAgent("single_offer"))
+        prior = run_belief_bargaining_interaction_game(OfflineAgent("prior"))
+        case_keys = {trial["case"]["key"] for trial in calibrated["trials"]}
+        self.assertIn("renewal_rejection_policy", case_keys)
+        self.assertLess(calibrated["mean_expected_surplus_gap"], 1e-9)
+        self.assertGreater(single_offer["mean_expected_surplus_gap"], 5.0)
+        self.assertGreater(single_offer["single_offer_miss_rate"], 0.5)
+        self.assertGreater(prior["mean_expected_surplus_gap"], 1.0)
+        self.assertGreater(prior["prior_plan_miss_rate"], 0.25)
 
     def test_market_flags_collusive_price_drift(self):
         competitive = run_market_game(OfflineAgent("oracle"))
@@ -1203,6 +1225,16 @@ class TaskSmokeTests(unittest.TestCase):
         belief_rows = [row for row in rows if row["task"] == "belief_bargaining"]
         self.assertEqual(belief_rows[0]["agent"], "offline:oracle")
         self.assertEqual(belief_rows[1]["agent"], "offline:prior")
+
+    def test_offline_sweep_ranks_interaction_plan_above_single_offer(self):
+        sweep = run_sweep(
+            task="belief_bargaining_interaction",
+            agent_specs=["offline:oracle", "offline:single_offer"],
+        )
+        rows = rank_rows(comparison_table(sweep))
+        belief_rows = [row for row in rows if row["task"] == "belief_bargaining_interaction"]
+        self.assertEqual(belief_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(belief_rows[1]["agent"], "offline:single_offer")
 
     def test_offline_sweep_ranks_competitive_above_collusive_on_market(self):
         sweep = run_sweep(task="market", agent_specs=["offline:oracle", "offline:collusive"])

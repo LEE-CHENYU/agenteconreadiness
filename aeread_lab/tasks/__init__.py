@@ -2,7 +2,10 @@ from .alignment_tax import run_alignment_tax_game
 from .bargaining import run_bargaining_game
 from .adversarial import run_scam_arena
 from .ambiguity import run_ambiguity_game
-from .belief_bargaining import run_belief_bargaining_game
+from .belief_bargaining import (
+    run_belief_bargaining_game,
+    run_belief_bargaining_interaction_game,
+)
 from .auction import run_auction_game
 from .common_value import run_common_value_game
 from .experiment_design import run_experiment_design_game
@@ -61,6 +64,7 @@ __all__ = [
     "run_scam_arena",
     "run_ambiguity_game",
     "run_belief_bargaining_game",
+    "run_belief_bargaining_interaction_game",
     "run_auction_game",
     "run_common_value_game",
     "run_experiment_design_game",
