@@ -22,7 +22,7 @@ PRIMARY_METRICS = {
     "strategic_drift": ("drift_rate", "lower"),
     "exploration": ("mean_expected_value_gap", "lower"),
     "experiment_design": ("mean_expected_value_gap", "lower"),
-    "retail": ("mean_ruin_probability", "lower"),
+    "retail": ("mean_order_error", "lower"),
     "procurement": ("accuracy", "higher"),
     "pricing": ("mean_revenue_gap", "lower"),
     "adversarial_scam": ("mean_overpayment", "lower"),

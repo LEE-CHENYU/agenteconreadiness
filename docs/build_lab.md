@@ -6,6 +6,11 @@ truth to the harness, model-visible prompts do not expose oracle answers,
 scoring is mechanical, and live API use is restricted to OpenAI model aliases
 only.
 
+Current source-doc alignment: the 2026-05-30 refocus sharpening says
+saturation is a `(primitive x regime)` property and tracks oracle availability
+under stress, not agent count. The lab therefore keeps v0 single-agent axes
+while making horizon, framing, reserve, and belief stresses less oracle-obvious.
+
 ## What is implemented
 
 | Build | Why it matters | Command |
@@ -28,7 +33,7 @@ only.
 | `strategic_drift` | γ-Bench-style repeated strategic discipline: preserve long-horizon relationship value instead of drifting to myopic grabs. | `python -m aeread_lab.cli --task strategic_drift --agent offline:oracle` |
 | `exploration` | EconEvals-style unknown-environment learning: decide when information value justifies a pilot before deployment. | `python -m aeread_lab.cli --task exploration --agent offline:oracle` |
 | `experiment_design` | Imperfect-signal experiment design: choose whether and how to run a noisy experiment before deployment, then update by Bayes rule. | `python -m aeread_lab.cli --task experiment_design --agent offline:oracle` |
-| `retail` | Vending-Bench-style inventory/runway management: maximize cash while respecting hard survival constraints. | `python -m aeread_lab.cli --task retail --agent offline:oracle` |
+| `retail` | Vending-Bench-style inventory/runway management: one-cycle and multi-period demand paths with carrying costs, terminal salvage, and reserve checks at every period. | `python -m aeread_lab.cli --task retail --agent offline:oracle` |
 | `procurement` | v0 `ProductProcurementGame`: discrete-action qualitative procurement with a utility-vector oracle. | `python -m aeread_lab.cli --task procurement --agent offline:oracle` |
 | `pricing` | v0 `SimplePricingGame`: continuous price choice with base/posterior/reveal conditions and a closed-form revenue oracle. | `python -m aeread_lab.cli --task pricing --agent offline:oracle` |
 | `scam` | Adversarial belief-manipulation arena: scam-supplier style value inflation with credulous and skeptical controls. | `python -m aeread_lab.cli --task scam --agent offline:careful --attacker offline:credulous` |
@@ -59,7 +64,7 @@ OPENAI_API_KEY=... python -m aeread_lab.cli --sweep --task all \
 There is no Anthropic/OpenRouter path in this build lab.
 
 The adapter uses low reasoning effort, low text verbosity, `store=false`, and a
-1200-token output budget by default. It raises on incomplete or textless responses
+4096-token output budget by default. It raises on incomplete or textless responses
 instead of silently scoring blank model outputs.
 
 ## Sweep runner and cache
@@ -105,8 +110,9 @@ interpreting the economic metric.
   reported separately.
 - `experiment_design`: lower expected-value gap is better; experiment miss
   rate is reported separately.
-- `retail`: lower ruin probability is better; expected cash gap and order error
-  are reported separately.
+- `retail`: lower order error to the survival/cash oracle is better; ruin
+  probability, expected cash gap, myopic-order gap, multi-period cash gap, and
+  multi-period miss rate are reported separately.
 - `procurement`: higher oracle-choice accuracy is better.
 - `pricing`: lower revenue gap to the closed-form optimum is better.
 - `scam`: lower mean overpayment is better.
@@ -152,6 +158,7 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    smokes show parse stability but no separation.
 2. Replace the stylized revealed-allocation traces with real 13F-style
    holdings-derived traces once a clean data source is selected.
-3. Broaden `retail` into multi-period inventory and supplier-scam variants.
+3. Add richer supplier-scam variants that couple vendor trust with inventory
+   timing rather than only per-round supplier choice.
 4. Broaden `strategic_drift` into imperfect-information and N-player games.
 5. Broaden `experiment_design` into multi-step adaptive tests.

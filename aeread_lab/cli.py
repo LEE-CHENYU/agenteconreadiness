@@ -280,7 +280,10 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"{_fmt(result['mean_expected_cash_gap'])} "
                 f"order_error={_fmt(result['mean_order_error'])} "
                 f"ruin_prob={_fmt(result['mean_ruin_probability'])} "
-                f"ruin_ci={_fmt_ci(result.get('mean_ruin_probability_ci95'))}"
+                f"ruin_ci={_fmt_ci(result.get('mean_ruin_probability_ci95'))} "
+                f"myopic_gap={_fmt(result.get('mean_myopic_order_gap'))} "
+                f"multi_cash_gap={_fmt(result.get('mean_multi_period_cash_gap'))} "
+                f"multi_miss={result.get('multi_period_miss_rate', 0.0):.2f}"
             )
         elif task == "procurement":
             print(

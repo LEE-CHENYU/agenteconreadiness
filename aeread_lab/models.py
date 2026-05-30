@@ -38,7 +38,7 @@ class OpenAIResponsesAgent:
     """
 
     model: str = "nano"
-    max_output_tokens: int = 1200
+    max_output_tokens: int = 4096
     reasoning_effort: str = "low"
     text_verbosity: str = "low"
     name: str = "openai"
@@ -470,28 +470,90 @@ class OfflineAgent:
         cash = _extract_float(user, "cash_on_hand")
         unit_cost = _extract_float(user, "unit_cost")
         sale_price = _extract_float(user, "sale_price")
-        fixed_cost = _extract_float(user, "fixed_cost_due")
         min_reserve = _extract_float(user, "min_cash_reserve")
         max_order = int(round(_extract_float(user, "max_order")))
-        states = _extract_demand_states(user)
+        periods = _extract_retail_periods(user)
+        carrying_cost = _extract_float(user, "carrying_cost_per_unsold")
+        terminal_value = _extract_float(user, "terminal_unit_value")
 
-        def terminal(order: int, demand: int) -> float:
-            sold = min(order, demand)
-            return cash - fixed_cost - order * unit_cost + sold * sale_price
+        def expected_cash(
+            order: int,
+            order_periods: list[tuple[float, list[tuple[int, float]]]],
+            *,
+            carry_cost: float = carrying_cost,
+            terminal_unit_value: float = terminal_value,
+        ) -> float:
+            return sum(
+                probability * terminal_cash
+                for probability, terminal_cash, _ in _retail_terminal_outcomes(
+                    order,
+                    cash,
+                    unit_cost,
+                    sale_price,
+                    min_reserve,
+                    order_periods,
+                    carry_cost,
+                    terminal_unit_value,
+                )
+            )
 
-        def expected_cash(order: int) -> float:
-            return sum(probability * terminal(order, demand) for demand, probability in states)
+        def ruins(
+            order: int,
+            order_periods: list[tuple[float, list[tuple[int, float]]]],
+            *,
+            carry_cost: float = carrying_cost,
+            terminal_unit_value: float = terminal_value,
+        ) -> bool:
+            return any(
+                ruined
+                for _, _, ruined in _retail_terminal_outcomes(
+                    order,
+                    cash,
+                    unit_cost,
+                    sale_price,
+                    min_reserve,
+                    order_periods,
+                    carry_cost,
+                    terminal_unit_value,
+                )
+            )
 
-        def ruins(order: int) -> bool:
-            return any(terminal(order, demand) < min_reserve for demand, _ in states)
+        def best_feasible_order(
+            order_periods: list[tuple[float, list[tuple[int, float]]]],
+            *,
+            carry_cost: float = carrying_cost,
+            terminal_unit_value: float = terminal_value,
+        ) -> int:
+            feasible = [
+                q
+                for q in range(max_order + 1)
+                if not ruins(
+                    q,
+                    order_periods,
+                    carry_cost=carry_cost,
+                    terminal_unit_value=terminal_unit_value,
+                )
+            ]
+            if not feasible:
+                return 0
+            return max(
+                feasible,
+                key=lambda q: expected_cash(
+                    q,
+                    order_periods,
+                    carry_cost=carry_cost,
+                    terminal_unit_value=terminal_unit_value,
+                ),
+            )
 
         if self.policy in {"ev_order", "overorder"}:
-            order = max(range(max_order + 1), key=expected_cash)
+            order = max(range(max_order + 1), key=lambda q: expected_cash(q, periods))
+        elif self.policy in {"myopic", "single_cycle"}:
+            order = best_feasible_order(periods[:1], carry_cost=0.0, terminal_unit_value=0.0)
         elif self.policy == "zero":
             order = 0
         else:
-            feasible = [q for q in range(max_order + 1) if not ruins(q)]
-            order = max(feasible, key=expected_cash) if feasible else 0
+            order = best_feasible_order(periods)
         return f"FINAL_ORDER: {order}"
 
     def _supplier_scam_order(self, user: str) -> str:
@@ -1152,6 +1214,63 @@ def _extract_demand_states(text: str) -> list[tuple[int, float]]:
     ):
         states.append((int(units), float(probability)))
     return states
+
+
+def _extract_retail_periods(text: str) -> list[tuple[float, list[tuple[int, float]]]]:
+    periods: list[tuple[float, list[tuple[int, float]]]] = []
+    current_states: list[tuple[int, float]] | None = None
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if line.startswith("period="):
+            current_states = []
+            periods.append((_extract_float(line, "fixed_cost_due"), current_states))
+        elif line.startswith("demand_units="):
+            state = (int(round(_extract_float(line, "demand_units"))), _extract_float(line, "probability"))
+            if current_states is None:
+                current_states = []
+                periods.append((_extract_float(text, "fixed_cost_due"), current_states))
+            current_states.append(state)
+    if periods:
+        return periods
+    return [(_extract_float(text, "fixed_cost_due"), _extract_demand_states(text))]
+
+
+def _retail_terminal_outcomes(
+    order: int,
+    cash_on_hand: float,
+    unit_cost: float,
+    sale_price: float,
+    min_reserve: float,
+    periods: list[tuple[float, list[tuple[int, float]]]],
+    carrying_cost_per_unsold: float,
+    terminal_unit_value: float,
+) -> list[tuple[float, float, bool]]:
+    paths = [(1.0, cash_on_hand - order * unit_cost, float(order), False)]
+    for fixed_cost, states in periods:
+        next_paths: list[tuple[float, float, bool]] = []
+        for path_probability, path_cash, path_inventory, already_ruined in paths:
+            for demand, probability in states:
+                sold = min(path_inventory, float(demand))
+                inventory_after = path_inventory - sold
+                cash_after = (
+                    path_cash
+                    - fixed_cost
+                    + sold * sale_price
+                    - inventory_after * carrying_cost_per_unsold
+                )
+                next_paths.append(
+                    (
+                        path_probability * probability,
+                        cash_after,
+                        inventory_after,
+                        already_ruined or cash_after < min_reserve,
+                    )
+                )
+        paths = next_paths
+    return [
+        (probability, terminal_cash + inventory * terminal_unit_value, ruined)
+        for probability, terminal_cash, inventory, ruined in paths
+    ]
 
 
 def _extract_supplier_options(text: str) -> list[dict[str, float | int | str]]:

@@ -74,6 +74,7 @@ judge-free, and API-testable while staying OpenAI-only.
 | 34 | `review/34-multiturn-belief-bargaining` | multi-turn belief-bargaining signal updates | oracle surplus gap 0; prior gap 5.30563; single-cue gap 18.4281 and multi-turn miss 1.00 |
 | 35 | `review/35-mechanism-ic-simulation` | incentive-compatibility simulation for mechanism choice | oracle score regret 0; IC-blind regret 18.4342 and IC-blind miss 1.00 |
 | 36 | `review/36-market-inventory-survival` | market inventory-survival pricing | oracle price gap 0; liquidation survival gap 4614.45 with reserve violation 1.00; live `nano` survival gap 551.9892 |
+| 37 | `review/37-retail-multiperiod-runway` | multi-period retail inventory/runway stress | oracle order error 0; EV-order ruin probability 0.251; single-cycle baseline multi-period cash gap 425.2572 and miss rate 1.00; live `nano` parses and slightly over-orders both multi-period cases |
 
 ## Task result ledger
 
@@ -100,7 +101,7 @@ explicitly marked as historical/upstream.
 | `strategic_drift` | repeated strategic discipline | oracle drift 0; myopic drift 1.00 | captures long-horizon drift scaffold |
 | `exploration` | unknown-environment exploration | oracle EV gap 0; exploit-only gap 193.3 | EconEvals-style exploration failure is mechanically exposed |
 | `experiment_design` | noisy experiment design and update | oracle EV gap 0; greedy gap 141.505 | exposes skipping valuable experiments |
-| `retail` | cash/runway survival | oracle ruin 0; greedy ruin 0 on current cases | primary ruin metric does not yet discriminate the greedy baseline; broaden scenarios or track cash/order secondary metrics |
+| `retail` | cash/runway survival under one-cycle and multi-period inventory paths | oracle order error 0 across 5 cases; EV-order ruin probability 0.251; single-cycle baseline order error 0.0718266, multi-period cash gap 425.2572, and multi-period miss rate 1.00 | now covers both reserve-breaking over-ordering and horizon-blind under-ordering; live `nano` parses all cases but slightly over-orders both multi-period cases, creating small reserve risk |
 | `procurement` | v0 qualitative procurement | oracle accuracy 1.00; first baseline 0.50 | current live OpenAI smoke also parses cleanly |
 | `pricing` | v0 continuous pricing | oracle revenue gap 0; rounded baseline gap 87.5 | validates continuous-action scoring |
 | `scam` | adversarial belief-manipulation arena | oracle overpay 0; careful overpay 6.66667; credulous overpay 133.333; instrument fires | working judge-free dynamic range; single-shot frontier scam resistance should not be confused with long-horizon Vending-Bench failures |
@@ -116,12 +117,14 @@ run on `review/26-regime-breadth`; PR 27-specific checks were run on
 `review/29-alignment-tax`; PR 30-specific checks were run on
 `review/30-revealed-allocation`; PR 31-specific checks were run on
 `review/31-alpha-maxmin-ambiguity`; PR 32-specific checks were run on
-`review/32-alternating-bargaining`.
+`review/32-alternating-bargaining`; PRs 33-37 add sampled live validation,
+multi-turn belief updates, mechanism IC checks, market inventory-survival, and
+multi-period retail runway checks.
 
 | Check | Command | Result |
 |---|---|---|
-| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 65 tests passed after PR 36 |
-| Full offline oracle task pass | `python3 -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 23 task runners executed; oracle errors/regrets zero or expected near-zero; bargaining n=6 with grade error 0; belief-bargaining n=5 with surplus gap 0; market n=5 with price gap 0 and survival gap 0; mechanism n=6 with score regret 0; scam control `instrument_fires=True`; supplier-scam final-cash regret 0; alignment-tax regret 0; revealed-allocation regret 0 |
+| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 67 tests passed after PR 37 |
+| Full offline oracle task pass | `python3 -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 23 task runners executed; oracle errors/regrets zero or expected near-zero; bargaining n=6 with grade error 0; belief-bargaining n=5 with surplus gap 0; market n=5 with price gap 0 and survival gap 0; mechanism n=6 with score regret 0; retail n=5 with order error 0 and multi-period miss 0; scam control `instrument_fires=True`; supplier-scam final-cash regret 0; alignment-tax regret 0; revealed-allocation regret 0 |
 | Regime differential sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev,offline:kelly,offline:cvar,offline:half --no-cache` | oracle rank 1; EV baseline error 0.586033; CVaR/Kelly baselines error 0.224185; half baseline error 0.429783; parse 1.00 for all rows |
 | Alignment-tax differential sweep | `python3 -m aeread_lab.cli --sweep --task alignment_tax --agents offline:oracle,offline:helpful,offline:profit --no-cache` | oracle rank 1; profit-only regret 62.35; helpful regret 71.725; parse 1.00 |
 | Alignment-tax helpful smoke | `python3 -m aeread_lab.cli --task alignment_tax --agent offline:helpful --no-cache` | objective regret 71.725; overconcession 1.00; helpful-default match 1.00 |
@@ -134,6 +137,8 @@ run on `review/26-regime-breadth`; PR 27-specific checks were run on
 | Multi-turn belief-bargaining sweep | `python3 -m aeread_lab.cli --sweep --task belief_bargaining --agents offline:oracle,offline:prior,offline:single_cue,offline:high_anchor --no-cache` | oracle rank 1 with surplus gap 0; prior gap 5.30563; high-anchor gap 11.2391; single-cue gap 18.4281 and multi-turn miss 1.00; parse 1.00 |
 | Mechanism IC sweep | `python3 -m aeread_lab.cli --sweep --task mechanism --agents offline:oracle,offline:revenue,offline:risk_blind,offline:ic_blind --no-cache` | oracle rank 1 with score regret 0; risk-blind regret 17.6667; IC-blind regret 18.4342 and IC miss 1.00; revenue regret 62.8342; parse 1.00 |
 | Market inventory-survival sweep | `python3 -m aeread_lab.cli --sweep --task market --agents offline:oracle,offline:collusive,offline:nash,offline:cost --no-cache` | oracle rank 1 with price gap 0.000016; Nash-only gap 0.0680322; collusive gap 0.114756 and collusion rate 1.00; cost/liquidation gap 0.451656, survival gap 4614.45, reserve violation 1.00 |
+| Retail multi-period sweep | `python3 -m aeread_lab.cli --sweep --task retail --agents offline:oracle,offline:ev_order,offline:single_cycle,offline:zero --no-cache` | oracle rank 1 with order error 0; single-cycle order error 0.0718266; EV-order order error 0.166173 and ruin probability 0.251; zero-order error 0.582994 and ruin probability 0.6 |
+| Retail oracle/myopic smokes | `python3 -m aeread_lab.cli --task retail --agent offline:oracle --no-cache` and `python3 -m aeread_lab.cli --task retail --agent offline:single_cycle --no-cache` | oracle n=5 with cash gap 0, order error 0, ruin 0, multi-period miss 0; single-cycle n=5 with cash gap 170.1029, multi-period cash gap 425.2572, multi-period miss 1.00 |
 | Regime oracle/barrier smoke | `python3 -m aeread_lab.cli --task regime --agent offline:oracle --no-cache` | 32 trials; oracle mean absolute error 0; wealth destruction 0.00; CVaR drawdown violation 0.00 |
 | Sampled regime sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev --limit 1 --no-cache` | 4 regime trials from one gamble; oracle rank 1; parse 1.00 |
 | Sampled all-task oracle smoke | `python3 -m aeread_lab.cli --task all --agent offline:oracle --limit 1 --no-cache` | all 23 task runners execute with first deterministic case/gamble only; scam remains instrumented |
@@ -143,7 +148,7 @@ run on `review/26-regime-breadth`; PR 27-specific checks were run on
 | Principal/portfolio/ambiguity sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1 on all; bad baselines expose intended failure modes |
 | Bargaining/belief/market sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1 for bargaining and market; bargaining now includes alternating/hidden variants; belief prior baseline fails; high-anchor ties current primary metric |
 | Matching/screening/mechanism sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1 on all; bad baselines expose intended failure modes |
-| Strategic/exploration/experiment/retail/scam sweeps | task-specific sweeps with oracle and known-bad/control baselines | oracle rank 1 except retail primary metric ties greedy; scam dynamic range validated |
+| Strategic/exploration/experiment/retail/scam sweeps | task-specific sweeps with oracle and known-bad/control baselines | oracle rank 1 on the tracked primary metrics; retail now ranks by order error and exposes both ruin and multi-period miss metrics; scam dynamic range validated |
 | Auction/procurement/pricing sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1; procurement/pricing parse 1.00 |
 | All-task JSON smoke | `python3 -m aeread_lab.cli --sweep --task all --agents offline:oracle,offline:ev --no-cache --json` | saved 2 runs and 40 result rows to `/tmp/aeread_review_all_oracle_ev_sweep.json` |
 | Whitespace check | `git diff --check` | passed with no output |
@@ -165,6 +170,7 @@ not committed, and live commands source `.env` only for the subprocess.
 | `python3 -m aeread_lab.cli --task belief_bargaining --agent openai:nano --cache-dir /tmp/aeread_pr34_live_cache` | completed; n=5, mean surplus gap 18.4281, cue miss 0.00, multi-turn miss 1.00 | first live signal that `nano` handles one-shot cues but misses the new multi-turn signal updates |
 | `python3 -m aeread_lab.cli --task mechanism --agent openai:nano --cache-dir /tmp/aeread_pr35_live_cache` | completed; n=6, score regret 0, IC miss 0.00, mean IC violation 0.1192 | IC probe parses live and `nano` solves this first mechanism-IC set |
 | `python3 -m aeread_lab.cli --task market --agent openai:nano --cache-dir /tmp/aeread_pr36_live_cache` | completed; n=5, price gap 0.0536, collusion 0.00, survival cash gap 551.9892, reserve violation 0.00 | `nano` avoids collusion and reserve failure but leaves material inventory-survival cash on the table |
+| `python3 -m aeread_lab.cli --task retail --agent openai:nano --cache-dir /tmp/aeread_pr37_live_cache_v4` | completed after raising the default output budget to 4096; n=5, order error 0.0228, ruin probability 0.0103, multi-period miss 1.00 | `nano` parses the longer stress prompts and solves the one-cycle cases, but slightly over-orders both multi-period cases enough to create small reserve risk |
 | `python3 -m aeread_lab.cli --sweep --task common_value --agents openai:nano,openai:mini,openai:gpt-5.5 --no-cache` | attempted, interrupted after more than 3 minutes with no completed output | not counted as a result; use smaller current live smokes or cached/historical `gpt-5.5` evidence until latency is controlled |
 
 Historical live API findings from earlier in this private stack:
@@ -175,6 +181,7 @@ Historical live API findings from earlier in this private stack:
 | `gpt-5.5` produced blank scored outputs at 400 tokens | raw response was `status=incomplete`, reason `max_output_tokens` | PR 21 made incomplete/textless responses hard failures |
 | response chunks could be missed | output text sometimes lived in nested content chunks | PR 22 added robust extraction |
 | `nano` could still exhaust 800 tokens | direct probe worked at 1200 | PR 23 raised default output budget |
+| long-horizon retail stress could exhaust 1200-2400 tokens | PR 37 live `nano` runs stopped on `max_output_tokens` on long-horizon retail cases at lower budgets | PR 37 keeps incomplete responses hard-failing, raises the default output budget to 4096, and tightens the retail no-explanation instruction |
 | common-value live smoke separated model scale | `nano` regret 21.6325, `mini` regret 7.5125, `gpt-5.5` regret 0 | interpret as a capability-scaling guardrail, not a frontier discriminator |
 
 ## Original repo commit check
@@ -184,7 +191,7 @@ Checked on 2026-05-29 before writing this ledger and rechecked on
 
 | Repo | Status | New/relevant commits checked | Consequence for private build lab |
 |---|---|---|---|
-| `/Users/lichenyu/agenteconreadiness` (`origin/main`) | clean at `1e13623` on 2026-05-30 | `c3520ac` review corrections; `f69e883` OSS availability / borrow-substrate strategy; `a0e17b1` read-first refocus doc; `1e13623` RLHF appropriateness vs economic optimality theory | PR 29 implements the new theory as a judge-free alignment-tax probe; no source code imported |
+| `/Users/lichenyu/agenteconreadiness` (`origin/main`) | clean at `d517c2e` on 2026-05-30 | `c3520ac` review corrections; `f69e883` OSS availability / borrow-substrate strategy; `a0e17b1` read-first refocus doc; `1e13623` RLHF appropriateness vs economic optimality theory; `d517c2e` oracle-availability and `(primitive x regime)` sharpening | PR 29 implements the RLHF theory as a judge-free alignment-tax probe; PR 37 follows the `d517c2e` consequence that v0 can stay single-agent if horizon/oracle-availability stress is real; no source code imported |
 | `/Users/lichenyu/persona_simulator` (`origin/master`) | dirty: modified `sprint/adversarial_scam_arena_toy/exploits.json`; untracked `.playwright-mcp/` logs; no newer fetched commits on 2026-05-30 | `47acd7a` GPT-5.x support/model override; `8404d2a` OpenAI scam-arena run; `c1fbbd0` borrow-substrate doc; `121e2e0` cross-model scam result + timeout/label fixes | record upstream evidence only; do not import OpenRouter/chat-completions client into this Responses-only lab |
 
 Upstream sprint finding to preserve: OpenAI scam-arena run with `gpt-5.5`
@@ -228,3 +235,9 @@ build lab should not depend on `.playwright-mcp/` logs or the local
 10. Market now has a first inventory/capital-survival probe. Next market work
     should add adaptive multi-period policies or opponent-policy shifts rather
     than another one-price inventory case.
+11. Retail now has multi-period inventory/runway cases. The next retail-adjacent
+    build should couple inventory timing with supplier trust/scam risk, not just
+    add more deterministic demand paths.
+12. Source commit `d517c2e` is now reflected in the lab strategy: single-agent
+    v0 remains valid when the task removes easy oracle recognition through
+    horizon, reserve, framing, or configured-principal stress.

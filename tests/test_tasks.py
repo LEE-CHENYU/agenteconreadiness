@@ -56,6 +56,8 @@ from aeread_lab.tasks.regime import DEFAULT_GAMBLES, _prompt as regime_prompt
 from aeread_lab.tasks.revealed_allocation import DEFAULT_CASES as REVEALED_ALLOCATION_CASES
 from aeread_lab.tasks.revealed_allocation import _prompt as revealed_allocation_prompt
 from aeread_lab.tasks.revealed_allocation import run_revealed_allocation_game
+from aeread_lab.tasks.retail import DEFAULT_CASES as RETAIL_CASES
+from aeread_lab.tasks.retail import _prompt as retail_prompt
 from aeread_lab.tasks.retail import run_retail_game
 from aeread_lab.tasks.screening import DEFAULT_CASES as SCREENING_CASES
 from aeread_lab.tasks.screening import _prompt as screening_prompt
@@ -78,7 +80,7 @@ class TaskSmokeTests(unittest.TestCase):
 
     def test_openai_agent_defaults_are_eval_safe(self):
         agent = OpenAIResponsesAgent(model="gpt-5.5")
-        self.assertEqual(agent.max_output_tokens, 1200)
+        self.assertEqual(agent.max_output_tokens, 4096)
         self.assertEqual(agent.reasoning_effort, "low")
         self.assertEqual(agent.text_verbosity, "low")
 
@@ -149,6 +151,7 @@ class TaskSmokeTests(unittest.TestCase):
         common_value = common_value_prompt(COMMON_VALUE_CASES[0])
         mechanism = mechanism_prompt(MECHANISM_CASES[0])
         experiment = experiment_prompt(EXPERIMENT_CASES[0])
+        retail = retail_prompt(RETAIL_CASES[-1])
         supplier_scam = supplier_scam_prompt(
             SUPPLIER_SCAM_CASES[0],
             SUPPLIER_SCAM_CASES[0].rounds[0],
@@ -172,6 +175,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", common_value)
         self.assertNotIn("oracle", mechanism)
         self.assertNotIn("oracle", experiment)
+        self.assertNotIn("oracle", retail)
         self.assertNotIn("oracle", supplier_scam)
         self.assertNotIn("kelly_fraction", regime)
         self.assertNotIn("oracle_price", pricing)
@@ -367,6 +371,18 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(survival["mean_ruin_probability"], 0.0)
         self.assertGreater(ev_order["mean_ruin_probability"], 0.1)
 
+    def test_retail_flags_myopic_multiperiod_runway(self):
+        survival = run_retail_game(OfflineAgent("oracle"))
+        myopic = run_retail_game(OfflineAgent("single_cycle"))
+        case_keys = {trial["case"]["key"] for trial in survival["trials"]}
+        self.assertIn("route_expansion_restock_lag", case_keys)
+        self.assertIn("holiday_bundle_cash_buffer", case_keys)
+        self.assertGreater(survival["mean_myopic_order_gap"], 0.05)
+        self.assertLess(survival["mean_multi_period_cash_gap"], 1e-9)
+        self.assertEqual(survival["multi_period_miss_rate"], 0.0)
+        self.assertGreater(myopic["mean_multi_period_cash_gap"], 400.0)
+        self.assertEqual(myopic["multi_period_miss_rate"], 1.0)
+
     def test_supplier_scam_flags_credulous_long_horizon(self):
         oracle = run_supplier_scam_game(OfflineAgent("oracle"))
         credulous = run_supplier_scam_game(OfflineAgent("credulous"))
@@ -516,6 +532,13 @@ class TaskSmokeTests(unittest.TestCase):
         retail_rows = [row for row in rows if row["task"] == "retail"]
         self.assertEqual(retail_rows[0]["agent"], "offline:oracle")
         self.assertEqual(retail_rows[1]["agent"], "offline:ev_order")
+
+    def test_offline_sweep_ranks_oracle_above_myopic_on_retail_multiperiod(self):
+        sweep = run_sweep(task="retail", agent_specs=["offline:oracle", "offline:single_cycle"])
+        rows = rank_rows(comparison_table(sweep))
+        retail_rows = [row for row in rows if row["task"] == "retail"]
+        self.assertEqual(retail_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(retail_rows[1]["agent"], "offline:single_cycle")
 
     def test_rank_rows_keeps_missing_metrics_last(self):
         rows = [
