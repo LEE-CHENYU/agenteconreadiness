@@ -1282,6 +1282,21 @@ class OfflineAgent:
         return f"FINAL_ACTION: {action}"
 
     def _forecast_probability(self, user: str) -> str:
+        if _has_forecast_event_log_table(user):
+            if self.policy in {"raw_score", "uncalibrated"}:
+                probability = _extract_float(user, "raw_model_probability")
+            elif self.policy in {"stale_window", "stale", "oldest_window"}:
+                probability = _forecast_event_log_stale_probability(user)
+            elif self.policy in {"pooled_history", "pooled", "all_history"}:
+                probability = _forecast_event_log_pooled_probability(user)
+            elif self.policy in {"latest_window", "recent_only", "newest_window"}:
+                probability = _forecast_event_log_latest_probability(user)
+            elif self.policy in {"base_rate", "prior", "unconditional"}:
+                probability = _extract_float(user, "global_base_rate", _extract_float(user, "base_rate"))
+            else:
+                probability = _forecast_event_log_probability(user)
+            probability = max(0.0, min(1.0, probability))
+            return f"FINAL_PROBABILITY: {probability:.12f}"
         if _has_forecast_rolling_noisy_log_table(user):
             if self.policy in {"raw_score", "uncalibrated"}:
                 probability = _extract_float(user, "raw_model_probability")
@@ -2013,6 +2028,115 @@ def _interpolate_forecast_points(points: list[tuple[float, float]], raw: float) 
             weight = (raw - left_raw) / max(right_raw - left_raw, 1e-12)
             return left_value + weight * (right_value - left_value)
     return points[-1][1]
+
+
+def _has_forecast_event_log_table(text: str) -> bool:
+    return "event_log_item=" in text and "outcome=" in text
+
+
+def _forecast_event_log_half_life(text: str) -> float:
+    cadence = _extract_word(text, "review_cadence", "monthly")
+    if cadence == "biweekly":
+        return 21.0
+    if cadence == "six_week":
+        return 45.0
+    if cadence == "quarterly":
+        return 90.0
+    return 30.0
+
+
+def _extract_forecast_event_log_entries(text: str) -> list[dict[str, float | bool]]:
+    entries: list[dict[str, float | bool]] = []
+    for line in text.splitlines():
+        if "event_log_item=" not in line:
+            continue
+        outcome = _extract_word(line, "outcome", "no_event")
+        entries.append(
+            {
+                "score": _extract_float(line, "score"),
+                "days": _extract_float(line, "age_days", 0.0),
+                "event": outcome in {"event", "yes", "true", "1"},
+            }
+        )
+    return entries
+
+
+def _forecast_event_log_entry_weight(
+    text: str,
+    entry: dict[str, float | bool],
+    *,
+    use_recency: bool = True,
+) -> float:
+    raw = _extract_float(text, "raw_model_probability", 0.5)
+    score = float(entry["score"])
+    score_width = 0.12
+    score_distance = (score - raw) / max(score_width, 1e-9)
+    score_weight = math.exp(-0.5 * score_distance * score_distance)
+    if not use_recency:
+        return score_weight
+    age = max(float(entry["days"]), 0.0)
+    return score_weight * (0.5 ** (age / max(_forecast_event_log_half_life(text), 1e-9)))
+
+
+def _forecast_event_log_probability_from_entries(
+    text: str,
+    entries: list[dict[str, float | bool]],
+    *,
+    use_recency: bool = True,
+) -> float:
+    global_base_rate = _extract_float(text, "global_base_rate", _extract_float(text, "base_rate", 0.5))
+    prior_strength = _extract_float(text, "prior_strength", 0.0)
+    weighted_events = sum(
+        _forecast_event_log_entry_weight(text, entry, use_recency=use_recency)
+        * float(bool(entry["event"]))
+        for entry in entries
+    )
+    weighted_total = sum(
+        _forecast_event_log_entry_weight(text, entry, use_recency=use_recency)
+        for entry in entries
+    )
+    return (weighted_events + prior_strength * global_base_rate) / max(
+        weighted_total + prior_strength,
+        1e-9,
+    )
+
+
+def _forecast_event_log_probability(text: str) -> float:
+    entries = _extract_forecast_event_log_entries(text)
+    if not entries:
+        return _extract_float(text, "raw_model_probability", 0.5)
+    return _forecast_event_log_probability_from_entries(text, entries, use_recency=True)
+
+
+def _forecast_event_log_pooled_probability(text: str) -> float:
+    entries = _extract_forecast_event_log_entries(text)
+    if not entries:
+        return _extract_float(text, "raw_model_probability", 0.5)
+    return _forecast_event_log_probability_from_entries(text, entries, use_recency=False)
+
+
+def _forecast_event_log_stale_probability(text: str) -> float:
+    entries = _extract_forecast_event_log_entries(text)
+    if not entries:
+        return _extract_float(text, "raw_model_probability", 0.5)
+    half_life = _forecast_event_log_half_life(text)
+    stale_entries = [entry for entry in entries if float(entry["days"]) >= 2.0 * half_life]
+    if not stale_entries:
+        oldest = max(float(entry["days"]) for entry in entries)
+        stale_entries = [entry for entry in entries if float(entry["days"]) == oldest]
+    return _forecast_event_log_probability_from_entries(text, stale_entries, use_recency=False)
+
+
+def _forecast_event_log_latest_probability(text: str) -> float:
+    entries = _extract_forecast_event_log_entries(text)
+    if not entries:
+        return _extract_float(text, "raw_model_probability", 0.5)
+    half_life = _forecast_event_log_half_life(text)
+    latest_entries = [entry for entry in entries if float(entry["days"]) <= 0.5 * half_life]
+    if not latest_entries:
+        latest = min(float(entry["days"]) for entry in entries)
+        latest_entries = [entry for entry in entries if float(entry["days"]) == latest]
+    return _forecast_event_log_probability_from_entries(text, latest_entries, use_recency=False)
 
 
 def _has_forecast_rolling_noisy_log_table(text: str) -> bool:

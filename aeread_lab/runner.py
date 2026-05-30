@@ -80,6 +80,7 @@ TASK_ORDER = (
     "forecast_rolling_calibration",
     "forecast_rolling_log_calibration",
     "forecast_rolling_log_noisy",
+    "forecast_event_log_calibration",
     "exploration",
     "experiment_design",
     "retail",
@@ -253,6 +254,10 @@ _CASE_TASKS = {
     "forecast_rolling_log_noisy": (
         forecast_calibration_task.run_forecast_rolling_log_noisy_game,
         forecast_calibration_task.NOISY_ROLLING_LOG_CALIBRATION_CASES,
+    ),
+    "forecast_event_log_calibration": (
+        forecast_calibration_task.run_forecast_event_log_calibration_game,
+        forecast_calibration_task.EVENT_LOG_CALIBRATION_CASES,
     ),
     "exploration": (exploration_task.run_exploration_game, exploration_task.DEFAULT_CASES),
     "experiment_design": (

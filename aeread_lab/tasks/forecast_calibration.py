@@ -212,6 +212,65 @@ class RollingLogForecastTrial:
     raw_response: str
 
 
+@dataclass(frozen=True)
+class EventLogCalibrationEntry:
+    entry_id: str
+    raw_model_probability: float
+    days_before_target: float
+    event_observed: bool
+
+
+@dataclass(frozen=True)
+class EventLogCalibrationCase:
+    key: str
+    real_case: str
+    target_event: str
+    raw_model_probability: float
+    global_base_rate: float
+    prior_strength: float
+    recency_half_life_days: float
+    score_kernel_width: float
+    entries: tuple[EventLogCalibrationEntry, ...]
+
+
+@dataclass
+class EventLogForecastTrial:
+    case: EventLogCalibrationCase
+    calibrated_probability: float
+    raw_model_probability: float
+    stale_window_probability: float
+    pooled_history_probability: float
+    latest_window_probability: float
+    chosen_probability: float | None
+    expected_brier_regret: float | None
+    probability_error: float | None
+    raw_score_miss: bool
+    stale_window_miss: bool
+    pooled_history_miss: bool
+    latest_window_miss: bool
+    raw_response: str
+
+
+def _event_log_entries(
+    prefix: str,
+    rows: tuple[tuple[str, float, float, int, int], ...],
+) -> tuple[EventLogCalibrationEntry, ...]:
+    entries: list[EventLogCalibrationEntry] = []
+    for row_id, score, days, events, total in rows:
+        for index in range(total):
+            score_jitter = ((index % 5) - 2) * 0.008
+            day_jitter = (index % 3) - 1
+            entries.append(
+                EventLogCalibrationEntry(
+                    entry_id=f"{prefix}_{row_id}_{index + 1:02d}",
+                    raw_model_probability=clamp(score + score_jitter, 0.01, 0.99),
+                    days_before_target=max(0.0, days + day_jitter),
+                    event_observed=index < events,
+                )
+            )
+    return tuple(entries)
+
+
 DEFAULT_CASES = [
     ForecastCase(
         key="enterprise_churn_warning",
@@ -1115,6 +1174,93 @@ NOISY_ROLLING_LOG_CALIBRATION_CASES = [
     ),
 ]
 
+EVENT_LOG_CALIBRATION_CASES = [
+    EventLogCalibrationCase(
+        key="retention_item_log_cooldown",
+        real_case="enterprise churn scorecard after a retention playbook shifted recent renewals",
+        target_event="account churns before renewal",
+        raw_model_probability=0.72,
+        global_base_rate=0.26,
+        prior_strength=20.0,
+        recency_half_life_days=30.0,
+        score_kernel_width=0.12,
+        entries=_event_log_entries(
+            "retention",
+            (
+                ("old_low", 0.50, 126.0, 5, 14),
+                ("old_target", 0.72, 124.0, 11, 16),
+                ("old_high", 0.88, 122.0, 13, 16),
+                ("mid_target", 0.72, 54.0, 7, 14),
+                ("recent_target", 0.72, 19.0, 4, 14),
+                ("live_target", 0.72, 5.0, 2, 8),
+            ),
+        ),
+    ),
+    EventLogCalibrationCase(
+        key="merchant_item_log_surge",
+        real_case="merchant fraud screen after acquisition traffic changed quickly",
+        target_event="merchant account has a confirmed fraud escalation",
+        raw_model_probability=0.34,
+        global_base_rate=0.16,
+        prior_strength=24.0,
+        recency_half_life_days=21.0,
+        score_kernel_width=0.12,
+        entries=_event_log_entries(
+            "merchant",
+            (
+                ("old_low", 0.18, 88.0, 1, 14),
+                ("old_target", 0.34, 86.0, 2, 16),
+                ("old_high", 0.58, 84.0, 4, 14),
+                ("mid_target", 0.34, 48.0, 5, 16),
+                ("recent_target", 0.34, 20.0, 11, 16),
+                ("live_target", 0.34, 4.0, 7, 8),
+            ),
+        ),
+    ),
+    EventLogCalibrationCase(
+        key="credit_item_log_relief",
+        real_case="small-business delinquency score after tighter underwriting controls",
+        target_event="borrower becomes 60 days delinquent",
+        raw_model_probability=0.58,
+        global_base_rate=0.28,
+        prior_strength=30.0,
+        recency_half_life_days=45.0,
+        score_kernel_width=0.12,
+        entries=_event_log_entries(
+            "credit",
+            (
+                ("old_low", 0.30, 158.0, 5, 14),
+                ("old_target", 0.58, 156.0, 12, 18),
+                ("old_high", 0.78, 154.0, 14, 18),
+                ("mid_target", 0.58, 92.0, 7, 16),
+                ("recent_target", 0.58, 38.0, 3, 14),
+                ("live_target", 0.58, 8.0, 1, 8),
+            ),
+        ),
+    ),
+    EventLogCalibrationCase(
+        key="defect_item_log_regression",
+        real_case="launch-defect model after a supplier change worsened recent cohorts",
+        target_event="batch exceeds the defect escalation threshold",
+        raw_model_probability=0.46,
+        global_base_rate=0.12,
+        prior_strength=36.0,
+        recency_half_life_days=21.0,
+        score_kernel_width=0.12,
+        entries=_event_log_entries(
+            "defect",
+            (
+                ("old_low", 0.22, 92.0, 1, 14),
+                ("old_target", 0.46, 88.0, 2, 16),
+                ("old_high", 0.70, 86.0, 5, 14),
+                ("mid_target", 0.46, 48.0, 5, 16),
+                ("recent_target", 0.46, 19.0, 11, 16),
+                ("live_target", 0.46, 4.0, 7, 8),
+            ),
+        ),
+    ),
+]
+
 
 def posterior_probability(case: ForecastCase) -> float:
     odds = case.base_rate / max(1e-12, 1.0 - case.base_rate)
@@ -1356,6 +1502,75 @@ def pooled_rolling_log_probability(case: RollingLogCalibrationCase) -> float:
         for raw, (events, total) in by_center.items()
     )
     return _interpolate_points(points, case.raw_model_probability)
+
+
+def event_log_entry_weight(
+    case: EventLogCalibrationCase,
+    entry: EventLogCalibrationEntry,
+    *,
+    use_recency: bool = True,
+) -> float:
+    score_distance = (entry.raw_model_probability - case.raw_model_probability) / max(
+        case.score_kernel_width,
+        1e-12,
+    )
+    score_weight = math.exp(-0.5 * score_distance * score_distance)
+    if not use_recency:
+        return score_weight
+    recency_weight = 0.5 ** (
+        max(entry.days_before_target, 0.0) / max(case.recency_half_life_days, 1e-12)
+    )
+    return score_weight * recency_weight
+
+
+def event_log_probability(
+    case: EventLogCalibrationCase,
+    entries: tuple[EventLogCalibrationEntry, ...],
+    *,
+    use_recency: bool = True,
+) -> float:
+    weighted_events = sum(
+        event_log_entry_weight(case, entry, use_recency=use_recency)
+        * float(entry.event_observed)
+        for entry in entries
+    )
+    weighted_total = sum(
+        event_log_entry_weight(case, entry, use_recency=use_recency) for entry in entries
+    )
+    prior_events = case.prior_strength * case.global_base_rate
+    return (weighted_events + prior_events) / max(weighted_total + case.prior_strength, 1e-12)
+
+
+def event_log_calibrated_probability(case: EventLogCalibrationCase) -> float:
+    return event_log_probability(case, case.entries, use_recency=True)
+
+
+def pooled_event_log_probability(case: EventLogCalibrationCase) -> float:
+    return event_log_probability(case, case.entries, use_recency=False)
+
+
+def stale_event_log_probability(case: EventLogCalibrationCase) -> float:
+    stale_entries = tuple(
+        entry
+        for entry in case.entries
+        if entry.days_before_target >= 2.0 * case.recency_half_life_days
+    )
+    if not stale_entries:
+        oldest_age = max(entry.days_before_target for entry in case.entries)
+        stale_entries = tuple(entry for entry in case.entries if entry.days_before_target == oldest_age)
+    return event_log_probability(case, stale_entries, use_recency=False)
+
+
+def latest_event_log_probability(case: EventLogCalibrationCase) -> float:
+    latest_entries = tuple(
+        entry
+        for entry in case.entries
+        if entry.days_before_target <= 0.5 * case.recency_half_life_days
+    )
+    if not latest_entries:
+        latest_age = min(entry.days_before_target for entry in case.entries)
+        latest_entries = tuple(entry for entry in case.entries if entry.days_before_target == latest_age)
+    return event_log_probability(case, latest_entries, use_recency=False)
 
 
 def run_forecast_calibration_game(agent: Agent, cases: list[ForecastCase] | None = None) -> dict:
@@ -1703,6 +1918,63 @@ def run_forecast_rolling_log_noisy_game(
     )
 
 
+def run_forecast_event_log_calibration_game(
+    agent: Agent,
+    cases: list[EventLogCalibrationCase] | None = None,
+) -> dict:
+    cases = cases or EVENT_LOG_CALIBRATION_CASES
+    trials: list[EventLogForecastTrial] = []
+    for case in cases:
+        calibrated = event_log_calibrated_probability(case)
+        stale = stale_event_log_probability(case)
+        pooled = pooled_event_log_probability(case)
+        latest = latest_event_log_probability(case)
+        response = agent.complete(FORECAST_SYSTEM, _event_log_prompt(case))
+        parsed = parse_float("FINAL_PROBABILITY", response)
+        chosen = clamp(parsed, 0.0, 1.0) if parsed is not None else None
+        raw_score_miss = (
+            chosen is not None
+            and abs(case.raw_model_probability - calibrated) >= 0.08
+            and abs(chosen - case.raw_model_probability) < abs(chosen - calibrated)
+        )
+        stale_window_miss = (
+            chosen is not None
+            and abs(stale - calibrated) >= 0.05
+            and abs(chosen - stale) < abs(chosen - calibrated)
+        )
+        pooled_history_miss = (
+            chosen is not None
+            and abs(pooled - calibrated) >= 0.03
+            and abs(chosen - pooled) < abs(chosen - calibrated)
+        )
+        latest_window_miss = (
+            chosen is not None
+            and abs(latest - calibrated) >= 0.02
+            and abs(chosen - latest) < abs(chosen - calibrated)
+        )
+        trials.append(
+            EventLogForecastTrial(
+                case=case,
+                calibrated_probability=calibrated,
+                raw_model_probability=case.raw_model_probability,
+                stale_window_probability=stale,
+                pooled_history_probability=pooled,
+                latest_window_probability=latest,
+                chosen_probability=chosen,
+                expected_brier_regret=expected_brier_regret(calibrated, chosen)
+                if chosen is not None
+                else None,
+                probability_error=abs(chosen - calibrated) if chosen is not None else None,
+                raw_score_miss=raw_score_miss,
+                stale_window_miss=stale_window_miss,
+                pooled_history_miss=pooled_history_miss,
+                latest_window_miss=latest_window_miss,
+                raw_response=response,
+            )
+        )
+    return summarize_event_log_forecast_trials(agent.name, trials)
+
+
 def _run_forecast_curve_game(
     agent: Agent,
     cases: list[ForecastCurveCase] | None,
@@ -2016,6 +2288,67 @@ def summarize_rolling_log_forecast_trials(
             else 0.0
         ),
         "trials": [_rolling_log_trial_json(trial) for trial in trials],
+    }
+
+
+def summarize_event_log_forecast_trials(
+    agent_name: str,
+    trials: list[EventLogForecastTrial],
+) -> dict:
+    regrets = [
+        trial.expected_brier_regret
+        for trial in trials
+        if trial.expected_brier_regret is not None
+    ]
+    errors = [trial.probability_error for trial in trials if trial.probability_error is not None]
+    raw_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.raw_model_probability - trial.calibrated_probability) >= 0.08
+    ]
+    stale_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.stale_window_probability - trial.calibrated_probability) >= 0.05
+    ]
+    pooled_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.pooled_history_probability - trial.calibrated_probability) >= 0.03
+    ]
+    latest_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.latest_window_probability - trial.calibrated_probability) >= 0.02
+    ]
+    return {
+        "task": "forecast_event_log_calibration",
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "mean_expected_brier_regret": mean(regrets),
+        "mean_expected_brier_regret_ci95": bootstrap_mean_ci(regrets),
+        "mean_probability_error": mean(errors),
+        "raw_score_miss_rate": (
+            sum(trial.raw_score_miss for trial in raw_shifted) / len(raw_shifted)
+            if raw_shifted
+            else 0.0
+        ),
+        "stale_window_miss_rate": (
+            sum(trial.stale_window_miss for trial in stale_shifted) / len(stale_shifted)
+            if stale_shifted
+            else 0.0
+        ),
+        "pooled_history_miss_rate": (
+            sum(trial.pooled_history_miss for trial in pooled_shifted) / len(pooled_shifted)
+            if pooled_shifted
+            else 0.0
+        ),
+        "latest_window_miss_rate": (
+            sum(trial.latest_window_miss for trial in latest_shifted) / len(latest_shifted)
+            if latest_shifted
+            else 0.0
+        ),
+        "trials": [_event_log_trial_json(trial) for trial in trials],
     }
 
 
@@ -2393,6 +2726,50 @@ def _rolling_log_noisy_prompt(case: RollingLogCalibrationCase) -> str:
     return "\n".join(lines)
 
 
+def _event_log_prompt(case: EventLogCalibrationCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"target_event={case.target_event}",
+        f"raw_model_probability={case.raw_model_probability:.4f}",
+        f"global_base_rate={case.global_base_rate:.4f}",
+        f"prior_strength={case.prior_strength:.1f}",
+        f"review_cadence={_review_cadence_label_for_half_life(case.recency_half_life_days)}",
+        "Dated scored-record log for nearby historical items:",
+    ]
+    for entry in case.entries:
+        outcome = "event" if entry.event_observed else "no_event"
+        lines.append(
+            f"event_log_item={entry.entry_id} "
+            f"age_days={entry.days_before_target:.1f} "
+            f"score={entry.raw_model_probability:.4f} "
+            f"outcome={outcome}"
+        )
+    lines.extend(
+        [
+            "Use records with scores near the target raw probability as more "
+            "comparable than far-away scores. The process has drifted over time, "
+            "so more recent comparable records are more informative, but thin "
+            "recent logs should be stabilized against the global reference and "
+            "older nearby records.",
+            "Estimate the event probability for the next item at the raw score "
+            "above. Do not simply count all records equally, use only the newest "
+            "records, or reuse the raw model score as the final probability.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _review_cadence_label_for_half_life(half_life: float) -> str:
+    if half_life <= 22:
+        return "biweekly"
+    if half_life <= 38:
+        return "monthly"
+    if half_life <= 55:
+        return "six_week"
+    return "quarterly"
+
+
 def _trial_json(trial: ForecastTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
@@ -2424,6 +2801,12 @@ def _rolling_trial_json(trial: RollingForecastTrial) -> dict:
 
 
 def _rolling_log_trial_json(trial: RollingLogForecastTrial) -> dict:
+    data = asdict(trial)
+    data["case"] = asdict(trial.case)
+    return data
+
+
+def _event_log_trial_json(trial: EventLogForecastTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
     return data

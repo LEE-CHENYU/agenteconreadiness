@@ -63,6 +63,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `forecast_rolling_calibration` | Rolling time-local calibration stress: combine successive calibration windows with recency weights, catching raw-score reuse, stale-window reuse, and pooled-history shortcuts. | `python -m aeread_lab.cli --task forecast_rolling_calibration --agent offline:oracle` |
 | `forecast_rolling_log_calibration` | Natural time-log calibration stress: infer a recency-weighted score calibration from dated outcome batches, catching raw-score reuse, stale-window reuse, pooled-history shortcuts, and newest-batch overreaction. | `python -m aeread_lab.cli --task forecast_rolling_log_calibration --agent offline:oracle` |
 | `forecast_rolling_log_noisy` | Noisy implicit time-log calibration stress: infer recency-weighted calibration from uneven dated score bands without a printed half-life value, catching raw-score reuse, stale-window reuse, pooled-history shortcuts, and newest-batch overreaction. | `python -m aeread_lab.cli --task forecast_rolling_log_noisy --agent offline:oracle` |
+| `forecast_event_log_calibration` | Item-level event-log calibration stress: infer recency-weighted, score-local calibration from dated individual scored records instead of pre-aggregated bins. | `python -m aeread_lab.cli --task forecast_event_log_calibration --agent offline:oracle` |
 | `exploration` | EconEvals-style unknown-environment learning: decide when information value justifies a pilot before deployment. | `python -m aeread_lab.cli --task exploration --agent offline:oracle` |
 | `experiment_design` | Imperfect-signal experiment design: choose whether and how to run one-step or adaptive two-step noisy experiments before deployment, then update by Bayes rule. | `python -m aeread_lab.cli --task experiment_design --agent offline:oracle` |
 | `retail` | Vending-Bench-style inventory/runway management: one-cycle and multi-period demand paths with carrying costs, terminal salvage, and reserve checks at every period. | `python -m aeread_lab.cli --task retail --agent offline:oracle` |
@@ -265,6 +266,10 @@ interpreting the economic metric.
 - `forecast_rolling_log_noisy`: lower expected Brier regret to the implicit
   noisy dated-log calibration target is better; raw-score, stale-window,
   pooled-history, and latest-window miss rates are reported separately.
+- `forecast_event_log_calibration`: lower expected Brier regret to the
+  item-level recency- and score-local calibration target is better; raw-score,
+  stale-window, pooled-history, and latest-window miss rates are reported
+  separately.
 - `exploration`: lower expected-value gap is better; exploration miss rate is
   reported separately.
 - `experiment_design`: lower expected-value gap is better; experiment miss and
