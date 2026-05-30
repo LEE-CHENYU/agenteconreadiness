@@ -39,6 +39,7 @@ PRIMARY_METRICS = {
     "forecast_curve_implicit": ("mean_expected_brier_regret", "lower"),
     "forecast_curve_noisy": ("mean_expected_brier_regret", "lower"),
     "forecast_curve_natural": ("mean_expected_brier_regret", "lower"),
+    "forecast_shift_calibration": ("mean_expected_brier_regret", "lower"),
     "exploration": ("mean_expected_value_gap", "lower"),
     "experiment_design": ("mean_expected_value_gap", "lower"),
     "retail": ("mean_order_error", "lower"),

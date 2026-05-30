@@ -938,6 +938,21 @@ class OfflineAgent:
         return f"FINAL_ACTION: {action}"
 
     def _forecast_probability(self, user: str) -> str:
+        if _has_forecast_shift_table(user):
+            if self.policy in {"raw_score", "uncalibrated"}:
+                probability = _extract_float(user, "raw_model_probability")
+            elif self.policy in {"source_curve", "source_only"}:
+                probability = _forecast_shift_source_probability(user)
+            elif self.policy in {"nearest_bridge", "bridge_nearest"}:
+                probability = _forecast_shift_nearest_bridge_probability(user)
+            elif self.policy in {"bridge_empirical", "no_shrink_bridge"}:
+                probability = _forecast_shift_nearest_bridge_empirical(user)
+            elif self.policy in {"base_rate", "prior", "unconditional"}:
+                probability = _extract_float(user, "source_base_rate", _extract_float(user, "base_rate"))
+            else:
+                probability = _forecast_shift_probability(user)
+            probability = max(0.0, min(1.0, probability))
+            return f"FINAL_PROBABILITY: {probability:.12f}"
         if _has_forecast_curve_table(user):
             if self.policy in {"raw_score", "uncalibrated"}:
                 probability = _extract_float(user, "raw_model_probability")
@@ -1534,6 +1549,104 @@ def _forecast_aggregate_probability(text: str) -> float:
     global_base_rate = _extract_float(text, "global_base_rate", _extract_float(text, "base_rate", 0.5))
     prior_strength = _extract_float(text, "prior_strength", 0.0)
     return (event_count + prior_strength * global_base_rate) / max(total + prior_strength, 1e-9)
+
+
+def _interpolate_forecast_points(points: list[tuple[float, float]], raw: float) -> float:
+    if not points:
+        return raw
+    points = sorted(points, key=lambda item: item[0])
+    if raw <= points[0][0]:
+        return points[0][1]
+    if raw >= points[-1][0]:
+        return points[-1][1]
+    for (left_raw, left_value), (right_raw, right_value) in zip(points, points[1:]):
+        if left_raw <= raw <= right_raw:
+            weight = (raw - left_raw) / max(right_raw - left_raw, 1e-12)
+            return left_value + weight * (right_value - left_value)
+    return points[-1][1]
+
+
+def _has_forecast_shift_table(text: str) -> bool:
+    return "source_bin=" in text and "target_bridge=" in text
+
+
+def _extract_forecast_shift_source_points(text: str) -> list[tuple[float, float]]:
+    source_base_rate = _extract_float(text, "source_base_rate", _extract_float(text, "base_rate", 0.5))
+    source_prior_strength = _extract_float(text, "source_prior_strength", 0.0)
+    points: list[tuple[float, float]] = []
+    for line in text.splitlines():
+        if "source_bin=" not in line:
+            continue
+        raw = _extract_float(line, "score_center")
+        events = _extract_float(line, "events")
+        total = _extract_float(line, "total", 1.0)
+        probability = (events + source_prior_strength * source_base_rate) / max(
+            total + source_prior_strength,
+            1e-9,
+        )
+        points.append((raw, probability))
+    points.sort(key=lambda item: item[0])
+    return points
+
+
+def _forecast_shift_source_probability(text: str, raw: float | None = None) -> float:
+    raw = _extract_float(text, "raw_model_probability", 0.5) if raw is None else raw
+    return _interpolate_forecast_points(_extract_forecast_shift_source_points(text), raw)
+
+
+def _extract_forecast_shift_bridge_points(text: str) -> list[tuple[float, float, float]]:
+    points: list[tuple[float, float, float]] = []
+    for line in text.splitlines():
+        if "target_bridge=" not in line:
+            continue
+        raw = _extract_float(line, "score_center")
+        events = _extract_float(line, "events")
+        total = _extract_float(line, "total", 1.0)
+        points.append((raw, events, total))
+    points.sort(key=lambda item: item[0])
+    return points
+
+
+def _forecast_shift_adjusted_bridge_probability(text: str, raw: float, events: float, total: float) -> float:
+    source_probability = _forecast_shift_source_probability(text, raw)
+    bridge_prior_strength = _extract_float(text, "bridge_prior_strength", 0.0)
+    return (events + bridge_prior_strength * source_probability) / max(
+        total + bridge_prior_strength,
+        1e-9,
+    )
+
+
+def _forecast_shift_probability(text: str) -> float:
+    raw = _extract_float(text, "raw_model_probability", 0.5)
+    source_at_raw = _forecast_shift_source_probability(text, raw)
+    shifts = [
+        (
+            bridge_raw,
+            _forecast_shift_adjusted_bridge_probability(text, bridge_raw, events, total)
+            - _forecast_shift_source_probability(text, bridge_raw),
+        )
+        for bridge_raw, events, total in _extract_forecast_shift_bridge_points(text)
+    ]
+    shift = _interpolate_forecast_points(shifts, raw) if shifts else 0.0
+    return source_at_raw + shift
+
+
+def _forecast_shift_nearest_bridge_probability(text: str) -> float:
+    raw = _extract_float(text, "raw_model_probability", 0.5)
+    bridge_points = _extract_forecast_shift_bridge_points(text)
+    if not bridge_points:
+        return _forecast_shift_source_probability(text, raw)
+    bridge_raw, events, total = min(bridge_points, key=lambda point: abs(point[0] - raw))
+    return _forecast_shift_adjusted_bridge_probability(text, bridge_raw, events, total)
+
+
+def _forecast_shift_nearest_bridge_empirical(text: str) -> float:
+    raw = _extract_float(text, "raw_model_probability", 0.5)
+    bridge_points = _extract_forecast_shift_bridge_points(text)
+    if not bridge_points:
+        return _forecast_shift_source_probability(text, raw)
+    _, events, total = min(bridge_points, key=lambda point: abs(point[0] - raw))
+    return events / max(total, 1e-9)
 
 
 def _has_forecast_curve_table(text: str) -> bool:

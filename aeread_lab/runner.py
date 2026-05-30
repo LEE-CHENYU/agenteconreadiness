@@ -68,6 +68,7 @@ TASK_ORDER = (
     "forecast_curve_implicit",
     "forecast_curve_noisy",
     "forecast_curve_natural",
+    "forecast_shift_calibration",
     "exploration",
     "experiment_design",
     "retail",
@@ -189,6 +190,10 @@ _CASE_TASKS = {
     "forecast_curve_natural": (
         forecast_calibration_task.run_forecast_curve_natural_game,
         forecast_calibration_task.NOISY_CURVE_CASES,
+    ),
+    "forecast_shift_calibration": (
+        forecast_calibration_task.run_forecast_shift_calibration_game,
+        forecast_calibration_task.SHIFT_CALIBRATION_CASES,
     ),
     "exploration": (exploration_task.run_exploration_game, exploration_task.DEFAULT_CASES),
     "experiment_design": (

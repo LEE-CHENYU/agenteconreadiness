@@ -112,6 +112,35 @@ class ForecastCurveTrial:
     raw_response: str
 
 
+@dataclass(frozen=True)
+class ShiftCalibrationCase:
+    key: str
+    real_case: str
+    target_event: str
+    raw_model_probability: float
+    source_base_rate: float
+    source_prior_strength: float
+    bridge_prior_strength: float
+    source_bins: tuple[CalibrationBin, ...]
+    bridge_bins: tuple[CalibrationBin, ...]
+
+
+@dataclass
+class ShiftForecastTrial:
+    case: ShiftCalibrationCase
+    calibrated_probability: float
+    raw_model_probability: float
+    source_curve_probability: float
+    nearest_bridge_probability: float
+    chosen_probability: float | None
+    expected_brier_regret: float | None
+    probability_error: float | None
+    raw_score_miss: bool
+    source_curve_miss: bool
+    nearest_bridge_miss: bool
+    raw_response: str
+
+
 DEFAULT_CASES = [
     ForecastCase(
         key="enterprise_churn_warning",
@@ -431,6 +460,94 @@ NOISY_CURVE_CASES = [
 ]
 
 
+SHIFT_CALIBRATION_CASES = [
+    ShiftCalibrationCase(
+        key="fraud_target_lift",
+        real_case="merchant-risk model moved from a mature source cohort to a newer acquisition channel",
+        target_event="merchant account has a confirmed fraud escalation",
+        raw_model_probability=0.44,
+        source_base_rate=0.16,
+        source_prior_strength=40.0,
+        bridge_prior_strength=18.0,
+        source_bins=(
+            CalibrationBin("src_12", 0.12, 8, 120),
+            CalibrationBin("src_28", 0.28, 22, 110),
+            CalibrationBin("src_46", 0.46, 42, 100),
+            CalibrationBin("src_68", 0.68, 67, 115),
+            CalibrationBin("src_86", 0.86, 79, 95),
+        ),
+        bridge_bins=(
+            CalibrationBin("bridge_30", 0.30, 16, 34),
+            CalibrationBin("bridge_52", 0.52, 27, 40),
+            CalibrationBin("bridge_76", 0.76, 23, 28),
+        ),
+    ),
+    ShiftCalibrationCase(
+        key="renewal_target_relief",
+        real_case="enterprise churn model applied after a retention playbook changed the target cohort",
+        target_event="account churns before renewal",
+        raw_model_probability=0.72,
+        source_base_rate=0.26,
+        source_prior_strength=45.0,
+        bridge_prior_strength=16.0,
+        source_bins=(
+            CalibrationBin("src_18", 0.18, 19, 120),
+            CalibrationBin("src_38", 0.38, 46, 130),
+            CalibrationBin("src_58", 0.58, 71, 125),
+            CalibrationBin("src_78", 0.78, 82, 105),
+            CalibrationBin("src_91", 0.91, 62, 70),
+        ),
+        bridge_bins=(
+            CalibrationBin("bridge_44", 0.44, 9, 46),
+            CalibrationBin("bridge_66", 0.66, 15, 48),
+            CalibrationBin("bridge_84", 0.84, 15, 38),
+        ),
+    ),
+    ShiftCalibrationCase(
+        key="credit_bridge_steeper",
+        real_case="small-business delinquency model moved into a cash-flow stressed target cohort",
+        target_event="borrower becomes 60 days delinquent",
+        raw_model_probability=0.37,
+        source_base_rate=0.24,
+        source_prior_strength=35.0,
+        bridge_prior_strength=14.0,
+        source_bins=(
+            CalibrationBin("src_10", 0.10, 18, 140),
+            CalibrationBin("src_26", 0.26, 33, 135),
+            CalibrationBin("src_44", 0.44, 54, 130),
+            CalibrationBin("src_64", 0.64, 79, 125),
+            CalibrationBin("src_82", 0.82, 78, 95),
+        ),
+        bridge_bins=(
+            CalibrationBin("bridge_24", 0.24, 18, 42),
+            CalibrationBin("bridge_40", 0.40, 28, 45),
+            CalibrationBin("bridge_58", 0.58, 38, 46),
+        ),
+    ),
+    ShiftCalibrationCase(
+        key="defect_bridge_cooldown",
+        real_case="launch-defect model reused after manufacturing controls improved the target cohort",
+        target_event="batch exceeds the defect escalation threshold",
+        raw_model_probability=0.58,
+        source_base_rate=0.18,
+        source_prior_strength=55.0,
+        bridge_prior_strength=20.0,
+        source_bins=(
+            CalibrationBin("src_08", 0.08, 10, 160),
+            CalibrationBin("src_24", 0.24, 31, 145),
+            CalibrationBin("src_42", 0.42, 59, 140),
+            CalibrationBin("src_62", 0.62, 81, 130),
+            CalibrationBin("src_84", 0.84, 76, 92),
+        ),
+        bridge_bins=(
+            CalibrationBin("bridge_32", 0.32, 8, 44),
+            CalibrationBin("bridge_54", 0.54, 13, 46),
+            CalibrationBin("bridge_74", 0.74, 15, 38),
+        ),
+    ),
+]
+
+
 def posterior_probability(case: ForecastCase) -> float:
     odds = case.base_rate / max(1e-12, 1.0 - case.base_rate)
     for signal in case.signals:
@@ -489,6 +606,63 @@ def curve_calibrated_probability(case: ForecastCurveCase) -> float:
 def nearest_curve_bin_probability(case: ForecastCurveCase) -> float:
     nearest = min(case.bins, key=lambda bin_: abs(bin_.raw_mean_probability - case.raw_model_probability))
     return curve_bin_probability(case, nearest)
+
+
+def _interpolate_points(points: list[tuple[float, float]], raw: float) -> float:
+    if raw <= points[0][0]:
+        return points[0][1]
+    if raw >= points[-1][0]:
+        return points[-1][1]
+    for (left_raw, left_value), (right_raw, right_value) in zip(points, points[1:]):
+        if left_raw <= raw <= right_raw:
+            weight = (raw - left_raw) / max(right_raw - left_raw, 1e-12)
+            return left_value + weight * (right_value - left_value)
+    return points[-1][1]
+
+
+def source_bin_probability(case: ShiftCalibrationCase, bin_: CalibrationBin) -> float:
+    prior_events = case.source_prior_strength * case.source_base_rate
+    return (bin_.observed_event_count + prior_events) / (
+        bin_.observed_total + case.source_prior_strength
+    )
+
+
+def source_curve_probability(case: ShiftCalibrationCase, raw: float | None = None) -> float:
+    points = sorted(
+        (bin_.raw_mean_probability, source_bin_probability(case, bin_))
+        for bin_ in case.source_bins
+    )
+    return _interpolate_points(points, case.raw_model_probability if raw is None else raw)
+
+
+def bridge_adjusted_probability(case: ShiftCalibrationCase, bin_: CalibrationBin) -> float:
+    source_probability = source_curve_probability(case, bin_.raw_mean_probability)
+    prior_events = case.bridge_prior_strength * source_probability
+    return (bin_.observed_event_count + prior_events) / (
+        bin_.observed_total + case.bridge_prior_strength
+    )
+
+
+def shift_calibrated_probability(case: ShiftCalibrationCase) -> float:
+    source_at_target = source_curve_probability(case)
+    shift_points = sorted(
+        (
+            bin_.raw_mean_probability,
+            bridge_adjusted_probability(case, bin_)
+            - source_curve_probability(case, bin_.raw_mean_probability),
+        )
+        for bin_ in case.bridge_bins
+    )
+    shift = _interpolate_points(shift_points, case.raw_model_probability)
+    return clamp(source_at_target + shift, 0.0, 1.0)
+
+
+def nearest_bridge_probability(case: ShiftCalibrationCase) -> float:
+    nearest = min(
+        case.bridge_bins,
+        key=lambda bin_: abs(bin_.raw_mean_probability - case.raw_model_probability),
+    )
+    return bridge_adjusted_probability(case, nearest)
 
 
 def run_forecast_calibration_game(agent: Agent, cases: list[ForecastCase] | None = None) -> dict:
@@ -618,6 +792,55 @@ def run_forecast_curve_natural_game(
         prompt_fn=_curve_natural_prompt,
         task_name="forecast_curve_natural",
     )
+
+
+def run_forecast_shift_calibration_game(
+    agent: Agent,
+    cases: list[ShiftCalibrationCase] | None = None,
+) -> dict:
+    cases = cases or SHIFT_CALIBRATION_CASES
+    trials: list[ShiftForecastTrial] = []
+    for case in cases:
+        calibrated = shift_calibrated_probability(case)
+        source_only = source_curve_probability(case)
+        nearest_bridge = nearest_bridge_probability(case)
+        response = agent.complete(FORECAST_SYSTEM, _shift_prompt(case))
+        parsed = parse_float("FINAL_PROBABILITY", response)
+        chosen = clamp(parsed, 0.0, 1.0) if parsed is not None else None
+        raw_score_miss = (
+            chosen is not None
+            and abs(case.raw_model_probability - calibrated) >= 0.08
+            and abs(chosen - case.raw_model_probability) < abs(chosen - calibrated)
+        )
+        source_curve_miss = (
+            chosen is not None
+            and abs(source_only - calibrated) >= 0.05
+            and abs(chosen - source_only) < abs(chosen - calibrated)
+        )
+        nearest_bridge_miss = (
+            chosen is not None
+            and abs(nearest_bridge - calibrated) >= 0.03
+            and abs(chosen - nearest_bridge) < abs(chosen - calibrated)
+        )
+        trials.append(
+            ShiftForecastTrial(
+                case=case,
+                calibrated_probability=calibrated,
+                raw_model_probability=case.raw_model_probability,
+                source_curve_probability=source_only,
+                nearest_bridge_probability=nearest_bridge,
+                chosen_probability=chosen,
+                expected_brier_regret=expected_brier_regret(calibrated, chosen)
+                if chosen is not None
+                else None,
+                probability_error=abs(chosen - calibrated) if chosen is not None else None,
+                raw_score_miss=raw_score_miss,
+                source_curve_miss=source_curve_miss,
+                nearest_bridge_miss=nearest_bridge_miss,
+                raw_response=response,
+            )
+        )
+    return summarize_shift_forecast_trials(agent.name, trials)
 
 
 def _run_forecast_curve_game(
@@ -768,6 +991,57 @@ def summarize_curve_forecast_trials(
             else 0.0
         ),
         "trials": [_curve_trial_json(trial) for trial in trials],
+    }
+
+
+def summarize_shift_forecast_trials(
+    agent_name: str,
+    trials: list[ShiftForecastTrial],
+) -> dict:
+    regrets = [
+        trial.expected_brier_regret
+        for trial in trials
+        if trial.expected_brier_regret is not None
+    ]
+    errors = [trial.probability_error for trial in trials if trial.probability_error is not None]
+    raw_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.raw_model_probability - trial.calibrated_probability) >= 0.08
+    ]
+    source_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.source_curve_probability - trial.calibrated_probability) >= 0.05
+    ]
+    bridge_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.nearest_bridge_probability - trial.calibrated_probability) >= 0.03
+    ]
+    return {
+        "task": "forecast_shift_calibration",
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "mean_expected_brier_regret": mean(regrets),
+        "mean_expected_brier_regret_ci95": bootstrap_mean_ci(regrets),
+        "mean_probability_error": mean(errors),
+        "raw_score_miss_rate": (
+            sum(trial.raw_score_miss for trial in raw_shifted) / len(raw_shifted)
+            if raw_shifted
+            else 0.0
+        ),
+        "source_curve_miss_rate": (
+            sum(trial.source_curve_miss for trial in source_shifted) / len(source_shifted)
+            if source_shifted
+            else 0.0
+        ),
+        "nearest_bridge_miss_rate": (
+            sum(trial.nearest_bridge_miss for trial in bridge_shifted) / len(bridge_shifted)
+            if bridge_shifted
+            else 0.0
+        ),
+        "trials": [_shift_trial_json(trial) for trial in trials],
     }
 
 
@@ -981,6 +1255,47 @@ def _curve_natural_prompt(case: ForecastCurveCase) -> str:
     return "\n".join(lines)
 
 
+def _shift_prompt(case: ShiftCalibrationCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"target_event={case.target_event}",
+        f"raw_model_probability={case.raw_model_probability:.4f}",
+        f"source_base_rate={case.source_base_rate:.4f}",
+        f"source_prior_strength={case.source_prior_strength:.1f}",
+        f"bridge_prior_strength={case.bridge_prior_strength:.1f}",
+        "Source-cohort review rows from the model's original deployment setting:",
+    ]
+    for bin_ in case.source_bins:
+        lines.append(
+            f"  source_bin={bin_.bin_id} "
+            f"score_center={bin_.raw_mean_probability:.4f} "
+            f"events={bin_.observed_event_count} "
+            f"total={bin_.observed_total}"
+        )
+    lines.append(
+        "Small target-cohort bridge sample scored by the same model after deployment moved:"
+    )
+    for bin_ in case.bridge_bins:
+        lines.append(
+            f"  target_bridge={bin_.bin_id} "
+            f"score_center={bin_.raw_mean_probability:.4f} "
+            f"events={bin_.observed_event_count} "
+            f"total={bin_.observed_total}"
+        )
+    lines.extend(
+        [
+            "The source rows show the original score-to-outcome pattern. The bridge rows "
+            "show how the target cohort is locally above or below that source pattern.",
+            "Use the bridge sample as a local cohort adjustment around the target raw "
+            "score, while stabilizing thin bridge rows against the source pattern.",
+            "Give the best event probability for the next target-cohort item at the "
+            "raw model probability above.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _trial_json(trial: ForecastTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
@@ -994,6 +1309,12 @@ def _aggregate_trial_json(trial: AggregateForecastTrial) -> dict:
 
 
 def _curve_trial_json(trial: ForecastCurveTrial) -> dict:
+    data = asdict(trial)
+    data["case"] = asdict(trial.case)
+    return data
+
+
+def _shift_trial_json(trial: ShiftForecastTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
     return data

@@ -51,6 +51,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `forecast_curve_implicit` | Implicit held-out calibration-curve stress: use the same scoring target as `forecast_curve` but present the table without the explicit shrink/interpolate recipe. | `python -m aeread_lab.cli --task forecast_curve_implicit --agent offline:oracle` |
 | `forecast_curve_noisy` | Dense/noisy implicit calibration-curve stress: use larger non-monotone holdout tables with sparse bins, testing raw-score reuse and nearest-row shortcuts under sample-size noise. | `python -m aeread_lab.cli --task forecast_curve_noisy --agent offline:oracle` |
 | `forecast_curve_natural` | Natural-label calibration-curve stress: present the dense/noisy table with outcome-row labels instead of machine-readable calibration terms. | `python -m aeread_lab.cli --task forecast_curve_natural --agent offline:oracle` |
+| `forecast_shift_calibration` | Cohort-shift calibration stress: combine a source-cohort score curve with a small target-cohort bridge sample, catching raw-score reuse, source-curve-only reuse, and nearest-bridge shortcuts. | `python -m aeread_lab.cli --task forecast_shift_calibration --agent offline:oracle` |
 | `exploration` | EconEvals-style unknown-environment learning: decide when information value justifies a pilot before deployment. | `python -m aeread_lab.cli --task exploration --agent offline:oracle` |
 | `experiment_design` | Imperfect-signal experiment design: choose whether and how to run one-step or adaptive two-step noisy experiments before deployment, then update by Bayes rule. | `python -m aeread_lab.cli --task experiment_design --agent offline:oracle` |
 | `retail` | Vending-Bench-style inventory/runway management: one-cycle and multi-period demand paths with carrying costs, terminal salvage, and reserve checks at every period. | `python -m aeread_lab.cli --task retail --agent offline:oracle` |
@@ -210,6 +211,9 @@ interpreting the economic metric.
 - `forecast_curve_natural`: lower expected Brier regret to the same dense/noisy
   curve target is better; the prompt hides machine-readable calibration row
   names behind natural outcome-table labels.
+- `forecast_shift_calibration`: lower expected Brier regret to the
+  bridge-adjusted target-cohort calibration curve is better; raw-score,
+  source-curve, and nearest-bridge miss rates are reported separately.
 - `exploration`: lower expected-value gap is better; exploration miss rate is
   reported separately.
 - `experiment_design`: lower expected-value gap is better; experiment miss and

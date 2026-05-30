@@ -37,6 +37,7 @@ from aeread_lab.tasks.forecast_calibration import AGGREGATE_CASES as FORECAST_AG
 from aeread_lab.tasks.forecast_calibration import CURVE_CASES as FORECAST_CURVE_CASES
 from aeread_lab.tasks.forecast_calibration import DEFAULT_CASES as FORECAST_CASES
 from aeread_lab.tasks.forecast_calibration import NOISY_CURVE_CASES as FORECAST_NOISY_CURVE_CASES
+from aeread_lab.tasks.forecast_calibration import SHIFT_CALIBRATION_CASES as FORECAST_SHIFT_CASES
 from aeread_lab.tasks.forecast_calibration import _aggregate_prompt as forecast_aggregate_prompt
 from aeread_lab.tasks.forecast_calibration import (
     _curve_implicit_prompt as forecast_curve_implicit_prompt,
@@ -45,12 +46,14 @@ from aeread_lab.tasks.forecast_calibration import _curve_natural_prompt as forec
 from aeread_lab.tasks.forecast_calibration import _curve_noisy_prompt as forecast_curve_noisy_prompt
 from aeread_lab.tasks.forecast_calibration import _curve_prompt as forecast_curve_prompt
 from aeread_lab.tasks.forecast_calibration import _prompt as forecast_prompt
+from aeread_lab.tasks.forecast_calibration import _shift_prompt as forecast_shift_prompt
 from aeread_lab.tasks.forecast_calibration import run_forecast_aggregate_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_calibration_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_curve_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_curve_implicit_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_curve_natural_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_curve_noisy_game
+from aeread_lab.tasks.forecast_calibration import run_forecast_shift_calibration_game
 from aeread_lab.tasks.market import INVENTORY_POLICY_CASES as MARKET_INVENTORY_POLICY_CASES
 from aeread_lab.tasks.market import POLICY_SHIFT_CASES as MARKET_POLICY_CASES
 from aeread_lab.tasks.market import _policy_inventory_prompt as market_policy_inventory_prompt
@@ -342,6 +345,11 @@ class TaskSmokeTests(unittest.TestCase):
 
     def test_sample_limit_slices_forecast_curve_natural_cases(self):
         results = run_tasks("forecast_curve_natural", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_expected_brier_regret"], 1e-9)
+
+    def test_sample_limit_slices_forecast_shift_calibration_cases(self):
+        results = run_tasks("forecast_shift_calibration", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_expected_brier_regret"], 1e-9)
 
@@ -698,6 +706,7 @@ class TaskSmokeTests(unittest.TestCase):
         forecast_curve_implicit = forecast_curve_implicit_prompt(FORECAST_CURVE_CASES[0])
         forecast_curve_noisy = forecast_curve_noisy_prompt(FORECAST_NOISY_CURVE_CASES[0])
         forecast_curve_natural = forecast_curve_natural_prompt(FORECAST_NOISY_CURVE_CASES[0])
+        forecast_shift = forecast_shift_prompt(FORECAST_SHIFT_CASES[0])
         exploration = exploration_prompt(EXPLORATION_CASES[0])
         market_policy = market_policy_prompt(MARKET_POLICY_CASES[0])
         market_policy_inventory = market_policy_inventory_prompt(MARKET_INVENTORY_POLICY_CASES[0])
@@ -766,6 +775,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", forecast_curve_implicit)
         self.assertNotIn("oracle", forecast_curve_noisy)
         self.assertNotIn("oracle", forecast_curve_natural)
+        self.assertNotIn("oracle", forecast_shift)
         self.assertNotIn("oracle", exploration)
         self.assertNotIn("oracle", market_policy)
         self.assertNotIn("oracle", market_policy_inventory)
@@ -1299,6 +1309,22 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(raw_score["raw_score_miss_rate"], 0.5)
         self.assertGreater(nearest["mean_expected_brier_regret"], 0.0005)
         self.assertGreater(nearest["nearest_bin_miss_rate"], 0.5)
+
+    def test_forecast_shift_calibration_flags_source_curve_and_bridge_shortcuts(self):
+        calibrated = run_forecast_shift_calibration_game(OfflineAgent("oracle"))
+        raw_score = run_forecast_shift_calibration_game(OfflineAgent("raw_score"))
+        source_curve = run_forecast_shift_calibration_game(OfflineAgent("source_curve"))
+        nearest_bridge = run_forecast_shift_calibration_game(OfflineAgent("nearest_bridge"))
+        bridge_empirical = run_forecast_shift_calibration_game(OfflineAgent("bridge_empirical"))
+        self.assertEqual(calibrated["task"], "forecast_shift_calibration")
+        self.assertLess(calibrated["mean_expected_brier_regret"], 1e-9)
+        self.assertGreater(raw_score["mean_expected_brier_regret"], 0.01)
+        self.assertGreater(raw_score["raw_score_miss_rate"], 0.5)
+        self.assertGreater(source_curve["mean_expected_brier_regret"], 0.01)
+        self.assertEqual(source_curve["source_curve_miss_rate"], 1.0)
+        self.assertGreater(nearest_bridge["mean_expected_brier_regret"], 0.0005)
+        self.assertGreater(nearest_bridge["nearest_bridge_miss_rate"], 0.5)
+        self.assertGreater(bridge_empirical["mean_expected_brier_regret"], 0.005)
 
     def test_exploration_flags_greedy_exploitation(self):
         exploratory = run_exploration_game(OfflineAgent("oracle"))
