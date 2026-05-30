@@ -1208,6 +1208,28 @@ def _procurement_bundle_compatibility(text: str, pair: tuple[str, str]) -> float
             )
     if history_scores:
         return sum(history_scores) / len(history_scores)
+    reserve_pattern = re.compile(
+        r"reserve_pair=([a-zA-Z0-9_-]+),([a-zA-Z0-9_-]+)\s+"
+        r"reserve_after_invoice=([-+]?\d+(?:\.\d+)?)\s+"
+        r"rollout_hours_saved=([-+]?\d+(?:\.\d+)?)\s+"
+        r"expected_support_tickets=([-+]?\d+(?:\.\d+)?)\s+"
+        r"tail_probability=([-+]?\d+(?:\.\d+)?)\s+"
+        r"tail_support_cost=([-+]?\d+(?:\.\d+)?)"
+    )
+    reserve_scores = []
+    for match in reserve_pattern.finditer(text):
+        if normalized == {match.group(1), match.group(2)}:
+            reserve_after_invoice = float(match.group(3))
+            tail_support_cost = float(match.group(7))
+            reserve_scores.append(
+                0.010 * float(match.group(4))
+                - 0.030 * float(match.group(5))
+                - 0.070
+                * float(match.group(6))
+                * max(0.0, tail_support_cost - reserve_after_invoice)
+            )
+    if reserve_scores:
+        return sum(reserve_scores) / len(reserve_scores)
     return 0.0
 
 

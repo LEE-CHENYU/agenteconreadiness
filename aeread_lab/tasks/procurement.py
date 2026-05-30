@@ -48,6 +48,13 @@ PROCUREMENT_BUNDLE_HISTORY_SYSTEM = (
     "Return one final line only: FINAL_BUNDLE: <sku>,<sku>."
 )
 
+PROCUREMENT_BUNDLE_RESERVE_SYSTEM = (
+    "TASK: procurement_bundle_reserve\n"
+    "Select exactly two SKU values for the procurement package. "
+    "Respect the spend limit, required product lines, and support-reserve risk. "
+    "Return one final line only: FINAL_BUNDLE: <sku>,<sku>."
+)
+
 
 @dataclass(frozen=True)
 class Product:
@@ -471,6 +478,32 @@ def compatibility_bonus(case: ProcurementBundleCase, pair: tuple[str, str]) -> f
     return 0.0
 
 
+def reserve_adjusted_bonus(case: ProcurementBundleCase, pair: tuple[str, str]) -> float:
+    reserve_after_invoice = case.budget - bundle_price(case, pair)
+    reserve_shortfall_penalty = 0.0010 * max(0.0, 180.0 - reserve_after_invoice)
+    return compatibility_bonus(case, pair) - reserve_shortfall_penalty
+
+
+def reserve_adjusted_case(case: ProcurementBundleCase) -> ProcurementBundleCase:
+    return ProcurementBundleCase(
+        key=case.key,
+        profile=case.profile,
+        budget=case.budget,
+        required_categories=case.required_categories,
+        products=case.products,
+        compatibility_bonuses=tuple(
+            (left, right, reserve_adjusted_bonus(case, (left, right)))
+            for left, right in valid_bundles(case)
+        ),
+        scenario_note=case.scenario_note,
+    )
+
+
+PROCUREMENT_BUNDLE_RESERVE_CASES = [
+    reserve_adjusted_case(case) for case in PROCUREMENT_BUNDLE_CASES
+]
+
+
 def run_procurement_game(agent: Agent, cases: list[ProcurementCase] | None = None) -> dict:
     cases = cases or DEFAULT_CASES
     rows = []
@@ -565,6 +598,19 @@ def run_procurement_bundle_history_game(
         system=PROCUREMENT_BUNDLE_HISTORY_SYSTEM,
         prompt_builder=_bundle_history_prompt,
         task_name="procurement_bundle_history",
+    )
+
+
+def run_procurement_bundle_reserve_game(
+    agent: Agent,
+    cases: list[ProcurementBundleCase] | None = None,
+) -> dict:
+    return _run_procurement_bundle_game(
+        agent,
+        cases=cases or PROCUREMENT_BUNDLE_RESERVE_CASES,
+        system=PROCUREMENT_BUNDLE_RESERVE_SYSTEM,
+        prompt_builder=_bundle_reserve_prompt,
+        task_name="procurement_bundle_reserve",
     )
 
 
@@ -1055,6 +1101,82 @@ def _bundle_history_prompt(case: ProcurementBundleCase) -> str:
     lines.append(
         "Aggregate the deployment history by SKU pair, convert it into package value, "
         "and combine that with the buying team's item priorities."
+    )
+    return "\n".join(lines)
+
+
+def _bundle_reserve_prompt(case: ProcurementBundleCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"buying_team={case.profile.key}",
+        f"spend_limit={case.budget:.0f}",
+        f"must_cover_lines={','.join(case.required_categories)}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note.replace("compatibility", "support-reserve risk"))
+    lines.append("Candidate SKUs:")
+    for product in case.products:
+        lines.append(
+            "  "
+            + " ".join(
+                [
+                    f"sku={product.product_id}",
+                    f"line={product.category}",
+                    f"invoice={product.price:.0f}",
+                    f"field_reliability={product.durability:.2f}",
+                    f"operator_fit={product.comfort:.2f}",
+                    f"presentation_fit={product.style_fit:.2f}",
+                    f"deployment_drag={product.assembly_friction:.2f}",
+                ]
+            )
+        )
+    lines.append("Support-reserve value conversion:")
+    lines.append(
+        "package_reserve_delta = 0.010*rollout_hours_saved "
+        "- 0.030*expected_support_tickets "
+        "- 0.070*tail_probability*max(0, tail_support_cost - reserve_after_invoice)"
+    )
+    lines.append("Support-reserve scenarios:")
+    for left, right, delta in case.compatibility_bonuses:
+        reserve_after_invoice = case.budget - bundle_price(case, (left, right))
+        tail_probability = 0.25
+        if delta >= 0:
+            rollout_hours_saved = delta / 0.010
+            expected_support_tickets = 0.0
+            tail_support_cost = reserve_after_invoice
+        else:
+            rollout_hours_saved = 0.0
+            expected_support_tickets = (-delta * 0.40) / 0.030
+            shortfall = (-delta * 0.60) / (0.070 * tail_probability)
+            tail_support_cost = reserve_after_invoice + shortfall
+        lines.append(
+            "  "
+            + " ".join(
+                [
+                    f"reserve_pair={left},{right}",
+                    f"reserve_after_invoice={reserve_after_invoice:.2f}",
+                    f"rollout_hours_saved={rollout_hours_saved:.2f}",
+                    f"expected_support_tickets={expected_support_tickets:.2f}",
+                    f"tail_probability={tail_probability:.2f}",
+                    f"tail_support_cost={tail_support_cost:.2f}",
+                ]
+            )
+        )
+    lines.append("Buying team priorities:")
+    lines.append(
+        " ".join(
+            [
+                f"invoice_penalty={case.profile.price_weight:.4f}",
+                f"reliability_weight={case.profile.durability_weight:.4f}",
+                f"operator_fit_weight={case.profile.comfort_weight:.4f}",
+                f"presentation_weight={case.profile.style_weight:.4f}",
+                f"deployment_drag_weight={case.profile.friction_weight:.4f}",
+            ]
+        )
+    )
+    lines.append(
+        "For each feasible pair, combine item priorities with the support-reserve "
+        "scenario value. Avoid packages whose tail support cost consumes the reserve."
     )
     return "\n".join(lines)
 

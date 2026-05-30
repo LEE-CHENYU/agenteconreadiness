@@ -56,6 +56,7 @@ TASKS = (
     "procurement_bundle_evidence",
     "procurement_bundle_noisy_evidence",
     "procurement_bundle_history",
+    "procurement_bundle_reserve",
     "pricing",
     "pricing_counterfactual",
     "pricing_cross_elasticity",
@@ -465,6 +466,7 @@ def _print_human(payload: dict[str, Any]) -> None:
             "procurement_bundle_evidence",
             "procurement_bundle_noisy_evidence",
             "procurement_bundle_history",
+            "procurement_bundle_reserve",
         }:
             print(
                 f"{task}: n={result['n_trials']} score_regret="
