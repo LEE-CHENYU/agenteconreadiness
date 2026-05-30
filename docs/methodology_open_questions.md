@@ -1,6 +1,6 @@
 # AERead methodology — open methodological questions (Q&A)
 
-> Working positions on the 13 open methodological questions for major-lab adoption + methodology-paper acceptance. **Not closed claims** — engagement invited on all thirteen. Topic-index table for navigation; bodies below; "Open:" line ends each Q.
+> Working positions on the 14 open methodological questions for major-lab adoption + methodology-paper acceptance. **Not closed claims** — engagement invited on all fourteen. Topic-index table for navigation; bodies below; "Open:" line ends each Q.
 >
 > Framework descriptions (3-layer pipeline + 5-axis taxonomy + OracleDecomposable + methodological commitments) are in [`methodology.md`](methodology.md).
 
