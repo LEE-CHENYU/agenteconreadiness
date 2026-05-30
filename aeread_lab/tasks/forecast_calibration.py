@@ -78,6 +78,39 @@ class AggregateForecastTrial:
     raw_response: str
 
 
+@dataclass(frozen=True)
+class CalibrationBin:
+    bin_id: str
+    raw_mean_probability: float
+    observed_event_count: int
+    observed_total: int
+
+
+@dataclass(frozen=True)
+class ForecastCurveCase:
+    key: str
+    real_case: str
+    target_event: str
+    raw_model_probability: float
+    global_base_rate: float
+    prior_strength: float
+    bins: tuple[CalibrationBin, ...]
+
+
+@dataclass
+class ForecastCurveTrial:
+    case: ForecastCurveCase
+    calibrated_probability: float
+    raw_model_probability: float
+    nearest_bin_probability: float
+    chosen_probability: float | None
+    expected_brier_regret: float | None
+    probability_error: float | None
+    raw_score_miss: bool
+    nearest_bin_miss: bool
+    raw_response: str
+
+
 DEFAULT_CASES = [
     ForecastCase(
         key="enterprise_churn_warning",
@@ -277,6 +310,51 @@ AGGREGATE_CASES = [
     ),
 ]
 
+CURVE_CASES = [
+    ForecastCurveCase(
+        key="churn_curve_mid_high",
+        real_case="held-out enterprise churn forecast from a shifted renewal segment",
+        target_event="account churns before renewal",
+        raw_model_probability=0.68,
+        global_base_rate=0.22,
+        prior_strength=30.0,
+        bins=(
+            CalibrationBin("b10", 0.10, 9, 60),
+            CalibrationBin("b30", 0.30, 31, 80),
+            CalibrationBin("b55", 0.55, 49, 110),
+            CalibrationBin("b80", 0.80, 46, 90),
+        ),
+    ),
+    ForecastCurveCase(
+        key="fraud_curve_underconfident",
+        real_case="held-out fraud score from a new merchant cohort",
+        target_event="merchant account has a confirmed fraud escalation",
+        raw_model_probability=0.46,
+        global_base_rate=0.18,
+        prior_strength=25.0,
+        bins=(
+            CalibrationBin("b12", 0.12, 5, 90),
+            CalibrationBin("b28", 0.28, 18, 75),
+            CalibrationBin("b52", 0.52, 59, 95),
+            CalibrationBin("b78", 0.78, 76, 95),
+        ),
+    ),
+    ForecastCurveCase(
+        key="defect_curve_small_high_bin",
+        real_case="held-out launch defect forecast with sparse high-risk calibration bins",
+        target_event="batch exceeds the defect escalation threshold",
+        raw_model_probability=0.74,
+        global_base_rate=0.16,
+        prior_strength=50.0,
+        bins=(
+            CalibrationBin("b20", 0.20, 12, 80),
+            CalibrationBin("b45", 0.45, 29, 70),
+            CalibrationBin("b70", 0.70, 11, 14),
+            CalibrationBin("b90", 0.90, 8, 9),
+        ),
+    ),
+]
+
 
 def posterior_probability(case: ForecastCase) -> float:
     odds = case.base_rate / max(1e-12, 1.0 - case.base_rate)
@@ -309,6 +387,33 @@ def realized_log_loss(realized_rate: float, forecast: float) -> float:
 def aggregate_calibrated_probability(case: AggregateForecastCase) -> float:
     prior_events = case.prior_strength * case.global_base_rate
     return (case.observed_event_count + prior_events) / (case.observed_total + case.prior_strength)
+
+
+def curve_bin_probability(case: ForecastCurveCase, bin_: CalibrationBin) -> float:
+    prior_events = case.prior_strength * case.global_base_rate
+    return (bin_.observed_event_count + prior_events) / (bin_.observed_total + case.prior_strength)
+
+
+def curve_calibrated_probability(case: ForecastCurveCase) -> float:
+    points = sorted(
+        (bin_.raw_mean_probability, curve_bin_probability(case, bin_))
+        for bin_ in case.bins
+    )
+    raw = case.raw_model_probability
+    if raw <= points[0][0]:
+        return points[0][1]
+    if raw >= points[-1][0]:
+        return points[-1][1]
+    for (left_raw, left_prob), (right_raw, right_prob) in zip(points, points[1:]):
+        if left_raw <= raw <= right_raw:
+            weight = (raw - left_raw) / max(right_raw - left_raw, 1e-12)
+            return left_prob + weight * (right_prob - left_prob)
+    return points[-1][1]
+
+
+def nearest_curve_bin_probability(case: ForecastCurveCase) -> float:
+    nearest = min(case.bins, key=lambda bin_: abs(bin_.raw_mean_probability - case.raw_model_probability))
+    return curve_bin_probability(case, nearest)
 
 
 def run_forecast_calibration_game(agent: Agent, cases: list[ForecastCase] | None = None) -> dict:
@@ -392,6 +497,47 @@ def run_forecast_aggregate_game(
     return summarize_aggregate_forecast_trials(agent.name, trials)
 
 
+def run_forecast_curve_game(
+    agent: Agent,
+    cases: list[ForecastCurveCase] | None = None,
+) -> dict:
+    cases = cases or CURVE_CASES
+    trials: list[ForecastCurveTrial] = []
+    for case in cases:
+        calibrated = curve_calibrated_probability(case)
+        nearest = nearest_curve_bin_probability(case)
+        response = agent.complete(FORECAST_SYSTEM, _curve_prompt(case))
+        parsed = parse_float("FINAL_PROBABILITY", response)
+        chosen = clamp(parsed, 0.0, 1.0) if parsed is not None else None
+        raw_score_miss = (
+            chosen is not None
+            and abs(case.raw_model_probability - calibrated) >= 0.10
+            and abs(chosen - case.raw_model_probability) < abs(chosen - calibrated)
+        )
+        nearest_bin_miss = (
+            chosen is not None
+            and abs(nearest - calibrated) >= 0.03
+            and abs(chosen - nearest) < abs(chosen - calibrated)
+        )
+        trials.append(
+            ForecastCurveTrial(
+                case=case,
+                calibrated_probability=calibrated,
+                raw_model_probability=case.raw_model_probability,
+                nearest_bin_probability=nearest,
+                chosen_probability=chosen,
+                expected_brier_regret=expected_brier_regret(calibrated, chosen)
+                if chosen is not None
+                else None,
+                probability_error=abs(chosen - calibrated) if chosen is not None else None,
+                raw_score_miss=raw_score_miss,
+                nearest_bin_miss=nearest_bin_miss,
+                raw_response=response,
+            )
+        )
+    return summarize_curve_forecast_trials(agent.name, trials)
+
+
 def summarize_forecast_trials(agent_name: str, trials: list[ForecastTrial]) -> dict:
     expected_regrets = [
         trial.expected_brier_regret
@@ -455,6 +601,45 @@ def summarize_forecast_trials(agent_name: str, trials: list[ForecastTrial]) -> d
         if reliability_adjusted
         else 0.0,
         "trials": [_trial_json(trial) for trial in trials],
+    }
+
+
+def summarize_curve_forecast_trials(
+    agent_name: str,
+    trials: list[ForecastCurveTrial],
+) -> dict:
+    regrets = [
+        trial.expected_brier_regret
+        for trial in trials
+        if trial.expected_brier_regret is not None
+    ]
+    errors = [trial.probability_error for trial in trials if trial.probability_error is not None]
+    shifted = [
+        trial
+        for trial in trials
+        if abs(trial.raw_model_probability - trial.calibrated_probability) >= 0.10
+    ]
+    nearest_shifted = [
+        trial
+        for trial in trials
+        if abs(trial.nearest_bin_probability - trial.calibrated_probability) >= 0.03
+    ]
+    return {
+        "task": "forecast_curve",
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "mean_expected_brier_regret": mean(regrets),
+        "mean_expected_brier_regret_ci95": bootstrap_mean_ci(regrets),
+        "mean_probability_error": mean(errors),
+        "raw_score_miss_rate": (
+            sum(trial.raw_score_miss for trial in shifted) / len(shifted) if shifted else 0.0
+        ),
+        "nearest_bin_miss_rate": (
+            sum(trial.nearest_bin_miss for trial in nearest_shifted) / len(nearest_shifted)
+            if nearest_shifted
+            else 0.0
+        ),
+        "trials": [_curve_trial_json(trial) for trial in trials],
     }
 
 
@@ -547,6 +732,32 @@ def _aggregate_prompt(case: AggregateForecastCase) -> str:
     )
 
 
+def _curve_prompt(case: ForecastCurveCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"target_event={case.target_event}",
+        f"raw_model_probability={case.raw_model_probability:.4f}",
+        f"base_rate={case.global_base_rate:.4f}",
+        f"global_base_rate={case.global_base_rate:.4f}",
+        f"prior_strength={case.prior_strength:.1f}",
+        "Historical calibration bins for this shifted segment:",
+    ]
+    for bin_ in case.bins:
+        lines.append(
+            f"  bin_id={bin_.bin_id} "
+            f"raw_mean_probability={bin_.raw_mean_probability:.4f} "
+            f"observed_event_count={bin_.observed_event_count} "
+            f"observed_total={bin_.observed_total}"
+        )
+    lines.append(
+        "Use the calibration curve, shrinking each bin toward the global base rate "
+        "according to prior_strength, then interpolate between nearby raw-score bins."
+    )
+    lines.append("Estimate the calibrated probability for the next held-out item.")
+    return "\n".join(lines)
+
+
 def _trial_json(trial: ForecastTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
@@ -554,6 +765,12 @@ def _trial_json(trial: ForecastTrial) -> dict:
 
 
 def _aggregate_trial_json(trial: AggregateForecastTrial) -> dict:
+    data = asdict(trial)
+    data["case"] = asdict(trial.case)
+    return data
+
+
+def _curve_trial_json(trial: ForecastCurveTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
     return data

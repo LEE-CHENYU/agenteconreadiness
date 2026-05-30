@@ -8,6 +8,7 @@ from .common_value import run_common_value_game
 from .experiment_design import run_experiment_design_game
 from .exploration import run_exploration_game
 from .forecast_calibration import run_forecast_aggregate_game, run_forecast_calibration_game
+from .forecast_calibration import run_forecast_curve_game
 from .market import run_market_game
 from .matching import run_matching_game
 from .mechanism import run_mechanism_game
@@ -35,6 +36,7 @@ __all__ = [
     "run_exploration_game",
     "run_forecast_calibration_game",
     "run_forecast_aggregate_game",
+    "run_forecast_curve_game",
     "run_market_game",
     "run_matching_game",
     "run_mechanism_game",

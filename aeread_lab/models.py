@@ -488,6 +488,17 @@ class OfflineAgent:
         return f"FINAL_ACTION: {action}"
 
     def _forecast_probability(self, user: str) -> str:
+        if "raw_mean_probability=" in user and "observed_event_count=" in user:
+            if self.policy in {"raw_score", "uncalibrated"}:
+                probability = _extract_float(user, "raw_model_probability")
+            elif self.policy in {"nearest_bin", "nearest"}:
+                probability = _forecast_nearest_curve_bin_probability(user)
+            elif self.policy in {"base_rate", "prior", "unconditional"}:
+                probability = _extract_float(user, "global_base_rate", _extract_float(user, "base_rate"))
+            else:
+                probability = _forecast_curve_probability(user)
+            probability = max(0.0, min(1.0, probability))
+            return f"FINAL_PROBABILITY: {probability:.12f}"
         if "raw_model_probability=" in user and "observed_event_count=" in user:
             if self.policy in {"raw_score", "uncalibrated"}:
                 probability = _extract_float(user, "raw_model_probability")
@@ -786,6 +797,46 @@ def _forecast_aggregate_probability(text: str) -> float:
     global_base_rate = _extract_float(text, "global_base_rate", _extract_float(text, "base_rate", 0.5))
     prior_strength = _extract_float(text, "prior_strength", 0.0)
     return (event_count + prior_strength * global_base_rate) / max(total + prior_strength, 1e-9)
+
+
+def _extract_forecast_curve_bins(text: str) -> list[tuple[float, float]]:
+    global_base_rate = _extract_float(text, "global_base_rate", _extract_float(text, "base_rate", 0.5))
+    prior_strength = _extract_float(text, "prior_strength", 0.0)
+    points: list[tuple[float, float]] = []
+    for line in text.splitlines():
+        if "raw_mean_probability=" not in line:
+            continue
+        raw_mean = _extract_float(line, "raw_mean_probability")
+        event_count = _extract_float(line, "observed_event_count")
+        total = _extract_float(line, "observed_total", 1.0)
+        probability = (event_count + prior_strength * global_base_rate) / max(total + prior_strength, 1e-9)
+        points.append((raw_mean, probability))
+    points.sort(key=lambda item: item[0])
+    return points
+
+
+def _forecast_curve_probability(text: str) -> float:
+    points = _extract_forecast_curve_bins(text)
+    if not points:
+        return _extract_float(text, "raw_model_probability", 0.5)
+    raw = _extract_float(text, "raw_model_probability", points[0][0])
+    if raw <= points[0][0]:
+        return points[0][1]
+    if raw >= points[-1][0]:
+        return points[-1][1]
+    for (left_raw, left_prob), (right_raw, right_prob) in zip(points, points[1:]):
+        if left_raw <= raw <= right_raw:
+            weight = (raw - left_raw) / max(right_raw - left_raw, 1e-12)
+            return left_prob + weight * (right_prob - left_prob)
+    return points[-1][1]
+
+
+def _forecast_nearest_curve_bin_probability(text: str) -> float:
+    points = _extract_forecast_curve_bins(text)
+    if not points:
+        return _extract_float(text, "raw_model_probability", 0.5)
+    raw = _extract_float(text, "raw_model_probability", points[0][0])
+    return min(points, key=lambda item: abs(item[0] - raw))[1]
 
 
 def _extract_bargaining_types(text: str) -> list[tuple[float, float]]:
