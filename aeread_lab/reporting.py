@@ -59,6 +59,7 @@ PRIMARY_METRICS = {
     "pricing_multi_product_capacity": ("mean_price_l1_error", "lower"),
     "pricing_inventory_markdown": ("mean_price_l1_error", "lower"),
     "pricing_inventory_markdown_noisy": ("mean_price_l1_error", "lower"),
+    "pricing_hidden_intervention": ("mean_absolute_price_error", "lower"),
     "pricing_law_audit": ("accuracy", "higher"),
     "pricing_evidence_law_audit": ("accuracy", "higher"),
     "pricing_evidence_law_holdout": ("accuracy", "higher"),

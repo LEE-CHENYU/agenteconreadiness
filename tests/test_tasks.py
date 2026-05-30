@@ -98,6 +98,7 @@ from aeread_lab.tasks.pricing import DEFAULT_CASES as PRICING_CASES
 from aeread_lab.tasks.pricing import DEFAULT_LAW_CASES as PRICING_LAW_CASES
 from aeread_lab.tasks.pricing import EVIDENCE_LAW_CASES as PRICING_EVIDENCE_LAW_CASES
 from aeread_lab.tasks.pricing import HOLDOUT_EVIDENCE_LAW_CASES as PRICING_EVIDENCE_HOLDOUT_CASES
+from aeread_lab.tasks.pricing import HIDDEN_INTERVENTION_CASES as PRICING_HIDDEN_INTERVENTION_CASES
 from aeread_lab.tasks.pricing import INVENTORY_MARKDOWN_CASES as PRICING_INVENTORY_MARKDOWN_CASES
 from aeread_lab.tasks.pricing import INVENTORY_MARKDOWN_NOISY_CASES as PRICING_INVENTORY_MARKDOWN_NOISY_CASES
 from aeread_lab.tasks.pricing import MULTI_PRODUCT_CAPACITY_CASES as PRICING_MULTI_CAPACITY_CASES
@@ -107,6 +108,7 @@ from aeread_lab.tasks.pricing import _cross_elasticity_prompt as pricing_cross_p
 from aeread_lab.tasks.pricing import _evidence_law_audit_prompt as pricing_evidence_law_prompt
 from aeread_lab.tasks.pricing import _inventory_markdown_noisy_prompt as pricing_inventory_markdown_noisy_prompt
 from aeread_lab.tasks.pricing import _inventory_markdown_prompt as pricing_inventory_markdown_prompt
+from aeread_lab.tasks.pricing import _hidden_intervention_prompt as pricing_hidden_intervention_prompt
 from aeread_lab.tasks.pricing import _law_audit_prompt as pricing_law_audit_prompt
 from aeread_lab.tasks.pricing import _multi_product_capacity_prompt as pricing_multi_capacity_prompt
 from aeread_lab.tasks.pricing import _multi_product_natural_prompt as pricing_multi_natural_prompt
@@ -117,6 +119,7 @@ from aeread_lab.tasks.pricing import run_pricing_cross_elasticity_game
 from aeread_lab.tasks.pricing import run_pricing_evidence_law_audit_game
 from aeread_lab.tasks.pricing import run_pricing_evidence_law_holdout_game
 from aeread_lab.tasks.pricing import run_pricing_game
+from aeread_lab.tasks.pricing import run_pricing_hidden_intervention_game
 from aeread_lab.tasks.pricing import run_pricing_inventory_markdown_game
 from aeread_lab.tasks.pricing import run_pricing_inventory_markdown_noisy_game
 from aeread_lab.tasks.pricing import run_pricing_law_audit_game
@@ -296,6 +299,11 @@ class TaskSmokeTests(unittest.TestCase):
         results = run_tasks("pricing_inventory_markdown_noisy", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_price_l1_error"], 0.01)
+
+    def test_sample_limit_slices_pricing_hidden_intervention_cases(self):
+        results = run_tasks("pricing_hidden_intervention", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_absolute_price_error"], 0.01)
 
     def test_sample_limit_slices_pricing_law_audit_cases(self):
         results = run_tasks("pricing_law_audit", OfflineAgent("oracle"), sample_limit=1)
@@ -591,6 +599,18 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(myopic["mean_price_l1_error"], 5.0)
         self.assertGreater(myopic["myopic_miss_rate"], 0.5)
 
+    def test_pricing_hidden_intervention_flags_lift_blind_pricing(self):
+        configured = run_pricing_hidden_intervention_game(OfflineAgent("oracle"))
+        blind = run_pricing_hidden_intervention_game(OfflineAgent("intervention_blind"))
+        rounded = run_pricing_hidden_intervention_game(OfflineAgent("round"))
+        self.assertEqual(configured["task"], "pricing_hidden_intervention")
+        self.assertEqual(configured["n_trials"], len(PRICING_HIDDEN_INTERVENTION_CASES))
+        self.assertLess(configured["mean_absolute_price_error"], 0.01)
+        self.assertGreater(blind["mean_absolute_price_error"], 25.0)
+        self.assertGreater(blind["mean_revenue_gap"], 1000.0)
+        self.assertEqual(blind["intervention_blind_miss_rate"], 1.0)
+        self.assertLess(rounded["mean_absolute_price_error"], blind["mean_absolute_price_error"])
+
     def test_pricing_law_audit_flags_invalid_acceptance(self):
         configured = run_pricing_law_audit_game(OfflineAgent("oracle"))
         accept = run_pricing_law_audit_game(OfflineAgent("law_accept"))
@@ -667,6 +687,7 @@ class TaskSmokeTests(unittest.TestCase):
         pricing_inventory_markdown_noisy = pricing_inventory_markdown_noisy_prompt(
             PRICING_INVENTORY_MARKDOWN_NOISY_CASES[0]
         )
+        pricing_hidden_intervention = pricing_hidden_intervention_prompt(PRICING_HIDDEN_INTERVENTION_CASES[0])
         pricing_law_audit = pricing_law_audit_prompt(PRICING_LAW_CASES[0])
         pricing_evidence_law = pricing_evidence_law_prompt(PRICING_EVIDENCE_LAW_CASES[0])
         pricing_evidence_holdout = pricing_evidence_law_prompt(PRICING_EVIDENCE_HOLDOUT_CASES[0])
@@ -734,6 +755,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", pricing_multi_capacity)
         self.assertNotIn("oracle", pricing_inventory_markdown)
         self.assertNotIn("oracle", pricing_inventory_markdown_noisy)
+        self.assertNotIn("oracle", pricing_hidden_intervention)
         self.assertNotIn("oracle", pricing_law_audit)
         self.assertNotIn("oracle", pricing_evidence_law)
         self.assertNotIn("oracle", pricing_evidence_holdout)
@@ -781,6 +803,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle_price", pricing_multi_capacity)
         self.assertNotIn("oracle_price", pricing_inventory_markdown)
         self.assertNotIn("oracle_price", pricing_inventory_markdown_noisy)
+        self.assertNotIn("oracle_price", pricing_hidden_intervention)
         self.assertNotIn("oracle_price", pricing_law_audit)
         self.assertNotIn("oracle_price", pricing_evidence_law)
         self.assertNotIn("oracle_price", pricing_evidence_holdout)
@@ -1444,6 +1467,16 @@ class TaskSmokeTests(unittest.TestCase):
         pricing_rows = [row for row in rows if row["task"] == "pricing_inventory_markdown_noisy"]
         self.assertEqual(pricing_rows[0]["agent"], "offline:oracle")
         self.assertEqual(pricing_rows[1]["agent"], "offline:myopic")
+
+    def test_offline_sweep_ranks_oracle_above_intervention_blind_on_pricing(self):
+        sweep = run_sweep(
+            task="pricing_hidden_intervention",
+            agent_specs=["offline:oracle", "offline:intervention_blind"],
+        )
+        rows = rank_rows(comparison_table(sweep))
+        pricing_rows = [row for row in rows if row["task"] == "pricing_hidden_intervention"]
+        self.assertEqual(pricing_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(pricing_rows[1]["agent"], "offline:intervention_blind")
 
     def test_offline_sweep_ranks_oracle_above_law_accept_on_pricing_evidence_law_audit(self):
         sweep = run_sweep(

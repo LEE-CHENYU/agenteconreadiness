@@ -71,6 +71,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `pricing_multi_product_capacity` | Capacity-constrained joint pricing: choose two cross-demand prices with finite stock caps, catching unconstrained joint pricing that over-demands available inventory. | `python -m aeread_lab.cli --task pricing_multi_product_capacity --agent offline:oracle` |
 | `pricing_inventory_markdown` | Sequential markdown pricing: choose early and late prices for one shared inventory pool, catching myopic single-period pricing that sells through stock before the later window. | `python -m aeread_lab.cli --task pricing_inventory_markdown --agent offline:oracle` |
 | `pricing_inventory_markdown_noisy` | Noisy sequential markdown pricing: infer launch and clearance demand from lumpy regional rows before choosing prices for one shared stock pool. | `python -m aeread_lab.cli --task pricing_inventory_markdown_noisy --agent offline:oracle` |
+| `pricing_hidden_intervention` | Hidden-intervention pricing: remove fixed intervention units and exposure multipliers from observed sales before fitting normal demand and choosing the next campaign price. | `python -m aeread_lab.cli --task pricing_hidden_intervention --agent offline:oracle` |
 | `pricing_law_audit` | Cross-domain generator-verifier audit for pricing: classify generated comparative-static claims about the revenue-maximizing price as valid or invalid under demand and cap changes. | `python -m aeread_lab.cli --task pricing_law_audit --agent offline:oracle` |
 | `pricing_evidence_law_audit` | Evidence-derived pricing-law audit: classify price-movement claims from baseline and updated sales rows, without exposing alpha/beta demand parameters. | `python -m aeread_lab.cli --task pricing_evidence_law_audit --agent offline:oracle` |
 | `pricing_evidence_law_holdout` | Generated evidence-law holdout: a larger neutral-ID family of sales-row pricing-law claims with intercept, slope, cap, mixed, and intervention cases. | `python -m aeread_lab.cli --task pricing_evidence_law_holdout --agent offline:oracle` |
@@ -258,6 +259,9 @@ interpreting the economic metric.
   myopic miss reports answers that ignore shared inventory across windows.
 - `pricing_inventory_markdown_noisy`: same early/late-price L1 metric under
   lumpy regional evidence rows with launch/clearance labels.
+- `pricing_hidden_intervention`: lower price error to the intervention-adjusted
+  demand optimum is better; intervention-blind miss reports fits that treat
+  non-price lift as normal demand.
 - `pricing_law_audit`: higher valid/invalid pricing-law classification accuracy
   is better; invalid-law acceptance and valid-law rejection rates are reported
   separately.

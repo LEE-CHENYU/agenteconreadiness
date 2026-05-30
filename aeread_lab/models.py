@@ -119,6 +119,8 @@ class OfflineAgent:
             return self._pricing_inventory_markdown_prices(user)
         if "TASK: pricing_inventory_markdown_noisy_prices" in system:
             return self._pricing_inventory_markdown_prices(user)
+        if "TASK: pricing_hidden_intervention_price" in system:
+            return self._pricing_hidden_intervention_price(user)
         if "TASK: pricing_law_label" in system:
             return self._pricing_law_label(user)
         if "TASK: pricing_evidence_law_label" in system:
@@ -542,6 +544,23 @@ class OfflineAgent:
             price_early = round(price_early / 10.0) * 10.0
             price_late = round(price_late / 10.0) * 10.0
         return f"FINAL_PRICE_EARLY: {price_early:.2f}\nFINAL_PRICE_LATE: {price_late:.2f}"
+
+    def _pricing_hidden_intervention_price(self, user: str) -> str:
+        p_max = _extract_float(user, "price_ceiling", _extract_float(user, "p_max", 1e9))
+        rows = _extract_intervention_pricing_rows(user)
+        if self.policy in {"intervention_blind", "lift_blind", "observed_only"}:
+            fit_rows = [(price, observed_units) for price, observed_units, _, _ in rows]
+        else:
+            fit_rows = [
+                (price, (observed_units - intervention_units) / exposure_multiplier)
+                for price, observed_units, intervention_units, exposure_multiplier in rows
+            ]
+        fit = _fit_pricing_rows(fit_rows)
+        alpha, beta = fit if fit is not None else (1.0, 1.0)
+        price = max(0.0, min(p_max, alpha / (2.0 * max(beta, 1e-9))))
+        if self.policy == "round":
+            price = round(price / 10.0) * 10.0
+        return f"FINAL_PRICE: {price:.2f}"
 
     def _pricing_law_label(self, user: str) -> str:
         oracle = _pricing_law_label(user)
@@ -2175,6 +2194,24 @@ def _extract_pricing_rows(text: str) -> list[tuple[float, float]]:
         (float(price), float(quantity))
         for price, quantity in re.findall(
             r"price=([-+]?\d+(?:\.\d+)?),\s+quantity=([-+]?\d+(?:\.\d+)?)",
+            text,
+        )
+    ]
+
+
+def _extract_intervention_pricing_rows(text: str) -> list[tuple[float, float, float, float]]:
+    return [
+        (
+            float(price),
+            float(observed_units),
+            float(intervention_units),
+            float(exposure_multiplier),
+        )
+        for price, observed_units, intervention_units, exposure_multiplier in re.findall(
+            r"price=([-+]?\d+(?:\.\d+)?),\s+"
+            r"observed_units=([-+]?\d+(?:\.\d+)?),\s+"
+            r"intervention_units=([-+]?\d+(?:\.\d+)?),\s+"
+            r"exposure_multiplier=([-+]?\d+(?:\.\d+)?)",
             text,
         )
     ]

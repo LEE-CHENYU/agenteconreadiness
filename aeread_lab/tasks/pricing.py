@@ -47,6 +47,12 @@ PRICING_INVENTORY_MARKDOWN_NOISY_SYSTEM = (
     "FINAL_PRICE_EARLY: <number> and FINAL_PRICE_LATE: <number>."
 )
 
+PRICING_HIDDEN_INTERVENTION_SYSTEM = (
+    "TASK: pricing_hidden_intervention_price\n"
+    "Choose the price for the next normal campaign after accounting for non-price interventions. "
+    "Return one final line only: FINAL_PRICE: <number>."
+)
+
 PRICING_LAW_SYSTEM = (
     "TASK: pricing_law_label\n"
     "You are verifying a proposed comparative-static claim about the revenue-maximizing price. "
@@ -114,6 +120,14 @@ class PricingInventoryMarkdownCase:
     p_max_late: float
     inventory: float
     salvage_value: float
+    observations: tuple[tuple[float, float, float, float], ...]
+    scenario_note: str = ""
+
+
+@dataclass(frozen=True)
+class PricingInterventionCase:
+    key: str
+    p_max: float
     observations: tuple[tuple[float, float, float, float], ...]
     scenario_note: str = ""
 
@@ -256,6 +270,31 @@ def _noisy_markdown_observations(
             ),
         )
         for idx, (early_ratio, late_ratio) in enumerate(pairs)
+    )
+
+
+def _intervention_observations(
+    alpha: float,
+    beta: float,
+    p_max: float,
+    intervention_units: tuple[float, ...],
+    exposure_multipliers: tuple[float, ...],
+    normal_noise: tuple[float, ...],
+) -> tuple[tuple[float, float, float, float], ...]:
+    ratios = (0.24, 0.36, 0.48, 0.60, 0.72, 0.84)
+    return tuple(
+        (
+            round(ratio * p_max, 2),
+            round(
+                max(0.0, alpha - beta * ratio * p_max + normal_noise[idx])
+                * exposure_multipliers[idx]
+                + intervention_units[idx],
+                2,
+            ),
+            intervention_units[idx],
+            exposure_multipliers[idx],
+        )
+        for idx, ratio in enumerate(ratios)
     )
 
 
@@ -540,6 +579,74 @@ INVENTORY_MARKDOWN_NOISY_CASES = [
             68.0,
             (6.0, -3.5, 5.0, -5.5, 4.0, -4.5, 2.0),
             (-4.0, 5.0, -3.0, 4.5, -5.5, 3.5, -2.0),
+        ),
+    ),
+]
+
+
+HIDDEN_INTERVENTION_CASES = [
+    PricingInterventionCase(
+        key="intervention_case_01",
+        p_max=60.0,
+        scenario_note=(
+            "Several test rows included a non-price traffic boost. The next campaign is a "
+            "normal paid campaign with no boost, and the adjusted rows are noisy regional tests."
+        ),
+        observations=_intervention_observations(
+            170.0,
+            3.2,
+            60.0,
+            (0.0, 8.0, 15.0, 28.0, 45.0, 65.0),
+            (1.00, 1.08, 1.18, 1.32, 1.48, 1.70),
+            (3.0, -5.0, 4.0, -2.0, 5.0, -4.0),
+        ),
+    ),
+    PricingInterventionCase(
+        key="intervention_case_02",
+        p_max=58.0,
+        scenario_note=(
+            "Higher-price rows had extra placement from a partner newsletter. Remove that "
+            "increment before setting the normal-list price from noisy test rows."
+        ),
+        observations=_intervention_observations(
+            130.0,
+            2.4,
+            58.0,
+            (4.0, 7.0, 12.0, 24.0, 38.0, 58.0),
+            (1.03, 1.06, 1.15, 1.28, 1.45, 1.68),
+            (-4.0, 6.0, -5.0, 4.0, -3.0, 5.0),
+        ),
+    ),
+    PricingInterventionCase(
+        key="intervention_case_03",
+        p_max=65.0,
+        scenario_note=(
+            "The campaign mixed price tests with row-specific merchandising lifts; the next "
+            "rollout does not include those merchandising lifts, and the base rows are noisy."
+        ),
+        observations=_intervention_observations(
+            260.0,
+            4.4,
+            65.0,
+            (0.0, 12.0, 28.0, 50.0, 78.0, 110.0),
+            (1.00, 1.10, 1.22, 1.38, 1.55, 1.82),
+            (8.0, -7.0, 5.0, -6.0, 7.0, -5.0),
+        ),
+    ),
+    PricingInterventionCase(
+        key="intervention_case_04",
+        p_max=70.0,
+        scenario_note=(
+            "Late rows were boosted by retargeting and affiliate placement. Choose the "
+            "normal-campaign price after removing the listed incremental units from noisy rows."
+        ),
+        observations=_intervention_observations(
+            180.0,
+            2.8,
+            70.0,
+            (5.0, 10.0, 20.0, 42.0, 65.0, 95.0),
+            (1.04, 1.10, 1.20, 1.36, 1.58, 1.90),
+            (-6.0, 5.0, -4.0, 6.0, -5.0, 4.0),
         ),
     ),
 ]
@@ -916,6 +1023,38 @@ def evidence_oracle_price(case: PricingEvidenceCase) -> float:
 
 def evidence_revenue(case: PricingEvidenceCase, price: float) -> float:
     alpha_hat, beta_hat = evidence_posterior(case)
+    return price * max(0.0, alpha_hat - beta_hat * price)
+
+
+def intervention_posterior(
+    case: PricingInterventionCase,
+    *,
+    intervention_blind: bool = False,
+) -> tuple[float, float]:
+    rows = [
+        (
+            price,
+            observed_units
+            if intervention_blind
+            else (observed_units - intervention_units) / exposure_multiplier,
+        )
+        for price, observed_units, intervention_units, exposure_multiplier in case.observations
+    ]
+    return _ols_fit(rows)
+
+
+def intervention_oracle_price(case: PricingInterventionCase) -> float:
+    alpha_hat, beta_hat = intervention_posterior(case)
+    return clamp(alpha_hat / (2.0 * beta_hat), 0.0, case.p_max)
+
+
+def intervention_blind_price(case: PricingInterventionCase) -> float:
+    alpha_hat, beta_hat = intervention_posterior(case, intervention_blind=True)
+    return clamp(alpha_hat / (2.0 * beta_hat), 0.0, case.p_max)
+
+
+def intervention_revenue(case: PricingInterventionCase, price: float) -> float:
+    alpha_hat, beta_hat = intervention_posterior(case)
     return price * max(0.0, alpha_hat - beta_hat * price)
 
 
@@ -1564,6 +1703,55 @@ def run_pricing_inventory_markdown_noisy_game(
     )
 
 
+def run_pricing_hidden_intervention_game(
+    agent: Agent,
+    cases: list[PricingInterventionCase] | None = None,
+) -> dict:
+    cases = cases or HIDDEN_INTERVENTION_CASES
+    rows = []
+    for case in cases:
+        oracle = intervention_oracle_price(case)
+        blind = intervention_blind_price(case)
+        oracle_rev = intervention_revenue(case, oracle)
+        response = agent.complete(PRICING_HIDDEN_INTERVENTION_SYSTEM, _hidden_intervention_prompt(case))
+        parsed = parse_float("FINAL_PRICE", response)
+        chosen = clamp(parsed, 0.0, case.p_max) if parsed is not None else None
+        revenue = intervention_revenue(case, chosen) if chosen is not None else None
+        blind_error = abs(blind - oracle)
+        rows.append(
+            {
+                "case": case.key,
+                "oracle_price": oracle,
+                "intervention_blind_price": blind,
+                "chosen_price": chosen,
+                "absolute_price_error": abs(chosen - oracle) if chosen is not None else None,
+                "oracle_revenue": oracle_rev,
+                "chosen_revenue": revenue,
+                "revenue_gap": oracle_rev - revenue if revenue is not None else None,
+                "intervention_blind_miss": (
+                    chosen is not None
+                    and abs(chosen - blind) < 1.5
+                    and blind_error > 5.0
+                ),
+                "raw_response": response,
+            }
+        )
+    errors = [row["absolute_price_error"] for row in rows if row["absolute_price_error"] is not None]
+    gaps = [row["revenue_gap"] for row in rows if row["revenue_gap"] is not None]
+    parsed_rows = [row for row in rows if row["chosen_price"] is not None]
+    blind_misses = sum(row["intervention_blind_miss"] for row in rows)
+    return {
+        "task": "pricing_hidden_intervention",
+        "agent": agent.name,
+        "n_trials": len(rows),
+        "mean_absolute_price_error": sum(errors) / len(errors) if errors else None,
+        "mean_revenue_gap": sum(gaps) / len(gaps) if gaps else None,
+        "parse_rate": len(parsed_rows) / len(rows) if rows else 0.0,
+        "intervention_blind_miss_rate": blind_misses / len(rows) if rows else 0.0,
+        "trials": rows,
+    }
+
+
 def _run_pricing_inventory_markdown_game(
     agent: Agent,
     *,
@@ -2024,6 +2212,34 @@ def _inventory_markdown_noisy_prompt(case: PricingInventoryMarkdownCase) -> str:
         "Recommend a launch price and later clearance price for the same batch of units. "
         "Launch sales happen first and reduce units available for clearance; leftover units "
         "after clearance recover only the liquidation value."
+    )
+    return "\n".join(lines)
+
+
+def _hidden_intervention_prompt(case: PricingInterventionCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"price_ceiling={case.p_max:.2f}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note)
+    lines.append("Observed price-test rows:")
+    lines.extend(
+        (
+            f"  row={idx} price={price:.2f}, observed_units={observed_units:.2f}, "
+            f"intervention_units={intervention_units:.2f}, "
+            f"exposure_multiplier={exposure_multiplier:.4f}"
+        )
+        for idx, (price, observed_units, intervention_units, exposure_multiplier) in enumerate(
+            case.observations,
+            start=1,
+        )
+    )
+    lines.append(
+        "Set the next normal-campaign price. The next campaign has no non-price intervention. "
+        "For each row, first remove intervention_units from observed_units, then divide by "
+        "exposure_multiplier before fitting the normal demand curve; then maximize price "
+        "times normal demand under the price ceiling."
     )
     return "\n".join(lines)
 

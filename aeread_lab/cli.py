@@ -67,6 +67,7 @@ TASKS = (
     "pricing_multi_product_capacity",
     "pricing_inventory_markdown",
     "pricing_inventory_markdown_noisy",
+    "pricing_hidden_intervention",
     "pricing_law_audit",
     "pricing_evidence_law_audit",
     "pricing_evidence_law_holdout",
@@ -588,6 +589,20 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"oracle_late={_fmt(row['oracle_price_late'])} "
                     f"myopic_early={_fmt(row['myopic_price_early'])} "
                     f"myopic_late={_fmt(row['myopic_price_late'])}"
+                )
+        elif task == "pricing_hidden_intervention":
+            print(
+                f"pricing_hidden_intervention: n={result['n_trials']} "
+                f"price_error={_fmt(result['mean_absolute_price_error'])} "
+                f"revenue_gap={_fmt(result['mean_revenue_gap'])} "
+                f"parse={result['parse_rate']:.2f} "
+                f"intervention_blind_miss={result['intervention_blind_miss_rate']:.2f}"
+            )
+            for row in result["trials"]:
+                print(
+                    f"  {row['case']:<22} price={_fmt(row['chosen_price'])} "
+                    f"oracle={_fmt(row['oracle_price'])} "
+                    f"blind={_fmt(row['intervention_blind_price'])}"
                 )
         elif task == "pricing_law_audit":
             print(
