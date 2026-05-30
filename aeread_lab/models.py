@@ -1192,6 +1192,22 @@ def _procurement_bundle_compatibility(text: str, pair: tuple[str, str]) -> float
             rollout_deltas.append(float(match.group(3)))
     if rollout_deltas:
         return -(sum(rollout_deltas) / len(rollout_deltas)) / 8.0
+    history_pattern = re.compile(
+        r"pilot_pair=([a-zA-Z0-9_-]+),([a-zA-Z0-9_-]+)\s+"
+        r"rollout_hours_saved=([-+]?\d+(?:\.\d+)?)\s+"
+        r"support_tickets_prevented=([-+]?\d+(?:\.\d+)?)\s+"
+        r"training_rework_prevented=([-+]?\d+(?:\.\d+)?)"
+    )
+    history_scores = []
+    for match in history_pattern.finditer(text):
+        if normalized == {match.group(1), match.group(2)}:
+            history_scores.append(
+                0.010 * float(match.group(3))
+                + 0.040 * float(match.group(4))
+                + 0.080 * float(match.group(5))
+            )
+    if history_scores:
+        return sum(history_scores) / len(history_scores)
     return 0.0
 
 

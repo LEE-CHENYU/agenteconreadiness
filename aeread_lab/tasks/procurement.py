@@ -41,6 +41,13 @@ PROCUREMENT_BUNDLE_NOISY_EVIDENCE_SYSTEM = (
     "Return one final line only: FINAL_BUNDLE: <sku>,<sku>."
 )
 
+PROCUREMENT_BUNDLE_HISTORY_SYSTEM = (
+    "TASK: procurement_bundle_history\n"
+    "Select exactly two SKU values for the procurement package. "
+    "Respect the spend limit, required product lines, and multi-period deployment history. "
+    "Return one final line only: FINAL_BUNDLE: <sku>,<sku>."
+)
+
 
 @dataclass(frozen=True)
 class Product:
@@ -548,6 +555,19 @@ def run_procurement_bundle_noisy_evidence_game(
     )
 
 
+def run_procurement_bundle_history_game(
+    agent: Agent,
+    cases: list[ProcurementBundleCase] | None = None,
+) -> dict:
+    return _run_procurement_bundle_game(
+        agent,
+        cases=cases,
+        system=PROCUREMENT_BUNDLE_HISTORY_SYSTEM,
+        prompt_builder=_bundle_history_prompt,
+        task_name="procurement_bundle_history",
+    )
+
+
 def _run_procurement_bundle_game(
     agent: Agent,
     *,
@@ -965,6 +985,76 @@ def _bundle_noisy_evidence_prompt(case: ProcurementBundleCase) -> str:
     lines.append(
         "Treat individual deployment rows as noisy measurements. Aggregate the field "
         "evidence by SKU pair before deciding which package best serves the buying team."
+    )
+    return "\n".join(lines)
+
+
+def _bundle_history_prompt(case: ProcurementBundleCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"buying_team={case.profile.key}",
+        f"spend_limit={case.budget:.0f}",
+        f"must_cover_lines={','.join(case.required_categories)}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note.replace("compatibility", "deployment history"))
+    lines.append("Candidate SKUs:")
+    for product in case.products:
+        lines.append(
+            "  "
+            + " ".join(
+                [
+                    f"sku={product.product_id}",
+                    f"line={product.category}",
+                    f"invoice={product.price:.0f}",
+                    f"field_reliability={product.durability:.2f}",
+                    f"operator_fit={product.comfort:.2f}",
+                    f"presentation_fit={product.style_fit:.2f}",
+                    f"deployment_drag={product.assembly_friction:.2f}",
+                ]
+            )
+        )
+    lines.append("Deployment-history value conversion:")
+    lines.append(
+        "package_history_delta = 0.010*rollout_hours_saved "
+        "+ 0.040*support_tickets_prevented + 0.080*training_rework_prevented"
+    )
+    lines.append("Negative prevented values mean the package created extra operational burden.")
+    lines.append("Multi-period deployment history:")
+    periods = ("2025Q1", "2025Q2", "2025Q3")
+    noise_rows = ((2.40, -0.40, 0.15), (-1.60, 0.80, -0.05), (-0.80, -0.40, -0.10))
+    for left, right, bonus in case.compatibility_bonuses:
+        base_hours = 60.0 * bonus
+        base_tickets = 6.0 * bonus
+        base_rework = 2.0 * bonus
+        for period, (hour_noise, ticket_noise, rework_noise) in zip(periods, noise_rows):
+            lines.append(
+                "  "
+                + " ".join(
+                    [
+                        f"period={period}",
+                        f"pilot_pair={left},{right}",
+                        f"rollout_hours_saved={base_hours + hour_noise:.2f}",
+                        f"support_tickets_prevented={base_tickets + ticket_noise:.2f}",
+                        f"training_rework_prevented={base_rework + rework_noise:.2f}",
+                    ]
+                )
+            )
+    lines.append("Buying team priorities:")
+    lines.append(
+        " ".join(
+            [
+                f"invoice_penalty={case.profile.price_weight:.4f}",
+                f"reliability_weight={case.profile.durability_weight:.4f}",
+                f"operator_fit_weight={case.profile.comfort_weight:.4f}",
+                f"presentation_weight={case.profile.style_weight:.4f}",
+                f"deployment_drag_weight={case.profile.friction_weight:.4f}",
+            ]
+        )
+    )
+    lines.append(
+        "Aggregate the deployment history by SKU pair, convert it into package value, "
+        "and combine that with the buying team's item priorities."
     )
     return "\n".join(lines)
 

@@ -76,6 +76,7 @@ TASK_ORDER = (
     "procurement_bundle_natural",
     "procurement_bundle_evidence",
     "procurement_bundle_noisy_evidence",
+    "procurement_bundle_history",
     "pricing",
     "pricing_counterfactual",
     "pricing_cross_elasticity",
@@ -203,6 +204,10 @@ _CASE_TASKS = {
     ),
     "procurement_bundle_noisy_evidence": (
         procurement_task.run_procurement_bundle_noisy_evidence_game,
+        procurement_task.PROCUREMENT_BUNDLE_CASES,
+    ),
+    "procurement_bundle_history": (
+        procurement_task.run_procurement_bundle_history_game,
         procurement_task.PROCUREMENT_BUNDLE_CASES,
     ),
     "pricing": (pricing_task.run_pricing_game, pricing_task.DEFAULT_CASES),
