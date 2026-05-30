@@ -118,6 +118,8 @@ class OfflineAgent:
             return self._moral_hazard_contract(user)
         if "TASK: strategic_action" in system:
             return self._strategic_action(user)
+        if "TASK: forecast_probability" in system:
+            return self._forecast_probability(user)
         if "TASK: exploration_action" in system:
             return self._exploration_action(user)
         if "TASK: experiment_action" in system:
@@ -453,6 +455,20 @@ class OfflineAgent:
         action = "GRAB" if grab_net > honor else "HONOR"
         return f"FINAL_ACTION: {action}"
 
+    def _forecast_probability(self, user: str) -> str:
+        posterior = _forecast_posterior_probability(user)
+        base_rate = _extract_float(user, "base_rate")
+        if self.policy in {"base_rate", "prior", "unconditional"}:
+            probability = base_rate
+        elif self.policy in {"underreact", "shrink"}:
+            probability = base_rate + 0.25 * (posterior - base_rate)
+        elif self.policy in {"overconfident", "extreme"}:
+            probability = 0.95 if posterior >= base_rate else 0.05
+        else:
+            probability = posterior
+        probability = max(0.0, min(1.0, probability))
+        return f"FINAL_PROBABILITY: {probability:.12f}"
+
     def _exploration_action(self, user: str) -> str:
         arms = _extract_exploration_arms(user)
         sample_cost = _extract_float(user, "sample_cost")
@@ -675,6 +691,18 @@ def _extract_uniform_bounds(text: str) -> tuple[float, float]:
     if not match:
         return 0.0, 1.0
     return float(match.group(1)), float(match.group(2))
+
+
+def _forecast_posterior_probability(text: str) -> float:
+    base_rate = max(1e-9, min(1.0 - 1e-9, _extract_float(text, "base_rate", 0.5)))
+    odds = base_rate / (1.0 - base_rate)
+    for line in text.splitlines():
+        if "signal_id=" not in line:
+            continue
+        likelihood_if_event = _extract_float(line, "likelihood_if_event", 1.0)
+        likelihood_if_not_event = _extract_float(line, "likelihood_if_not_event", 1.0)
+        odds *= likelihood_if_event / max(1e-12, likelihood_if_not_event)
+    return odds / (1.0 + odds)
 
 
 def _extract_bargaining_types(text: str) -> list[tuple[float, float]]:

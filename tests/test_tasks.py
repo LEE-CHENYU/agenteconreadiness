@@ -30,6 +30,9 @@ from aeread_lab.tasks.experiment_design import run_experiment_design_game
 from aeread_lab.tasks.exploration import DEFAULT_CASES as EXPLORATION_CASES
 from aeread_lab.tasks.exploration import _prompt as exploration_prompt
 from aeread_lab.tasks.exploration import run_exploration_game
+from aeread_lab.tasks.forecast_calibration import DEFAULT_CASES as FORECAST_CASES
+from aeread_lab.tasks.forecast_calibration import _prompt as forecast_prompt
+from aeread_lab.tasks.forecast_calibration import run_forecast_calibration_game
 from aeread_lab.tasks.market import run_market_game
 from aeread_lab.tasks.matching import DEFAULT_CASES as MATCHING_CASES
 from aeread_lab.tasks.matching import _prompt as matching_prompt
@@ -139,6 +142,7 @@ class TaskSmokeTests(unittest.TestCase):
         procurement = procurement_prompt(PROCUREMENT_CASES[0])
         pricing = pricing_prompt(PRICING_CASES[0], "reveal")
         strategic = strategic_prompt(DRIFT_CASES[0], 1, [])
+        forecast = forecast_prompt(FORECAST_CASES[0])
         exploration = exploration_prompt(EXPLORATION_CASES[0])
         belief_bargaining = belief_bargaining_prompt(BELIEF_BARGAINING_CASES[0])
         principal = principal_prompt(PRINCIPAL_CASES[0])
@@ -163,6 +167,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", procurement)
         self.assertNotIn("oracle", pricing)
         self.assertNotIn("oracle", strategic)
+        self.assertNotIn("oracle", forecast)
         self.assertNotIn("oracle", exploration)
         self.assertNotIn("oracle", belief_bargaining)
         self.assertNotIn("oracle", principal)
@@ -361,6 +366,21 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(stress_blind["stress_drift_rate"], 0.4)
         self.assertGreater(stress_blind["myopic_miss_rate"], 0.5)
 
+    def test_forecast_calibration_flags_base_rate_underreaction(self):
+        calibrated = run_forecast_calibration_game(OfflineAgent("oracle"))
+        base_rate = run_forecast_calibration_game(OfflineAgent("base_rate"))
+        self.assertLess(calibrated["mean_expected_brier_regret"], 1e-9)
+        self.assertGreater(base_rate["mean_expected_brier_regret"], 0.1)
+        self.assertEqual(calibrated["base_rate_miss_rate"], 0.0)
+        self.assertEqual(base_rate["base_rate_miss_rate"], 1.0)
+
+    def test_forecast_calibration_flags_overconfidence(self):
+        calibrated = run_forecast_calibration_game(OfflineAgent("oracle"))
+        overconfident = run_forecast_calibration_game(OfflineAgent("overconfident"))
+        self.assertLess(calibrated["mean_posterior_l1_error"], 1e-9)
+        self.assertGreater(overconfident["mean_expected_brier_regret"], 0.05)
+        self.assertGreater(overconfident["overconfidence_rate"], 0.8)
+
     def test_exploration_flags_greedy_exploitation(self):
         exploratory = run_exploration_game(OfflineAgent("oracle"))
         greedy = run_exploration_game(OfflineAgent("exploit"))
@@ -539,6 +559,17 @@ class TaskSmokeTests(unittest.TestCase):
         drift_rows = [row for row in rows if row["task"] == "strategic_drift"]
         self.assertEqual(drift_rows[0]["agent"], "offline:oracle")
         self.assertEqual(drift_rows[1]["agent"], "offline:myopic")
+
+    def test_offline_sweep_ranks_calibrated_above_base_rate_on_forecast(self):
+        sweep = run_sweep(
+            task="forecast_calibration",
+            agent_specs=["offline:oracle", "offline:underreact", "offline:base_rate"],
+        )
+        rows = rank_rows(comparison_table(sweep))
+        forecast_rows = [row for row in rows if row["task"] == "forecast_calibration"]
+        self.assertEqual(forecast_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(forecast_rows[1]["agent"], "offline:underreact")
+        self.assertEqual(forecast_rows[2]["agent"], "offline:base_rate")
 
     def test_offline_sweep_ranks_exploration_above_exploit(self):
         sweep = run_sweep(task="exploration", agent_specs=["offline:oracle", "offline:exploit"])

@@ -14,6 +14,7 @@ from aeread_lab.tasks import (
     common_value as common_value_task,
     experiment_design as experiment_design_task,
     exploration as exploration_task,
+    forecast_calibration as forecast_calibration_task,
     market as market_task,
     matching as matching_task,
     mechanism as mechanism_task,
@@ -48,6 +49,7 @@ TASK_ORDER = (
     "common_value",
     "mechanism",
     "strategic_drift",
+    "forecast_calibration",
     "exploration",
     "experiment_design",
     "retail",
@@ -85,6 +87,10 @@ _CASE_TASKS = {
     "strategic_drift": (
         strategic_drift_task.run_strategic_drift_game,
         strategic_drift_task.DEFAULT_CASES,
+    ),
+    "forecast_calibration": (
+        forecast_calibration_task.run_forecast_calibration_game,
+        forecast_calibration_task.DEFAULT_CASES,
     ),
     "exploration": (exploration_task.run_exploration_game, exploration_task.DEFAULT_CASES),
     "experiment_design": (

@@ -28,6 +28,7 @@ TASKS = (
     "common_value",
     "mechanism",
     "strategic_drift",
+    "forecast_calibration",
     "exploration",
     "experiment_design",
     "retail",
@@ -265,6 +266,16 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"loss={_fmt(row.get('expected_future_loss_per_round'))} "
                     f"case={row['real_case']}"
                 )
+        elif task == "forecast_calibration":
+            print(
+                f"forecast_calibration: n={result['n_trials']} expected_brier_regret="
+                f"{_fmt(result['mean_expected_brier_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_expected_brier_regret_ci95'))} "
+                f"realized_brier={_fmt(result['mean_realized_brier_score'])} "
+                f"posterior_l1={_fmt(result['mean_posterior_l1_error'])} "
+                f"base_rate_miss={result['base_rate_miss_rate']:.2f} "
+                f"overconfidence={result['overconfidence_rate']:.2f}"
+            )
         elif task == "exploration":
             print(
                 f"exploration: n={result['n_trials']} accuracy={result['accuracy']:.2f} "

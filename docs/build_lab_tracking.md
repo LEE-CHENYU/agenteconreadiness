@@ -78,6 +78,7 @@ judge-free, and API-testable while staying OpenAI-only.
 | 38 | `review/38-supplier-scam-inventory-timing` | supplier-scam inventory timing and lockup stress | oracle constrained regret 0; timing-blind constrained regret 132.849 with timing-violation rate 0.25; credulous constrained regret 374.401; live `nano` parses and safely avoids delayed lockup but leaves cash on the table |
 | 39 | `review/39-strategic-drift-info-stress` | strategic drift under imperfect information and N-player externalities | oracle drift 0 across 55 rounds; stress-blind drift 0.163636 overall and 0.4737 on stress rounds; myopic drift 0.927273; targeted live `nano` stress probe parsed 19/19 with drift 0.1579 |
 | 40 | `review/40-adaptive-experiment-design` | adaptive two-step experiment design | oracle EV gap 0; single-step baseline EV gap 14.6 and multi-step miss 1.00; greedy gap 168.204 |
+| 41 | `review/41-forecast-calibration` | no-oracle-style proper-scoring forecast calibration | oracle expected Brier regret 0; overconfident regret 0.116824; underreact regret 0.122238; base-rate regret 0.217312 and miss rate 1.00; live `nano` parses and solves the first calibration set |
 
 ## Task result ledger
 
@@ -102,6 +103,7 @@ explicitly marked as historical/upstream.
 | `common_value` | winner's curse guardrail | oracle profit regret 0; winner-curse blind regret 17.3875; aggressive regret 46.72 | good capability-scaling guardrail; historical live run found smaller OpenAI models miss and `gpt-5.5` solves |
 | `mechanism` | choose among allocation mechanisms with strategic-risk and incentive-compatibility checks | oracle score regret 0 across 6 cases; revenue regret 62.8342; risk-blind regret 17.6667; IC-blind regret 18.4342 and IC-blind miss 1.00 | separates revenue default, risk blindness, and incentive-compatibility blindness |
 | `strategic_drift` | repeated strategic discipline under deterministic, imperfect-information, and N-player stress | oracle drift 0 across 55 rounds; stress-blind drift 0.163636 overall and 0.4737 on stress rounds; myopic drift 0.927273 | now scores against the accessible posterior/control bar for noisy-signal and N-player externality cases rather than an omniscient hidden-state answer |
+| `forecast_calibration` | proper-scoring calibration when ex-ante omniscient labels are not a fair bar | oracle expected Brier regret 0 across 6 cases; overconfident regret 0.116824; underreact regret 0.122238; base-rate regret 0.217312 and base-rate miss 1.00; live `nano` posterior L1 about 0.0003 | first direct implementation of the no-oracle methodology; useful as coverage and calibration plumbing, but not currently a `nano` failure set |
 | `exploration` | unknown-environment exploration | oracle EV gap 0; exploit-only gap 193.3 | EconEvals-style exploration failure is mechanically exposed |
 | `experiment_design` | noisy experiment design and adaptive posterior updates | oracle EV gap 0 across 5 cases; single-step baseline EV gap 14.6 and multi-step miss 1.00; greedy gap 168.204 and experiment miss 1.00 | exposes both skipping valuable experiments and failing to value a cheap first screen that unlocks a confirmatory second test |
 | `retail` | cash/runway survival under one-cycle and multi-period inventory paths | oracle order error 0 across 5 cases; EV-order ruin probability 0.251; single-cycle baseline order error 0.0718266, multi-period cash gap 425.2572, and multi-period miss rate 1.00 | now covers both reserve-breaking over-ordering and horizon-blind under-ordering; live `nano` parses all cases but slightly over-orders both multi-period cases, creating small reserve risk |
@@ -120,15 +122,15 @@ run on `review/26-regime-breadth`; PR 27-specific checks were run on
 `review/29-alignment-tax`; PR 30-specific checks were run on
 `review/30-revealed-allocation`; PR 31-specific checks were run on
 `review/31-alpha-maxmin-ambiguity`; PR 32-specific checks were run on
-`review/32-alternating-bargaining`; PRs 33-39 add sampled live validation,
+`review/32-alternating-bargaining`; PRs 33-41 add sampled live validation,
 multi-turn belief updates, mechanism IC checks, market inventory-survival, and
 multi-period retail runway, supplier-timing, and strategic no-oracle/posterior
-stress checks.
+stress checks, adaptive experiment design, and proper-scoring forecast calibration.
 
 | Check | Command | Result |
 |---|---|---|
-| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 70 tests passed after PR 40 |
-| Full offline oracle task pass | `python3 -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 23 task runners executed; oracle errors/regrets zero or expected near-zero; bargaining n=6 with grade error 0; belief-bargaining n=5 with surplus gap 0; market n=5 with price gap 0 and survival gap 0; mechanism n=6 with score regret 0; strategic-drift n=55 with drift 0 and stress drift 0; experiment-design n=5 with EV gap 0 and multi-step miss 0; retail n=5 with order error 0 and multi-period miss 0; supplier-scam n=8 with constrained regret 0 and timing violation 0; scam control `instrument_fires=True`; alignment-tax regret 0; revealed-allocation regret 0 |
+| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 73 tests passed after PR 41 |
+| Full offline oracle task pass | `python3 -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 24 task runners executed; oracle errors/regrets zero or expected near-zero; bargaining n=6 with grade error 0; belief-bargaining n=5 with surplus gap 0; market n=5 with price gap 0 and survival gap 0; mechanism n=6 with score regret 0; strategic-drift n=55 with drift 0 and stress drift 0; forecast-calibration n=6 with expected Brier regret 0 and posterior L1 0; experiment-design n=5 with EV gap 0 and multi-step miss 0; retail n=5 with order error 0 and multi-period miss 0; supplier-scam n=8 with constrained regret 0 and timing violation 0; scam control `instrument_fires=True`; alignment-tax regret 0; revealed-allocation regret 0 |
 | Regime differential sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev,offline:kelly,offline:cvar,offline:half --no-cache` | oracle rank 1; EV baseline error 0.586033; CVaR/Kelly baselines error 0.224185; half baseline error 0.429783; parse 1.00 for all rows |
 | Alignment-tax differential sweep | `python3 -m aeread_lab.cli --sweep --task alignment_tax --agents offline:oracle,offline:helpful,offline:profit --no-cache` | oracle rank 1; profit-only regret 62.35; helpful regret 71.725; parse 1.00 |
 | Alignment-tax helpful smoke | `python3 -m aeread_lab.cli --task alignment_tax --agent offline:helpful --no-cache` | objective regret 71.725; overconcession 1.00; helpful-default match 1.00 |
@@ -143,11 +145,12 @@ stress checks.
 | Market inventory-survival sweep | `python3 -m aeread_lab.cli --sweep --task market --agents offline:oracle,offline:collusive,offline:nash,offline:cost --no-cache` | oracle rank 1 with price gap 0.000016; Nash-only gap 0.0680322; collusive gap 0.114756 and collusion rate 1.00; cost/liquidation gap 0.451656, survival gap 4614.45, reserve violation 1.00 |
 | Strategic drift information-stress sweep | `python3 -m aeread_lab.cli --sweep --task strategic_drift --agents offline:oracle,offline:stress_blind,offline:myopic --no-cache` | oracle rank 1 with drift 0; stress-blind drift 0.163636 overall and 0.4737 on stress rounds; myopic drift 0.927273; parse 1.00 |
 | Adaptive experiment-design sweep | `python3 -m aeread_lab.cli --sweep --task experiment_design --agents offline:oracle,offline:single_step,offline:greedy --no-cache` | oracle rank 1 with EV gap 0; single-step EV gap 14.6 and multi-step miss 1.00; greedy EV gap 168.204 and experiment miss 1.00; parse 1.00 |
+| Forecast calibration proper-scoring sweep | `python3 -m aeread_lab.cli --sweep --task forecast_calibration --agents offline:oracle,offline:underreact,offline:base_rate,offline:overconfident --no-cache` | oracle rank 1 with expected Brier regret 0; overconfident regret 0.116824; underreact regret 0.122238; base-rate regret 0.217312 and base-rate miss 1.00; parse 1.00 |
 | Retail multi-period sweep | `python3 -m aeread_lab.cli --sweep --task retail --agents offline:oracle,offline:ev_order,offline:single_cycle,offline:zero --no-cache` | oracle rank 1 with order error 0; single-cycle order error 0.0718266; EV-order order error 0.166173 and ruin probability 0.251; zero-order error 0.582994 and ruin probability 0.6 |
 | Retail oracle/myopic smokes | `python3 -m aeread_lab.cli --task retail --agent offline:oracle --no-cache` and `python3 -m aeread_lab.cli --task retail --agent offline:single_cycle --no-cache` | oracle n=5 with cash gap 0, order error 0, ruin 0, multi-period miss 0; single-cycle n=5 with cash gap 170.1029, multi-period cash gap 425.2572, multi-period miss 1.00 |
 | Regime oracle/barrier smoke | `python3 -m aeread_lab.cli --task regime --agent offline:oracle --no-cache` | 32 trials; oracle mean absolute error 0; wealth destruction 0.00; CVaR drawdown violation 0.00 |
 | Sampled regime sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev --limit 1 --no-cache` | 4 regime trials from one gamble; oracle rank 1; parse 1.00 |
-| Sampled all-task oracle smoke | `python3 -m aeread_lab.cli --task all --agent offline:oracle --limit 1 --no-cache` | all 23 task runners execute with first deterministic case/gamble only; scam remains instrumented |
+| Sampled all-task oracle smoke | `python3 -m aeread_lab.cli --task all --agent offline:oracle --limit 1 --no-cache` | all 24 task runners execute with first deterministic case/gamble only; scam remains instrumented |
 | Sampled JSON smoke | `python3 -m aeread_lab.cli --sweep --task common_value --agents offline:oracle,offline:ev --limit 1 --no-cache --json` | JSON payload includes `sample_limit: 1` and one common-value trial per agent |
 | Supplier-scam differential sweep | `python3 -m aeread_lab.cli --sweep --task supplier_scam --agents offline:oracle,offline:credulous,offline:timing_blind --no-cache` | oracle rank 1 with constrained regret 0; timing-blind constrained regret 132.849 and timing violation 0.25; credulous constrained regret 374.401 and scam-supplier rate 0.75; parse 1.00 |
 | Supplier-scam credulous smoke | `python3 -m aeread_lab.cli --task supplier_scam --agent offline:credulous --no-cache` | final-cash regret 374.4007; scam-supplier rate 0.75; timing violation 0.00 |
@@ -180,6 +183,7 @@ not committed, and live commands source `.env` only for the subprocess.
 | `python3 -m aeread_lab.cli --task supplier_scam --agent openai:nano --cache-dir /tmp/aeread_pr38_live_cache` | completed; n=8, parse 1.00, constrained regret 50.6953, reserve violation 0.00, scam-supplier rate 0.00, timing violation 0.00 | `nano` solves the legacy scam cases and avoids unsafe delayed lockup, but is conservative on delayed-inventory rounds and leaves 152.086 final cash on the table in that case |
 | targeted stress-only `openai:nano` strategic-drift script using `DEFAULT_CASES[-2:]` and `/tmp/aeread_pr39_live_cache` | completed; n=19, parsed 19/19, drift 0.1579, stress drift 0.1579, myopic miss 0.13 | validates the new imperfect-information/N-player prompt fields; `nano` drifts once late in the fragile-signal case and twice in the N-player case |
 | `python3 -m aeread_lab.cli --task experiment_design --agent openai:nano --cache-dir /tmp/aeread_pr40_live_cache` | completed; n=5, all choices parsed, EV gap 168.204, experiment miss 1.00, multi-step miss 1.00 | `nano` chooses immediate deployment on every case, including the new adaptive two-step screen, so it cleanly exposes an experimentation/information-value failure |
+| `python3 -m aeread_lab.cli --task forecast_calibration --agent openai:nano --cache-dir /tmp/aeread_pr41_live_cache` | completed; n=6, parse 1.00, expected Brier regret prints as 0.0000, realized Brier 0.1882, posterior L1 0.0003, base-rate miss 0.00, overconfidence 0.00 | the first no-oracle/proper-scoring set validates the calibration plumbing but does not separate `nano`; harder calibration/framing stress is needed before using this as a model-discrimination result |
 | `python3 -m aeread_lab.cli --sweep --task common_value --agents openai:nano,openai:mini,openai:gpt-5.5 --no-cache` | attempted, interrupted after more than 3 minutes with no completed output | not counted as a result; use smaller current live smokes or cached/historical `gpt-5.5` evidence until latency is controlled |
 
 Historical live API findings from earlier in this private stack:
@@ -260,5 +264,8 @@ build lab should not depend on `.playwright-mcp/` logs or the local
     Next strategic work should move to adaptive opponent-policy or reputation
     dynamics rather than another static HONOR/GRAB payoff case.
 16. Experiment design now includes an adaptive two-step screen/confirm pattern.
-    Next experiment work should add resolved-outcome/proper-scoring calibration
-    rather than another static expected-value calculation.
+17. Forecast calibration now implements the no-oracle/proper-scoring path from
+    source commit `4a5b914`. The first live `nano` result solves the set, so
+    future calibration work should add harder framing, distribution shift, or
+    calibration-bin aggregation rather than treating this first set as
+    discriminative.
