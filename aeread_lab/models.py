@@ -1842,7 +1842,7 @@ def _best_mechanism_choice(
 
 def _extract_repeated_mechanisms(text: str) -> dict[str, dict[str, float]]:
     mechanisms: dict[str, dict[str, float]] = {}
-    pattern = re.compile(
+    explicit_pattern = re.compile(
         r"mechanism_id=([a-zA-Z0-9_-]+)\s+"
         r"first_period_revenue=([-+]?\d+(?:\.\d+)?)\s+"
         r"welfare=([-+]?\d+(?:\.\d+)?)\s+"
@@ -1853,7 +1853,29 @@ def _extract_repeated_mechanisms(text: str) -> dict[str, dict[str, float]]:
         r"manipulation_growth=([-+]?\d+(?:\.\d+)?)\s+"
         r"review_cost=([-+]?\d+(?:\.\d+)?)"
     )
-    for match in pattern.finditer(text):
+    natural_pattern = re.compile(
+        r"option_id=([a-zA-Z0-9_-]+)\s+"
+        r"initial_take=([-+]?\d+(?:\.\d+)?)\s+"
+        r"participant_value=([-+]?\d+(?:\.\d+)?)\s+"
+        r"access_reach=([-+]?\d+(?:\.\d+)?)\s+"
+        r"governance_risk=([-+]?\d+(?:\.\d+)?)\s+"
+        r"participant_retention=([-+]?\d+(?:\.\d+)?)\s+"
+        r"gaming_pressure=([-+]?\d+(?:\.\d+)?)\s+"
+        r"gaming_acceleration=([-+]?\d+(?:\.\d+)?)\s+"
+        r"oversight_cost=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in explicit_pattern.finditer(text):
+        mechanisms[match.group(1)] = {
+            "first_period_revenue": float(match.group(2)),
+            "welfare": float(match.group(3)),
+            "access": float(match.group(4)),
+            "strategic_risk": float(match.group(5)),
+            "retention_rate": float(match.group(6)),
+            "manipulation_load": float(match.group(7)),
+            "manipulation_growth": float(match.group(8)),
+            "review_cost": float(match.group(9)),
+        }
+    for match in natural_pattern.finditer(text):
         mechanisms[match.group(1)] = {
             "first_period_revenue": float(match.group(2)),
             "welfare": float(match.group(3)),

@@ -51,6 +51,7 @@ TASK_ORDER = (
     "common_value",
     "mechanism",
     "mechanism_repeated",
+    "mechanism_repeated_natural",
     "strategic_drift",
     "forecast_calibration",
     "forecast_aggregate",
@@ -100,6 +101,10 @@ _CASE_TASKS = {
     "mechanism": (mechanism_task.run_mechanism_game, mechanism_task.DEFAULT_CASES),
     "mechanism_repeated": (
         mechanism_task.run_mechanism_repeated_game,
+        mechanism_task.REPEATED_CASES,
+    ),
+    "mechanism_repeated_natural": (
+        mechanism_task.run_mechanism_repeated_natural_game,
         mechanism_task.REPEATED_CASES,
     ),
     "strategic_drift": (

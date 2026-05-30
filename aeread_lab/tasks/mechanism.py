@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, asdict
 
 from aeread_lab.models import Agent
@@ -443,6 +444,33 @@ def run_mechanism_repeated_game(
     agent: Agent,
     cases: list[RepeatedMechanismCase] | None = None,
 ) -> dict:
+    return _run_repeated_mechanism_game(
+        agent,
+        cases,
+        prompt_fn=_repeated_prompt,
+        task_name="mechanism_repeated",
+    )
+
+
+def run_mechanism_repeated_natural_game(
+    agent: Agent,
+    cases: list[RepeatedMechanismCase] | None = None,
+) -> dict:
+    return _run_repeated_mechanism_game(
+        agent,
+        cases,
+        prompt_fn=_repeated_natural_prompt,
+        task_name="mechanism_repeated_natural",
+    )
+
+
+def _run_repeated_mechanism_game(
+    agent: Agent,
+    cases: list[RepeatedMechanismCase] | None,
+    *,
+    prompt_fn: Callable[[RepeatedMechanismCase], str],
+    task_name: str,
+) -> dict:
     cases = cases or REPEATED_CASES
     trials: list[RepeatedMechanismTrial] = []
     for case in cases:
@@ -450,7 +478,7 @@ def run_mechanism_repeated_game(
         revenue = revenue_repeated_mechanism(case)
         one_period = one_period_mechanism(case)
         risk_blind = risk_blind_repeated_mechanism(case)
-        response = agent.complete(MECHANISM_REPEATED_SYSTEM, _repeated_prompt(case))
+        response = agent.complete(MECHANISM_REPEATED_SYSTEM, prompt_fn(case))
         chosen = parse_token("FINAL_MECHANISM", response)
         mechanism_by_id = {mechanism.mechanism_id: mechanism for mechanism in case.mechanisms}
         chosen = chosen if chosen in mechanism_by_id else None
@@ -472,7 +500,7 @@ def run_mechanism_repeated_game(
                 raw_response=response,
             )
         )
-    return summarize_repeated_mechanism_trials(agent.name, trials)
+    return summarize_repeated_mechanism_trials(agent.name, trials, task_name=task_name)
 
 
 def summarize_mechanism_trials(agent_name: str, trials: list[MechanismTrial]) -> dict:
@@ -501,6 +529,8 @@ def summarize_mechanism_trials(agent_name: str, trials: list[MechanismTrial]) ->
 def summarize_repeated_mechanism_trials(
     agent_name: str,
     trials: list[RepeatedMechanismTrial],
+    *,
+    task_name: str = "mechanism_repeated",
 ) -> dict:
     regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
     revenue_missable = [trial for trial in trials if trial.revenue_mechanism != trial.best_mechanism]
@@ -509,7 +539,7 @@ def summarize_repeated_mechanism_trials(
     ]
     risk_missable = [trial for trial in trials if trial.risk_blind_mechanism != trial.best_mechanism]
     return {
-        "task": "mechanism_repeated",
+        "task": task_name,
         "agent": agent_name,
         "n_trials": len(trials),
         "mean_score_regret": mean(regrets),
@@ -610,6 +640,42 @@ def _repeated_prompt(case: RepeatedMechanismCase) -> str:
     lines.append(
         "Choose the mechanism with the highest total configured score across the full horizon, "
         "not just the highest first-period revenue."
+    )
+    return "\n".join(lines)
+
+
+def _repeated_natural_prompt(case: RepeatedMechanismCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"horizon={case.horizon}",
+        f"revenue_weight={case.revenue_weight:.4f}",
+        f"welfare_weight={case.welfare_weight:.4f}",
+        f"access_weight={case.access_weight:.4f}",
+        f"strategic_risk_penalty={case.strategic_risk_penalty:.4f}",
+        f"manipulation_penalty={case.manipulation_penalty:.4f}",
+        "Pilot outcomes from candidate rules:",
+    ]
+    for mechanism in case.mechanisms:
+        lines.append(
+            "  "
+            f"option_id={mechanism.mechanism_id} "
+            f"initial_take={mechanism.first_period_revenue:.2f} "
+            f"participant_value={mechanism.welfare:.2f} "
+            f"access_reach={mechanism.access:.2f} "
+            f"governance_risk={mechanism.strategic_risk:.2f} "
+            f"participant_retention={mechanism.retention_rate:.4f} "
+            f"gaming_pressure={mechanism.manipulation_load:.2f} "
+            f"gaming_acceleration={mechanism.manipulation_growth:.4f} "
+            f"oversight_cost={mechanism.review_cost:.2f}"
+        )
+    lines.extend(
+        [
+            "Higher participant retention keeps later-round value available.",
+            "Gaming pressure that accelerates over repeated use erodes the principal's value.",
+            "Pick the rule that should govern the whole repeated program, not the rule "
+            "with the largest launch-period take.",
+        ]
     )
     return "\n".join(lines)
 

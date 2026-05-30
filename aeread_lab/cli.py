@@ -30,6 +30,7 @@ TASKS = (
     "common_value",
     "mechanism",
     "mechanism_repeated",
+    "mechanism_repeated_natural",
     "strategic_drift",
     "forecast_calibration",
     "forecast_aggregate",
@@ -286,9 +287,9 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"ic_blind_miss={result.get('ic_blind_miss_rate', 0.0):.2f} "
                 f"ic_violation={_fmt(result.get('mean_incentive_violation'))}"
             )
-        elif task == "mechanism_repeated":
+        elif task in {"mechanism_repeated", "mechanism_repeated_natural"}:
             print(
-                f"mechanism_repeated: n={result['n_trials']} score_regret="
+                f"{task}: n={result['n_trials']} score_regret="
                 f"{_fmt(result['mean_score_regret'])} "
                 f"ci95={_fmt_ci(result.get('mean_score_regret_ci95'))} "
                 f"revenue_miss={result['revenue_default_miss_rate']:.2f} "
