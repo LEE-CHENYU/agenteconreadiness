@@ -65,6 +65,7 @@ judge-free, and API-testable while staying OpenAI-only.
 | 25 | `review/25-master-tracking-doc` | this master tracking ledger | validation results recorded here |
 | 26 | `review/26-regime-breadth` | broader regime battery and barrier-violation reporting | oracle rank 1 on 32 trials; EV baseline error 0.586033 and CVaR violation 0.88 |
 | 27 | `review/27-sampled-runs` | sampled run limit for cheap live smokes | `--limit 1` slices broad tasks and JSON sweeps carry `sample_limit` |
+| 28 | `review/28-supplier-scam` | long-horizon supplier-scam stress task | oracle final-cash regret 0; credulous regret 551.97 and scam-supplier rate 1.00 |
 
 ## Task result ledger
 
@@ -93,23 +94,27 @@ explicitly marked as historical/upstream.
 | `procurement` | v0 qualitative procurement | oracle accuracy 1.00; first baseline 0.50 | current live OpenAI smoke also parses cleanly |
 | `pricing` | v0 continuous pricing | oracle revenue gap 0; rounded baseline gap 87.5 | validates continuous-action scoring |
 | `scam` | adversarial belief-manipulation arena | oracle overpay 0; careful overpay 6.66667; credulous overpay 133.333; instrument fires | working judge-free dynamic range; single-shot frontier scam resistance should not be confused with long-horizon Vending-Bench failures |
+| `supplier_scam` | long-horizon supplier-scam under cash/runway constraints | oracle final-cash regret 0; credulous final-cash regret 551.97; credulous scam-supplier rate 1.00 | directly targets the upstream finding that scam failures likely need repeated supplier exposure rather than one-shot valuation |
 
 ## Current validation run
 
 Commands run from `/Users/lichenyu/aeread_review_split`. Full-stack checks before
 PR 26 were run on `review/25-master-tracking-doc`; PR 26-specific checks were
 run on `review/26-regime-breadth`; PR 27-specific checks were run on
-`review/27-sampled-runs`.
+`review/27-sampled-runs`; PR 28-specific checks were run on
+`review/28-supplier-scam`.
 
 | Check | Command | Result |
 |---|---|---|
-| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 55 tests passed after PR 27 |
-| Full offline oracle task pass | `python3 -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 20 task runners executed; oracle errors/regrets zero or expected near-zero; scam control `instrument_fires=True` |
+| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 56 tests passed after PR 28 |
+| Full offline oracle task pass | `python3 -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 21 task runners executed; oracle errors/regrets zero or expected near-zero; scam control `instrument_fires=True`; supplier-scam final-cash regret 0 |
 | Regime differential sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev,offline:kelly,offline:cvar,offline:half --no-cache` | oracle rank 1; EV baseline error 0.586033; CVaR/Kelly baselines error 0.224185; half baseline error 0.429783; parse 1.00 for all rows |
 | Regime oracle/barrier smoke | `python3 -m aeread_lab.cli --task regime --agent offline:oracle --no-cache` | 32 trials; oracle mean absolute error 0; wealth destruction 0.00; CVaR drawdown violation 0.00 |
 | Sampled regime sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev --limit 1 --no-cache` | 4 regime trials from one gamble; oracle rank 1; parse 1.00 |
-| Sampled all-task oracle smoke | `python3 -m aeread_lab.cli --task all --agent offline:oracle --limit 1 --no-cache` | all 20 task runners execute with first deterministic case/gamble only; scam remains instrumented |
+| Sampled all-task oracle smoke | `python3 -m aeread_lab.cli --task all --agent offline:oracle --limit 1 --no-cache` | all 21 task runners execute with first deterministic case/gamble only; scam remains instrumented |
 | Sampled JSON smoke | `python3 -m aeread_lab.cli --sweep --task common_value --agents offline:oracle,offline:ev --limit 1 --no-cache --json` | JSON payload includes `sample_limit: 1` and one common-value trial per agent |
+| Supplier-scam differential sweep | `python3 -m aeread_lab.cli --sweep --task supplier_scam --agents offline:oracle,offline:credulous --no-cache` | oracle rank 1; credulous final-cash regret 551.97; parse 1.00 |
+| Supplier-scam credulous smoke | `python3 -m aeread_lab.cli --task supplier_scam --agent offline:credulous --no-cache` | final-cash regret 551.97; scam-supplier rate 1.00 |
 | Principal/portfolio/ambiguity sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1 on all; bad baselines expose intended failure modes |
 | Bargaining/belief/market sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1 for bargaining and market; belief prior baseline fails; high-anchor ties current primary metric |
 | Matching/screening/mechanism sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1 on all; bad baselines expose intended failure modes |

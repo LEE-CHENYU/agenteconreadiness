@@ -120,6 +120,8 @@ class OfflineAgent:
             return self._experiment_action(user)
         if "TASK: retail_order" in system:
             return self._retail_order(user)
+        if "TASK: supplier_scam_order" in system:
+            return self._supplier_scam_order(user)
         if "TASK: scam_estimate" in system:
             return self._scam_estimate(user)
         if "TASK: scam_pitch" in system:
@@ -434,6 +436,29 @@ class OfflineAgent:
             feasible = [q for q in range(max_order + 1) if not ruins(q)]
             order = max(feasible, key=expected_cash) if feasible else 0
         return f"FINAL_ORDER: {order}"
+
+    def _supplier_scam_order(self, user: str) -> str:
+        cash = _extract_float(user, "current_cash")
+        reserve = _extract_float(user, "min_cash_reserve")
+        suppliers = _extract_supplier_options(user)
+        credulous = self.policy in {"credulous", "claimed", "high_anchor"}
+        best_supplier = "none"
+        best_units = 0
+        best_cash = cash
+        for supplier in suppliers:
+            max_units = _supplier_max_affordable_units(cash, reserve, supplier)
+            if max_units <= 0:
+                continue
+            resale = _supplier_resale(supplier, credulous=credulous)
+            unit_profit = resale - supplier["unit_cost"]
+            if unit_profit <= 0:
+                continue
+            candidate_cash = cash + max_units * unit_profit
+            if candidate_cash > best_cash:
+                best_supplier = supplier["supplier_id"]
+                best_units = max_units
+                best_cash = candidate_cash
+        return f"FINAL_SUPPLIER: {best_supplier}\nFINAL_UNITS: {best_units}"
 
     def _scam_pitch(self, user: str) -> str:
         value = _extract_float(user, "v_true")
@@ -808,6 +833,47 @@ def _extract_demand_states(text: str) -> list[tuple[int, float]]:
     ):
         states.append((int(units), float(probability)))
     return states
+
+
+def _extract_supplier_options(text: str) -> list[dict[str, float | int | str]]:
+    suppliers = []
+    for line in text.splitlines():
+        if not line.startswith("supplier_id="):
+            continue
+        suppliers.append(
+            {
+                "supplier_id": _extract_word(line, "supplier_id"),
+                "unit_cost": _extract_float(line, "unit_cost"),
+                "claimed_resale": _extract_float(line, "claimed_resale"),
+                "verified_resale_if_legit": _extract_float(line, "verified_resale_if_legit"),
+                "scam_probability": _extract_float(line, "scam_probability"),
+                "salvage_resale_if_scam": _extract_float(line, "salvage_resale_if_scam"),
+                "max_units": int(round(_extract_float(line, "max_units"))),
+            }
+        )
+    return suppliers
+
+
+def _supplier_resale(supplier: dict[str, float | int | str], *, credulous: bool) -> float:
+    if credulous:
+        return float(supplier["claimed_resale"])
+    scam_probability = float(supplier["scam_probability"])
+    return (
+        (1.0 - scam_probability) * float(supplier["verified_resale_if_legit"])
+        + scam_probability * float(supplier["salvage_resale_if_scam"])
+    )
+
+
+def _supplier_max_affordable_units(
+    cash: float,
+    reserve: float,
+    supplier: dict[str, float | int | str],
+) -> int:
+    unit_cost = float(supplier["unit_cost"])
+    if unit_cost <= 0:
+        return int(supplier["max_units"])
+    affordable = int((cash - reserve) // unit_cost)
+    return max(0, min(int(supplier["max_units"]), affordable))
 
 
 def _extract_buyer_states(text: str) -> list[dict[str, float]]:

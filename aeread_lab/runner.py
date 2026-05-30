@@ -25,6 +25,7 @@ from aeread_lab.tasks import (
     retail as retail_task,
     screening as screening_task,
     strategic_drift as strategic_drift_task,
+    supplier_scam as supplier_scam_task,
 )
 
 
@@ -49,6 +50,7 @@ TASK_ORDER = (
     "procurement",
     "pricing",
     "scam",
+    "supplier_scam",
 )
 
 
@@ -83,6 +85,7 @@ _CASE_TASKS = {
     "retail": (retail_task.run_retail_game, retail_task.DEFAULT_CASES),
     "procurement": (procurement_task.run_procurement_game, procurement_task.DEFAULT_CASES),
     "pricing": (pricing_task.run_pricing_game, pricing_task.DEFAULT_CASES),
+    "supplier_scam": (supplier_scam_task.run_supplier_scam_game, supplier_scam_task.DEFAULT_CASES),
 }
 
 

@@ -32,6 +32,7 @@ TASKS = (
     "procurement",
     "pricing",
     "scam",
+    "supplier_scam",
     "all",
 )
 
@@ -277,6 +278,14 @@ def _print_human(payload: dict[str, Any]) -> None:
             print(
                 "  controls: credulous_overpay="
                 f"{controls['credulous_mean_overpayment']:.2f}, skeptical_oracle=0.00"
+            )
+        elif task == "supplier_scam":
+            print(
+                f"supplier_scam: n={result['n_trials']} final_cash_regret="
+                f"{_fmt(result['mean_final_cash_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_final_cash_regret_ci95'))} "
+                f"reserve_violation={result['reserve_violation_rate']:.2f} "
+                f"scam_supplier={result['scam_supplier_rate']:.2f}"
             )
     print("=" * 72)
     print("OpenAI-only API path: --agent openai:gpt-5.5, --agent openai:mini, or --agent openai:nano")

@@ -57,6 +57,9 @@ from aeread_lab.tasks.screening import run_screening_game
 from aeread_lab.tasks.strategic_drift import DEFAULT_CASES as DRIFT_CASES
 from aeread_lab.tasks.strategic_drift import _prompt as strategic_prompt
 from aeread_lab.tasks.strategic_drift import run_strategic_drift_game
+from aeread_lab.tasks.supplier_scam import DEFAULT_CASES as SUPPLIER_SCAM_CASES
+from aeread_lab.tasks.supplier_scam import _prompt as supplier_scam_prompt
+from aeread_lab.tasks.supplier_scam import run_supplier_scam_game
 
 
 class TaskSmokeTests(unittest.TestCase):
@@ -138,6 +141,12 @@ class TaskSmokeTests(unittest.TestCase):
         common_value = common_value_prompt(COMMON_VALUE_CASES[0])
         mechanism = mechanism_prompt(MECHANISM_CASES[0])
         experiment = experiment_prompt(EXPERIMENT_CASES[0])
+        supplier_scam = supplier_scam_prompt(
+            SUPPLIER_SCAM_CASES[0],
+            SUPPLIER_SCAM_CASES[0].rounds[0],
+            1,
+            SUPPLIER_SCAM_CASES[0].initial_cash,
+        )
         self.assertNotIn("oracle", regime)
         self.assertNotIn("oracle", procurement)
         self.assertNotIn("oracle", pricing)
@@ -153,6 +162,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", common_value)
         self.assertNotIn("oracle", mechanism)
         self.assertNotIn("oracle", experiment)
+        self.assertNotIn("oracle", supplier_scam)
         self.assertNotIn("kelly_fraction", regime)
         self.assertNotIn("oracle_price", pricing)
 
@@ -276,6 +286,14 @@ class TaskSmokeTests(unittest.TestCase):
         ev_order = run_retail_game(OfflineAgent("ev_order"))
         self.assertEqual(survival["mean_ruin_probability"], 0.0)
         self.assertGreater(ev_order["mean_ruin_probability"], 0.1)
+
+    def test_supplier_scam_flags_credulous_long_horizon(self):
+        oracle = run_supplier_scam_game(OfflineAgent("oracle"))
+        credulous = run_supplier_scam_game(OfflineAgent("credulous"))
+        self.assertLess(oracle["mean_final_cash_regret"], 1e-9)
+        self.assertEqual(oracle["reserve_violation_rate"], 0.0)
+        self.assertGreater(credulous["mean_final_cash_regret"], 100.0)
+        self.assertGreater(credulous["scam_supplier_rate"], 0.5)
 
     def test_scam_controls_have_dynamic_range(self):
         summary = run_scam_arena(
