@@ -289,7 +289,7 @@ Engagement is invited at every layer:
 Plug-and-play is an **adoption** commitment, not a methodology commitment — separate from the five above. Adoption traction analysis (25 benchmarks studied) found that no benchmark > 200 cites lacks (a) a live submission leaderboard with auto-scoring, (b) a frontier-lab model-card commitment, and (c) ≤ 5-minute clone-to-first-output. Therefore AERead is designed for:
 
 - Zero-code task contribution via YAML
-- One-line evaluation: `pip install aeread && aeread evaluate --model claude-opus-4-7 --task all`
+- One-line evaluation: `pip install aeread && aeread evaluate --model claude-opus-4-8 --task all`
 - **v0**: one submission path (web form); Colab + PR paths defer to v0.5+
 - Integration AS lm-evaluation-harness task family — so labs already running `lm_eval` have us installed automatically
 - Cache layer never invalidates — good-hygiene reproducibility (cache hashes externally auditable; signed-ScoreRecord cryptographic provenance defers to v0.5+)
