@@ -253,6 +253,19 @@ class OfflineAgent:
         if self.policy == "first":
             first = re.search(r"product_id=([a-zA-Z0-9_-]+)", user)
             return f"FINAL_PRODUCT: {first.group(1) if first else ''}"
+        products = _extract_procurement_products(user)
+        if self.policy in {"cheapest", "price"} and products:
+            product_id = min(products, key=lambda item: products[item]["price"])
+            return f"FINAL_PRODUCT: {product_id}"
+        if self.policy == "comfort" and products:
+            product_id = max(products, key=lambda item: products[item]["comfort"])
+            return f"FINAL_PRODUCT: {product_id}"
+        if self.policy == "style" and products:
+            product_id = max(products, key=lambda item: products[item]["style_fit"])
+            return f"FINAL_PRODUCT: {product_id}"
+        if self.policy == "durability" and products:
+            product_id = max(products, key=lambda item: products[item]["durability"])
+            return f"FINAL_PRODUCT: {product_id}"
         weights = {
             "price": _extract_float(user, "price_weight"),
             "durability": _extract_float(user, "durability_weight"),
@@ -262,17 +275,12 @@ class OfflineAgent:
         }
         best_product = ""
         best_utility = -math.inf
-        product_pattern = re.compile(
-            r"product_id=([a-zA-Z0-9_-]+)\s+"
-            r"price=([-+]?\d+(?:\.\d+)?)\s+"
-            r"durability=([-+]?\d+(?:\.\d+)?)\s+"
-            r"comfort=([-+]?\d+(?:\.\d+)?)\s+"
-            r"style_fit=([-+]?\d+(?:\.\d+)?)\s+"
-            r"assembly_friction=([-+]?\d+(?:\.\d+)?)"
-        )
-        for match in product_pattern.finditer(user):
-            product_id = match.group(1)
-            price, durability, comfort, style, friction = (float(match.group(i)) for i in range(2, 7))
+        for product_id, product in products.items():
+            price = product["price"]
+            durability = product["durability"]
+            comfort = product["comfort"]
+            style = product["style_fit"]
+            friction = product["assembly_friction"]
             utility = (
                 weights["durability"] * durability
                 + weights["comfort"] * comfort
@@ -700,6 +708,27 @@ def _extract_float(text: str, key: str, default: float = 0.0) -> float:
 def _extract_word(text: str, key: str, default: str = "") -> str:
     match = re.search(rf"{re.escape(key)}=([a-zA-Z0-9_-]+)", text)
     return match.group(1) if match else default
+
+
+def _extract_procurement_products(text: str) -> dict[str, dict[str, float]]:
+    products: dict[str, dict[str, float]] = {}
+    product_pattern = re.compile(
+        r"product_id=([a-zA-Z0-9_-]+)\s+"
+        r"price=([-+]?\d+(?:\.\d+)?)\s+"
+        r"durability=([-+]?\d+(?:\.\d+)?)\s+"
+        r"comfort=([-+]?\d+(?:\.\d+)?)\s+"
+        r"style_fit=([-+]?\d+(?:\.\d+)?)\s+"
+        r"assembly_friction=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in product_pattern.finditer(text):
+        products[match.group(1)] = {
+            "price": float(match.group(2)),
+            "durability": float(match.group(3)),
+            "comfort": float(match.group(4)),
+            "style_fit": float(match.group(5)),
+            "assembly_friction": float(match.group(6)),
+        }
+    return products
 
 
 def _extract_uniform_bounds(text: str) -> tuple[float, float]:

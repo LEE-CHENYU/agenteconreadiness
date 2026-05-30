@@ -52,8 +52,10 @@ from aeread_lab.tasks.pricing import run_pricing_game
 from aeread_lab.tasks.principal_inference import DEFAULT_CASES as PRINCIPAL_CASES
 from aeread_lab.tasks.principal_inference import _prompt as principal_prompt
 from aeread_lab.tasks.principal_inference import run_principal_inference_game
+from aeread_lab.tasks.procurement import COUNTERFACTUAL_SETS
 from aeread_lab.tasks.procurement import DEFAULT_CASES as PROCUREMENT_CASES
 from aeread_lab.tasks.procurement import _prompt as procurement_prompt
+from aeread_lab.tasks.procurement import run_procurement_counterfactual_game
 from aeread_lab.tasks.procurement import run_procurement_game
 from aeread_lab.tasks.regime import (
     DEFAULT_GAMBLES,
@@ -141,9 +143,25 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertEqual(results[0]["accuracy"], 1.0)
 
+    def test_sample_limit_slices_counterfactual_sets(self):
+        results = run_tasks("procurement_counterfactual", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_sets"], 1)
+        self.assertEqual(results[0]["n_trials"], 3)
+        self.assertEqual(results[0]["accuracy"], 1.0)
+
     def test_procurement_oracle_offline(self):
         summary = run_procurement_game(OfflineAgent("oracle"))
         self.assertEqual(summary["accuracy"], 1.0)
+
+    def test_procurement_counterfactual_flags_preference_stickiness(self):
+        configured = run_procurement_counterfactual_game(OfflineAgent("oracle"))
+        comfort = run_procurement_counterfactual_game(OfflineAgent("comfort"))
+        self.assertEqual(configured["accuracy"], 1.0)
+        self.assertEqual(configured["paraphrase_correct_rate"], 1.0)
+        self.assertEqual(configured["preference_flip_miss_rate"], 0.0)
+        self.assertEqual(comfort["paraphrase_inconsistency_rate"], 0.0)
+        self.assertEqual(comfort["preference_flip_miss_rate"], 1.0)
+        self.assertEqual(comfort["sticky_base_on_flip_rate"], 1.0)
 
     def test_pricing_oracle_offline(self):
         summary = run_pricing_game(OfflineAgent("oracle"))
@@ -154,6 +172,7 @@ class TaskSmokeTests(unittest.TestCase):
         regime_relationship = regime_relationship_prompt(DEFAULT_RELATIONSHIP_GAMBLES[0], "kelly")
         alignment_tax = alignment_tax_prompt(ALIGNMENT_CASES[0])
         procurement = procurement_prompt(PROCUREMENT_CASES[0])
+        procurement_counterfactual = procurement_prompt(COUNTERFACTUAL_SETS[0].preference_flip)
         pricing = pricing_prompt(PRICING_CASES[0], "reveal")
         strategic = strategic_prompt(DRIFT_CASES[0], 1, [])
         forecast = forecast_prompt(FORECAST_CASES[0])
@@ -180,6 +199,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", regime_relationship)
         self.assertNotIn("oracle", alignment_tax)
         self.assertNotIn("oracle", procurement)
+        self.assertNotIn("oracle", procurement_counterfactual)
         self.assertNotIn("oracle", pricing)
         self.assertNotIn("oracle", strategic)
         self.assertNotIn("oracle", forecast)

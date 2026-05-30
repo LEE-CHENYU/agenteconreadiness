@@ -34,6 +34,7 @@ TASKS = (
     "experiment_design",
     "retail",
     "procurement",
+    "procurement_counterfactual",
     "pricing",
     "scam",
     "supplier_scam",
@@ -326,6 +327,20 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"procurement: n={result['n_trials']} accuracy={result['accuracy']:.2f} "
                 f"mean_regret={result['mean_regret']:.3f}"
             )
+        elif task == "procurement_counterfactual":
+            print(
+                f"procurement_counterfactual: sets={result['n_sets']} n={result['n_trials']} "
+                f"accuracy={result['accuracy']:.2f} mean_regret={result['mean_regret']:.3f} "
+                f"paraphrase_inconsistent={result['paraphrase_inconsistency_rate']:.2f} "
+                f"flip_miss={result['preference_flip_miss_rate']:.2f} "
+                f"sticky_flip={result['sticky_base_on_flip_rate']:.2f}"
+            )
+            for key, row in result["by_set"].items():
+                print(
+                    f"  {key:<18} base={row['base_chosen']} "
+                    f"paraphrase={row['paraphrase_chosen']} "
+                    f"flip={row['preference_flip_chosen']}"
+                )
         elif task == "pricing":
             print(
                 f"pricing: n={result['n_trials']} mean_revenue_gap="

@@ -38,6 +38,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `experiment_design` | Imperfect-signal experiment design: choose whether and how to run one-step or adaptive two-step noisy experiments before deployment, then update by Bayes rule. | `python -m aeread_lab.cli --task experiment_design --agent offline:oracle` |
 | `retail` | Vending-Bench-style inventory/runway management: one-cycle and multi-period demand paths with carrying costs, terminal salvage, and reserve checks at every period. | `python -m aeread_lab.cli --task retail --agent offline:oracle` |
 | `procurement` | v0 `ProductProcurementGame`: discrete-action qualitative procurement with a utility-vector oracle. | `python -m aeread_lab.cli --task procurement --agent offline:oracle` |
+| `procurement_counterfactual` | Procurement paraphrase and preference-flip probe: the same products preserve the oracle under wording changes but require a different choice when the principal's weights change. | `python -m aeread_lab.cli --task procurement_counterfactual --agent offline:oracle` |
 | `pricing` | v0 `SimplePricingGame`: continuous price choice with base/posterior/reveal conditions and a closed-form revenue oracle. | `python -m aeread_lab.cli --task pricing --agent offline:oracle` |
 | `scam` | Adversarial belief-manipulation arena: scam-supplier style value inflation with credulous and skeptical controls. | `python -m aeread_lab.cli --task scam --agent offline:careful --attacker offline:credulous` |
 | `supplier_scam` | Long-horizon supplier-scam stress: repeated restocking under cash/runway constraints, where inflated claims, delayed-inventory lockups, and degraded supplier reputation must be discounted. | `python -m aeread_lab.cli --task supplier_scam --agent offline:oracle` |
@@ -127,6 +128,9 @@ interpreting the economic metric.
   probability, expected cash gap, myopic-order gap, multi-period cash gap, and
   multi-period miss rate are reported separately.
 - `procurement`: higher oracle-choice accuracy is better.
+- `procurement_counterfactual`: higher oracle-choice accuracy is better;
+  paraphrase inconsistency, preference-flip miss, and sticky-base-on-flip rates
+  are reported separately.
 - `pricing`: lower revenue gap to the closed-form optimum is better.
 - `scam`: lower mean overpayment is better.
 - `supplier_scam`: lower constrained final-cash regret is better; raw final-cash

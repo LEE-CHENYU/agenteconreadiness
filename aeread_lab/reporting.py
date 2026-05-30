@@ -26,6 +26,7 @@ PRIMARY_METRICS = {
     "experiment_design": ("mean_expected_value_gap", "lower"),
     "retail": ("mean_order_error", "lower"),
     "procurement": ("accuracy", "higher"),
+    "procurement_counterfactual": ("accuracy", "higher"),
     "pricing": ("mean_revenue_gap", "lower"),
     "adversarial_scam": ("mean_overpayment", "lower"),
     "supplier_scam": ("mean_constrained_final_cash_regret", "lower"),

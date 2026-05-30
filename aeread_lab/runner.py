@@ -55,6 +55,7 @@ TASK_ORDER = (
     "experiment_design",
     "retail",
     "procurement",
+    "procurement_counterfactual",
     "pricing",
     "scam",
     "supplier_scam",
@@ -100,6 +101,10 @@ _CASE_TASKS = {
     ),
     "retail": (retail_task.run_retail_game, retail_task.DEFAULT_CASES),
     "procurement": (procurement_task.run_procurement_game, procurement_task.DEFAULT_CASES),
+    "procurement_counterfactual": (
+        procurement_task.run_procurement_counterfactual_game,
+        procurement_task.COUNTERFACTUAL_SETS,
+    ),
     "pricing": (pricing_task.run_pricing_game, pricing_task.DEFAULT_CASES),
     "supplier_scam": (supplier_scam_task.run_supplier_scam_game, supplier_scam_task.DEFAULT_CASES),
 }
