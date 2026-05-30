@@ -29,6 +29,28 @@ The deployment regime determines the *correct* utility. EV-maximization (the fro
 
 These are **points on one CRRA-γ × dynamics × barrier axis** (EV = γ0 single-shot; Kelly = γ1 forced by compounding; CVaR = a barrier constraint; CRRA-γ = configured). Selecting EV/Kelly/CVaR correctly given the *dynamics* is **gate-side correctness**; matching the principal's *γ* is **grade-side fidelity**. Durable: the right utility for a compounding/ruin/configured-principal deployment does not become textbook-lookup-able as models scale.
 
+## Goal-dimension space: "utility-max vs alignment" is a projection of a 6-D goal onto one axis
+
+The four-regime map above is the *WHAT* (risk-form) slice of a larger structure. An economic-agent goal is a **tuple, not a scalar** — and the headline "utility-max vs alignment" tension is what you get by collapsing that tuple onto one misleading axis. Six dimensions, split into **objectives** (what you maximize) and one **constraint** (what you're allowed to do):
+
+| Dimension | Question | Range | In AERead |
+|---|---|---|---|
+| **WHAT** — objective form | optimize what functional? | EV → Kelly → CVaR → CRRA-γ | the four-regime map |
+| **WHOSE** — principal | whose utility? | generic-rational ↔ configured principal | the grade (fidelity) |
+| **WHEN** — horizon | over what timescale? | single-shot ↔ long-horizon; discount | stress (long-horizon coherence) |
+| **WITH WHOM** — game structure | solo / strategic / cooperative? | own-surplus ↔ joint-surplus ↔ fairness | D2, multi-agent v1+ |
+| **HOW WELL** — epistemic | how calibrated are beliefs? | accurate posterior ↔ biased; explore↔exploit | calibration axis (Δ_inf) |
+| **HOW** — means legitimacy | *by what means?* | honest/non-coercive/legal ↔ deceptive/collusive | the deception axis |
+
+The first five are **objectives**; the last (HOW) is a **constraint** that carves the feasible strategy set. That split is the whole resolution: **alignment lives almost entirely in the HOW dimension (and partly WHOSE) — it is a constraint, not a competing objective.** A constraint doesn't trade off against an objective in general; it removes strategies, and you re-maximize within what's left. So the "tradeoff" decomposes into two very different things: (i) *lost surplus because the model couldn't find the best **allowed** strategy* — a **competence gap** (Δ_ctrl / regime-recognition), the common case, fixable; (ii) *lost surplus because the literally-highest-surplus strategy **was** the deceptive/coercive one* — a **genuine Pareto wall**, but only in the narrow band where the constraint binds. Collapsing 6-D onto one axis is what manufactures the fake universal tradeoff. ([Hadfield-Menell et al. 2016](https://arxiv.org/abs/1606.03137) CIRL is the formal version: the misalignment comes from *point-estimate* maximization, not maximization per se.)
+
+**The dimensions relate in three different ways** — and conflating them is the second error:
+- **Lexicographic** (gate → grade): coherence is a precondition you gate on, not trade — you don't swap GARP-consistency for persona-match. Means-legitimacy is arguably also a hard constraint, not a soft penalty.
+- **Orthogonal** (independent coordinates): calibration ⊥ horizon ⊥ risk-form, mostly — a model can be well-calibrated *and* regime-blind. These don't trade off; they're separate axes, which is *why the score must be a vector*. (This is the CS329H §5.4 notion of **separable** multi-issue preferences.)
+- **Genuine Pareto trade-offs** (a frontier — can't max both): return↔risk; explore↔exploit; own-surplus↔joint-surplus/fairness; short-horizon gain↔long-horizon survival; fidelity-to-this-principal↔generality; and surplus↔means-legitimacy *in the binding band*. (CS329H's "preferences are often **not** separable — a helpful response may necessarily risk some harm" is exactly this regime.)
+
+**Why this matters for AERead** (it's a unification, not new scope): (1) the score is a **goal-profile vector**, never a scalar — collapsing it is the same error as the fake tradeoff, one level up (this is *why* "report the curve/profile, not the point" keeps recurring); (2) **alignment-shift is a *rotation* in goal-space, decomposable per-dimension** — Andon's "more aligned, worse economic" is a vector (means-legitimacy ↑, and *separately* regime-recognition ↓ or own-surplus ↓ from binding-band pruning), and reporting *which components moved* is the generalized Q14 deception-axis readout; (3) a **"frontier" claim is only honest on the ~6 genuine Pareto pairs** — calling an orthogonal pair a tradeoff (or vice versa) is a methodology error. **Honest caveat (falsifiable):** whether the five objective dimensions are *actually* orthogonal or secretly coupled is empirical (same family as the Layer-1+2-vs-residual claim) — if calibration and horizon-coherence turn out strongly coupled in frontier models, the space is lower-dimensional than it looks. The taxonomy is a *hypothesis about the structure of goal-space*, falsified by the cross-axis correlation matrix — which is itself clean to pre-register.
+
 ## Empirical findings — with confidence, and the corrections (the rigor is the point)
 
 | Finding | Evidence | Confidence |
