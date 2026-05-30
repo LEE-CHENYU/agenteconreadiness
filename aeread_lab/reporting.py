@@ -178,3 +178,59 @@ def format_sweep(sweep: dict[str, Any]) -> str:
         )
     lines.append("=" * 88)
     return "\n".join(lines)
+
+
+def format_stability(stability: dict[str, Any]) -> str:
+    limit = stability.get("sample_limit")
+    limit_text = "" if limit is None else f" sample_limit={limit}"
+    lines = [
+        (
+            f"AERead stability probe: task={stability['task']} "
+            f"agent={stability['agent']} repeats={stability['repeat_count']}{limit_text}"
+        ),
+        "=" * 88,
+        (
+            f"primary={stability['primary_metric']} direction={stability['direction']} "
+            f"mean={_fmt(stability.get('primary_mean'))} "
+            f"min={_fmt(stability.get('primary_min'))} "
+            f"max={_fmt(stability.get('primary_max'))} "
+            f"range={_fmt(stability.get('primary_range'))}"
+        ),
+        (
+            f"parse_rate mean={_fmt(stability.get('parse_rate_mean'))} "
+            f"min={_fmt(stability.get('parse_rate_min'))} "
+            f"max={_fmt(stability.get('parse_rate_max'))}"
+        ),
+    ]
+    if stability.get("accuracy_values"):
+        lines.append(
+            f"accuracy mean={_fmt(stability.get('accuracy_mean'))} "
+            f"min={_fmt(stability.get('accuracy_min'))} "
+            f"max={_fmt(stability.get('accuracy_max'))} "
+            f"range={_fmt(stability.get('accuracy_range'))}"
+        )
+    if stability.get("unstable_case_rate") is not None:
+        lines.append(f"unstable_case_rate={_fmt(stability.get('unstable_case_rate'))}")
+    case_rows = stability.get("case_stability") or []
+    if case_rows:
+        lines.append("-" * 88)
+        lines.append(
+            f"{'case':<32} {'unique':>6} {'modal':<24} {'modal_rate':>10} {'oracle_hit':>10}"
+        )
+        for row in case_rows:
+            oracle_hit = row.get("oracle_hit_rate")
+            lines.append(
+                f"{row['case_key']:<32.32} {row['unique_choice_count']:>6} "
+                f"{row['modal_choice']:<24.24} {_fmt(row['modal_choice_rate']):>10} "
+                f"{_fmt(oracle_hit):>10}"
+            )
+    lines.append("=" * 88)
+    return "\n".join(lines)
+
+
+def _fmt(value: Any) -> str:
+    if value is None:
+        return "n/a"
+    if isinstance(value, (int, float)):
+        return f"{value:.6g}"
+    return str(value)

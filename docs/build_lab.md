@@ -376,6 +376,24 @@ interpreting the economic metric.
   natural vendor labels; the same reserve, timing, scam-supplier, and
   reputation-update diagnostics are reported.
 
+## Stability probe
+
+Use `--repeat N --no-cache` when the question is run-to-run stability rather
+than another task variant. This repeats one explicit task against fresh model
+calls and reports the primary-metric range, parse-rate range, optional accuracy
+range, unstable-case rate, and per-case modal choice.
+
+Example:
+
+```bash
+AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli \
+  --task principal_holding_prediction_blind_notes \
+  --agent openai:nano --repeat 3 --limit 1 --no-cache
+```
+
+`--repeat` intentionally requires `--no-cache`; cached repeated calls measure
+cache reuse, not model stability.
+
 Offline comparison example:
 
 ```bash
@@ -424,8 +442,10 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
 3. Extend generator-verifier mass production beyond the current generated
    regime holdout and law-audit verifier: generate larger law families and
    cross-domain verifier tasks.
-4. Stop adding synthetic C1 label variants after `principal_holding_prediction_blind_notes`;
-   the remaining depth question is stability on label-blind prompts and replacement
-   with real 13F-style holdings-derived traces once a clean data source is selected.
+4. Use the stability probe on C1 before adding more C1 variants. PR 105 showed
+   that `principal_holding_prediction_blind_notes` is sample-unstable for live
+   `nano`, so the depth question is repeat reliability on label-blind prompts
+   and replacement with real 13F-style holdings-derived traces once a clean data
+   source is selected.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.

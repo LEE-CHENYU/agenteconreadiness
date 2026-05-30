@@ -8,7 +8,7 @@ from aeread_lab.models import (
     resolve_openai_model,
 )
 from aeread_lab.reporting import comparison_table, parse_rate, rank_rows
-from aeread_lab.runner import run_sweep, run_tasks
+from aeread_lab.runner import run_stability_probe, run_sweep, run_tasks
 from aeread_lab.tasks.adversarial import run_scam_arena
 from aeread_lab.tasks.alignment_tax import DEFAULT_CASES as ALIGNMENT_CASES
 from aeread_lab.tasks.alignment_tax import _prompt as alignment_tax_prompt
@@ -289,6 +289,18 @@ from aeread_lab.tasks.supplier_scam import run_supplier_scam_game
 from aeread_lab.tasks.supplier_scam import run_supplier_scam_natural_game
 
 
+class _AlternatingTradeAgent:
+    name = "offline:alternating_trade"
+
+    def __init__(self):
+        self.calls = 0
+
+    def complete(self, system: str, user: str) -> str:
+        self.calls += 1
+        trade_id = "t1" if self.calls % 2 else "t2"
+        return f"FINAL_TRADE: {trade_id}"
+
+
 class TaskSmokeTests(unittest.TestCase):
     def test_openai_aliases_are_restricted(self):
         self.assertEqual(resolve_openai_model("gpt-5.5"), "gpt-5.5")
@@ -396,6 +408,32 @@ class TaskSmokeTests(unittest.TestCase):
         results = run_tasks("principal_holding_prediction_blind_notes", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
+    def test_stability_probe_reports_stable_oracle(self):
+        payload = run_stability_probe(
+            task="principal_holding_prediction_blind_notes",
+            agent=OfflineAgent("oracle"),
+            repeat_count=3,
+            sample_limit=1,
+        )
+        self.assertEqual(payload["repeat_count"], 3)
+        self.assertEqual(payload["primary_metric"], "mean_score_regret")
+        self.assertLess(payload["primary_range"], 1e-9)
+        self.assertEqual(payload["parse_rate_min"], 1.0)
+        self.assertEqual(payload["unstable_case_rate"], 0.0)
+        self.assertEqual(payload["case_stability"][0]["unique_choice_count"], 1)
+
+    def test_stability_probe_detects_choice_instability(self):
+        payload = run_stability_probe(
+            task="principal_holding_prediction_blind_notes",
+            agent=_AlternatingTradeAgent(),
+            repeat_count=4,
+            sample_limit=1,
+        )
+        self.assertEqual(payload["repeat_count"], 4)
+        self.assertGreater(payload["primary_range"], 0.0)
+        self.assertEqual(payload["unstable_case_rate"], 1.0)
+        self.assertEqual(payload["case_stability"][0]["unique_choice_count"], 2)
 
     def test_sample_limit_slices_pricing_cross_elasticity_cases(self):
         results = run_tasks("pricing_cross_elasticity", OfflineAgent("oracle"), sample_limit=1)

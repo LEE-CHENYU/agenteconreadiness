@@ -7,8 +7,8 @@ from typing import Any
 
 from aeread_lab.cache import CachedAgent, DEFAULT_CACHE_DIR
 from aeread_lab.models import build_agent
-from aeread_lab.reporting import format_sweep
-from aeread_lab.runner import run_sweep, run_tasks
+from aeread_lab.reporting import format_stability, format_sweep
+from aeread_lab.runner import run_stability_probe, run_sweep, run_tasks
 
 
 TASKS = (
@@ -135,6 +135,12 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Run only the first N default cases/gambles for cheap smoke checks.",
     )
+    parser.add_argument(
+        "--repeat",
+        type=_positive_int,
+        default=1,
+        help="Repeat one task N times and summarize run-to-run stability.",
+    )
     parser.add_argument("--json", action="store_true", help="Print raw JSON only.")
     args = parser.parse_args(argv)
 
@@ -142,6 +148,8 @@ def main(argv: list[str] | None = None) -> int:
         return CachedAgent(agent, cache_dir=Path(args.cache_dir), enabled=not args.no_cache)
 
     if args.sweep:
+        if args.repeat != 1:
+            parser.error("--repeat cannot be combined with --sweep")
         specs = [item.strip() for item in args.agents.split(",") if item.strip()]
         payload = run_sweep(
             task=args.task,
@@ -158,6 +166,23 @@ def main(argv: list[str] | None = None) -> int:
 
     agent = build_agent(args.agent)
     attacker = build_agent(args.attacker)
+    if args.repeat != 1:
+        if args.task == "all":
+            parser.error("--repeat requires one explicit --task, not all")
+        if not args.no_cache:
+            parser.error("--repeat requires --no-cache so repeated live calls are fresh")
+        payload = run_stability_probe(
+            task=args.task,
+            agent=agent,
+            attacker=attacker,
+            repeat_count=args.repeat,
+            sample_limit=args.limit,
+        )
+        if args.json:
+            print(json.dumps(payload, indent=2, sort_keys=True))
+        else:
+            print(format_stability(payload))
+        return 0
     if not args.no_cache:
         agent = _wrap(agent)
         attacker = _wrap(attacker)

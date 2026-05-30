@@ -4,6 +4,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from aeread_lab.models import Agent, build_agent
+from aeread_lab.stability import summarize_stability_runs
 from aeread_lab.tasks import (
     adversarial as adversarial_task,
     alignment_tax as alignment_tax_task,
@@ -468,6 +469,31 @@ def run_sweep(
             agent = wrap_cache(agent)
         runs.append({"agent": agent.name, "results": run_tasks(task, agent, attacker=attacker, sample_limit=limit)})
     return {"task": task, "agents": specs, "sample_limit": limit, "runs": runs}
+
+
+def run_stability_probe(
+    *,
+    task: str,
+    agent: Agent,
+    attacker: Agent | None = None,
+    repeat_count: int = 3,
+    sample_limit: int | None = None,
+) -> dict[str, Any]:
+    if repeat_count < 1:
+        raise ValueError("repeat_count must be positive")
+    if task == "all":
+        raise ValueError("stability probes require one explicit task")
+    limit = _normalize_sample_limit(sample_limit)
+    results = [
+        run_task(task, agent, attacker=attacker, sample_limit=limit)
+        for _ in range(repeat_count)
+    ]
+    return summarize_stability_runs(
+        task=task,
+        agent_name=agent.name,
+        results=results,
+        sample_limit=limit,
+    )
 
 
 def _normalize_sample_limit(sample_limit: int | None) -> int | None:
