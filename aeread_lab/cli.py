@@ -27,6 +27,7 @@ TASKS = (
     "market",
     "market_policy_shift",
     "market_policy_inventory",
+    "market_trace_inventory",
     "matching",
     "screening",
     "moral_hazard",
@@ -299,6 +300,18 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"reserve_violate={result['reserve_violation_rate']:.2f} "
                 f"static_nash_miss={result['static_nash_miss_rate']:.2f} "
                 f"last_price_miss={result['last_price_miss_rate']:.2f} "
+                f"inventory_blind_miss={result['inventory_blind_miss_rate']:.2f}"
+            )
+        elif task == "market_trace_inventory":
+            print(
+                f"market_trace_inventory: n={result['n_trials']} cash_regret="
+                f"{_fmt(result['mean_constrained_terminal_cash_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_constrained_terminal_cash_regret_ci95'))} "
+                f"price_error={_fmt(result['mean_price_error'])} "
+                f"reserve_violate={result['reserve_violation_rate']:.2f} "
+                f"static_miss={result['static_nash_miss_rate']:.2f} "
+                f"last_price_miss={result['last_price_miss_rate']:.2f} "
+                f"trace_blind_miss={result['trace_blind_miss_rate']:.2f} "
                 f"inventory_blind_miss={result['inventory_blind_miss_rate']:.2f}"
             )
         elif task == "matching":

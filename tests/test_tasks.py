@@ -56,12 +56,15 @@ from aeread_lab.tasks.forecast_calibration import run_forecast_curve_noisy_game
 from aeread_lab.tasks.forecast_calibration import run_forecast_shift_calibration_game
 from aeread_lab.tasks.market import INVENTORY_POLICY_CASES as MARKET_INVENTORY_POLICY_CASES
 from aeread_lab.tasks.market import POLICY_SHIFT_CASES as MARKET_POLICY_CASES
+from aeread_lab.tasks.market import TRACE_INVENTORY_CASES as MARKET_TRACE_INVENTORY_CASES
 from aeread_lab.tasks.market import _policy_inventory_prompt as market_policy_inventory_prompt
 from aeread_lab.tasks.market import _policy_shift_prompt as market_policy_prompt
+from aeread_lab.tasks.market import _trace_inventory_prompt as market_trace_inventory_prompt
 from aeread_lab.tasks.market import (
     run_market_game,
     run_market_policy_inventory_game,
     run_market_policy_shift_game,
+    run_market_trace_inventory_game,
 )
 from aeread_lab.tasks.matching import DEFAULT_CASES as MATCHING_CASES
 from aeread_lab.tasks.matching import _prompt as matching_prompt
@@ -365,6 +368,11 @@ class TaskSmokeTests(unittest.TestCase):
 
     def test_sample_limit_slices_market_policy_inventory_cases(self):
         results = run_tasks("market_policy_inventory", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_constrained_terminal_cash_regret"], 1e-9)
+
+    def test_sample_limit_slices_market_trace_inventory_cases(self):
+        results = run_tasks("market_trace_inventory", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_constrained_terminal_cash_regret"], 1e-9)
 
@@ -710,6 +718,7 @@ class TaskSmokeTests(unittest.TestCase):
         exploration = exploration_prompt(EXPLORATION_CASES[0])
         market_policy = market_policy_prompt(MARKET_POLICY_CASES[0])
         market_policy_inventory = market_policy_inventory_prompt(MARKET_INVENTORY_POLICY_CASES[0])
+        market_trace_inventory = market_trace_inventory_prompt(MARKET_TRACE_INVENTORY_CASES[0])
         belief_bargaining = belief_bargaining_prompt(BELIEF_BARGAINING_CASES[0])
         belief_interaction = belief_interaction_prompt(BELIEF_INTERACTION_CASES[0])
         principal = principal_prompt(PRINCIPAL_CASES[0])
@@ -779,6 +788,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", exploration)
         self.assertNotIn("oracle", market_policy)
         self.assertNotIn("oracle", market_policy_inventory)
+        self.assertNotIn("oracle", market_trace_inventory)
         self.assertNotIn("oracle", belief_bargaining)
         self.assertNotIn("oracle", belief_interaction)
         self.assertNotIn("oracle", principal)
@@ -818,6 +828,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle_price", pricing_evidence_law)
         self.assertNotIn("oracle_price", pricing_evidence_holdout)
         self.assertNotIn("oracle_price", market_policy_inventory)
+        self.assertNotIn("oracle_price", market_trace_inventory)
         self.assertNotIn("raw_mean_probability", forecast_curve_natural)
         self.assertNotIn("observed_event_count", forecast_curve_natural)
         self.assertNotIn("first_period_revenue", mechanism_repeated_natural)
@@ -1056,6 +1067,22 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(static["static_nash_miss_rate"], 0.25)
         self.assertGreater(sticky["mean_constrained_terminal_cash_regret"], 20.0)
         self.assertGreater(sticky["last_price_miss_rate"], 0.25)
+        self.assertGreater(inventory_blind["mean_constrained_terminal_cash_regret"], 20.0)
+        self.assertGreater(inventory_blind["inventory_blind_miss_rate"], 0.25)
+
+    def test_market_trace_inventory_flags_trace_and_inventory_blindness(self):
+        adaptive = run_market_trace_inventory_game(OfflineAgent("oracle"))
+        static = run_market_trace_inventory_game(OfflineAgent("nash"))
+        trace_blind = run_market_trace_inventory_game(OfflineAgent("trace_blind"))
+        inventory_blind = run_market_trace_inventory_game(OfflineAgent("inventory_blind"))
+        case_keys = {trial["case"]["key"] for trial in adaptive["trials"]}
+        self.assertIn("warehouse_clearance_trace", case_keys)
+        self.assertLess(adaptive["mean_constrained_terminal_cash_regret"], 1e-9)
+        self.assertEqual(adaptive["reserve_violation_rate"], 0.0)
+        self.assertGreater(static["mean_constrained_terminal_cash_regret"], 50.0)
+        self.assertGreater(static["static_nash_miss_rate"], 0.25)
+        self.assertGreater(trace_blind["mean_constrained_terminal_cash_regret"], 20.0)
+        self.assertGreater(trace_blind["trace_blind_miss_rate"], 0.25)
         self.assertGreater(inventory_blind["mean_constrained_terminal_cash_regret"], 20.0)
         self.assertGreater(inventory_blind["inventory_blind_miss_rate"], 0.25)
 

@@ -137,6 +137,8 @@ class OfflineAgent:
             return self._market_policy_price(user)
         if "TASK: market_policy_inventory_price" in system:
             return self._market_policy_inventory_price(user)
+        if "TASK: market_trace_inventory_price" in system:
+            return self._market_trace_inventory_price(user)
         if "TASK: auction_reserve" in system:
             return self._auction_reserve(user)
         if "TASK: common_value_bid" in system:
@@ -721,6 +723,37 @@ class OfflineAgent:
             price = static_nash
         elif self.policy in {"last_price", "sticky", "trend_blind"}:
             price = _market_policy_best_response(user, last_opponent)
+        elif self.policy in {"inventory_blind", "policy_only"}:
+            price = _market_policy_best_response(user, predicted_opponent)
+        elif self.policy in {"collusive", "monopoly"}:
+            price = collusive
+        elif self.policy in {"cost", "liquidate", "clearance"}:
+            price = cost
+        else:
+            price = _best_market_policy_inventory_price(user, predicted_opponent)
+        price = max(cost, min(p_max, price))
+        return f"FINAL_PRICE: {price:.4f}"
+
+    def _market_trace_inventory_price(self, user: str) -> str:
+        cost = _extract_float(user, "marginal_cost")
+        p_max = _extract_float(user, "p_max", 1e9)
+        history = _extract_market_trace_prices(user)
+        last_opponent = history[-1] if history else _market_policy_static_nash(user)
+        predicted_opponent = _market_trace_opponent_price(user)
+        base = _extract_float(user, "base_demand")
+        shock = _extract_float(user, "demand_shock")
+        own_slope = _extract_float(user, "own_price_slope")
+        cross_slope = _extract_float(user, "cross_price_slope")
+        denom = 2.0 * own_slope - cross_slope
+        static_nash = cost if denom <= 0 else (base + shock + own_slope * cost) / denom
+        net_slope = own_slope - cross_slope
+        collusive = p_max if net_slope <= 0 else (base + shock + net_slope * cost) / (2.0 * net_slope)
+        if self.policy in {"nash", "competitive"}:
+            price = static_nash
+        elif self.policy in {"last_price", "sticky"}:
+            price = _market_policy_best_response(user, last_opponent)
+        elif self.policy in {"trace_blind", "policy_blind", "trend_blind"}:
+            price = _best_market_policy_inventory_price(user, last_opponent)
         elif self.policy in {"inventory_blind", "policy_only"}:
             price = _market_policy_best_response(user, predicted_opponent)
         elif self.policy in {"collusive", "monopoly"}:
@@ -1897,6 +1930,52 @@ def _market_policy_opponent_price(text: str) -> float:
         price = last + 2.0 * max(0.0, step)
     else:
         price = last
+    return max(cost, min(p_max, price))
+
+
+def _extract_market_trace_prices(text: str) -> list[float]:
+    prices = []
+    for line in text.splitlines():
+        if "trace period=" not in line or "opponent_price=" not in line:
+            continue
+        prices.append(_extract_float(line, "opponent_price"))
+    return prices
+
+
+def _extract_market_trace_points(text: str) -> list[tuple[float, float, float]]:
+    points = []
+    for line in text.splitlines():
+        if "trace period=" not in line or "opponent_price=" not in line:
+            continue
+        points.append(
+            (
+                _extract_float(line, "opponent_price"),
+                _extract_float(line, "opponent_fill_rate", 1.0),
+                _extract_float(line, "opponent_remaining_inventory_share", 0.0),
+            )
+        )
+    return points
+
+
+def _market_trace_opponent_price(text: str) -> float:
+    cost = _extract_float(text, "marginal_cost")
+    p_max = _extract_float(text, "p_max", cost)
+    points = _extract_market_trace_points(text)
+    if not points:
+        return _market_policy_static_nash(text)
+    if len(points) == 1:
+        return max(cost, min(p_max, points[-1][0]))
+    last_price, last_fill_rate, last_remaining_share = points[-1]
+    previous_price = points[-2][0]
+    step = last_price - previous_price
+    stockout_pressure = max(0.0, 0.82 - last_fill_rate)
+    clearance_pressure = max(0.0, last_remaining_share - 0.65)
+    price = (
+        last_price
+        + 1.35 * step
+        + 35.0 * stockout_pressure
+        - 30.0 * clearance_pressure
+    )
     return max(cost, min(p_max, price))
 
 
