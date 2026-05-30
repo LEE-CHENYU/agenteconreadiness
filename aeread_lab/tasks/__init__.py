@@ -16,7 +16,7 @@ from .forecast_calibration import (
 )
 from .market import run_market_game, run_market_policy_shift_game
 from .matching import run_matching_game
-from .mechanism import run_mechanism_game
+from .mechanism import run_mechanism_game, run_mechanism_repeated_game
 from .moral_hazard import run_moral_hazard_game
 from .portfolio import run_portfolio_game
 from .pricing import run_pricing_counterfactual_game, run_pricing_game
@@ -49,6 +49,7 @@ __all__ = [
     "run_market_policy_shift_game",
     "run_matching_game",
     "run_mechanism_game",
+    "run_mechanism_repeated_game",
     "run_moral_hazard_game",
     "run_portfolio_game",
     "run_pricing_game",

@@ -112,6 +112,8 @@ class OfflineAgent:
             return self._common_value_bid(user)
         if "TASK: mechanism_choice" in system:
             return self._mechanism_choice(user)
+        if "TASK: mechanism_repeated_choice" in system:
+            return self._mechanism_repeated_choice(user)
         if "TASK: matching_choice" in system:
             return self._matching_choice(user)
         if "TASK: screening_choice" in system:
@@ -443,6 +445,18 @@ class OfflineAgent:
             risk_blind = self.policy in {"risk_blind", "strategy_blind"}
             ic_blind = self.policy in {"ic_blind", "incentive_blind"}
             mechanism_id = _best_mechanism_choice(user, mechanisms, risk_blind=risk_blind, ic_blind=ic_blind)
+        return f"FINAL_MECHANISM: {mechanism_id}"
+
+    def _mechanism_repeated_choice(self, user: str) -> str:
+        mechanisms = _extract_repeated_mechanisms(user)
+        if self.policy in {"revenue", "max_revenue"}:
+            mechanism_id = max(mechanisms, key=lambda item: mechanisms[item]["first_period_revenue"])
+        elif self.policy in {"one_period", "myopic", "static"}:
+            mechanism_id = _best_repeated_mechanism_choice(user, mechanisms, one_period=True)
+        elif self.policy in {"risk_blind", "manipulation_blind"}:
+            mechanism_id = _best_repeated_mechanism_choice(user, mechanisms, risk_blind=True)
+        else:
+            mechanism_id = _best_repeated_mechanism_choice(user, mechanisms)
         return f"FINAL_MECHANISM: {mechanism_id}"
 
     def _matching_choice(self, user: str) -> str:
@@ -1822,6 +1836,68 @@ def _best_mechanism_choice(
             - risk_penalty * mechanism["strategic_risk"]
             - ic_penalty * mechanism["incentive_violation"]
         )
+
+    return max(mechanisms, key=score)
+
+
+def _extract_repeated_mechanisms(text: str) -> dict[str, dict[str, float]]:
+    mechanisms: dict[str, dict[str, float]] = {}
+    pattern = re.compile(
+        r"mechanism_id=([a-zA-Z0-9_-]+)\s+"
+        r"first_period_revenue=([-+]?\d+(?:\.\d+)?)\s+"
+        r"welfare=([-+]?\d+(?:\.\d+)?)\s+"
+        r"access=([-+]?\d+(?:\.\d+)?)\s+"
+        r"strategic_risk=([-+]?\d+(?:\.\d+)?)\s+"
+        r"retention_rate=([-+]?\d+(?:\.\d+)?)\s+"
+        r"manipulation_load=([-+]?\d+(?:\.\d+)?)\s+"
+        r"manipulation_growth=([-+]?\d+(?:\.\d+)?)\s+"
+        r"review_cost=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in pattern.finditer(text):
+        mechanisms[match.group(1)] = {
+            "first_period_revenue": float(match.group(2)),
+            "welfare": float(match.group(3)),
+            "access": float(match.group(4)),
+            "strategic_risk": float(match.group(5)),
+            "retention_rate": float(match.group(6)),
+            "manipulation_load": float(match.group(7)),
+            "manipulation_growth": float(match.group(8)),
+            "review_cost": float(match.group(9)),
+        }
+    return mechanisms
+
+
+def _best_repeated_mechanism_choice(
+    text: str,
+    mechanisms: dict[str, dict[str, float]],
+    *,
+    one_period: bool = False,
+    risk_blind: bool = False,
+) -> str:
+    horizon = 1 if one_period else int(round(_extract_float(text, "horizon", 1.0)))
+    revenue_weight = _extract_float(text, "revenue_weight")
+    welfare_weight = _extract_float(text, "welfare_weight")
+    access_weight = _extract_float(text, "access_weight")
+    strategic_risk_penalty = 0.0 if risk_blind else _extract_float(text, "strategic_risk_penalty")
+    manipulation_penalty = 0.0 if risk_blind else _extract_float(text, "manipulation_penalty")
+
+    def score(mechanism_id: str) -> float:
+        mechanism = mechanisms[mechanism_id]
+        total = 0.0
+        for period in range(max(1, horizon)):
+            retention = mechanism["retention_rate"] ** period
+            manipulation = mechanism["manipulation_load"] * (
+                mechanism["manipulation_growth"] ** period
+            )
+            total += (
+                revenue_weight * mechanism["first_period_revenue"] * retention
+                + welfare_weight * mechanism["welfare"] * retention
+                + access_weight * mechanism["access"] * retention
+                - strategic_risk_penalty * mechanism["strategic_risk"]
+                - manipulation_penalty * manipulation
+                - mechanism["review_cost"]
+            )
+        return total
 
     return max(mechanisms, key=score)
 

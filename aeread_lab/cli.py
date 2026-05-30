@@ -29,6 +29,7 @@ TASKS = (
     "auction",
     "common_value",
     "mechanism",
+    "mechanism_repeated",
     "strategic_drift",
     "forecast_calibration",
     "forecast_aggregate",
@@ -284,6 +285,15 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"risk_blind_miss={result['risk_blind_miss_rate']:.2f} "
                 f"ic_blind_miss={result.get('ic_blind_miss_rate', 0.0):.2f} "
                 f"ic_violation={_fmt(result.get('mean_incentive_violation'))}"
+            )
+        elif task == "mechanism_repeated":
+            print(
+                f"mechanism_repeated: n={result['n_trials']} score_regret="
+                f"{_fmt(result['mean_score_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_score_regret_ci95'))} "
+                f"revenue_miss={result['revenue_default_miss_rate']:.2f} "
+                f"one_period_miss={result['one_period_miss_rate']:.2f} "
+                f"risk_blind_miss={result['risk_blind_miss_rate']:.2f}"
             )
         elif task == "strategic_drift":
             print(

@@ -50,6 +50,7 @@ TASK_ORDER = (
     "auction",
     "common_value",
     "mechanism",
+    "mechanism_repeated",
     "strategic_drift",
     "forecast_calibration",
     "forecast_aggregate",
@@ -97,6 +98,10 @@ _CASE_TASKS = {
     "auction": (auction_task.run_auction_game, auction_task.DEFAULT_CASES),
     "common_value": (common_value_task.run_common_value_game, common_value_task.DEFAULT_CASES),
     "mechanism": (mechanism_task.run_mechanism_game, mechanism_task.DEFAULT_CASES),
+    "mechanism_repeated": (
+        mechanism_task.run_mechanism_repeated_game,
+        mechanism_task.REPEATED_CASES,
+    ),
     "strategic_drift": (
         strategic_drift_task.run_strategic_drift_game,
         strategic_drift_task.DEFAULT_CASES,

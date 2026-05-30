@@ -33,6 +33,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `auction` | Mechanism-design reserve task: Myerson revenue reserve vs welfare/access reserves under configured objectives. | `python -m aeread_lab.cli --task auction --agent offline:oracle` |
 | `common_value` | Winner's-curse auction guardrail: condition on winning as adverse information instead of bidding from a private signal as if it were private value. Live smoke: smaller OpenAI models miss; `gpt-5.5` solves. | `python -m aeread_lab.cli --task common_value --agent offline:oracle` |
 | `mechanism` | Mechanism-choice task: choose among auction/allocation rules using configured principal weights, strategic-risk penalties, and incentive-compatibility checks. | `python -m aeread_lab.cli --task mechanism --agent offline:oracle` |
+| `mechanism_repeated` | Repeated mechanism-choice task: optimize total configured score across retention, manipulation growth, and review costs instead of first-period revenue. | `python -m aeread_lab.cli --task mechanism_repeated --agent offline:oracle` |
 | `strategic_drift` | γ-Bench-style repeated strategic discipline: preserve long-horizon relationship value under deterministic, imperfect-information, and N-player stress instead of drifting to myopic grabs. | `python -m aeread_lab.cli --task strategic_drift --agent offline:oracle` |
 | `forecast_calibration` | No-oracle-style probability calibration: combine base rates, likelihood-ratio signals, and reliability-weighted evidence, then score forecasts with proper Brier/log-loss metrics against realized outcome frequencies. | `python -m aeread_lab.cli --task forecast_calibration --agent offline:oracle` |
 | `forecast_aggregate` | Aggregate-bin calibration stress: recalibrate raw model scores from observed bin outcomes with empirical-Bayes shrinkage, catching both raw-score reuse and no-shrink small-bin overreaction. | `python -m aeread_lab.cli --task forecast_aggregate --agent offline:oracle` |
@@ -123,6 +124,9 @@ interpreting the economic metric.
   and negative-profit rates are reported separately.
 - `mechanism`: lower configured score regret is better; revenue-default,
   risk-blind, and IC-blind miss rates are reported separately.
+- `mechanism_repeated`: lower repeated-horizon configured score regret is
+  better; revenue-default, one-period, and risk/manipulation-blind miss rates
+  are reported separately.
 - `strategic_drift`: lower long-horizon drift rate is better; stress-case drift
   and myopic-miss rates are reported separately for imperfect-information and
   N-player cases.

@@ -55,8 +55,10 @@ from aeread_lab.tasks.matching import DEFAULT_CASES as MATCHING_CASES
 from aeread_lab.tasks.matching import _prompt as matching_prompt
 from aeread_lab.tasks.matching import run_matching_game
 from aeread_lab.tasks.mechanism import DEFAULT_CASES as MECHANISM_CASES
+from aeread_lab.tasks.mechanism import REPEATED_CASES as MECHANISM_REPEATED_CASES
 from aeread_lab.tasks.mechanism import _prompt as mechanism_prompt
-from aeread_lab.tasks.mechanism import run_mechanism_game
+from aeread_lab.tasks.mechanism import _repeated_prompt as mechanism_repeated_prompt
+from aeread_lab.tasks.mechanism import run_mechanism_game, run_mechanism_repeated_game
 from aeread_lab.tasks.moral_hazard import DEFAULT_CASES as MORAL_HAZARD_CASES
 from aeread_lab.tasks.moral_hazard import _prompt as moral_hazard_prompt
 from aeread_lab.tasks.moral_hazard import run_moral_hazard_game
@@ -205,6 +207,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_profit_regret"], 1e-9)
 
+    def test_sample_limit_slices_mechanism_repeated_cases(self):
+        results = run_tasks("mechanism_repeated", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
     def test_procurement_oracle_offline(self):
         summary = run_procurement_game(OfflineAgent("oracle"))
         self.assertEqual(summary["accuracy"], 1.0)
@@ -262,6 +269,7 @@ class TaskSmokeTests(unittest.TestCase):
         moral_hazard = moral_hazard_prompt(MORAL_HAZARD_CASES[0])
         common_value = common_value_prompt(COMMON_VALUE_CASES[0])
         mechanism = mechanism_prompt(MECHANISM_CASES[0])
+        mechanism_repeated = mechanism_repeated_prompt(MECHANISM_REPEATED_CASES[0])
         experiment = experiment_prompt(EXPERIMENT_CASES[0])
         retail = retail_prompt(RETAIL_CASES[-1])
         supplier_scam = supplier_scam_prompt(
@@ -296,6 +304,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", moral_hazard)
         self.assertNotIn("oracle", common_value)
         self.assertNotIn("oracle", mechanism)
+        self.assertNotIn("oracle", mechanism_repeated)
         self.assertNotIn("oracle", experiment)
         self.assertNotIn("oracle", retail)
         self.assertNotIn("oracle", supplier_scam)
@@ -515,6 +524,19 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(ic_blind["mean_score_regret"], 10.0)
         self.assertEqual(ic_blind["ic_blind_miss_rate"], 1.0)
         self.assertGreater(ic_blind["mean_incentive_violation"], 3.0)
+
+    def test_mechanism_repeated_flags_myopic_and_revenue_defaults(self):
+        configured = run_mechanism_repeated_game(OfflineAgent("oracle"))
+        revenue = run_mechanism_repeated_game(OfflineAgent("revenue"))
+        one_period = run_mechanism_repeated_game(OfflineAgent("one_period"))
+        risk_blind = run_mechanism_repeated_game(OfflineAgent("risk_blind"))
+        self.assertLess(configured["mean_score_regret"], 1e-9)
+        self.assertGreater(revenue["mean_score_regret"], 250.0)
+        self.assertEqual(revenue["revenue_default_miss_rate"], 1.0)
+        self.assertGreater(one_period["mean_score_regret"], 150.0)
+        self.assertGreater(one_period["one_period_miss_rate"], 0.5)
+        self.assertGreater(risk_blind["mean_score_regret"], 100.0)
+        self.assertGreater(risk_blind["risk_blind_miss_rate"], 0.5)
 
     def test_strategic_drift_flags_myopic_grabs(self):
         disciplined = run_strategic_drift_game(OfflineAgent("oracle"))
@@ -796,6 +818,13 @@ class TaskSmokeTests(unittest.TestCase):
         sweep = run_sweep(task="mechanism", agent_specs=["offline:oracle", "offline:revenue"])
         rows = rank_rows(comparison_table(sweep))
         mechanism_rows = [row for row in rows if row["task"] == "mechanism"]
+        self.assertEqual(mechanism_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(mechanism_rows[1]["agent"], "offline:revenue")
+
+    def test_offline_sweep_ranks_repeated_mechanism_above_revenue(self):
+        sweep = run_sweep(task="mechanism_repeated", agent_specs=["offline:oracle", "offline:revenue"])
+        rows = rank_rows(comparison_table(sweep))
+        mechanism_rows = [row for row in rows if row["task"] == "mechanism_repeated"]
         self.assertEqual(mechanism_rows[0]["agent"], "offline:oracle")
         self.assertEqual(mechanism_rows[1]["agent"], "offline:revenue")
 
