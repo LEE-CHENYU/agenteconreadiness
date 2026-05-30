@@ -57,6 +57,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `pricing_counterfactual` | Pricing evidence-perturbation probe: exact and noisy posterior demand evidence changes the revenue-maximizing price, and stale base prices are scored as counterfactual-shift misses. | `python -m aeread_lab.cli --task pricing_counterfactual --agent offline:oracle` |
 | `pricing_cross_elasticity` | Cross-product pricing evidence: fit focal demand from own-price and related-price variation, catching single-product fits that ignore substitution or complement effects. | `python -m aeread_lab.cli --task pricing_cross_elasticity --agent offline:oracle` |
 | `pricing_multi_product` | Joint multi-product pricing: fit two cross-demand equations and choose both prices together, catching independent single-product pricing under substitution or complement effects. | `python -m aeread_lab.cli --task pricing_multi_product --agent offline:oracle` |
+| `pricing_multi_product_natural` | Natural-label joint pricing: use campaign outcome rows without the explicit demand-equation recipe while preserving the same two-price oracle. | `python -m aeread_lab.cli --task pricing_multi_product_natural --agent offline:oracle` |
 | `pricing_law_audit` | Cross-domain generator-verifier audit for pricing: classify generated comparative-static claims about the revenue-maximizing price as valid or invalid under demand and cap changes. | `python -m aeread_lab.cli --task pricing_law_audit --agent offline:oracle` |
 | `pricing_evidence_law_audit` | Evidence-derived pricing-law audit: classify price-movement claims from baseline and updated sales rows, without exposing alpha/beta demand parameters. | `python -m aeread_lab.cli --task pricing_evidence_law_audit --agent offline:oracle` |
 | `pricing_evidence_law_holdout` | Generated evidence-law holdout: a larger neutral-ID family of sales-row pricing-law claims with intercept, slope, cap, mixed, and intervention cases. | `python -m aeread_lab.cli --task pricing_evidence_law_holdout --agent offline:oracle` |
@@ -203,6 +204,8 @@ interpreting the economic metric.
   miss rate reports answers that collapse to the own-price-only fit.
 - `pricing_multi_product`: lower two-price L1 error is better; independent
   miss rate reports answers that collapse to separate single-product optima.
+- `pricing_multi_product_natural`: lower two-price L1 error is better under a
+  natural campaign-outcome prompt; independent miss is reported separately.
 - `pricing_law_audit`: higher valid/invalid pricing-law classification accuracy
   is better; invalid-law acceptance and valid-law rejection rates are reported
   separately.

@@ -23,6 +23,12 @@ PRICING_MULTI_SYSTEM = (
     "FINAL_PRICE_A: <number> and FINAL_PRICE_B: <number>."
 )
 
+PRICING_MULTI_NATURAL_SYSTEM = (
+    "TASK: pricing_multi_product_natural_prices\n"
+    "Choose prices for both products. Return two final lines only: "
+    "FINAL_PRICE_A: <number> and FINAL_PRICE_B: <number>."
+)
+
 PRICING_LAW_SYSTEM = (
     "TASK: pricing_law_label\n"
     "You are verifying a proposed comparative-static claim about the revenue-maximizing price. "
@@ -988,13 +994,43 @@ def run_pricing_multi_product_game(
     agent: Agent,
     cases: list[PricingMultiProductCase] | None = None,
 ) -> dict:
+    return _run_pricing_multi_product_game(
+        agent,
+        cases=cases,
+        system=PRICING_MULTI_SYSTEM,
+        prompt_builder=_multi_product_prompt,
+        task_name="pricing_multi_product",
+    )
+
+
+def run_pricing_multi_product_natural_game(
+    agent: Agent,
+    cases: list[PricingMultiProductCase] | None = None,
+) -> dict:
+    return _run_pricing_multi_product_game(
+        agent,
+        cases=cases,
+        system=PRICING_MULTI_NATURAL_SYSTEM,
+        prompt_builder=_multi_product_natural_prompt,
+        task_name="pricing_multi_product_natural",
+    )
+
+
+def _run_pricing_multi_product_game(
+    agent: Agent,
+    *,
+    cases: list[PricingMultiProductCase] | None,
+    system: str,
+    prompt_builder,
+    task_name: str,
+) -> dict:
     cases = cases or MULTI_PRODUCT_CASES
     rows = []
     for case in cases:
         oracle_a, oracle_b = multi_product_oracle_prices(case)
         independent_a, independent_b = multi_product_independent_prices(case)
         oracle_rev = multi_product_revenue(case, oracle_a, oracle_b)
-        response = agent.complete(PRICING_MULTI_SYSTEM, _multi_product_prompt(case))
+        response = agent.complete(system, prompt_builder(case))
         parsed_a = parse_float("FINAL_PRICE_A", response)
         parsed_b = parse_float("FINAL_PRICE_B", response)
         chosen_a = clamp(parsed_a, 0.0, case.p_max_a) if parsed_a is not None else None
@@ -1037,7 +1073,7 @@ def run_pricing_multi_product_game(
     parsed = [row for row in rows if row["chosen_price_a"] is not None and row["chosen_price_b"] is not None]
     independent_misses = sum(row["independent_miss"] for row in rows)
     return {
-        "task": "pricing_multi_product",
+        "task": task_name,
         "agent": agent.name,
         "n_trials": len(rows),
         "mean_price_l1_error": sum(errors) / len(errors) if errors else None,
@@ -1264,6 +1300,30 @@ def _multi_product_prompt(case: PricingMultiProductCase) -> str:
         "Fit product A demand as quantity_a = alpha_a - own_beta_a * price_a + cross_ab * price_b. "
         "Fit product B demand as quantity_b = alpha_b - own_beta_b * price_b + cross_ba * price_a. "
         "Choose both prices jointly to maximize price_a * quantity_a + price_b * quantity_b under the caps."
+    )
+    return "\n".join(lines)
+
+
+def _multi_product_natural_prompt(case: PricingMultiProductCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"price_ceiling_a={case.p_max_a:.2f}",
+        f"price_ceiling_b={case.p_max_b:.2f}",
+    ]
+    if case.scenario_note:
+        lines.append(case.scenario_note)
+    lines.append("Recent joint campaign outcomes:")
+    lines.extend(
+        (
+            f"  campaign_row={idx} product_a_price={price_a:.2f}, "
+            f"product_b_price={price_b:.2f}, product_a_units={quantity_a:.2f}, "
+            f"product_b_units={quantity_b:.2f}"
+        )
+        for idx, (price_a, price_b, quantity_a, quantity_b) in enumerate(case.observations, start=1)
+    )
+    lines.append(
+        "Use the joint sales history to set the next campaign prices for both products. "
+        "The two products can affect each other's unit sales, so assess the pair together."
     )
     return "\n".join(lines)
 

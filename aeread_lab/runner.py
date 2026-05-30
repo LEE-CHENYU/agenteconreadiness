@@ -74,6 +74,7 @@ TASK_ORDER = (
     "pricing_counterfactual",
     "pricing_cross_elasticity",
     "pricing_multi_product",
+    "pricing_multi_product_natural",
     "pricing_law_audit",
     "pricing_evidence_law_audit",
     "pricing_evidence_law_holdout",
@@ -184,6 +185,10 @@ _CASE_TASKS = {
     ),
     "pricing_multi_product": (
         pricing_task.run_pricing_multi_product_game,
+        pricing_task.MULTI_PRODUCT_CASES,
+    ),
+    "pricing_multi_product_natural": (
+        pricing_task.run_pricing_multi_product_natural_game,
         pricing_task.MULTI_PRODUCT_CASES,
     ),
     "pricing_law_audit": (

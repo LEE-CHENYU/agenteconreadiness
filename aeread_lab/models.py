@@ -106,6 +106,8 @@ class OfflineAgent:
             return self._pricing_cross_price(user)
         if "TASK: pricing_multi_product_prices" in system:
             return self._pricing_multi_product_prices(user)
+        if "TASK: pricing_multi_product_natural_prices" in system:
+            return self._pricing_multi_product_prices(user)
         if "TASK: pricing_law_label" in system:
             return self._pricing_law_label(user)
         if "TASK: pricing_evidence_law_label" in system:
@@ -373,9 +375,9 @@ class OfflineAgent:
         return f"FINAL_PRICE: {price:.2f}"
 
     def _pricing_multi_product_prices(self, user: str) -> str:
-        p_max_a = _extract_float(user, "p_max_a", 1e9)
-        p_max_b = _extract_float(user, "p_max_b", 1e9)
-        rows = _extract_multi_product_rows(user)
+        p_max_a = _extract_float(user, "p_max_a", _extract_float(user, "price_ceiling_a", 1e9))
+        p_max_b = _extract_float(user, "p_max_b", _extract_float(user, "price_ceiling_b", 1e9))
+        rows = _extract_multi_product_rows(user) or _extract_multi_product_natural_rows(user)
         if self.policy in {"independent", "single_product", "own_only"}:
             fit_a = _fit_pricing_rows([(price_a, quantity_a) for price_a, _, quantity_a, _ in rows])
             fit_b = _fit_pricing_rows([(price_b, quantity_b) for _, price_b, _, quantity_b in rows])
@@ -1636,6 +1638,19 @@ def _extract_multi_product_rows(text: str) -> list[tuple[float, float, float, fl
             r"price_b=([-+]?\d+(?:\.\d+)?),\s+"
             r"quantity_a=([-+]?\d+(?:\.\d+)?),\s+"
             r"quantity_b=([-+]?\d+(?:\.\d+)?)",
+            text,
+        )
+    ]
+
+
+def _extract_multi_product_natural_rows(text: str) -> list[tuple[float, float, float, float]]:
+    return [
+        (float(price_a), float(price_b), float(quantity_a), float(quantity_b))
+        for price_a, price_b, quantity_a, quantity_b in re.findall(
+            r"product_a_price=([-+]?\d+(?:\.\d+)?),\s+"
+            r"product_b_price=([-+]?\d+(?:\.\d+)?),\s+"
+            r"product_a_units=([-+]?\d+(?:\.\d+)?),\s+"
+            r"product_b_units=([-+]?\d+(?:\.\d+)?)",
             text,
         )
     ]
