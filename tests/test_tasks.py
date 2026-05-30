@@ -429,9 +429,18 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(payload["parse_rate_min"], 1.0)
         self.assertEqual(payload["unstable_case_rate"], 0.0)
         self.assertEqual(payload["case_status_counts"], {"stable_oracle": 1})
+        self.assertEqual(payload["modal_reference_counts"], {})
+        self.assertEqual(payload["non_oracle_modal_reference_counts"], {})
+        self.assertIsNone(payload["attributed_non_oracle_modal_case_rate"])
         self.assertEqual(payload["stable_oracle_case_rate"], 1.0)
         self.assertEqual(payload["mean_case_oracle_hit_rate"], 1.0)
         self.assertEqual(payload["case_stability"][0]["status"], "stable_oracle")
+        self.assertEqual(payload["case_stability"][0]["modal_reference_matches"], [])
+        self.assertEqual(
+            payload["case_stability"][0]["reference_choices"]["generic_style"],
+            "add_quality_utility",
+        )
+        self.assertNotIn("generic_style", payload["case_stability"][0]["reference_hit_rates"])
         self.assertEqual(payload["case_stability"][0]["unique_choice_count"], 1)
         self.assertEqual(payload["case_stability"][0]["parse_fail_rate"], 0.0)
         self.assertGreater(payload["case_stability"][0]["oracle_margin"], 0.05)
@@ -448,6 +457,9 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(payload["unstable_case_rate"], 1.0)
         self.assertEqual(payload["unstable_oracle_modal_case_rate"], 1.0)
         self.assertEqual(payload["case_status_counts"], {"unstable_oracle_modal": 1})
+        self.assertEqual(payload["modal_reference_counts"], {})
+        self.assertEqual(payload["case_stability"][0]["reference_hit_rates"]["max_return"], 0.5)
+        self.assertEqual(payload["case_stability"][0]["reference_hit_rates"]["second_best"], 0.5)
         self.assertEqual(payload["mean_case_oracle_hit_rate"], 0.5)
         self.assertEqual(payload["case_stability"][0]["status"], "unstable_oracle_modal")
         self.assertEqual(payload["case_stability"][0]["unique_choice_count"], 2)
@@ -463,8 +475,18 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(payload["unstable_case_rate"], 0.0)
         self.assertEqual(payload["stable_non_oracle_case_rate"], 1.0)
         self.assertEqual(payload["case_status_counts"], {"stable_non_oracle": 1})
+        self.assertEqual(payload["modal_reference_counts"], {"max_return": 1, "second_best": 1})
+        self.assertEqual(
+            payload["non_oracle_modal_reference_counts"],
+            {"max_return": 1, "second_best": 1},
+        )
+        self.assertEqual(payload["attributed_non_oracle_modal_case_rate"], 1.0)
         self.assertEqual(payload["mean_case_oracle_hit_rate"], 0.0)
         self.assertEqual(payload["case_stability"][0]["status"], "stable_non_oracle")
+        self.assertEqual(
+            payload["case_stability"][0]["modal_reference_matches"],
+            ["max_return", "second_best"],
+        )
         self.assertEqual(payload["case_stability"][0]["unique_choice_count"], 1)
 
     def test_sample_limit_slices_pricing_cross_elasticity_cases(self):

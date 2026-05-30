@@ -228,19 +228,43 @@ def format_stability(stability: dict[str, Any]) -> str:
             f"parse_modal={_fmt(stability.get('parse_modal_case_rate'))} "
             f"mean_oracle_hit={_fmt(stability.get('mean_case_oracle_hit_rate'))}"
         )
+    if stability.get("modal_reference_counts"):
+        lines.append(
+            "modal_reference_counts="
+            + ", ".join(
+                f"{reference}:{count}"
+                for reference, count in sorted(stability["modal_reference_counts"].items())
+            )
+        )
+        if stability.get("non_oracle_modal_reference_counts"):
+            lines.append(
+                "non_oracle_modal_reference_counts="
+                + ", ".join(
+                    f"{reference}:{count}"
+                    for reference, count in sorted(
+                        stability["non_oracle_modal_reference_counts"].items()
+                    )
+                )
+            )
+        if stability.get("attributed_non_oracle_modal_case_rate") is not None:
+            lines.append(
+                "attributed_non_oracle_modal_case_rate="
+                f"{_fmt(stability.get('attributed_non_oracle_modal_case_rate'))}"
+            )
     case_rows = stability.get("case_stability") or []
     if case_rows:
         lines.append("-" * 88)
         lines.append(
-            f"{'case':<28} {'status':<26} {'unique':>6} {'margin':>10} "
-            f"{'modal':<18} {'oracle_hit':>10}"
+            f"{'case':<24} {'status':<26} {'unique':>6} {'margin':>8} "
+            f"{'modal':<16} {'refs':<16} {'oracle_hit':>10}"
         )
         for row in case_rows:
             oracle_hit = row.get("oracle_hit_rate")
+            refs = ",".join(row.get("modal_reference_matches") or [])
             lines.append(
-                f"{row['case_key']:<28.28} {row.get('status', 'n/a'):<26.26} "
-                f"{row['unique_choice_count']:>6} {_fmt(row.get('oracle_margin')):>10} "
-                f"{row['modal_choice']:<18.18} {_fmt(oracle_hit):>10}"
+                f"{row['case_key']:<24.24} {row.get('status', 'n/a'):<26.26} "
+                f"{row['unique_choice_count']:>6} {_fmt(row.get('oracle_margin')):>8} "
+                f"{row['modal_choice']:<16.16} {refs:<16.16} {_fmt(oracle_hit):>10}"
             )
     lines.append("=" * 88)
     return "\n".join(lines)

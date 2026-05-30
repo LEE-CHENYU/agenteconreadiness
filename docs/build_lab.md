@@ -386,7 +386,10 @@ range, unstable-case rate, case-outcome status counts, oracle margin when
 available, and per-case modal choice. Case statuses distinguish
 `stable_oracle`, `stable_non_oracle`, `unstable_oracle_modal`,
 `unstable_non_oracle_modal`, and parse-modal failures, so a repeat run can tell
-whether the issue is sampling noise, persistent wrong behavior, or parsing.
+whether the issue is sampling noise, persistent wrong behavior, or parsing. When
+trials expose named non-oracle references such as `mechanical_flow`,
+`low_turnover`, `max_return`, or `second_best`, the probe also reports which
+non-oracle reference the modal choice matches.
 
 Example:
 
