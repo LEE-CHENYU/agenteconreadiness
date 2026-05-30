@@ -34,6 +34,7 @@ TASKS = (
     "mechanism_participant_response",
     "mechanism_elasticity_inference",
     "mechanism_strategic_response",
+    "mechanism_strategic_equilibrium",
     "strategic_drift",
     "forecast_calibration",
     "forecast_aggregate",
@@ -303,6 +304,7 @@ def _print_human(payload: dict[str, Any]) -> None:
             "mechanism_participant_response",
             "mechanism_elasticity_inference",
             "mechanism_strategic_response",
+            "mechanism_strategic_equilibrium",
         }:
             print(
                 f"{task}: n={result['n_trials']} score_regret="

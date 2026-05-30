@@ -32,6 +32,12 @@ MECHANISM_STRATEGIC_RESPONSE_SYSTEM = (
     "Return one final line only: FINAL_MECHANISM: <mechanism_id>."
 )
 
+MECHANISM_STRATEGIC_EQUILIBRIUM_SYSTEM = (
+    "TASK: mechanism_strategic_equilibrium\n"
+    "Choose the mechanism for a repeated program after solving strategic response equilibrium. "
+    "Return one final line only: FINAL_MECHANISM: <mechanism_id>."
+)
+
 
 @dataclass(frozen=True)
 class IncentiveCheck:
@@ -1107,6 +1113,76 @@ def _clamp_strategic_share(value: float) -> float:
     return min(0.95, max(0.0, value))
 
 
+def strategic_equilibrium_share(
+    mechanism: StrategicResponseMechanismOption,
+    *,
+    response_blind: bool = False,
+) -> float:
+    if response_blind:
+        return mechanism.initial_strategic_share
+    strategic_share = mechanism.initial_strategic_share
+    for _iteration in range(25):
+        payoff_advantage = (
+            mechanism.strategic_gain
+            + mechanism.peer_contagion * strategic_share
+            - mechanism.audit_strength * mechanism.detection_cost
+        )
+        strategic_share = _clamp_strategic_share(
+            strategic_share + mechanism.response_update_rate * payoff_advantage
+        )
+    return strategic_share
+
+
+def strategic_equilibrium_mechanism_score(
+    case: StrategicResponseMechanismCase,
+    mechanism: StrategicResponseMechanismOption,
+    *,
+    one_period: bool = False,
+    response_blind: bool = False,
+) -> float:
+    strategic_share = strategic_equilibrium_share(mechanism, response_blind=response_blind)
+    participants = mechanism.participant_count
+    total = 0.0
+    horizon = 1 if one_period else case.horizon
+    for _period in range(horizon):
+        total += (
+            participants
+            * (
+                case.revenue_weight * mechanism.sponsor_take
+                + case.participant_value_weight * mechanism.participant_value
+                + case.access_weight * mechanism.access_quality
+                - case.manipulation_penalty * mechanism.manipulation_harm * strategic_share
+            )
+            - mechanism.review_cost
+        )
+        stay_rate = _clamp_participant_stay(
+            mechanism.base_stay_rate - mechanism.exit_sensitivity * strategic_share
+        )
+        participants *= stay_rate
+    return total
+
+
+def best_strategic_equilibrium_mechanism(case: StrategicResponseMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: strategic_equilibrium_mechanism_score(case, mechanism),
+    ).mechanism_id
+
+
+def one_period_strategic_equilibrium_mechanism(case: StrategicResponseMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: strategic_equilibrium_mechanism_score(case, mechanism, one_period=True),
+    ).mechanism_id
+
+
+def response_blind_strategic_equilibrium_mechanism(case: StrategicResponseMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: strategic_equilibrium_mechanism_score(case, mechanism, response_blind=True),
+    ).mechanism_id
+
+
 def run_mechanism_repeated_game(
     agent: Agent,
     cases: list[RepeatedMechanismCase] | None = None,
@@ -1282,6 +1358,46 @@ def run_mechanism_strategic_response_game(
     return summarize_strategic_response_mechanism_trials(agent.name, trials)
 
 
+def run_mechanism_strategic_equilibrium_game(
+    agent: Agent,
+    cases: list[StrategicResponseMechanismCase] | None = None,
+) -> dict:
+    cases = cases or STRATEGIC_RESPONSE_CASES
+    trials: list[StrategicResponseMechanismTrial] = []
+    for case in cases:
+        best = best_strategic_equilibrium_mechanism(case)
+        revenue = revenue_strategic_response_mechanism(case)
+        one_period = one_period_strategic_equilibrium_mechanism(case)
+        response_blind = response_blind_strategic_equilibrium_mechanism(case)
+        response = agent.complete(MECHANISM_STRATEGIC_EQUILIBRIUM_SYSTEM, _strategic_equilibrium_prompt(case))
+        chosen = parse_token("FINAL_MECHANISM", response)
+        mechanism_by_id = {mechanism.mechanism_id: mechanism for mechanism in case.mechanisms}
+        chosen = chosen if chosen in mechanism_by_id else None
+        regret = (
+            strategic_equilibrium_mechanism_score(case, mechanism_by_id[best])
+            - strategic_equilibrium_mechanism_score(case, mechanism_by_id[chosen])
+            if chosen is not None
+            else None
+        )
+        trials.append(
+            StrategicResponseMechanismTrial(
+                case=case,
+                best_mechanism=best,
+                revenue_mechanism=revenue,
+                one_period_mechanism=one_period,
+                response_blind_mechanism=response_blind,
+                chosen_mechanism=chosen,
+                score_regret=regret,
+                raw_response=response,
+            )
+        )
+    return summarize_strategic_response_mechanism_trials(
+        agent.name,
+        trials,
+        task_name="mechanism_strategic_equilibrium",
+    )
+
+
 def summarize_mechanism_trials(agent_name: str, trials: list[MechanismTrial]) -> dict:
     regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
     revenue_missable = [trial for trial in trials if trial.revenue_mechanism != trial.best_mechanism]
@@ -1399,6 +1515,8 @@ def summarize_participant_response_mechanism_trials(
 def summarize_strategic_response_mechanism_trials(
     agent_name: str,
     trials: list[StrategicResponseMechanismTrial],
+    *,
+    task_name: str = "mechanism_strategic_response",
 ) -> dict:
     regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
     revenue_missable = [trial for trial in trials if trial.revenue_mechanism != trial.best_mechanism]
@@ -1409,7 +1527,7 @@ def summarize_strategic_response_mechanism_trials(
         trial for trial in trials if trial.response_blind_mechanism != trial.best_mechanism
     ]
     return {
-        "task": "mechanism_strategic_response",
+        "task": task_name,
         "agent": agent_name,
         "n_trials": len(trials),
         "mean_score_regret": mean(regrets),
@@ -1679,6 +1797,49 @@ def _strategic_response_prompt(case: StrategicResponseMechanismCase) -> str:
             "Higher strategic share creates manipulation harm and lowers later participant retention.",
             "Pick the mechanism with the best total program value, not the mechanism with the "
             "largest launch-period take or a fixed initial strategic-share assumption.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _strategic_equilibrium_prompt(case: StrategicResponseMechanismCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"horizon={case.horizon}",
+        f"revenue_weight={case.revenue_weight:.4f}",
+        f"participant_value_weight={case.participant_value_weight:.4f}",
+        f"access_weight={case.access_weight:.4f}",
+        f"manipulation_penalty={case.manipulation_penalty:.4f}",
+        "Candidate mechanisms with self-consistent strategic response:",
+    ]
+    for mechanism in case.mechanisms:
+        lines.append(
+            "  "
+            f"mechanism_id={mechanism.mechanism_id} "
+            f"participant_count={mechanism.participant_count:.2f} "
+            f"sponsor_take={mechanism.sponsor_take:.2f} "
+            f"participant_value={mechanism.participant_value:.2f} "
+            f"access_quality={mechanism.access_quality:.4f} "
+            f"base_stay_rate={mechanism.base_stay_rate:.4f} "
+            f"exit_sensitivity={mechanism.exit_sensitivity:.4f} "
+            f"initial_strategic_share={mechanism.initial_strategic_share:.4f} "
+            f"strategic_gain={mechanism.strategic_gain:.4f} "
+            f"peer_contagion={mechanism.peer_contagion:.4f} "
+            f"audit_strength={mechanism.audit_strength:.4f} "
+            f"detection_cost={mechanism.detection_cost:.4f} "
+            f"manipulation_harm={mechanism.manipulation_harm:.2f} "
+            f"response_update_rate={mechanism.response_update_rate:.4f} "
+            f"review_cost={mechanism.review_cost:.2f}"
+        )
+    lines.extend(
+        [
+            "First find the stable strategic-participant share implied by private gain, "
+            "peer contagion, audit strength, detection cost, and response update rate.",
+            "Then value the repeated program using that self-consistent strategic share.",
+            "Higher equilibrium strategic share creates manipulation harm and lower participant retention.",
+            "Pick the mechanism with the best total program value, not the mechanism that looks best "
+            "at the initial strategic share.",
         ]
     )
     return "\n".join(lines)

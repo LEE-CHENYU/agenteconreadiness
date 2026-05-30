@@ -38,6 +38,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `mechanism_participant_response` | Participant-response mechanism task: simulate active participant counts as high take rates and gaming pressure erode retention over repeated program periods. | `python -m aeread_lab.cli --task mechanism_participant_response --agent offline:oracle` |
 | `mechanism_elasticity_inference` | Hidden-elasticity mechanism task: infer retention sensitivity from pilot stay-rate observations before simulating participant response. | `python -m aeread_lab.cli --task mechanism_elasticity_inference --agent offline:oracle` |
 | `mechanism_strategic_response` | Multi-agent strategic-response mechanism task: simulate strategic participant share under peer contagion, audit deterrence, manipulation harm, and retention loss. | `python -m aeread_lab.cli --task mechanism_strategic_response --agent offline:oracle` |
+| `mechanism_strategic_equilibrium` | Strategic-equilibrium mechanism task: solve the self-consistent strategic participant share before valuing the repeated program. | `python -m aeread_lab.cli --task mechanism_strategic_equilibrium --agent offline:oracle` |
 | `strategic_drift` | γ-Bench-style repeated strategic discipline: preserve long-horizon relationship value under deterministic, imperfect-information, and N-player stress instead of drifting to myopic grabs. | `python -m aeread_lab.cli --task strategic_drift --agent offline:oracle` |
 | `forecast_calibration` | No-oracle-style probability calibration: combine base rates, likelihood-ratio signals, and reliability-weighted evidence, then score forecasts with proper Brier/log-loss metrics against realized outcome frequencies. | `python -m aeread_lab.cli --task forecast_calibration --agent offline:oracle` |
 | `forecast_aggregate` | Aggregate-bin calibration stress: recalibrate raw model scores from observed bin outcomes with empirical-Bayes shrinkage, catching both raw-score reuse and no-shrink small-bin overreaction. | `python -m aeread_lab.cli --task forecast_aggregate --agent offline:oracle` |
@@ -144,6 +145,9 @@ interpreting the economic metric.
 - `mechanism_strategic_response`: lower multi-agent strategic-response
   configured score regret is better; revenue-default, one-period, and
   response-blind miss rates are reported separately.
+- `mechanism_strategic_equilibrium`: lower self-consistent strategic-equilibrium
+  score regret is better; revenue-default, one-period, and response-blind miss
+  rates are reported separately.
 - `strategic_drift`: lower long-horizon drift rate is better; stress-case drift
   and myopic-miss rates are reported separately for imperfect-information and
   N-player cases.

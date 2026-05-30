@@ -118,6 +118,8 @@ class OfflineAgent:
             return self._mechanism_participant_response_choice(user)
         if "TASK: mechanism_strategic_response" in system:
             return self._mechanism_strategic_response_choice(user)
+        if "TASK: mechanism_strategic_equilibrium" in system:
+            return self._mechanism_strategic_equilibrium_choice(user)
         if "TASK: matching_choice" in system:
             return self._matching_choice(user)
         if "TASK: screening_choice" in system:
@@ -501,6 +503,26 @@ class OfflineAgent:
             )
         else:
             mechanism_id = _best_strategic_response_mechanism_choice(user, mechanisms)
+        return f"FINAL_MECHANISM: {mechanism_id}"
+
+    def _mechanism_strategic_equilibrium_choice(self, user: str) -> str:
+        mechanisms = _extract_strategic_response_mechanisms(user)
+        if self.policy in {"revenue", "max_revenue"}:
+            mechanism_id = max(mechanisms, key=lambda item: mechanisms[item]["sponsor_take"])
+        elif self.policy in {"one_period", "myopic"}:
+            mechanism_id = _best_strategic_equilibrium_mechanism_choice(
+                user,
+                mechanisms,
+                one_period=True,
+            )
+        elif self.policy in {"response_blind", "static", "strategic_blind"}:
+            mechanism_id = _best_strategic_equilibrium_mechanism_choice(
+                user,
+                mechanisms,
+                response_blind=True,
+            )
+        else:
+            mechanism_id = _best_strategic_equilibrium_mechanism_choice(user, mechanisms)
         return f"FINAL_MECHANISM: {mechanism_id}"
 
     def _matching_choice(self, user: str) -> str:
@@ -2162,6 +2184,62 @@ def _best_strategic_response_mechanism_choice(
                         strategic_share + mechanism["response_update_rate"] * payoff_advantage,
                     ),
                 )
+            stay_rate = min(
+                0.99,
+                max(0.05, mechanism["base_stay_rate"] - mechanism["exit_sensitivity"] * strategic_share),
+            )
+            participants *= stay_rate
+        return total
+
+    return max(mechanisms, key=score)
+
+
+def _strategic_equilibrium_share(mechanism: dict[str, float], *, response_blind: bool = False) -> float:
+    if response_blind:
+        return mechanism["initial_strategic_share"]
+    strategic_share = mechanism["initial_strategic_share"]
+    for _iteration in range(25):
+        payoff_advantage = (
+            mechanism["strategic_gain"]
+            + mechanism["peer_contagion"] * strategic_share
+            - mechanism["audit_strength"] * mechanism["detection_cost"]
+        )
+        strategic_share = min(
+            0.95,
+            max(0.0, strategic_share + mechanism["response_update_rate"] * payoff_advantage),
+        )
+    return strategic_share
+
+
+def _best_strategic_equilibrium_mechanism_choice(
+    text: str,
+    mechanisms: dict[str, dict[str, float]],
+    *,
+    one_period: bool = False,
+    response_blind: bool = False,
+) -> str:
+    horizon = 1 if one_period else int(round(_extract_float(text, "horizon", 1.0)))
+    revenue_weight = _extract_float(text, "revenue_weight")
+    participant_value_weight = _extract_float(text, "participant_value_weight")
+    access_weight = _extract_float(text, "access_weight")
+    manipulation_penalty = _extract_float(text, "manipulation_penalty")
+
+    def score(mechanism_id: str) -> float:
+        mechanism = mechanisms[mechanism_id]
+        participants = mechanism["participant_count"]
+        strategic_share = _strategic_equilibrium_share(mechanism, response_blind=response_blind)
+        total = 0.0
+        for _period in range(max(1, horizon)):
+            total += (
+                participants
+                * (
+                    revenue_weight * mechanism["sponsor_take"]
+                    + participant_value_weight * mechanism["participant_value"]
+                    + access_weight * mechanism["access_quality"]
+                    - manipulation_penalty * mechanism["manipulation_harm"] * strategic_share
+                )
+                - mechanism["review_cost"]
+            )
             stay_rate = min(
                 0.99,
                 max(0.05, mechanism["base_stay_rate"] - mechanism["exit_sensitivity"] * strategic_share),

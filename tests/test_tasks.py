@@ -63,6 +63,7 @@ from aeread_lab.tasks.mechanism import _participant_response_prompt as mechanism
 from aeread_lab.tasks.mechanism import _prompt as mechanism_prompt
 from aeread_lab.tasks.mechanism import _repeated_natural_prompt as mechanism_repeated_natural_prompt
 from aeread_lab.tasks.mechanism import _repeated_prompt as mechanism_repeated_prompt
+from aeread_lab.tasks.mechanism import _strategic_equilibrium_prompt as mechanism_strategic_equilibrium_prompt
 from aeread_lab.tasks.mechanism import _strategic_response_prompt as mechanism_strategic_response_prompt
 from aeread_lab.tasks.mechanism import (
     run_mechanism_elasticity_inference_game,
@@ -70,6 +71,7 @@ from aeread_lab.tasks.mechanism import (
     run_mechanism_participant_response_game,
     run_mechanism_repeated_game,
     run_mechanism_repeated_natural_game,
+    run_mechanism_strategic_equilibrium_game,
     run_mechanism_strategic_response_game,
 )
 from aeread_lab.tasks.moral_hazard import DEFAULT_CASES as MORAL_HAZARD_CASES
@@ -245,6 +247,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_score_regret"], 1e-9)
 
+    def test_sample_limit_slices_mechanism_strategic_equilibrium_cases(self):
+        results = run_tasks("mechanism_strategic_equilibrium", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
     def test_procurement_oracle_offline(self):
         summary = run_procurement_game(OfflineAgent("oracle"))
         self.assertEqual(summary["accuracy"], 1.0)
@@ -307,6 +314,7 @@ class TaskSmokeTests(unittest.TestCase):
         mechanism_response = mechanism_response_prompt(MECHANISM_RESPONSE_CASES[0])
         mechanism_elasticity = mechanism_elasticity_prompt(MECHANISM_RESPONSE_CASES[0])
         mechanism_strategic_response = mechanism_strategic_response_prompt(MECHANISM_STRATEGIC_CASES[0])
+        mechanism_strategic_equilibrium = mechanism_strategic_equilibrium_prompt(MECHANISM_STRATEGIC_CASES[0])
         experiment = experiment_prompt(EXPERIMENT_CASES[0])
         retail = retail_prompt(RETAIL_CASES[-1])
         supplier_scam = supplier_scam_prompt(
@@ -346,6 +354,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", mechanism_response)
         self.assertNotIn("oracle", mechanism_elasticity)
         self.assertNotIn("oracle", mechanism_strategic_response)
+        self.assertNotIn("oracle", mechanism_strategic_equilibrium)
         self.assertNotIn("oracle", experiment)
         self.assertNotIn("oracle", retail)
         self.assertNotIn("oracle", supplier_scam)
@@ -362,6 +371,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("take_exit_sensitivity", mechanism_elasticity)
         self.assertNotIn("trust_decay", mechanism_elasticity)
         self.assertNotIn("best_mechanism", mechanism_strategic_response)
+        self.assertNotIn("best_mechanism", mechanism_strategic_equilibrium)
 
     def test_regime_relationship_flags_law_and_fit_failures(self):
         configured = run_regime_relationship_verifier(OfflineAgent("oracle"))
@@ -638,6 +648,17 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(one_period["mean_score_regret"], 25000.0)
         self.assertGreater(one_period["one_period_miss_rate"], 0.4)
         self.assertGreater(response_blind["mean_score_regret"], 25000.0)
+        self.assertGreater(response_blind["response_blind_miss_rate"], 0.4)
+
+    def test_mechanism_strategic_equilibrium_flags_initial_share_defaults(self):
+        configured = run_mechanism_strategic_equilibrium_game(OfflineAgent("oracle"))
+        revenue = run_mechanism_strategic_equilibrium_game(OfflineAgent("revenue"))
+        response_blind = run_mechanism_strategic_equilibrium_game(OfflineAgent("response_blind"))
+        self.assertEqual(configured["task"], "mechanism_strategic_equilibrium")
+        self.assertLess(configured["mean_score_regret"], 1e-9)
+        self.assertGreater(revenue["mean_score_regret"], 100000.0)
+        self.assertEqual(revenue["revenue_default_miss_rate"], 1.0)
+        self.assertGreater(response_blind["mean_score_regret"], 100000.0)
         self.assertGreater(response_blind["response_blind_miss_rate"], 0.4)
 
     def test_strategic_drift_flags_myopic_grabs(self):
@@ -955,6 +976,13 @@ class TaskSmokeTests(unittest.TestCase):
         sweep = run_sweep(task="mechanism_strategic_response", agent_specs=["offline:oracle", "offline:revenue"])
         rows = rank_rows(comparison_table(sweep))
         mechanism_rows = [row for row in rows if row["task"] == "mechanism_strategic_response"]
+        self.assertEqual(mechanism_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(mechanism_rows[1]["agent"], "offline:revenue")
+
+    def test_offline_sweep_ranks_strategic_equilibrium_mechanism_above_revenue(self):
+        sweep = run_sweep(task="mechanism_strategic_equilibrium", agent_specs=["offline:oracle", "offline:revenue"])
+        rows = rank_rows(comparison_table(sweep))
+        mechanism_rows = [row for row in rows if row["task"] == "mechanism_strategic_equilibrium"]
         self.assertEqual(mechanism_rows[0]["agent"], "offline:oracle")
         self.assertEqual(mechanism_rows[1]["agent"], "offline:revenue")
 

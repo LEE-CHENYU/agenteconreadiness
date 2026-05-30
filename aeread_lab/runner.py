@@ -55,6 +55,7 @@ TASK_ORDER = (
     "mechanism_participant_response",
     "mechanism_elasticity_inference",
     "mechanism_strategic_response",
+    "mechanism_strategic_equilibrium",
     "strategic_drift",
     "forecast_calibration",
     "forecast_aggregate",
@@ -120,6 +121,10 @@ _CASE_TASKS = {
     ),
     "mechanism_strategic_response": (
         mechanism_task.run_mechanism_strategic_response_game,
+        mechanism_task.STRATEGIC_RESPONSE_CASES,
+    ),
+    "mechanism_strategic_equilibrium": (
+        mechanism_task.run_mechanism_strategic_equilibrium_game,
         mechanism_task.STRATEGIC_RESPONSE_CASES,
     ),
     "strategic_drift": (
