@@ -12,7 +12,7 @@ A 2026-05-29 validation sprint sharpened the thesis: "is the agent *rational*?" 
 
 ## Status
 
-Pre-launch. v0 runtime in development; methodology paper targeting NeurIPS / COLM 2026. This repo is currently private and serves as the canonical artifact for the research-collaboration proposal.
+Pre-launch. v0 runtime in development; methodology paper targeting NeurIPS / COLM 2026. This repo is public and serves as the canonical artifact for the research-collaboration proposal + methodology.
 
 ## Pre-commercial final goal: methodological engagement from frontier labs
 
