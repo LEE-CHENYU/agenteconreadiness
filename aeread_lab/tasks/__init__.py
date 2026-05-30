@@ -26,6 +26,7 @@ from .matching import run_matching_game
 from .mechanism import (
     run_mechanism_elasticity_inference_game,
     run_mechanism_game,
+    run_mechanism_interaction_trace_game,
     run_mechanism_participant_response_game,
     run_mechanism_repeated_game,
     run_mechanism_repeated_natural_game,
@@ -94,6 +95,7 @@ __all__ = [
     "run_matching_game",
     "run_mechanism_elasticity_inference_game",
     "run_mechanism_game",
+    "run_mechanism_interaction_trace_game",
     "run_mechanism_participant_response_game",
     "run_mechanism_repeated_game",
     "run_mechanism_repeated_natural_game",

@@ -39,6 +39,7 @@ TASKS = (
     "mechanism_elasticity_inference",
     "mechanism_strategic_response",
     "mechanism_strategic_equilibrium",
+    "mechanism_interaction_trace",
     "strategic_drift",
     "forecast_calibration",
     "forecast_aggregate",
@@ -360,14 +361,21 @@ def _print_human(payload: dict[str, Any]) -> None:
             "mechanism_elasticity_inference",
             "mechanism_strategic_response",
             "mechanism_strategic_equilibrium",
+            "mechanism_interaction_trace",
         }:
+            blind_label = (
+                "response_blind_miss"
+                if "response_blind_miss_rate" in result
+                else "trace_blind_miss"
+            )
+            blind_value = result.get("response_blind_miss_rate", result.get("trace_blind_miss_rate", 0.0))
             print(
                 f"{task}: n={result['n_trials']} score_regret="
                 f"{_fmt(result['mean_score_regret'])} "
                 f"ci95={_fmt_ci(result.get('mean_score_regret_ci95'))} "
                 f"revenue_miss={result['revenue_default_miss_rate']:.2f} "
                 f"one_period_miss={result['one_period_miss_rate']:.2f} "
-                f"response_blind_miss={result['response_blind_miss_rate']:.2f}"
+                f"{blind_label}={blind_value:.2f}"
             )
         elif task == "strategic_drift":
             print(

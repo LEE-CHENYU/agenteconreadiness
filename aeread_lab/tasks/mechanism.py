@@ -38,6 +38,12 @@ MECHANISM_STRATEGIC_EQUILIBRIUM_SYSTEM = (
     "Return one final line only: FINAL_MECHANISM: <mechanism_id>."
 )
 
+MECHANISM_INTERACTION_TRACE_SYSTEM = (
+    "TASK: mechanism_interaction_trace\n"
+    "Choose the mechanism for the remaining program rounds after reading prior interaction traces. "
+    "Return one final line only: FINAL_MECHANISM: <mechanism_id>."
+)
+
 
 @dataclass(frozen=True)
 class IncentiveCheck:
@@ -196,6 +202,48 @@ class StrategicResponseMechanismTrial:
     revenue_mechanism: str
     one_period_mechanism: str
     response_blind_mechanism: str
+    chosen_mechanism: str | None
+    score_regret: float | None
+    raw_response: str
+
+
+@dataclass(frozen=True)
+class InteractionTracePoint:
+    round_id: int
+    active_participants: float
+    strategic_share: float
+
+
+@dataclass(frozen=True)
+class InteractionTraceMechanismOption:
+    mechanism_id: str
+    sponsor_take: float
+    participant_value: float
+    access_quality: float
+    manipulation_harm: float
+    review_cost: float
+    trace: tuple[InteractionTracePoint, ...]
+
+
+@dataclass(frozen=True)
+class InteractionTraceMechanismCase:
+    key: str
+    real_case: str
+    forecast_horizon: int
+    revenue_weight: float
+    participant_value_weight: float
+    access_weight: float
+    manipulation_penalty: float
+    mechanisms: tuple[InteractionTraceMechanismOption, ...]
+
+
+@dataclass
+class InteractionTraceMechanismTrial:
+    case: InteractionTraceMechanismCase
+    best_mechanism: str
+    revenue_mechanism: str
+    one_period_mechanism: str
+    trace_blind_mechanism: str
     chosen_mechanism: str | None
     score_regret: float | None
     raw_response: str
@@ -859,6 +907,210 @@ STRATEGIC_RESPONSE_CASES = [
 ]
 
 
+INTERACTION_TRACE_CASES = [
+    InteractionTraceMechanismCase(
+        key="creator_market_trace",
+        real_case="creator marketplace where visible ranking changes participation and strategic posting",
+        forecast_horizon=5,
+        revenue_weight=1.00,
+        participant_value_weight=0.35,
+        access_weight=30.00,
+        manipulation_penalty=8.00,
+        mechanisms=(
+            InteractionTraceMechanismOption(
+                "open_rank_auction",
+                95.0,
+                55.0,
+                0.42,
+                20.0,
+                180.0,
+                (
+                    InteractionTracePoint(1, 1100.0, 0.08),
+                    InteractionTracePoint(2, 1030.0, 0.17),
+                    InteractionTracePoint(3, 930.0, 0.29),
+                ),
+            ),
+            InteractionTraceMechanismOption(
+                "audited_score_market",
+                32.0,
+                78.0,
+                0.76,
+                8.0,
+                520.0,
+                (
+                    InteractionTracePoint(1, 1050.0, 0.06),
+                    InteractionTracePoint(2, 1000.0, 0.08),
+                    InteractionTracePoint(3, 940.0, 0.10),
+                ),
+            ),
+            InteractionTraceMechanismOption(
+                "community_rotation",
+                18.0,
+                72.0,
+                0.94,
+                5.0,
+                430.0,
+                (
+                    InteractionTracePoint(1, 980.0, 0.05),
+                    InteractionTracePoint(2, 960.0, 0.06),
+                    InteractionTracePoint(3, 930.0, 0.07),
+                ),
+            ),
+        ),
+    ),
+    InteractionTraceMechanismCase(
+        key="procurement_bidder_trace",
+        real_case="repeat procurement where self-certification causes bid shading to spread",
+        forecast_horizon=5,
+        revenue_weight=0.75,
+        participant_value_weight=0.50,
+        access_weight=30.00,
+        manipulation_penalty=7.00,
+        mechanisms=(
+            InteractionTraceMechanismOption(
+                "self_certified_low_bid",
+                140.0,
+                50.0,
+                0.40,
+                22.0,
+                120.0,
+                (
+                    InteractionTracePoint(1, 740.0, 0.08),
+                    InteractionTracePoint(2, 700.0, 0.16),
+                    InteractionTracePoint(3, 650.0, 0.27),
+                ),
+            ),
+            InteractionTraceMechanismOption(
+                "audited_score_auction",
+                34.0,
+                84.0,
+                0.72,
+                7.0,
+                470.0,
+                (
+                    InteractionTracePoint(1, 720.0, 0.05),
+                    InteractionTracePoint(2, 695.0, 0.07),
+                    InteractionTracePoint(3, 665.0, 0.09),
+                ),
+            ),
+            InteractionTraceMechanismOption(
+                "supplier_rotation_pool",
+                20.0,
+                76.0,
+                0.92,
+                5.0,
+                390.0,
+                (
+                    InteractionTracePoint(1, 690.0, 0.04),
+                    InteractionTracePoint(2, 675.0, 0.05),
+                    InteractionTracePoint(3, 650.0, 0.06),
+                ),
+            ),
+        ),
+    ),
+    InteractionTraceMechanismCase(
+        key="grant_applicant_trace",
+        real_case="public grants portal where observed pay-to-rank use changes later applicant quality",
+        forecast_horizon=4,
+        revenue_weight=0.20,
+        participant_value_weight=0.55,
+        access_weight=45.00,
+        manipulation_penalty=5.00,
+        mechanisms=(
+            InteractionTraceMechanismOption(
+                "pay_to_rank_fast",
+                260.0,
+                52.0,
+                0.40,
+                16.0,
+                130.0,
+                (
+                    InteractionTracePoint(1, 850.0, 0.06),
+                    InteractionTracePoint(2, 835.0, 0.13),
+                    InteractionTracePoint(3, 805.0, 0.22),
+                ),
+            ),
+            InteractionTraceMechanismOption(
+                "audited_deliberation",
+                22.0,
+                80.0,
+                0.82,
+                6.0,
+                420.0,
+                (
+                    InteractionTracePoint(1, 820.0, 0.05),
+                    InteractionTracePoint(2, 795.0, 0.07),
+                    InteractionTracePoint(3, 765.0, 0.09),
+                ),
+            ),
+            InteractionTraceMechanismOption(
+                "rotating_access_pool",
+                9.0,
+                66.0,
+                0.97,
+                4.0,
+                350.0,
+                (
+                    InteractionTracePoint(1, 790.0, 0.04),
+                    InteractionTracePoint(2, 775.0, 0.05),
+                    InteractionTracePoint(3, 755.0, 0.06),
+                ),
+            ),
+        ),
+    ),
+    InteractionTraceMechanismCase(
+        key="creator_feed_trace",
+        real_case="creator feed mechanism where observed gaming success induces copycat behavior",
+        forecast_horizon=6,
+        revenue_weight=0.85,
+        participant_value_weight=0.40,
+        access_weight=20.00,
+        manipulation_penalty=8.00,
+        mechanisms=(
+            InteractionTraceMechanismOption(
+                "viral_rank_auction",
+                100.0,
+                70.0,
+                0.58,
+                18.0,
+                230.0,
+                (
+                    InteractionTracePoint(1, 1200.0, 0.07),
+                    InteractionTracePoint(2, 1170.0, 0.15),
+                    InteractionTracePoint(3, 1110.0, 0.26),
+                ),
+            ),
+            InteractionTraceMechanismOption(
+                "audited_pacing_rule",
+                34.0,
+                88.0,
+                0.76,
+                6.0,
+                560.0,
+                (
+                    InteractionTracePoint(1, 1120.0, 0.04),
+                    InteractionTracePoint(2, 1085.0, 0.06),
+                    InteractionTracePoint(3, 1040.0, 0.08),
+                ),
+            ),
+            InteractionTraceMechanismOption(
+                "community_lottery",
+                18.0,
+                74.0,
+                0.95,
+                4.0,
+                480.0,
+                (
+                    InteractionTracePoint(1, 1080.0, 0.03),
+                    InteractionTracePoint(2, 1060.0, 0.04),
+                    InteractionTracePoint(3, 1030.0, 0.05),
+                ),
+            ),
+        ),
+    ),
+]
+
+
 def incentive_violation(mechanism: MechanismOption) -> float:
     return sum(
         max(0.0, check.best_deviation_utility - check.truthful_utility) * max(0.0, check.probability)
@@ -1183,6 +1435,83 @@ def response_blind_strategic_equilibrium_mechanism(case: StrategicResponseMechan
     ).mechanism_id
 
 
+def interaction_trace_mechanism_score(
+    case: InteractionTraceMechanismCase,
+    mechanism: InteractionTraceMechanismOption,
+    *,
+    one_period: bool = False,
+    trace_blind: bool = False,
+) -> float:
+    horizon = 1 if one_period else case.forecast_horizon
+    if trace_blind:
+        participants = mechanism.trace[0].active_participants
+        strategic_share = mechanism.trace[0].strategic_share
+        participant_ratio = 1.0
+        strategic_delta = 0.0
+    else:
+        participants = mechanism.trace[-1].active_participants
+        strategic_share = mechanism.trace[-1].strategic_share
+        participant_ratio = _mean_trace_participant_ratio(mechanism.trace)
+        strategic_delta = _mean_trace_strategic_delta(mechanism.trace)
+    total = 0.0
+    for _period in range(horizon):
+        total += (
+            participants
+            * (
+                case.revenue_weight * mechanism.sponsor_take
+                + case.participant_value_weight * mechanism.participant_value
+                + case.access_weight * mechanism.access_quality
+                - case.manipulation_penalty * mechanism.manipulation_harm * strategic_share
+            )
+            - mechanism.review_cost
+        )
+        participants *= participant_ratio
+        strategic_share = _clamp_strategic_share(strategic_share + strategic_delta)
+    return total
+
+
+def _mean_trace_participant_ratio(trace: tuple[InteractionTracePoint, ...]) -> float:
+    ratios = [
+        later.active_participants / earlier.active_participants
+        for earlier, later in zip(trace, trace[1:])
+        if earlier.active_participants > 0
+    ]
+    return mean(ratios) if ratios else 1.0
+
+
+def _mean_trace_strategic_delta(trace: tuple[InteractionTracePoint, ...]) -> float:
+    deltas = [
+        later.strategic_share - earlier.strategic_share
+        for earlier, later in zip(trace, trace[1:])
+    ]
+    return mean(deltas) if deltas else 0.0
+
+
+def best_interaction_trace_mechanism(case: InteractionTraceMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: interaction_trace_mechanism_score(case, mechanism),
+    ).mechanism_id
+
+
+def revenue_interaction_trace_mechanism(case: InteractionTraceMechanismCase) -> str:
+    return max(case.mechanisms, key=lambda mechanism: mechanism.sponsor_take).mechanism_id
+
+
+def one_period_interaction_trace_mechanism(case: InteractionTraceMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: interaction_trace_mechanism_score(case, mechanism, one_period=True),
+    ).mechanism_id
+
+
+def trace_blind_interaction_trace_mechanism(case: InteractionTraceMechanismCase) -> str:
+    return max(
+        case.mechanisms,
+        key=lambda mechanism: interaction_trace_mechanism_score(case, mechanism, trace_blind=True),
+    ).mechanism_id
+
+
 def run_mechanism_repeated_game(
     agent: Agent,
     cases: list[RepeatedMechanismCase] | None = None,
@@ -1398,6 +1727,42 @@ def run_mechanism_strategic_equilibrium_game(
     )
 
 
+def run_mechanism_interaction_trace_game(
+    agent: Agent,
+    cases: list[InteractionTraceMechanismCase] | None = None,
+) -> dict:
+    cases = cases or INTERACTION_TRACE_CASES
+    trials: list[InteractionTraceMechanismTrial] = []
+    for case in cases:
+        best = best_interaction_trace_mechanism(case)
+        revenue = revenue_interaction_trace_mechanism(case)
+        one_period = one_period_interaction_trace_mechanism(case)
+        trace_blind = trace_blind_interaction_trace_mechanism(case)
+        response = agent.complete(MECHANISM_INTERACTION_TRACE_SYSTEM, _interaction_trace_prompt(case))
+        chosen = parse_token("FINAL_MECHANISM", response)
+        mechanism_by_id = {mechanism.mechanism_id: mechanism for mechanism in case.mechanisms}
+        chosen = chosen if chosen in mechanism_by_id else None
+        regret = (
+            interaction_trace_mechanism_score(case, mechanism_by_id[best])
+            - interaction_trace_mechanism_score(case, mechanism_by_id[chosen])
+            if chosen is not None
+            else None
+        )
+        trials.append(
+            InteractionTraceMechanismTrial(
+                case=case,
+                best_mechanism=best,
+                revenue_mechanism=revenue,
+                one_period_mechanism=one_period,
+                trace_blind_mechanism=trace_blind,
+                chosen_mechanism=chosen,
+                score_regret=regret,
+                raw_response=response,
+            )
+        )
+    return summarize_interaction_trace_mechanism_trials(agent.name, trials)
+
+
 def summarize_mechanism_trials(agent_name: str, trials: list[MechanismTrial]) -> dict:
     regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
     revenue_missable = [trial for trial in trials if trial.revenue_mechanism != trial.best_mechanism]
@@ -1557,6 +1922,52 @@ def summarize_strategic_response_mechanism_trials(
             else 0.0
         ),
         "trials": [_strategic_response_trial_json(trial) for trial in trials],
+    }
+
+
+def summarize_interaction_trace_mechanism_trials(
+    agent_name: str,
+    trials: list[InteractionTraceMechanismTrial],
+) -> dict:
+    regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
+    revenue_missable = [trial for trial in trials if trial.revenue_mechanism != trial.best_mechanism]
+    one_period_missable = [
+        trial for trial in trials if trial.one_period_mechanism != trial.best_mechanism
+    ]
+    trace_blind_missable = [
+        trial for trial in trials if trial.trace_blind_mechanism != trial.best_mechanism
+    ]
+    return {
+        "task": "mechanism_interaction_trace",
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "mean_score_regret": mean(regrets),
+        "mean_score_regret_ci95": bootstrap_mean_ci(regrets),
+        "revenue_default_miss_rate": (
+            sum(trial.chosen_mechanism == trial.revenue_mechanism for trial in revenue_missable)
+            / len(revenue_missable)
+            if revenue_missable
+            else 0.0
+        ),
+        "one_period_miss_rate": (
+            sum(
+                trial.chosen_mechanism == trial.one_period_mechanism
+                for trial in one_period_missable
+            )
+            / len(one_period_missable)
+            if one_period_missable
+            else 0.0
+        ),
+        "trace_blind_miss_rate": (
+            sum(
+                trial.chosen_mechanism == trial.trace_blind_mechanism
+                for trial in trace_blind_missable
+            )
+            / len(trace_blind_missable)
+            if trace_blind_missable
+            else 0.0
+        ),
+        "trials": [_interaction_trace_trial_json(trial) for trial in trials],
     }
 
 
@@ -1845,6 +2256,48 @@ def _strategic_equilibrium_prompt(case: StrategicResponseMechanismCase) -> str:
     return "\n".join(lines)
 
 
+def _interaction_trace_prompt(case: InteractionTraceMechanismCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"future_rounds_to_score={case.forecast_horizon}",
+        f"revenue_weight={case.revenue_weight:.4f}",
+        f"participant_value_weight={case.participant_value_weight:.4f}",
+        f"access_weight={case.access_weight:.4f}",
+        f"manipulation_penalty={case.manipulation_penalty:.4f}",
+        "Candidate mechanisms with observed pilot interaction traces:",
+    ]
+    for mechanism in case.mechanisms:
+        lines.append(
+            "  "
+            f"mechanism_id={mechanism.mechanism_id} "
+            f"sponsor_take={mechanism.sponsor_take:.2f} "
+            f"participant_value={mechanism.participant_value:.2f} "
+            f"access_quality={mechanism.access_quality:.4f} "
+            f"manipulation_harm={mechanism.manipulation_harm:.2f} "
+            f"review_cost={mechanism.review_cost:.2f}"
+        )
+        for point in mechanism.trace:
+            lines.append(
+                "    "
+                f"trace mechanism_id={mechanism.mechanism_id} "
+                f"round={point.round_id} "
+                f"active_participants={point.active_participants:.2f} "
+                f"strategic_share={point.strategic_share:.4f}"
+            )
+    lines.extend(
+        [
+            "Use the observed round-to-round interaction trace to project active participants "
+            "and strategic share over the future scored rounds.",
+            "Each future round earns weighted sponsor take, participant value, and access quality "
+            "from active participants, then subtracts manipulation harm and review cost.",
+            "Pick the mechanism with the best future program value, not the largest current take "
+            "or the rule that ignores the trace trend.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _trial_json(trial: MechanismTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
@@ -1864,6 +2317,12 @@ def _participant_response_trial_json(trial: ParticipantResponseMechanismTrial) -
 
 
 def _strategic_response_trial_json(trial: StrategicResponseMechanismTrial) -> dict:
+    data = asdict(trial)
+    data["case"] = asdict(trial.case)
+    return data
+
+
+def _interaction_trace_trial_json(trial: InteractionTraceMechanismTrial) -> dict:
     data = asdict(trial)
     data["case"] = asdict(trial.case)
     return data

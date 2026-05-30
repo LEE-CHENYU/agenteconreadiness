@@ -149,6 +149,8 @@ class OfflineAgent:
             return self._mechanism_strategic_response_choice(user)
         if "TASK: mechanism_strategic_equilibrium" in system:
             return self._mechanism_strategic_equilibrium_choice(user)
+        if "TASK: mechanism_interaction_trace" in system:
+            return self._mechanism_interaction_trace_choice(user)
         if "TASK: matching_choice" in system:
             return self._matching_choice(user)
         if "TASK: screening_choice" in system:
@@ -823,6 +825,26 @@ class OfflineAgent:
             )
         else:
             mechanism_id = _best_strategic_equilibrium_mechanism_choice(user, mechanisms)
+        return f"FINAL_MECHANISM: {mechanism_id}"
+
+    def _mechanism_interaction_trace_choice(self, user: str) -> str:
+        mechanisms = _extract_interaction_trace_mechanisms(user)
+        if self.policy in {"revenue", "max_revenue"}:
+            mechanism_id = max(mechanisms, key=lambda item: mechanisms[item]["sponsor_take"])
+        elif self.policy in {"one_period", "myopic"}:
+            mechanism_id = _best_interaction_trace_mechanism_choice(
+                user,
+                mechanisms,
+                one_period=True,
+            )
+        elif self.policy in {"trace_blind", "response_blind", "static", "history_blind"}:
+            mechanism_id = _best_interaction_trace_mechanism_choice(
+                user,
+                mechanisms,
+                trace_blind=True,
+            )
+        else:
+            mechanism_id = _best_interaction_trace_mechanism_choice(user, mechanisms)
         return f"FINAL_MECHANISM: {mechanism_id}"
 
     def _matching_choice(self, user: str) -> str:
@@ -3300,6 +3322,90 @@ def _best_strategic_equilibrium_mechanism_choice(
                 max(0.05, mechanism["base_stay_rate"] - mechanism["exit_sensitivity"] * strategic_share),
             )
             participants *= stay_rate
+        return total
+
+    return max(mechanisms, key=score)
+
+
+def _extract_interaction_trace_mechanisms(text: str) -> dict[str, dict[str, object]]:
+    mechanisms: dict[str, dict[str, object]] = {}
+    mechanism_pattern = re.compile(
+        r"mechanism_id=([a-zA-Z0-9_-]+)\s+"
+        r"sponsor_take=([-+]?\d+(?:\.\d+)?)\s+"
+        r"participant_value=([-+]?\d+(?:\.\d+)?)\s+"
+        r"access_quality=([-+]?\d+(?:\.\d+)?)\s+"
+        r"manipulation_harm=([-+]?\d+(?:\.\d+)?)\s+"
+        r"review_cost=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in mechanism_pattern.finditer(text):
+        mechanisms[match.group(1)] = {
+            "sponsor_take": float(match.group(2)),
+            "participant_value": float(match.group(3)),
+            "access_quality": float(match.group(4)),
+            "manipulation_harm": float(match.group(5)),
+            "review_cost": float(match.group(6)),
+            "trace": [],
+        }
+    trace_pattern = re.compile(
+        r"trace mechanism_id=([a-zA-Z0-9_-]+)\s+"
+        r"round=\d+\s+"
+        r"active_participants=([-+]?\d+(?:\.\d+)?)\s+"
+        r"strategic_share=([-+]?\d+(?:\.\d+)?)"
+    )
+    for match in trace_pattern.finditer(text):
+        mechanism_id = match.group(1)
+        if mechanism_id in mechanisms:
+            trace = mechanisms[mechanism_id]["trace"]
+            assert isinstance(trace, list)
+            trace.append((float(match.group(2)), float(match.group(3))))
+    return mechanisms
+
+
+def _best_interaction_trace_mechanism_choice(
+    text: str,
+    mechanisms: dict[str, dict[str, object]],
+    *,
+    one_period: bool = False,
+    trace_blind: bool = False,
+) -> str:
+    horizon = 1 if one_period else int(round(_extract_float(text, "future_rounds_to_score", 1.0)))
+    revenue_weight = _extract_float(text, "revenue_weight")
+    participant_value_weight = _extract_float(text, "participant_value_weight")
+    access_weight = _extract_float(text, "access_weight")
+    manipulation_penalty = _extract_float(text, "manipulation_penalty")
+
+    def score(mechanism_id: str) -> float:
+        mechanism = mechanisms[mechanism_id]
+        trace = mechanism["trace"]
+        assert isinstance(trace, list)
+        if trace_blind:
+            participants, strategic_share = trace[0]
+            participant_ratio = 1.0
+            strategic_delta = 0.0
+        else:
+            participants, strategic_share = trace[-1]
+            ratios = [
+                later[0] / earlier[0]
+                for earlier, later in zip(trace, trace[1:])
+                if earlier[0] > 0
+            ]
+            deltas = [later[1] - earlier[1] for earlier, later in zip(trace, trace[1:])]
+            participant_ratio = sum(ratios) / len(ratios) if ratios else 1.0
+            strategic_delta = sum(deltas) / len(deltas) if deltas else 0.0
+        total = 0.0
+        for _period in range(max(1, horizon)):
+            total += (
+                participants
+                * (
+                    revenue_weight * float(mechanism["sponsor_take"])
+                    + participant_value_weight * float(mechanism["participant_value"])
+                    + access_weight * float(mechanism["access_quality"])
+                    - manipulation_penalty * float(mechanism["manipulation_harm"]) * strategic_share
+                )
+                - float(mechanism["review_cost"])
+            )
+            participants *= participant_ratio
+            strategic_share = min(0.95, max(0.0, strategic_share + strategic_delta))
         return total
 
     return max(mechanisms, key=score)

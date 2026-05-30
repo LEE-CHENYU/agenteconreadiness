@@ -64,6 +64,7 @@ from aeread_lab.tasks.matching import DEFAULT_CASES as MATCHING_CASES
 from aeread_lab.tasks.matching import _prompt as matching_prompt
 from aeread_lab.tasks.matching import run_matching_game
 from aeread_lab.tasks.mechanism import DEFAULT_CASES as MECHANISM_CASES
+from aeread_lab.tasks.mechanism import INTERACTION_TRACE_CASES as MECHANISM_TRACE_CASES
 from aeread_lab.tasks.mechanism import PARTICIPANT_RESPONSE_CASES as MECHANISM_RESPONSE_CASES
 from aeread_lab.tasks.mechanism import REPEATED_CASES as MECHANISM_REPEATED_CASES
 from aeread_lab.tasks.mechanism import STRATEGIC_RESPONSE_CASES as MECHANISM_STRATEGIC_CASES
@@ -74,9 +75,11 @@ from aeread_lab.tasks.mechanism import _repeated_natural_prompt as mechanism_rep
 from aeread_lab.tasks.mechanism import _repeated_prompt as mechanism_repeated_prompt
 from aeread_lab.tasks.mechanism import _strategic_equilibrium_prompt as mechanism_strategic_equilibrium_prompt
 from aeread_lab.tasks.mechanism import _strategic_response_prompt as mechanism_strategic_response_prompt
+from aeread_lab.tasks.mechanism import _interaction_trace_prompt as mechanism_interaction_trace_prompt
 from aeread_lab.tasks.mechanism import (
     run_mechanism_elasticity_inference_game,
     run_mechanism_game,
+    run_mechanism_interaction_trace_game,
     run_mechanism_participant_response_game,
     run_mechanism_repeated_game,
     run_mechanism_repeated_natural_game,
@@ -414,6 +417,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_score_regret"], 1e-9)
 
+    def test_sample_limit_slices_mechanism_interaction_trace_cases(self):
+        results = run_tasks("mechanism_interaction_trace", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
     def test_sample_limit_slices_supplier_scam_natural_cases(self):
         results = run_tasks("supplier_scam_natural", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], len(SUPPLIER_SCAM_CASES[0].rounds))
@@ -689,6 +697,7 @@ class TaskSmokeTests(unittest.TestCase):
         mechanism_elasticity = mechanism_elasticity_prompt(MECHANISM_RESPONSE_CASES[0])
         mechanism_strategic_response = mechanism_strategic_response_prompt(MECHANISM_STRATEGIC_CASES[0])
         mechanism_strategic_equilibrium = mechanism_strategic_equilibrium_prompt(MECHANISM_STRATEGIC_CASES[0])
+        mechanism_interaction_trace = mechanism_interaction_trace_prompt(MECHANISM_TRACE_CASES[0])
         experiment = experiment_prompt(EXPERIMENT_CASES[0])
         retail = retail_prompt(RETAIL_CASES[-1])
         supplier_scam = supplier_scam_prompt(
@@ -755,6 +764,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", mechanism_elasticity)
         self.assertNotIn("oracle", mechanism_strategic_response)
         self.assertNotIn("oracle", mechanism_strategic_equilibrium)
+        self.assertNotIn("oracle", mechanism_interaction_trace)
         self.assertNotIn("oracle", experiment)
         self.assertNotIn("oracle", retail)
         self.assertNotIn("oracle", supplier_scam)
@@ -785,6 +795,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("trust_decay", mechanism_elasticity)
         self.assertNotIn("best_mechanism", mechanism_strategic_response)
         self.assertNotIn("best_mechanism", mechanism_strategic_equilibrium)
+        self.assertNotIn("best_mechanism", mechanism_interaction_trace)
         self.assertNotIn("compatibility bonuses", procurement_bundle_natural.lower())
         self.assertNotIn("durability_weight", procurement_bundle_natural)
         self.assertNotIn("price_weight", procurement_bundle_natural)
@@ -1156,6 +1167,20 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(revenue["revenue_default_miss_rate"], 1.0)
         self.assertGreater(response_blind["mean_score_regret"], 100000.0)
         self.assertGreater(response_blind["response_blind_miss_rate"], 0.4)
+
+    def test_mechanism_interaction_trace_flags_trace_blind_defaults(self):
+        configured = run_mechanism_interaction_trace_game(OfflineAgent("oracle"))
+        revenue = run_mechanism_interaction_trace_game(OfflineAgent("revenue"))
+        one_period = run_mechanism_interaction_trace_game(OfflineAgent("one_period"))
+        trace_blind = run_mechanism_interaction_trace_game(OfflineAgent("trace_blind"))
+        self.assertEqual(configured["task"], "mechanism_interaction_trace")
+        self.assertLess(configured["mean_score_regret"], 1e-9)
+        self.assertGreater(revenue["mean_score_regret"], 50000.0)
+        self.assertEqual(revenue["revenue_default_miss_rate"], 1.0)
+        self.assertGreater(one_period["mean_score_regret"], 10000.0)
+        self.assertGreater(one_period["one_period_miss_rate"], 0.4)
+        self.assertGreater(trace_blind["mean_score_regret"], 50000.0)
+        self.assertGreater(trace_blind["trace_blind_miss_rate"], 0.7)
 
     def test_strategic_drift_flags_myopic_grabs(self):
         disciplined = run_strategic_drift_game(OfflineAgent("oracle"))
@@ -1604,6 +1629,13 @@ class TaskSmokeTests(unittest.TestCase):
         sweep = run_sweep(task="mechanism_strategic_equilibrium", agent_specs=["offline:oracle", "offline:revenue"])
         rows = rank_rows(comparison_table(sweep))
         mechanism_rows = [row for row in rows if row["task"] == "mechanism_strategic_equilibrium"]
+        self.assertEqual(mechanism_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(mechanism_rows[1]["agent"], "offline:revenue")
+
+    def test_offline_sweep_ranks_interaction_trace_mechanism_above_revenue(self):
+        sweep = run_sweep(task="mechanism_interaction_trace", agent_specs=["offline:oracle", "offline:revenue"])
+        rows = rank_rows(comparison_table(sweep))
+        mechanism_rows = [row for row in rows if row["task"] == "mechanism_interaction_trace"]
         self.assertEqual(mechanism_rows[0]["agent"], "offline:oracle")
         self.assertEqual(mechanism_rows[1]["agent"], "offline:revenue")
 
