@@ -32,6 +32,7 @@ TASKS = (
     "forecast_calibration",
     "forecast_aggregate",
     "forecast_curve",
+    "forecast_curve_implicit",
     "exploration",
     "experiment_design",
     "retail",
@@ -308,9 +309,9 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"raw_score_miss={result['raw_score_miss_rate']:.2f} "
                 f"shrinkage_miss={result['shrinkage_miss_rate']:.2f}"
             )
-        elif task == "forecast_curve":
+        elif task in {"forecast_curve", "forecast_curve_implicit"}:
             print(
-                f"forecast_curve: n={result['n_trials']} expected_brier_regret="
+                f"{task}: n={result['n_trials']} expected_brier_regret="
                 f"{_fmt(result['mean_expected_brier_regret'])} "
                 f"ci95={_fmt_ci(result.get('mean_expected_brier_regret_ci95'))} "
                 f"prob_error={_fmt(result['mean_probability_error'])} "

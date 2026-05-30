@@ -53,6 +53,7 @@ TASK_ORDER = (
     "forecast_calibration",
     "forecast_aggregate",
     "forecast_curve",
+    "forecast_curve_implicit",
     "exploration",
     "experiment_design",
     "retail",
@@ -103,6 +104,10 @@ _CASE_TASKS = {
     ),
     "forecast_curve": (
         forecast_calibration_task.run_forecast_curve_game,
+        forecast_calibration_task.CURVE_CASES,
+    ),
+    "forecast_curve_implicit": (
+        forecast_calibration_task.run_forecast_curve_implicit_game,
         forecast_calibration_task.CURVE_CASES,
     ),
     "exploration": (exploration_task.run_exploration_game, exploration_task.DEFAULT_CASES),

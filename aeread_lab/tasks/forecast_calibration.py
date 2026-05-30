@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 
 from aeread_lab.models import Agent
@@ -501,12 +502,39 @@ def run_forecast_curve_game(
     agent: Agent,
     cases: list[ForecastCurveCase] | None = None,
 ) -> dict:
+    return _run_forecast_curve_game(
+        agent,
+        cases,
+        prompt_fn=_curve_prompt,
+        task_name="forecast_curve",
+    )
+
+
+def run_forecast_curve_implicit_game(
+    agent: Agent,
+    cases: list[ForecastCurveCase] | None = None,
+) -> dict:
+    return _run_forecast_curve_game(
+        agent,
+        cases,
+        prompt_fn=_curve_implicit_prompt,
+        task_name="forecast_curve_implicit",
+    )
+
+
+def _run_forecast_curve_game(
+    agent: Agent,
+    cases: list[ForecastCurveCase] | None,
+    *,
+    prompt_fn: Callable[[ForecastCurveCase], str],
+    task_name: str,
+) -> dict:
     cases = cases or CURVE_CASES
     trials: list[ForecastCurveTrial] = []
     for case in cases:
         calibrated = curve_calibrated_probability(case)
         nearest = nearest_curve_bin_probability(case)
-        response = agent.complete(FORECAST_SYSTEM, _curve_prompt(case))
+        response = agent.complete(FORECAST_SYSTEM, prompt_fn(case))
         parsed = parse_float("FINAL_PROBABILITY", response)
         chosen = clamp(parsed, 0.0, 1.0) if parsed is not None else None
         raw_score_miss = (
@@ -535,7 +563,7 @@ def run_forecast_curve_game(
                 raw_response=response,
             )
         )
-    return summarize_curve_forecast_trials(agent.name, trials)
+    return summarize_curve_forecast_trials(agent.name, trials, task_name=task_name)
 
 
 def summarize_forecast_trials(agent_name: str, trials: list[ForecastTrial]) -> dict:
@@ -607,6 +635,8 @@ def summarize_forecast_trials(agent_name: str, trials: list[ForecastTrial]) -> d
 def summarize_curve_forecast_trials(
     agent_name: str,
     trials: list[ForecastCurveTrial],
+    *,
+    task_name: str = "forecast_curve",
 ) -> dict:
     regrets = [
         trial.expected_brier_regret
@@ -625,7 +655,7 @@ def summarize_curve_forecast_trials(
         if abs(trial.nearest_bin_probability - trial.calibrated_probability) >= 0.03
     ]
     return {
-        "task": "forecast_curve",
+        "task": task_name,
         "agent": agent_name,
         "n_trials": len(trials),
         "mean_expected_brier_regret": mean(regrets),
@@ -755,6 +785,39 @@ def _curve_prompt(case: ForecastCurveCase) -> str:
         "according to prior_strength, then interpolate between nearby raw-score bins."
     )
     lines.append("Estimate the calibrated probability for the next held-out item.")
+    return "\n".join(lines)
+
+
+def _curve_implicit_prompt(case: ForecastCurveCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        f"target_event={case.target_event}",
+        f"raw_model_probability={case.raw_model_probability:.4f}",
+        f"base_rate={case.global_base_rate:.4f}",
+        f"global_base_rate={case.global_base_rate:.4f}",
+        f"prior_strength={case.prior_strength:.1f}",
+        "Historical holdout table for the same shifted segment:",
+    ]
+    for bin_ in case.bins:
+        lines.append(
+            f"  bin_id={bin_.bin_id} "
+            f"raw_mean_probability={bin_.raw_mean_probability:.4f} "
+            f"observed_event_count={bin_.observed_event_count} "
+            f"observed_total={bin_.observed_total}"
+        )
+    lines.extend(
+        [
+            "The global baseline contributes roughly the listed prior-equivalent "
+            "observations for this sparse slice.",
+            "Use the historical table to adjust the raw probability for the next "
+            "held-out item. Small bins are noisy, larger bins carry more evidence, "
+            "and a raw score between table rows should follow the local calibration "
+            "trend rather than snapping blindly to one row.",
+            "Do not assume the raw score is already calibrated.",
+            "Estimate the event probability for the next held-out item.",
+        ]
+    )
     return "\n".join(lines)
 
 

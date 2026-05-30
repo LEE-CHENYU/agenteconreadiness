@@ -36,6 +36,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `forecast_calibration` | No-oracle-style probability calibration: combine base rates, likelihood-ratio signals, and reliability-weighted evidence, then score forecasts with proper Brier/log-loss metrics against realized outcome frequencies. | `python -m aeread_lab.cli --task forecast_calibration --agent offline:oracle` |
 | `forecast_aggregate` | Aggregate-bin calibration stress: recalibrate raw model scores from observed bin outcomes with empirical-Bayes shrinkage, catching both raw-score reuse and no-shrink small-bin overreaction. | `python -m aeread_lab.cli --task forecast_aggregate --agent offline:oracle` |
 | `forecast_curve` | Held-out calibration-curve stress: shrink historical bins and interpolate to a new raw score, catching raw-score reuse and nearest-bin shortcuts. | `python -m aeread_lab.cli --task forecast_curve --agent offline:oracle` |
+| `forecast_curve_implicit` | Implicit held-out calibration-curve stress: use the same scoring target as `forecast_curve` but present the table without the explicit shrink/interpolate recipe. | `python -m aeread_lab.cli --task forecast_curve_implicit --agent offline:oracle` |
 | `exploration` | EconEvals-style unknown-environment learning: decide when information value justifies a pilot before deployment. | `python -m aeread_lab.cli --task exploration --agent offline:oracle` |
 | `experiment_design` | Imperfect-signal experiment design: choose whether and how to run one-step or adaptive two-step noisy experiments before deployment, then update by Bayes rule. | `python -m aeread_lab.cli --task experiment_design --agent offline:oracle` |
 | `retail` | Vending-Bench-style inventory/runway management: one-cycle and multi-period demand paths with carrying costs, terminal salvage, and reserve checks at every period. | `python -m aeread_lab.cli --task retail --agent offline:oracle` |
@@ -129,6 +130,10 @@ interpreting the economic metric.
 - `forecast_curve`: lower expected Brier regret to the interpolated
   calibration-curve target is better; raw-score miss and nearest-bin miss rates
   are reported separately.
+- `forecast_curve_implicit`: lower expected Brier regret to the same held-out
+  calibration-curve target is better; raw-score miss and nearest-bin miss rates
+  are reported separately, but the prompt removes the explicit recalibration
+  formula used by `forecast_curve`.
 - `exploration`: lower expected-value gap is better; exploration miss rate is
   reported separately.
 - `experiment_design`: lower expected-value gap is better; experiment miss and
