@@ -142,7 +142,7 @@ class OfflineAgent:
             value = 0.5
         else:
             value = oracle
-        return f"FINAL_FRACTION: {value:.4f}"
+        return f"FINAL_FRACTION: {value:.12f}"
 
     def _principal_fraction(self, user: str) -> str:
         excess_return = _extract_float(user, "new_excess_return")

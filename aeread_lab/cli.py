@@ -109,7 +109,8 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"regime: n={result['n_trials']} mean_abs_error="
                 f"{_fmt(result['mean_absolute_error'])} "
                 f"ci95={_fmt_ci(result.get('mean_absolute_error_ci95'))} "
-                f"destroy={result.get('wealth_destruction_rate', 0.0):.2f}"
+                f"destroy={result.get('wealth_destruction_rate', 0.0):.2f} "
+                f"cvar_violate={result.get('cvar_drawdown_violation_rate', 0.0):.2f}"
             )
             for key, row in result["by_regime"].items():
                 print(
@@ -117,6 +118,7 @@ def _print_human(payload: dict[str, Any]) -> None:
                     f"ci95={_fmt_ci(row.get('mean_absolute_error_ci95'))} "
                     f"destroy={row['wealth_destruction_rate']:.2f} "
                     f"destroy_ci={_fmt_ci(row.get('wealth_destruction_ci95'))} "
+                    f"drawdown_violate={row.get('drawdown_violation_rate', 0.0):.2f} "
                     f"case={row['real_case']}"
                 )
         elif task == "principal_inference":

@@ -10,7 +10,7 @@ only.
 
 | Build | Why it matters | Command |
 |---|---|---|
-| `regime` | Four-regime utility battery: EV single-shot, Kelly compounding, CVaR under ruin, configured-principal CRRA. This is the re-centered regime-appropriateness axis. | `python -m aeread_lab.cli --task regime --agent offline:oracle` |
+| `regime` | Four-regime utility battery across even-money, skewed, thin-edge, negative-EV, and hard-barrier gamble families: EV single-shot, Kelly compounding, CVaR under ruin, configured-principal CRRA. This is the re-centered regime-appropriateness axis. | `python -m aeread_lab.cli --task regime --agent offline:oracle` |
 | `principal_inference` | Grade-side revealed-preference task: infer a principal's CRRA risk parameter from prior choices before allocating in a new scenario. | `python -m aeread_lab.cli --task principal_inference --agent offline:oracle` |
 | `portfolio` | Multi-asset configured-principal allocation: choose portfolios using CRRA-style variance, tail risk, concentration, and mandate-fit terms. | `python -m aeread_lab.cli --task portfolio --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: choose maxmin-robust actions across plausible priors instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
@@ -129,19 +129,22 @@ python -m aeread_lab.cli --sweep --task regime \
 The next builds should keep the same discipline: add a deterministic generator,
 a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
 
-1. Broaden the `regime` battery to more gamble families and explicit barrier states.
+1. Add sampled case limits so live OpenAI smokes can target cheap slices of
+   broad tasks before full sweeps.
 2. Run cached model-version sweeps for alignment-shift diagnostics across
    `gpt-5.5`, `mini`, and `nano`.
-3. Broaden `portfolio` from candidate portfolios to real 13F-style
+3. Make the adversarial scam arena long-horizon, since the current single-shot
+   OpenAI null does not reproduce Vending-Bench scam-supplier failures.
+4. Broaden `portfolio` from candidate portfolios to real 13F-style
    revealed-preference traces and continuous allocation.
-4. Broaden `ambiguity` into maxmin/alpha-maxmin and multiple-prior updates.
-5. Broaden the `bargaining` wrapper from take-it-or-leave-it offers to
+5. Broaden `ambiguity` into maxmin/alpha-maxmin and multiple-prior updates.
+6. Broaden the `bargaining` wrapper from take-it-or-leave-it offers to
    alternating-offer and hidden-reservation variants.
-6. Broaden `belief_bargaining` into multi-turn opponent modeling.
-7. Broaden `mechanism` from scored static choices to equilibrium simulation
+7. Broaden `belief_bargaining` into multi-turn opponent modeling.
+8. Broaden `mechanism` from scored static choices to equilibrium simulation
    and incentive-compatibility probes.
-8. Expand `market` from symmetric price competition to inventory, capital
+9. Expand `market` from symmetric price competition to inventory, capital
    appreciation, and multi-period survival.
-9. Broaden `retail` into multi-period inventory and supplier-scam variants.
-10. Broaden `strategic_drift` into imperfect-information and N-player games.
-11. Broaden `experiment_design` into multi-step adaptive tests.
+10. Broaden `retail` into multi-period inventory and supplier-scam variants.
+11. Broaden `strategic_drift` into imperfect-information and N-player games.
+12. Broaden `experiment_design` into multi-step adaptive tests.

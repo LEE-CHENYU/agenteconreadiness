@@ -25,6 +25,7 @@ class Gamble:
     horizon: int
     gamma: float = 2.0
     max_drawdown: float = 0.2
+    family: str = "even_money"
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,7 @@ class RegimeTrial:
     chosen_fraction: float | None
     absolute_error: float | None
     wealth_destruction: bool
+    drawdown_violation: bool
     raw_response: str
 
 
@@ -78,10 +80,86 @@ REGIMES = {
 
 
 DEFAULT_GAMBLES = [
-    Gamble("g01", p_win=0.58, win_return=1.0, loss_return=1.0, horizon=1, gamma=2.0),
-    Gamble("g02", p_win=0.60, win_return=1.0, loss_return=1.0, horizon=2, gamma=3.0),
-    Gamble("g03", p_win=0.64, win_return=0.8, loss_return=1.0, horizon=5, gamma=1.7),
-    Gamble("g04", p_win=0.70, win_return=0.5, loss_return=1.0, horizon=20, gamma=4.0),
+    Gamble(
+        "g01_even_mild",
+        p_win=0.58,
+        win_return=1.0,
+        loss_return=1.0,
+        horizon=1,
+        gamma=2.0,
+        max_drawdown=0.20,
+        family="even_money",
+    ),
+    Gamble(
+        "g02_even_compound",
+        p_win=0.60,
+        win_return=1.0,
+        loss_return=1.0,
+        horizon=12,
+        gamma=3.0,
+        max_drawdown=0.12,
+        family="even_money",
+    ),
+    Gamble(
+        "g03_upside_skew",
+        p_win=0.36,
+        win_return=3.0,
+        loss_return=1.0,
+        horizon=6,
+        gamma=1.4,
+        max_drawdown=0.25,
+        family="upside_skew",
+    ),
+    Gamble(
+        "g04_downside_skew",
+        p_win=0.82,
+        win_return=0.35,
+        loss_return=1.3,
+        horizon=18,
+        gamma=4.5,
+        max_drawdown=0.14,
+        family="downside_skew",
+    ),
+    Gamble(
+        "g05_thin_edge",
+        p_win=0.515,
+        win_return=1.0,
+        loss_return=1.0,
+        horizon=40,
+        gamma=2.5,
+        max_drawdown=0.08,
+        family="thin_edge",
+    ),
+    Gamble(
+        "g06_hard_barrier",
+        p_win=0.82,
+        win_return=0.55,
+        loss_return=1.9,
+        horizon=24,
+        gamma=5.0,
+        max_drawdown=0.095,
+        family="barrier",
+    ),
+    Gamble(
+        "g07_negative_lottery",
+        p_win=0.16,
+        win_return=4.0,
+        loss_return=0.9,
+        horizon=1,
+        gamma=0.8,
+        max_drawdown=0.18,
+        family="negative_ev",
+    ),
+    Gamble(
+        "g08_high_frequency_small_edge",
+        p_win=0.88,
+        win_return=0.18,
+        loss_return=0.95,
+        horizon=120,
+        gamma=6.0,
+        max_drawdown=0.06,
+        family="small_edge",
+    ),
 ]
 
 
@@ -104,6 +182,10 @@ def cvar_fraction(gamble: Gamble) -> float:
     if gamble.loss_return <= 0:
         return 1.0
     return clamp(gamble.max_drawdown / gamble.loss_return, 0.0, 1.0)
+
+
+def drawdown_violation(gamble: Gamble, fraction: float) -> bool:
+    return fraction * gamble.loss_return > gamble.max_drawdown + 1e-9
 
 
 def crra_fraction(gamble: Gamble) -> float:
@@ -163,7 +245,8 @@ def run_regime_battery(
             parsed = parse_float("FINAL_FRACTION", response)
             chosen = clamp(parsed, 0.0, 1.0) if parsed is not None else None
             error = abs(chosen - oracle_f) if chosen is not None else None
-            destruction = chosen is not None and regime == "kelly" and log_growth(gamble, chosen) <= 0.0
+            destruction = chosen is not None and regime == "kelly" and log_growth(gamble, chosen) < 0.0
+            violation = chosen is not None and regime == "cvar" and drawdown_violation(gamble, chosen)
             trials.append(
                 RegimeTrial(
                     gamble=gamble,
@@ -175,6 +258,7 @@ def run_regime_battery(
                     chosen_fraction=chosen,
                     absolute_error=error,
                     wealth_destruction=destruction,
+                    drawdown_violation=violation,
                     raw_response=response,
                 )
             )
@@ -187,16 +271,34 @@ def summarize_regime_trials(agent_name: str, trials: list[RegimeTrial]) -> dict:
         subset = [trial for trial in trials if trial.regime == regime]
         errors = [trial.absolute_error for trial in subset if trial.absolute_error is not None]
         destroyed = sum(t.wealth_destruction for t in subset)
+        violations = sum(t.drawdown_violation for t in subset)
         by_regime[regime] = {
             "mean_absolute_error": mean(errors),
             "mean_absolute_error_ci95": bootstrap_mean_ci(errors),
             "parse_rate": len(errors) / len(subset) if subset else 0.0,
             "wealth_destruction_rate": destroyed / len(subset),
             "wealth_destruction_ci95": wilson_ci(destroyed, len(subset)),
+            "drawdown_violation_rate": violations / len(subset),
+            "drawdown_violation_ci95": wilson_ci(violations, len(subset)),
             "real_case": REGIMES[regime].real_case,
+        }
+    by_family: dict[str, dict] = {}
+    for family in sorted({trial.gamble.family for trial in trials}):
+        subset = [trial for trial in trials if trial.gamble.family == family]
+        errors = [trial.absolute_error for trial in subset if trial.absolute_error is not None]
+        destroyed = sum(t.wealth_destruction for t in subset)
+        violations = sum(t.drawdown_violation for t in subset)
+        by_family[family] = {
+            "n_trials": len(subset),
+            "mean_absolute_error": mean(errors),
+            "parse_rate": len(errors) / len(subset) if subset else 0.0,
+            "wealth_destruction_rate": destroyed / len(subset) if subset else 0.0,
+            "drawdown_violation_rate": violations / len(subset) if subset else 0.0,
         }
     all_errors = [trial.absolute_error for trial in trials if trial.absolute_error is not None]
     total_destroyed = sum(t.wealth_destruction for t in trials)
+    cvar_trials = [trial for trial in trials if trial.regime == "cvar"]
+    cvar_violations = sum(t.drawdown_violation for t in cvar_trials)
     return {
         "task": "regime",
         "agent": agent_name,
@@ -205,7 +307,10 @@ def summarize_regime_trials(agent_name: str, trials: list[RegimeTrial]) -> dict:
         "mean_absolute_error_ci95": bootstrap_mean_ci(all_errors),
         "wealth_destruction_rate": total_destroyed / len(trials) if trials else 0.0,
         "wealth_destruction_ci95": wilson_ci(total_destroyed, len(trials)),
+        "cvar_drawdown_violation_rate": cvar_violations / len(cvar_trials) if cvar_trials else 0.0,
+        "cvar_drawdown_violation_ci95": wilson_ci(cvar_violations, len(cvar_trials)),
         "by_regime": by_regime,
+        "by_family": by_family,
         "trials": [_trial_json(trial) for trial in trials],
     }
 
@@ -216,6 +321,7 @@ def _prompt(gamble: Gamble, regime: str) -> str:
         f"regime={regime}\n"
         f"case={spec.real_case}\n"
         f"objective={spec.objective}\n"
+        f"gamble_family={gamble.family}\n"
         f"p_win={gamble.p_win:.4f}\n"
         f"win_return={gamble.win_return:.4f}\n"
         f"loss_return={gamble.loss_return:.4f}\n"

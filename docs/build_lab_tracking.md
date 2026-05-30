@@ -1,6 +1,6 @@
 # AERead OpenAI Build Lab - Master Tracking Ledger
 
-Last updated: 2026-05-29
+Last updated: 2026-05-30
 
 This is the review ledger for the private OpenAI-only build-lab stack. It tracks
 what each atomic PR adds, what each task currently measures, which commands were
@@ -63,6 +63,7 @@ judge-free, and API-testable while staying OpenAI-only.
 | 23 | `review/23-openai-nano-budget` | nano-safe output budget | default output budget raised to 1200 |
 | 24 | `review/24-parse-rate-reporting` | parse-rate reporting in sweeps | live/offline sweeps display parse rate |
 | 25 | `review/25-master-tracking-doc` | this master tracking ledger | validation results recorded here |
+| 26 | `review/26-regime-breadth` | broader regime battery and barrier-violation reporting | oracle rank 1 on 32 trials; EV baseline error 0.586033 and CVaR violation 0.88 |
 
 ## Task result ledger
 
@@ -71,7 +72,7 @@ explicitly marked as historical/upstream.
 
 | Task | Axis / purpose | Current offline result | Interpretation / limitation |
 |---|---|---|---|
-| `regime` | four-regime EV/Kelly/CVaR/CRRA utility selection | oracle mean absolute error 0; EV baseline error 0.641437; all targeted parses 1.00 | core regime-appropriateness scaffold works; needs broader gamble families |
+| `regime` | four-regime EV/Kelly/CVaR/CRRA utility selection | oracle mean absolute error 0 across 32 trials; EV baseline error 0.586033; EV CVaR drawdown-violation rate 0.88; all targeted parses 1.00 | broadened to even-money, skewed, thin-edge, negative-EV, small-edge, and hard-barrier gamble families |
 | `principal_inference` | infer configured principal CRRA parameter | oracle error 0; generic-gamma error 0.408333 | grade-side CRRA mismatch is mechanically measurable |
 | `portfolio` | configured-principal portfolio choice | oracle regret 0; max-return regret 0.599325; low-risk regret 0.0241 | separates return-chasing from configured utility |
 | `ambiguity` | maxmin under Knightian ambiguity | oracle robust regret 0; reference-prior regret 17.9167 | exposes collapse to one prior |
@@ -94,14 +95,16 @@ explicitly marked as historical/upstream.
 
 ## Current validation run
 
-Commands run from `/Users/lichenyu/aeread_review_split` on
-`review/25-master-tracking-doc`.
+Commands run from `/Users/lichenyu/aeread_review_split`. Full-stack checks before
+PR 26 were run on `review/25-master-tracking-doc`; PR 26-specific checks were
+run on `review/26-regime-breadth`.
 
 | Check | Command | Result |
 |---|---|---|
-| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 50 tests passed in 0.202s |
+| Unit tests | `python3 -m unittest discover -s tests -p 'test_*.py'` | 53 tests passed in 0.279s after PR 26 |
 | Full offline oracle task pass | `python3 -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 20 task runners executed; oracle errors/regrets zero or expected near-zero; scam control `instrument_fires=True` |
-| Regime differential sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev,offline:kelly,offline:cvar,offline:half --no-cache` | oracle rank 1; parse 1.00 for all rows |
+| Regime differential sweep | `python3 -m aeread_lab.cli --sweep --task regime --agents offline:oracle,offline:ev,offline:kelly,offline:cvar,offline:half --no-cache` | oracle rank 1; EV baseline error 0.586033; CVaR/Kelly baselines error 0.224185; half baseline error 0.429783; parse 1.00 for all rows |
+| Regime oracle/barrier smoke | `python3 -m aeread_lab.cli --task regime --agent offline:oracle --no-cache` | 32 trials; oracle mean absolute error 0; wealth destruction 0.00; CVaR drawdown violation 0.00 |
 | Principal/portfolio/ambiguity sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1 on all; bad baselines expose intended failure modes |
 | Bargaining/belief/market sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1 for bargaining and market; belief prior baseline fails; high-anchor ties current primary metric |
 | Matching/screening/mechanism sweeps | task-specific sweeps with oracle and known-bad baselines | oracle rank 1 on all; bad baselines expose intended failure modes |
@@ -133,12 +136,13 @@ Historical live API findings from earlier in this private stack:
 
 ## Original repo commit check
 
-Checked on 2026-05-29 before writing this ledger.
+Checked on 2026-05-29 before writing this ledger and rechecked on
+2026-05-30 before PR 26.
 
 | Repo | Status | New/relevant commits checked | Consequence for private build lab |
 |---|---|---|---|
-| `/Users/lichenyu/agenteconreadiness` (`origin/main`) | clean at `a0e17b1` | `c3520ac` review corrections; `f69e883` OSS availability / borrow-substrate strategy; `a0e17b1` read-first refocus doc | no code to import; ledger aligns with refocus: rationality is floor, headline axes are regime-appropriateness, alignment-shift, steerability |
-| `/Users/lichenyu/persona_simulator` (`origin/master`) | dirty: modified `sprint/adversarial_scam_arena_toy/exploits.json`; untracked `.playwright-mcp/` logs | `47acd7a` GPT-5.x support/model override; `8404d2a` OpenAI scam-arena run; `c1fbbd0` borrow-substrate doc; `121e2e0` cross-model scam result + timeout/label fixes | record upstream evidence only; do not import OpenRouter/chat-completions client into this Responses-only lab |
+| `/Users/lichenyu/agenteconreadiness` (`origin/main`) | clean at `a0e17b1`; no newer fetched commits on 2026-05-30 | `c3520ac` review corrections; `f69e883` OSS availability / borrow-substrate strategy; `a0e17b1` read-first refocus doc | no code to import; ledger aligns with refocus: rationality is floor, headline axes are regime-appropriateness, alignment-shift, steerability |
+| `/Users/lichenyu/persona_simulator` (`origin/master`) | dirty: modified `sprint/adversarial_scam_arena_toy/exploits.json`; untracked `.playwright-mcp/` logs; no newer fetched commits on 2026-05-30 | `47acd7a` GPT-5.x support/model override; `8404d2a` OpenAI scam-arena run; `c1fbbd0` borrow-substrate doc; `121e2e0` cross-model scam result + timeout/label fixes | record upstream evidence only; do not import OpenRouter/chat-completions client into this Responses-only lab |
 
 Upstream sprint finding to preserve: OpenAI scam-arena run with `gpt-5.5`
 attacker and `gpt-5.5`/`gpt-5.4-mini` defenders found both frontier OpenAI
