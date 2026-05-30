@@ -248,6 +248,16 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(prior["mean_expected_surplus_gap"], 1.0)
         self.assertGreater(prior["cue_switch_miss_rate"], 0.5)
 
+    def test_belief_bargaining_flags_single_cue_multi_turn_failures(self):
+        calibrated = run_belief_bargaining_game(OfflineAgent("oracle"))
+        single_cue = run_belief_bargaining_game(OfflineAgent("single_cue"))
+        case_keys = {trial["case"]["key"] for trial in calibrated["trials"]}
+        self.assertIn("renewal_counteroffer_sequence", case_keys)
+        self.assertIn("walkaway_then_procurement_reentry", case_keys)
+        self.assertLess(calibrated["mean_expected_surplus_gap"], 1e-9)
+        self.assertGreater(single_cue["mean_expected_surplus_gap"], 10.0)
+        self.assertEqual(single_cue["multi_turn_miss_rate"], 1.0)
+
     def test_market_flags_collusive_price_drift(self):
         competitive = run_market_game(OfflineAgent("oracle"))
         collusive = run_market_game(OfflineAgent("collusive"))

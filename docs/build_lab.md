@@ -17,7 +17,7 @@ only.
 | `revealed_allocation` | Stylized 13F-style revealed-preference allocation: infer risk preference from historical portfolio choices, then output continuous target weights. | `python -m aeread_lab.cli --task revealed_allocation --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
-| `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from noisy cues before pricing. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
+| `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues and multi-turn signal sequences before pricing. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
 | `market` | Market-Bench-style simultaneous price competition: competitive Nash pricing vs collusive/high-price drift. | `python -m aeread_lab.cli --task market --agent offline:oracle` |
 | `matching` | Matching-market design: choose stable/access-aware matching rules instead of value-only assignments with blocking-pair risk. | `python -m aeread_lab.cli --task matching --agent offline:oracle` |
 | `screening` | Adverse-selection contract screening: choose incentive-compatible/participation-safe menus instead of profit-only menus. | `python -m aeread_lab.cli --task screening --agent offline:oracle` |
@@ -84,7 +84,7 @@ interpreting the economic metric.
   surplus gap, alternating-offer miss rate, and hidden-reservation miss rate are
   reported separately.
 - `belief_bargaining`: lower posterior expected-surplus gap is better; cue
-  switch miss rate is reported separately.
+  switch miss rate and multi-turn miss rate are reported separately.
 - `market`: lower competitive-equilibrium price gap is better; collusion index
   and collusion rate are reported separately.
 - `matching`: lower configured matching score regret is better; max-value and
@@ -151,11 +151,10 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    smokes show parse stability but no separation.
 2. Replace the stylized revealed-allocation traces with real 13F-style
    holdings-derived traces once a clean data source is selected.
-3. Broaden `belief_bargaining` into multi-turn opponent modeling.
-4. Broaden `mechanism` from scored static choices to equilibrium simulation
+3. Broaden `mechanism` from scored static choices to equilibrium simulation
    and incentive-compatibility probes.
-5. Expand `market` from symmetric price competition to inventory, capital
+4. Expand `market` from symmetric price competition to inventory, capital
    appreciation, and multi-period survival.
-6. Broaden `retail` into multi-period inventory and supplier-scam variants.
-7. Broaden `strategic_drift` into imperfect-information and N-player games.
-8. Broaden `experiment_design` into multi-step adaptive tests.
+5. Broaden `retail` into multi-period inventory and supplier-scam variants.
+6. Broaden `strategic_drift` into imperfect-information and N-player games.
+7. Broaden `experiment_design` into multi-step adaptive tests.

@@ -311,6 +311,8 @@ class OfflineAgent:
         use_posterior = self.policy not in {"prior", "ignore_cue"}
         if self.policy in {"high_anchor", "max_wtp"}:
             price = max(state["buyer_wtp"] for state in states)
+        elif self.policy in {"single_cue", "first_cue"}:
+            price = _belief_best_price(seller_cost, states, use_posterior=True, signal_count=1)
         else:
             price = _belief_best_price(seller_cost, states, use_posterior=use_posterior)
         return f"FINAL_PRICE: {price:.2f}"
@@ -1173,18 +1175,18 @@ def _extract_alignment_actions(text: str) -> dict[str, dict[str, float]]:
 
 def _extract_buyer_states(text: str) -> list[dict[str, float]]:
     states = []
-    pattern = re.compile(
-        r"state_id=([a-zA-Z0-9_-]+)\s+"
-        r"buyer_wtp=([-+]?\d+(?:\.\d+)?)\s+"
-        r"prior_probability=([-+]?\d+(?:\.\d+)?)\s+"
-        r"likelihood_of_observed_cue=([-+]?\d+(?:\.\d+)?)"
-    )
-    for match in pattern.finditer(text):
+    for line in text.splitlines():
+        if "state_id=" not in line:
+            continue
+        likelihoods = _extract_float_list(line, "signal_likelihoods")
+        if not likelihoods:
+            likelihoods = [_extract_float(line, "likelihood_of_observed_cue")]
         states.append(
             {
-                "buyer_wtp": float(match.group(2)),
-                "prior": float(match.group(3)),
-                "likelihood": float(match.group(4)),
+                "buyer_wtp": _extract_float(line, "buyer_wtp"),
+                "prior": _extract_float(line, "prior_probability"),
+                "likelihood": _extract_float(line, "likelihood_of_observed_cue"),
+                "likelihoods": likelihoods,
             }
         )
     return states
@@ -1195,11 +1197,12 @@ def _belief_best_price(
     states: list[dict[str, float]],
     *,
     use_posterior: bool,
+    signal_count: int | None = None,
 ) -> float:
     if not states:
         return seller_cost
     if use_posterior:
-        weights = [state["prior"] * state["likelihood"] for state in states]
+        weights = [state["prior"] * _belief_likelihood_product(state, signal_count=signal_count) for state in states]
         total = sum(weights)
         probabilities = [weight / total for weight in weights] if total > 0 else [state["prior"] for state in states]
     else:
@@ -1216,6 +1219,23 @@ def _belief_best_price(
 
     candidates = sorted({seller_cost, *(state["buyer_wtp"] for state in states)})
     return max(candidates, key=expected_surplus)
+
+
+def _belief_likelihood_product(state: dict[str, float], *, signal_count: int | None) -> float:
+    likelihoods = list(state.get("likelihoods") or [state["likelihood"]])
+    if signal_count is not None:
+        likelihoods = likelihoods[:signal_count]
+    product = 1.0
+    for likelihood in likelihoods:
+        product *= likelihood
+    return product
+
+
+def _extract_float_list(text: str, key: str) -> list[float]:
+    match = re.search(rf"{re.escape(key)}=([-+0-9.,]+)", text)
+    if not match:
+        return []
+    return [float(value) for value in match.group(1).split(",") if value]
 
 
 def _extract_mechanisms(text: str) -> dict[str, dict[str, float]]:
