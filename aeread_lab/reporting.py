@@ -15,6 +15,7 @@ PRIMARY_METRICS = {
     "principal_holding_prediction": ("mean_score_regret", "lower"),
     "principal_holding_prediction_noisy": ("mean_score_regret", "lower"),
     "principal_holding_prediction_notes": ("mean_score_regret", "lower"),
+    "principal_holding_prediction_blind_notes": ("mean_score_regret", "lower"),
     "ambiguity": ("mean_robust_regret", "lower"),
     "bargaining": ("mean_grade_error", "lower"),
     "belief_bargaining": ("mean_expected_surplus_gap", "lower"),

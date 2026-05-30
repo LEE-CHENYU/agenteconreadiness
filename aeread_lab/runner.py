@@ -21,6 +21,7 @@ from aeread_lab.tasks import (
     moral_hazard as moral_hazard_task,
     portfolio as portfolio_task,
     pricing as pricing_task,
+    principal_holding_prediction_blind_notes as principal_holding_blind_notes_task,
     principal_holding_prediction as principal_holding_task,
     principal_holding_prediction_notes as principal_holding_notes_task,
     principal_holding_prediction_noisy as noisy_principal_holding_task,
@@ -47,6 +48,7 @@ TASK_ORDER = (
     "principal_holding_prediction",
     "principal_holding_prediction_noisy",
     "principal_holding_prediction_notes",
+    "principal_holding_prediction_blind_notes",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -144,6 +146,10 @@ _CASE_TASKS = {
     "principal_holding_prediction_notes": (
         principal_holding_notes_task.run_principal_holding_prediction_notes_game,
         principal_holding_notes_task.DEFAULT_CASES,
+    ),
+    "principal_holding_prediction_blind_notes": (
+        principal_holding_blind_notes_task.run_principal_holding_prediction_blind_notes_game,
+        principal_holding_blind_notes_task.DEFAULT_CASES,
     ),
     "ambiguity": (ambiguity_task.run_ambiguity_game, ambiguity_task.DEFAULT_CASES),
     "bargaining": (bargaining_task.run_bargaining_game, bargaining_task.DEFAULT_CASES),

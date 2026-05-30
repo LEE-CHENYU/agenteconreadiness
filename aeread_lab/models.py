@@ -97,6 +97,8 @@ class OfflineAgent:
             return self._portfolio_choice(user)
         if "TASK: revealed_allocation" in system:
             return self._revealed_allocation(user)
+        if "TASK: principal_holding_prediction_blind_notes" in system:
+            return self._principal_holding_notes_prediction(user)
         if "TASK: principal_holding_prediction_notes" in system:
             return self._principal_holding_notes_prediction(user)
         if "TASK: principal_holding_prediction_noisy" in system:
@@ -3620,6 +3622,12 @@ _PRINCIPAL_NOTE_MECHANICAL_MARKERS = (
     "external_transfer",
     "risk_committee_ticket",
     "benchmark_weight",
+    "cash_operations_entry",
+    "external_schedule",
+    "client_wire_liquidity",
+    "benchmark_model_update",
+    "tax_lot_operations",
+    "operations_entry",
 )
 
 
