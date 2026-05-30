@@ -24,6 +24,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `principal_inference` | Grade-side revealed-preference task: infer a principal's CRRA risk parameter from prior choices before allocating in a new scenario. | `python -m aeread_lab.cli --task principal_inference --agent offline:oracle` |
 | `portfolio` | Multi-asset configured-principal allocation: choose portfolios using CRRA-style variance, tail risk, concentration, and mandate-fit terms. | `python -m aeread_lab.cli --task portfolio --agent offline:oracle` |
 | `revealed_allocation` | Stylized 13F-style revealed-preference allocation: infer risk preference from historical portfolio choices, then output continuous target weights. | `python -m aeread_lab.cli --task revealed_allocation --agent offline:oracle` |
+| `principal_holding_prediction` | Predict-the-principal 13F-style holding-change task: infer a named principal's revealed trade style from prior disclosures and predict the next disclosed trade, scoring fidelity rather than market return. | `python -m aeread_lab.cli --task principal_holding_prediction --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -151,6 +152,9 @@ interpreting the economic metric.
   and low-risk miss rates are reported separately.
 - `revealed_allocation`: lower utility regret and lower weight L1 error to the
   revealed-principal allocation are better.
+- `principal_holding_prediction`: lower score regret to the inferred
+  principal-style next holding change is better; accuracy, market-return miss,
+  low-turnover miss, and generic-style miss rates are reported separately.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -405,7 +409,7 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
 3. Extend generator-verifier mass production beyond the current generated
    regime holdout and law-audit verifier: generate larger law families and
    cross-domain verifier tasks.
-4. Replace the stylized revealed-allocation traces with real 13F-style
+4. Replace the synthetic principal-holding histories with real 13F-style
    holdings-derived traces once a clean data source is selected.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.

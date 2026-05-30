@@ -97,6 +97,8 @@ class OfflineAgent:
             return self._portfolio_choice(user)
         if "TASK: revealed_allocation" in system:
             return self._revealed_allocation(user)
+        if "TASK: principal_holding_prediction" in system:
+            return self._principal_holding_prediction(user)
         if "TASK: ambiguity_action" in system:
             return self._ambiguity_action(user)
         if "TASK: procurement_vendor_update" in system:
@@ -303,6 +305,25 @@ class OfflineAgent:
             f"FINAL_INCOME_WEIGHT: {weights.get('income', 0.0):.6f}\n"
             f"FINAL_HEDGE_WEIGHT: {weights.get('hedge', 0.0):.6f}"
         )
+
+    def _principal_holding_prediction(self, user: str) -> str:
+        target_trades = _extract_principal_holding_trades(user, target_only=True)
+        if self.policy in {"max_return", "market_return", "return"}:
+            trade_id = max(target_trades, key=lambda item: target_trades[item]["expected_return"])
+        elif self.policy in {"low_turnover", "min_turnover"}:
+            trade_id = min(target_trades, key=lambda item: target_trades[item]["turnover_cost"])
+        elif self.policy in {"generic_style", "balanced_style"}:
+            trade_id = _best_principal_holding_trade(
+                target_trades,
+                _PRINCIPAL_GENERIC_STYLE_WEIGHTS,
+            )
+        else:
+            style_id = _infer_principal_holding_style(user)
+            trade_id = _best_principal_holding_trade(
+                target_trades,
+                _PRINCIPAL_STYLE_WEIGHTS[style_id],
+            )
+        return f"FINAL_TRADE: {trade_id}"
 
     def _ambiguity_action(self, user: str) -> str:
         state_ids = _extract_state_ids(user)
@@ -3455,6 +3476,147 @@ def _best_revealed_weights(assets: dict[str, dict[str, float]], gamma: float) ->
                 best_weights = weights
                 best_utility = utility
     return best_weights
+
+
+_PRINCIPAL_STYLE_WEIGHTS = {
+    "quality_defensive": {
+        "expected_return": 0.70,
+        "quality": 1.45,
+        "value": 0.35,
+        "momentum": 0.10,
+        "volatility": -1.15,
+        "turnover_cost": -0.95,
+        "concentration_delta": -0.75,
+        "liquidity": 0.45,
+    },
+    "growth_momentum": {
+        "expected_return": 1.25,
+        "quality": 0.45,
+        "value": -0.25,
+        "momentum": 1.25,
+        "volatility": -0.35,
+        "turnover_cost": -0.35,
+        "concentration_delta": 0.15,
+        "liquidity": 0.10,
+    },
+    "value_discipline": {
+        "expected_return": 0.75,
+        "quality": 0.40,
+        "value": 1.50,
+        "momentum": -0.10,
+        "volatility": -0.70,
+        "turnover_cost": -1.05,
+        "concentration_delta": -0.70,
+        "liquidity": 0.30,
+    },
+    "concentrated_quality": {
+        "expected_return": 0.95,
+        "quality": 1.10,
+        "value": 0.10,
+        "momentum": 0.55,
+        "volatility": -0.50,
+        "turnover_cost": -0.25,
+        "concentration_delta": 0.80,
+        "liquidity": -0.15,
+    },
+}
+
+_PRINCIPAL_GENERIC_STYLE_WEIGHTS = {
+    "expected_return": 0.95,
+    "quality": 0.45,
+    "value": 0.35,
+    "momentum": 0.35,
+    "volatility": -0.45,
+    "turnover_cost": -0.45,
+    "concentration_delta": -0.25,
+    "liquidity": 0.20,
+}
+
+_PRINCIPAL_HOLDING_FIELDS = tuple(_PRINCIPAL_GENERIC_STYLE_WEIGHTS)
+
+
+def _extract_principal_holding_trades(
+    text: str,
+    *,
+    target_only: bool = False,
+) -> dict[str, dict[str, float | bool | str]]:
+    trades: dict[str, dict[str, float | bool | str]] = {}
+    prefix = "candidate_trade" if target_only else r"(?:history_decision|candidate_trade)"
+    pattern = re.compile(
+        rf"{prefix}=([a-zA-Z0-9_-]+)\s+"
+        r"(?:menu_id=([a-zA-Z0-9_-]+)\s+)?"
+        r"issuer=([a-zA-Z0-9_-]+)\s+"
+        r"expected_return=([-+]?\d+(?:\.\d+)?)\s+"
+        r"quality=([-+]?\d+(?:\.\d+)?)\s+"
+        r"value=([-+]?\d+(?:\.\d+)?)\s+"
+        r"momentum=([-+]?\d+(?:\.\d+)?)\s+"
+        r"volatility=([-+]?\d+(?:\.\d+)?)\s+"
+        r"turnover_cost=([-+]?\d+(?:\.\d+)?)\s+"
+        r"concentration_delta=([-+]?\d+(?:\.\d+)?)\s+"
+        r"liquidity=([-+]?\d+(?:\.\d+)?)\s+"
+        r"chosen=([01])"
+    )
+    for match in pattern.finditer(text):
+        trades[match.group(1)] = {
+            "menu_id": match.group(2) or "",
+            "issuer": match.group(3),
+            "expected_return": float(match.group(4)),
+            "quality": float(match.group(5)),
+            "value": float(match.group(6)),
+            "momentum": float(match.group(7)),
+            "volatility": float(match.group(8)),
+            "turnover_cost": float(match.group(9)),
+            "concentration_delta": float(match.group(10)),
+            "liquidity": float(match.group(11)),
+            "chosen": match.group(12) == "1",
+        }
+    return trades
+
+
+def _principal_holding_utility(
+    trade: dict[str, float | bool | str],
+    weights: dict[str, float],
+) -> float:
+    return sum(weights[field] * float(trade[field]) for field in _PRINCIPAL_HOLDING_FIELDS)
+
+
+def _infer_principal_holding_style(text: str) -> str:
+    trades = _extract_principal_holding_trades(text)
+    menus: dict[str, list[dict[str, float | bool | str]]] = {}
+    for trade in trades.values():
+        menu_id = str(trade["menu_id"])
+        if menu_id:
+            menus.setdefault(menu_id, []).append(trade)
+    best_style = next(iter(_PRINCIPAL_STYLE_WEIGHTS))
+    best_score = (-1, -math.inf)
+    for style_id, weights in _PRINCIPAL_STYLE_WEIGHTS.items():
+        valid = True
+        margin = 0.0
+        for options in menus.values():
+            chosen = next(option for option in options if bool(option["chosen"]))
+            chosen_u = _principal_holding_utility(chosen, weights)
+            best_alt = max(
+                _principal_holding_utility(option, weights)
+                for option in options
+                if not bool(option["chosen"])
+            )
+            valid = valid and chosen_u >= best_alt
+            margin += chosen_u - best_alt
+        score = (1 if valid else 0, margin)
+        if score > best_score:
+            best_style = style_id
+            best_score = score
+    return best_style
+
+
+def _best_principal_holding_trade(
+    target_trades: dict[str, dict[str, float | bool | str]],
+    weights: dict[str, float],
+) -> str:
+    return max(
+        target_trades,
+        key=lambda trade_id: _principal_holding_utility(target_trades[trade_id], weights),
+    )
 
 
 def _regime_ev_fraction(text: str) -> float:

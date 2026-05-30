@@ -20,6 +20,7 @@ TASKS = (
     "principal_inference",
     "portfolio",
     "revealed_allocation",
+    "principal_holding_prediction",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -246,6 +247,16 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"{_fmt(result['mean_utility_regret'])} "
                 f"ci95={_fmt_ci(result.get('mean_utility_regret_ci95'))} "
                 f"weight_l1={_fmt(result['mean_weight_l1_error'])}"
+            )
+        elif task == "principal_holding_prediction":
+            print(
+                f"principal_holding_prediction: n={result['n_trials']} "
+                f"score_regret={_fmt(result['mean_score_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_score_regret_ci95'))} "
+                f"accuracy={result['accuracy']:.2f} "
+                f"market_return_miss={result['market_return_miss_rate']:.2f} "
+                f"low_turnover_miss={result['low_turnover_miss_rate']:.2f} "
+                f"generic_style_miss={result['generic_style_miss_rate']:.2f}"
             )
         elif task == "ambiguity":
             print(

@@ -147,6 +147,11 @@ from aeread_lab.tasks.moral_hazard import run_moral_hazard_game
 from aeread_lab.tasks.portfolio import DEFAULT_CASES as PORTFOLIO_CASES
 from aeread_lab.tasks.portfolio import _prompt as portfolio_prompt
 from aeread_lab.tasks.portfolio import run_portfolio_game
+from aeread_lab.tasks.principal_holding_prediction import (
+    DEFAULT_CASES as PRINCIPAL_HOLDING_CASES,
+)
+from aeread_lab.tasks.principal_holding_prediction import _prompt as principal_holding_prompt
+from aeread_lab.tasks.principal_holding_prediction import run_principal_holding_prediction_game
 from aeread_lab.tasks.pricing import COUNTERFACTUAL_SETS as PRICING_COUNTERFACTUAL_SETS
 from aeread_lab.tasks.pricing import CROSS_ELASTICITY_CASES as PRICING_CROSS_CASES
 from aeread_lab.tasks.pricing import DEFAULT_CASES as PRICING_CASES
@@ -352,6 +357,11 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(results[0]["n_sets"], 1)
         self.assertEqual(results[0]["n_trials"], 2)
         self.assertEqual(results[0]["counterfactual_shift_miss_rate"], 0.0)
+
+    def test_sample_limit_slices_principal_holding_prediction_cases(self):
+        results = run_tasks("principal_holding_prediction", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
 
     def test_sample_limit_slices_pricing_cross_elasticity_cases(self):
         results = run_tasks("pricing_cross_elasticity", OfflineAgent("oracle"), sample_limit=1)
@@ -978,6 +988,7 @@ class TaskSmokeTests(unittest.TestCase):
         principal = principal_prompt(PRINCIPAL_CASES[0])
         portfolio = portfolio_prompt(PORTFOLIO_CASES[0])
         revealed_allocation = revealed_allocation_prompt(REVEALED_ALLOCATION_CASES[0])
+        principal_holding = principal_holding_prompt(PRINCIPAL_HOLDING_CASES[0])
         ambiguity = ambiguity_prompt(AMBIGUITY_CASES[0])
         matching = matching_prompt(MATCHING_CASES[0])
         screening = screening_prompt(SCREENING_CASES[0])
@@ -1069,6 +1080,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("oracle", principal)
         self.assertNotIn("oracle", portfolio)
         self.assertNotIn("oracle", revealed_allocation)
+        self.assertNotIn("oracle", principal_holding)
         self.assertNotIn("oracle", ambiguity)
         self.assertNotIn("oracle", matching)
         self.assertNotIn("oracle", screening)
@@ -1261,6 +1273,22 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertLess(configured["mean_weight_l1_error"], 1e-9)
         self.assertGreater(max_return["mean_utility_regret"], 0.005)
         self.assertGreater(low_risk["mean_utility_regret"], 0.005)
+
+    def test_principal_holding_prediction_flags_market_and_mechanical_defaults(self):
+        configured = run_principal_holding_prediction_game(OfflineAgent("oracle"))
+        max_return = run_principal_holding_prediction_game(OfflineAgent("max_return"))
+        low_turnover = run_principal_holding_prediction_game(OfflineAgent("low_turnover"))
+        generic_style = run_principal_holding_prediction_game(OfflineAgent("generic_style"))
+        self.assertEqual(configured["task"], "principal_holding_prediction")
+        self.assertEqual(configured["n_trials"], len(PRINCIPAL_HOLDING_CASES))
+        self.assertLess(configured["mean_score_regret"], 1e-9)
+        self.assertEqual(configured["accuracy"], 1.0)
+        self.assertGreater(max_return["mean_score_regret"], 0.1)
+        self.assertGreater(max_return["market_return_miss_rate"], 0.5)
+        self.assertGreater(low_turnover["mean_score_regret"], 0.05)
+        self.assertGreater(low_turnover["low_turnover_miss_rate"], 0.5)
+        self.assertGreater(generic_style["mean_score_regret"], 0.005)
+        self.assertGreater(generic_style["generic_style_miss_rate"], 0.2)
 
     def test_ambiguity_flags_reference_prior_collapse(self):
         robust = run_ambiguity_game(OfflineAgent("oracle"))
@@ -2165,6 +2193,21 @@ class TaskSmokeTests(unittest.TestCase):
         allocation_rows = [row for row in rows if row["task"] == "revealed_allocation"]
         self.assertEqual(allocation_rows[0]["agent"], "offline:oracle")
         self.assertEqual(allocation_rows[1]["agent"], "offline:max_return")
+
+    def test_offline_sweep_ranks_principal_prediction_above_market_return(self):
+        sweep = run_sweep(
+            task="principal_holding_prediction",
+            agent_specs=[
+                "offline:oracle",
+                "offline:generic_style",
+                "offline:low_turnover",
+                "offline:max_return",
+            ],
+        )
+        rows = rank_rows(comparison_table(sweep))
+        principal_rows = [row for row in rows if row["task"] == "principal_holding_prediction"]
+        self.assertEqual(principal_rows[0]["agent"], "offline:oracle")
+        self.assertEqual(principal_rows[-1]["agent"], "offline:max_return")
 
     def test_offline_sweep_ranks_maxmin_above_reference_prior_on_ambiguity(self):
         sweep = run_sweep(task="ambiguity", agent_specs=["offline:oracle", "offline:reference_prior"])

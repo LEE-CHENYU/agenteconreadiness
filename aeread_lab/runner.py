@@ -21,6 +21,7 @@ from aeread_lab.tasks import (
     moral_hazard as moral_hazard_task,
     portfolio as portfolio_task,
     pricing as pricing_task,
+    principal_holding_prediction as principal_holding_task,
     principal_inference as principal_inference_task,
     procurement as procurement_task,
     regime as regime_task,
@@ -41,6 +42,7 @@ TASK_ORDER = (
     "principal_inference",
     "portfolio",
     "revealed_allocation",
+    "principal_holding_prediction",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -126,6 +128,10 @@ _CASE_TASKS = {
     "revealed_allocation": (
         revealed_allocation_task.run_revealed_allocation_game,
         revealed_allocation_task.DEFAULT_CASES,
+    ),
+    "principal_holding_prediction": (
+        principal_holding_task.run_principal_holding_prediction_game,
+        principal_holding_task.DEFAULT_CASES,
     ),
     "ambiguity": (ambiguity_task.run_ambiguity_game, ambiguity_task.DEFAULT_CASES),
     "bargaining": (bargaining_task.run_bargaining_game, bargaining_task.DEFAULT_CASES),
