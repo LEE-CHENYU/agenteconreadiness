@@ -381,6 +381,17 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(overconfident["mean_expected_brier_regret"], 0.05)
         self.assertGreater(overconfident["overconfidence_rate"], 0.8)
 
+    def test_forecast_calibration_flags_reliability_blind_signals(self):
+        calibrated = run_forecast_calibration_game(OfflineAgent("oracle"))
+        raw_likelihood = run_forecast_calibration_game(OfflineAgent("raw_likelihood"))
+        case_keys = {trial["case"]["key"] for trial in calibrated["trials"]}
+        self.assertIn("thin_slice_fraud_spike", case_keys)
+        self.assertIn("regional_renewal_shift", case_keys)
+        self.assertIn("thin_qa_cluster", case_keys)
+        self.assertEqual(calibrated["reliability_miss_rate"], 0.0)
+        self.assertEqual(raw_likelihood["reliability_miss_rate"], 1.0)
+        self.assertGreater(raw_likelihood["mean_expected_brier_regret"], 0.05)
+
     def test_exploration_flags_greedy_exploitation(self):
         exploratory = run_exploration_game(OfflineAgent("oracle"))
         greedy = run_exploration_game(OfflineAgent("exploit"))

@@ -462,6 +462,8 @@ class OfflineAgent:
             probability = base_rate
         elif self.policy in {"underreact", "shrink"}:
             probability = base_rate + 0.25 * (posterior - base_rate)
+        elif self.policy in {"raw_likelihood", "reliability_blind"}:
+            probability = _forecast_posterior_probability(user, use_reliability=False)
         elif self.policy in {"overconfident", "extreme"}:
             probability = 0.95 if posterior >= base_rate else 0.05
         else:
@@ -693,7 +695,7 @@ def _extract_uniform_bounds(text: str) -> tuple[float, float]:
     return float(match.group(1)), float(match.group(2))
 
 
-def _forecast_posterior_probability(text: str) -> float:
+def _forecast_posterior_probability(text: str, *, use_reliability: bool = True) -> float:
     base_rate = max(1e-9, min(1.0 - 1e-9, _extract_float(text, "base_rate", 0.5)))
     odds = base_rate / (1.0 - base_rate)
     for line in text.splitlines():
@@ -701,7 +703,9 @@ def _forecast_posterior_probability(text: str) -> float:
             continue
         likelihood_if_event = _extract_float(line, "likelihood_if_event", 1.0)
         likelihood_if_not_event = _extract_float(line, "likelihood_if_not_event", 1.0)
-        odds *= likelihood_if_event / max(1e-12, likelihood_if_not_event)
+        likelihood_ratio = likelihood_if_event / max(1e-12, likelihood_if_not_event)
+        reliability_weight = _extract_float(line, "reliability_weight", 1.0) if use_reliability else 1.0
+        odds *= likelihood_ratio ** reliability_weight
     return odds / (1.0 + odds)
 
 

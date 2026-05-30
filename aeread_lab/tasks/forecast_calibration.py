@@ -20,6 +20,7 @@ class Signal:
     signal_id: str
     likelihood_if_event: float
     likelihood_if_not_event: float
+    reliability_weight: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,7 @@ class ForecastCase:
 class ForecastTrial:
     case: ForecastCase
     posterior_probability: float
+    raw_signal_probability: float
     base_rate_probability: float
     chosen_probability: float | None
     expected_brier_regret: float | None
@@ -120,10 +122,84 @@ DEFAULT_CASES = [
         realized_event_count=39,
         total_count=60,
     ),
+    ForecastCase(
+        key="thin_slice_fraud_spike",
+        real_case="fraud alert from a small shifted merchant slice with noisy warning signals",
+        target_event="merchant account has a confirmed fraud escalation",
+        base_rate=0.06,
+        signals=(
+            Signal(
+                "tiny_sample_velocity",
+                likelihood_if_event=0.80,
+                likelihood_if_not_event=0.05,
+                reliability_weight=0.25,
+            ),
+            Signal(
+                "unverified_device_cluster",
+                likelihood_if_event=0.65,
+                likelihood_if_not_event=0.12,
+                reliability_weight=0.35,
+            ),
+        ),
+        realized_event_count=11,
+        total_count=60,
+    ),
+    ForecastCase(
+        key="regional_renewal_shift",
+        real_case="renewal forecast from a new region where historical signals transfer weakly",
+        target_event="account churns before renewal",
+        base_rate=0.30,
+        signals=(
+            Signal(
+                "legacy_success_signal",
+                likelihood_if_event=0.10,
+                likelihood_if_not_event=0.70,
+                reliability_weight=0.30,
+            ),
+            Signal(
+                "old_segment_usage_pattern",
+                likelihood_if_event=0.18,
+                likelihood_if_not_event=0.55,
+                reliability_weight=0.40,
+            ),
+        ),
+        realized_event_count=8,
+        total_count=60,
+    ),
+    ForecastCase(
+        key="thin_qa_cluster",
+        real_case="launch defect forecast from a small beta sample with high-variance QA warnings",
+        target_event="batch exceeds the defect escalation threshold",
+        base_rate=0.12,
+        signals=(
+            Signal(
+                "beta_failure_cluster",
+                likelihood_if_event=0.70,
+                likelihood_if_not_event=0.08,
+                reliability_weight=0.20,
+            ),
+            Signal(
+                "support_spike",
+                likelihood_if_event=0.50,
+                likelihood_if_not_event=0.10,
+                reliability_weight=0.25,
+            ),
+        ),
+        realized_event_count=14,
+        total_count=60,
+    ),
 ]
 
 
 def posterior_probability(case: ForecastCase) -> float:
+    odds = case.base_rate / max(1e-12, 1.0 - case.base_rate)
+    for signal in case.signals:
+        likelihood_ratio = signal.likelihood_if_event / max(1e-12, signal.likelihood_if_not_event)
+        odds *= likelihood_ratio ** signal.reliability_weight
+    return odds / (1.0 + odds)
+
+
+def raw_signal_probability(case: ForecastCase) -> float:
     odds = case.base_rate / max(1e-12, 1.0 - case.base_rate)
     for signal in case.signals:
         odds *= signal.likelihood_if_event / max(1e-12, signal.likelihood_if_not_event)
@@ -148,6 +224,7 @@ def run_forecast_calibration_game(agent: Agent, cases: list[ForecastCase] | None
     trials: list[ForecastTrial] = []
     for case in cases:
         posterior = posterior_probability(case)
+        raw_signal = raw_signal_probability(case)
         realized_rate = case.realized_event_count / case.total_count
         posterior_brier = realized_brier_score(realized_rate, posterior)
         response = agent.complete(FORECAST_SYSTEM, _prompt(case))
@@ -157,6 +234,7 @@ def run_forecast_calibration_game(agent: Agent, cases: list[ForecastCase] | None
             ForecastTrial(
                 case=case,
                 posterior_probability=posterior,
+                raw_signal_probability=raw_signal,
                 base_rate_probability=case.base_rate,
                 chosen_probability=chosen,
                 expected_brier_regret=expected_brier_regret(posterior, chosen)
@@ -210,6 +288,18 @@ def summarize_forecast_trials(agent_name: str, trials: list[ForecastTrial]) -> d
         for trial in confidence_eligible
         if trial.chosen_probability <= 0.05 or trial.chosen_probability >= 0.95
     ]
+    reliability_adjusted = [
+        trial
+        for trial in trials
+        if trial.chosen_probability is not None
+        and any(signal.reliability_weight < 0.75 for signal in trial.case.signals)
+    ]
+    reliability_blind = [
+        trial
+        for trial in reliability_adjusted
+        if abs(trial.chosen_probability - trial.raw_signal_probability)
+        < abs(trial.chosen_probability - trial.posterior_probability)
+    ]
     return {
         "task": "forecast_calibration",
         "agent": agent_name,
@@ -222,6 +312,9 @@ def summarize_forecast_trials(agent_name: str, trials: list[ForecastTrial]) -> d
         "base_rate_miss_rate": len(base_rate_misses) / len(shifted) if shifted else 0.0,
         "overconfidence_rate": len(overconfident) / len(confidence_eligible)
         if confidence_eligible
+        else 0.0,
+        "reliability_miss_rate": len(reliability_blind) / len(reliability_adjusted)
+        if reliability_adjusted
         else 0.0,
         "trials": [_trial_json(trial) for trial in trials],
     }
@@ -240,8 +333,13 @@ def _prompt(case: ForecastCase) -> str:
         lines.append(
             f"  signal_id={signal.signal_id} "
             f"likelihood_if_event={signal.likelihood_if_event:.4f} "
-            f"likelihood_if_not_event={signal.likelihood_if_not_event:.4f}"
+            f"likelihood_if_not_event={signal.likelihood_if_not_event:.4f} "
+            f"reliability_weight={signal.reliability_weight:.4f}"
         )
+    lines.append(
+        "Use reliability_weight as the fraction of each signal's log likelihood ratio "
+        "that should count for this setting."
+    )
     lines.append("Estimate the calibrated probability of the target event before outcomes are known.")
     return "\n".join(lines)
 

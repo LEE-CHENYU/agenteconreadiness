@@ -274,7 +274,8 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"realized_brier={_fmt(result['mean_realized_brier_score'])} "
                 f"posterior_l1={_fmt(result['mean_posterior_l1_error'])} "
                 f"base_rate_miss={result['base_rate_miss_rate']:.2f} "
-                f"overconfidence={result['overconfidence_rate']:.2f}"
+                f"overconfidence={result['overconfidence_rate']:.2f} "
+                f"reliability_miss={result.get('reliability_miss_rate', 0.0):.2f}"
             )
         elif task == "exploration":
             print(
