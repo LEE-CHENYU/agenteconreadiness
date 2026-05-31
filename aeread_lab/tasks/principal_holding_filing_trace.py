@@ -83,6 +83,13 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_CONFLICT_SYSTEM = (
     "before applying them. Return one final line only: FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_UNMARKED_CONFLICT_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_metadata_unmarked_conflict\n"
+    "Infer the dollar-material discretionary holding action from public-filing rows by "
+    "joining raw filing rows to a separate corporate-action registry. Return one final "
+    "line only: FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -690,6 +697,30 @@ ARTIFACT_METADATA_CONFLICT_CASES = [
 ]
 
 
+ARTIFACT_METADATA_UNMARKED_CONFLICT_CASES = [
+    FilingArtifactCase(
+        key="multi_artifact_unmarked_conflicting_registry_close_runner_up",
+        real_case=(
+            "13F-style filing trace where the registry contains the right split "
+            "records plus a wrong-but-confirmed target-period split record, but "
+            "the prompt does not explicitly warn that registry rows may conflict "
+            "with filing-row ratios"
+        ),
+        manager_cik="0000000001",
+        manager_name="NEUTRALIZED PUBLIC-FILING ARTIFACT UNMARKED-CONFLICT REGISTRY TRACE",
+        source_url=(
+            "public SEC-style 13F information table rows plus a neutralized "
+            "corporate-action registry with an unmarked confirmed conflicting record"
+        ),
+        target_accession="neutralized-2026q1-artifact-metadata-unmarked-conflict",
+        rows=ARTIFACT_METADATA_CONFLICT_CASES[0].rows,
+        adjustment_factors=dict(ARTIFACT_METADATA_CONFLICT_CASES[0].adjustment_factors),
+        artifact_notes=dict(ARTIFACT_METADATA_CONFLICT_CASES[0].artifact_notes),
+        corporate_actions=ARTIFACT_METADATA_CONFLICT_CASES[0].corporate_actions,
+    ),
+]
+
+
 def run_principal_holding_filing_trace_game(
     agent: Agent,
     cases: list[FilingTraceCase] | None = None,
@@ -915,6 +946,23 @@ def run_principal_holding_filing_artifact_metadata_conflict_game(
         include_factor=False,
         include_notes=False,
         include_metadata=True,
+        include_conflict_warning=True,
+    )
+
+
+def run_principal_holding_filing_artifact_metadata_unmarked_conflict_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_METADATA_UNMARKED_CONFLICT_CASES,
+        task="principal_holding_filing_artifact_metadata_unmarked_conflict",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_UNMARKED_CONFLICT_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+        include_metadata=True,
+        include_conflict_warning=False,
     )
 
 
@@ -927,6 +975,7 @@ def _run_principal_holding_filing_artifact_game(
     include_factor: bool,
     include_notes: bool,
     include_metadata: bool,
+    include_conflict_warning: bool = True,
 ) -> dict:
     cases = cases or ARTIFACT_CASES
     trials: list[FilingArtifactTrial] = []
@@ -948,6 +997,7 @@ def _run_principal_holding_filing_artifact_game(
                 include_factor=include_factor,
                 include_notes=include_notes,
                 include_metadata=include_metadata,
+                include_conflict_warning=include_conflict_warning,
             ),
         )
         chosen = parse_token("FINAL_ISSUER", response)
@@ -1243,6 +1293,7 @@ def _artifact_prompt(
     include_factor: bool = True,
     include_notes: bool = True,
     include_metadata: bool = False,
+    include_conflict_warning: bool = True,
 ) -> str:
     lines = [
         f"case={case.key}",
@@ -1290,7 +1341,7 @@ def _artifact_prompt(
                 "split record is missing, use clean integer row-ratio evidence paired "
                 "with comparable economic exposure to identify mechanical unit changes."
             )
-        if _registry_has_conflicting_split_entries(case):
+        if include_conflict_warning and _registry_has_conflicting_split_entries(case):
             lines.append(
                 "Registry records may conflict with filing rows. Validate confirmed "
                 "stock-split records against target-period row-ratio evidence before "

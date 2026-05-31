@@ -36,11 +36,13 @@ keeping the same implicit split-like row ratios but making the affected reported
 values stable, so the result can distinguish artifact-inference weakness from a
 conflicting value-drift signal. PR 122-125 then ask which registry condition
 changes the answer: correct metadata, noisy extras, partial coverage, or a
-wrong-but-confirmed split row. The open question is therefore not "how many more
-filing cases can we add?" It is which evidence channel makes dollar-material
-principal-choice inference robust, and which failure mode each result actually
-names: row-ratio patterns, value stability, metadata completeness, metadata
-validation, real repeated filing history, or a different shortcut attribution.
+wrong-but-confirmed split row. PR 126 weakens the cue by removing the explicit
+conflict warning while keeping the same wrong confirmed record. The open
+question is therefore not "how many more filing cases can we add?" It is which
+evidence channel makes dollar-material principal-choice inference robust, and
+which failure mode each result actually names: row-ratio patterns, value
+stability, metadata completeness, explicit metadata-validation cues, real
+repeated filing history, or a different shortcut attribution.
 
 ## What is implemented
 
@@ -69,6 +71,7 @@ validation, real repeated filing history, or a different shortcut attribution.
 | `principal_holding_filing_artifact_metadata_noisy` | Noisy corporate-action metadata C1 control: keep the conflicting-value rows and correct split records, but add stale, unconfirmed, non-split, and unmatched registry distractors. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_noisy --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_partial` | Partial corporate-action metadata C1 control: keep one confirmed split record but omit another target-period split, forcing row-pattern inference for missing registry coverage. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_partial --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_conflict` | Conflicting corporate-action metadata C1 control: keep the correct split records but add a wrong confirmed split that must be rejected by checking row-ratio evidence. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_conflict --agent offline:oracle` |
+| `principal_holding_filing_artifact_metadata_unmarked_conflict` | Unmarked conflicting-metadata C1 control: keep the wrong confirmed split but remove the explicit prompt warning that registry rows may conflict. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_unmarked_conflict --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -257,6 +260,9 @@ interpreting the economic metric.
   conflicting-value rows, but the registry includes a wrong confirmed
   target-period split record; this tests whether the model validates metadata
   against filing-row ratios before applying it.
+- `principal_holding_filing_artifact_metadata_unmarked_conflict`: same wrong
+  confirmed registry row, but no explicit conflict warning; this tests whether
+  metadata validation survives when the cue is implicit in the rows.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -652,8 +658,12 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    repeat-3 solves for `mini` and `gpt-5.5`, while `nano` has a
    metadata-trusting miss; repeat-6 keeps `gpt-5.5` stable-oracle and leaves
    `nano` unstable-oracle-modal with one attributed metadata-trusting choice.
-   The new question is depth, not breadth: can the partial-coverage and
-   conflict signals survive in more natural or real-derived filing traces where
-   the completeness/validation cue is less explicit?
+   PR 126 removes that explicit warning while keeping the same wrong confirmed
+   registry row. The failure strengthens: `nano` becomes metadata-trusting
+   modal and `mini` becomes unstable-non-oracle-modal, while `gpt-5.5` remains
+   stable-oracle. The new question is depth, not breadth: can the
+   partial-coverage and unmarked-conflict signals survive in real-derived
+   filing traces where completeness and validation are implicit in messy
+   issuer-level histories rather than spelled out by a prompt cue?
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.
