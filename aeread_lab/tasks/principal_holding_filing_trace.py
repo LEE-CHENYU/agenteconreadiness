@@ -19,6 +19,19 @@ PRINCIPAL_HOLDING_FILING_TRACE_RAW_SYSTEM = (
     "Return one final line only: FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_SYSTEM = (
+    "TASK: principal_holding_filing_artifact\n"
+    "Infer the dollar-material discretionary holding action after adjusting public-filing "
+    "rows for mechanical corporate-action artifacts. Return one final line only: "
+    "FINAL_ISSUER: <issuer_id>."
+)
+
+PRINCIPAL_HOLDING_FILING_ARTIFACT_NATURAL_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_natural\n"
+    "Infer the dollar-material discretionary holding action from public-filing rows and "
+    "natural corporate-action notes. Return one final line only: FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -62,6 +75,35 @@ class FilingTraceTrial:
     low_turnover_trade: str
     max_position_trade: str
     trend_trade: str
+    percent_change_trade: str
+    second_best_trade: str
+    chosen_trade: str | None
+    principal_score: float
+    chosen_score: float | None
+    score_regret: float | None
+    oracle_margin: float
+    raw_response: str
+
+
+@dataclass(frozen=True)
+class FilingArtifactCase:
+    key: str
+    real_case: str
+    manager_cik: str
+    manager_name: str
+    source_url: str
+    target_accession: str
+    rows: tuple[FilingTraceRow, ...]
+    adjustment_factors: dict[str, float]
+    artifact_notes: dict[str, str]
+
+
+@dataclass
+class FilingArtifactTrial:
+    case: FilingArtifactCase
+    principal_trade: str
+    artifact_blind_trade: str
+    market_value_trade: str
     percent_change_trade: str
     second_best_trade: str
     chosen_trade: str | None
@@ -304,6 +346,50 @@ DEFAULT_CASES = [
 ]
 
 
+ARTIFACT_CASES = [
+    FilingArtifactCase(
+        key="split_adjustment_vs_discretionary_reduction",
+        real_case=(
+            "13F-style filing trace where an apparent large share-count change is "
+            "a corporate-action split artifact, not the principal's discretionary action"
+        ),
+        manager_cik="0000000000",
+        manager_name="NEUTRALIZED PUBLIC-FILING ARTIFACT TRACE",
+        source_url="public SEC-style 13F information table rows plus neutralized corporate-action note",
+        target_accession="neutralized-2026q1-artifact",
+        rows=(
+            FilingTraceRow("2025q4", "artifact-2025q4", "sec_artifact_a", 480000000, 1000000),
+            FilingTraceRow("2026q1", "artifact-2026q1", "sec_artifact_a", 505000000, 4000000),
+            FilingTraceRow("2025q4", "artifact-2025q4", "sec_artifact_b", 620000000, 2000000),
+            FilingTraceRow("2026q1", "artifact-2026q1", "sec_artifact_b", 270000000, 850000),
+            FilingTraceRow("2025q4", "artifact-2025q4", "sec_artifact_c", 590000000, 5000000),
+            FilingTraceRow("2026q1", "artifact-2026q1", "sec_artifact_c", 310000000, 2600000),
+            FilingTraceRow("2025q4", "artifact-2025q4", "sec_artifact_d", 900000000, 3000000),
+            FilingTraceRow("2026q1", "artifact-2026q1", "sec_artifact_d", 1400000000, 3000000),
+            FilingTraceRow("2025q4", "artifact-2025q4", "sec_artifact_e", 10000000, 100000),
+            FilingTraceRow("2026q1", "artifact-2026q1", "sec_artifact_e", 125000000, 1200000),
+        ),
+        adjustment_factors={
+            "sec_artifact_a": 4.0,
+            "sec_artifact_b": 1.0,
+            "sec_artifact_c": 1.0,
+            "sec_artifact_d": 1.0,
+            "sec_artifact_e": 1.0,
+        },
+        artifact_notes={
+            "sec_artifact_a": (
+                "quarter included a 4-for-1 share split; compare prior shares after "
+                "multiplying by 4 before treating share-count movement as discretionary"
+            ),
+            "sec_artifact_b": "no corporate-action adjustment noted",
+            "sec_artifact_c": "no corporate-action adjustment noted",
+            "sec_artifact_d": "reported value drifted with no share-count change",
+            "sec_artifact_e": "small position with large relative reduction",
+        },
+    ),
+]
+
+
 def run_principal_holding_filing_trace_game(
     agent: Agent,
     cases: list[FilingTraceCase] | None = None,
@@ -397,6 +483,75 @@ def run_principal_holding_filing_trace_raw_game(
     )
 
 
+def run_principal_holding_filing_artifact_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases,
+        task="principal_holding_filing_artifact",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_SYSTEM,
+        include_factor=True,
+    )
+
+
+def run_principal_holding_filing_artifact_natural_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases,
+        task="principal_holding_filing_artifact_natural",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_NATURAL_SYSTEM,
+        include_factor=False,
+    )
+
+
+def _run_principal_holding_filing_artifact_game(
+    agent: Agent,
+    *,
+    cases: list[FilingArtifactCase] | None,
+    task: str,
+    system: str,
+    include_factor: bool,
+) -> dict:
+    cases = cases or ARTIFACT_CASES
+    trials: list[FilingArtifactTrial] = []
+    for case in cases:
+        principal = artifact_material_action_issuer(case)
+        artifact_blind = artifact_blind_issuer(case)
+        market_value = artifact_market_value_issuer(case)
+        percent_change = artifact_percent_change_issuer(case)
+        second_best = artifact_second_best_issuer(case)
+        score_by_id = _normalized_artifact_scores(case)
+        oracle_margin = _oracle_margin(score_by_id, principal)
+        response = agent.complete(system, _artifact_prompt(case, include_factor=include_factor))
+        chosen = parse_token("FINAL_ISSUER", response)
+        chosen = chosen if chosen in score_by_id else None
+        chosen_score = score_by_id[chosen] if chosen else None
+        trials.append(
+            FilingArtifactTrial(
+                case=case,
+                principal_trade=principal,
+                artifact_blind_trade=artifact_blind,
+                market_value_trade=market_value,
+                percent_change_trade=percent_change,
+                second_best_trade=second_best,
+                chosen_trade=chosen,
+                principal_score=score_by_id[principal],
+                chosen_score=chosen_score,
+                score_regret=score_by_id[principal] - chosen_score
+                if chosen_score is not None
+                else None,
+                oracle_margin=oracle_margin,
+                raw_response=response,
+            )
+        )
+    return summarize_filing_artifact_trials(agent.name, trials, task=task)
+
+
 def material_action_trade(case: FilingTraceCase) -> str:
     return max(case.target_trades, key=_action_value).trade_id
 
@@ -426,6 +581,37 @@ def second_best_action_trade(case: FilingTraceCase) -> str:
     if not ranked:
         raise ValueError("filing trace case has no target trades")
     return ranked[1].trade_id if len(ranked) > 1 else ranked[0].trade_id
+
+
+def artifact_material_action_issuer(case: FilingArtifactCase) -> str:
+    changes = _artifact_changes(case)
+    return max(changes, key=lambda issuer: changes[issuer]["value"])
+
+
+def artifact_blind_issuer(case: FilingArtifactCase) -> str:
+    changes = _artifact_changes(case)
+    return max(changes, key=lambda issuer: changes[issuer]["observed_value"])
+
+
+def artifact_market_value_issuer(case: FilingArtifactCase) -> str:
+    changes = _artifact_changes(case)
+    return max(
+        changes,
+        key=lambda issuer: changes[issuer]["next_value"] - changes[issuer]["prior_value"],
+    )
+
+
+def artifact_percent_change_issuer(case: FilingArtifactCase) -> str:
+    changes = _artifact_changes(case)
+    return max(changes, key=lambda issuer: changes[issuer]["observed_fraction"])
+
+
+def artifact_second_best_issuer(case: FilingArtifactCase) -> str:
+    changes = _artifact_changes(case)
+    ranked = sorted(changes, key=lambda issuer: changes[issuer]["value"], reverse=True)
+    if not ranked:
+        raise ValueError("filing artifact case has no issuer changes")
+    return ranked[1] if len(ranked) > 1 else ranked[0]
 
 
 def summarize_filing_trace_trials(
@@ -489,6 +675,67 @@ def _reference_miss_rate(trials: list[FilingTraceTrial], attr: str) -> float:
     return sum(trial.chosen_trade == getattr(trial, attr) for trial in trials) / len(trials)
 
 
+def summarize_filing_artifact_trials(
+    agent_name: str,
+    trials: list[FilingArtifactTrial],
+    *,
+    task: str = "principal_holding_filing_artifact",
+) -> dict:
+    regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
+    parsed = [trial for trial in trials if trial.chosen_trade is not None]
+    margins = [trial.oracle_margin for trial in trials]
+    artifact_missable = [
+        trial for trial in trials if trial.artifact_blind_trade != trial.principal_trade
+    ]
+    market_missable = [
+        trial for trial in trials if trial.market_value_trade != trial.principal_trade
+    ]
+    percent_missable = [
+        trial for trial in trials if trial.percent_change_trade != trial.principal_trade
+    ]
+    second_best_missable = [
+        trial for trial in trials if trial.second_best_trade != trial.principal_trade
+    ]
+    return {
+        "task": task,
+        "agent": agent_name,
+        "n_trials": len(trials),
+        "parse_rate": len(parsed) / len(trials) if trials else 0.0,
+        "accuracy": (
+            sum(trial.chosen_trade == trial.principal_trade for trial in parsed) / len(trials)
+            if trials
+            else 0.0
+        ),
+        "mean_score_regret": mean(regrets),
+        "mean_score_regret_ci95": bootstrap_mean_ci(regrets),
+        "mean_oracle_margin": mean(margins),
+        "min_oracle_margin": min(margins) if margins else None,
+        "artifact_blind_miss_rate": _artifact_reference_miss_rate(
+            artifact_missable,
+            "artifact_blind_trade",
+        ),
+        "market_value_miss_rate": _artifact_reference_miss_rate(
+            market_missable,
+            "market_value_trade",
+        ),
+        "percent_change_miss_rate": _artifact_reference_miss_rate(
+            percent_missable,
+            "percent_change_trade",
+        ),
+        "second_best_miss_rate": _artifact_reference_miss_rate(
+            second_best_missable,
+            "second_best_trade",
+        ),
+        "trials": [_artifact_trial_json(trial) for trial in trials],
+    }
+
+
+def _artifact_reference_miss_rate(trials: list[FilingArtifactTrial], attr: str) -> float:
+    if not trials:
+        return 0.0
+    return sum(trial.chosen_trade == getattr(trial, attr) for trial in trials) / len(trials)
+
+
 def _prompt(case: FilingTraceCase) -> str:
     lines = [
         f"case={case.key}",
@@ -539,6 +786,38 @@ def _raw_prompt(case: FilingTraceCase) -> str:
     return "\n".join(lines)
 
 
+def _artifact_prompt(case: FilingArtifactCase, *, include_factor: bool = True) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        "Rows are neutralized 13F-style filing rows. Some observed share-count changes are mechanical corporate-action artifacts.",
+        "The final period is the next disclosed filing. Infer the issuer with the largest dollar-material discretionary share action after applying any artifact adjustment.",
+        "Dollar materiality means adjusted prior reported value per comparable share times absolute adjusted share-count change.",
+        "Do not choose only by raw unadjusted share-count movement, reported value movement, largest percentage change, or runner-up adjusted action.",
+        "Raw filing rows:",
+    ]
+    for row in sorted(case.rows, key=lambda item: (item.issuer, item.period)):
+        lines.append(
+            f"filing_row period={row.period} accession={row.accession} "
+            f"issuer={row.issuer} reported_value={row.value:.0f} shares={row.shares:.0f}"
+        )
+    lines.append("Artifact notes:")
+    for issuer in sorted(case.adjustment_factors):
+        if include_factor:
+            lines.append(
+                f"artifact_note issuer={issuer} adjustment_factor={case.adjustment_factors[issuer]:.6g} "
+                f"note={case.artifact_notes.get(issuer, 'no note')}"
+            )
+        else:
+            lines.append(f"artifact_note issuer={issuer} note={case.artifact_notes.get(issuer, 'no note')}")
+    issuers = ", ".join(sorted({row.issuer for row in case.rows}))
+    lines.append(f"issuer_choices={issuers}")
+    lines.append(
+        "Return the issuer id with the largest adjusted dollar-material discretionary share action."
+    )
+    return "\n".join(lines)
+
+
 def _action_value(trade: FilingTraceTrade) -> float:
     prior_price = trade.prior_value / trade.prior_shares if trade.prior_shares else 0.0
     return abs(trade.next_shares - trade.prior_shares) * prior_price
@@ -564,6 +843,47 @@ def _normalized_issuer_action_scores(case: FilingTraceCase) -> dict[str, float]:
     if max_value <= 0:
         return {issuer: 0.0 for issuer in values}
     return {issuer: value / max_value for issuer, value in values.items()}
+
+
+def _normalized_artifact_scores(case: FilingArtifactCase) -> dict[str, float]:
+    values = {issuer: data["value"] for issuer, data in _artifact_changes(case).items()}
+    max_value = max(values.values()) if values else 0.0
+    if max_value <= 0:
+        return {issuer: 0.0 for issuer in values}
+    return {issuer: value / max_value for issuer, value in values.items()}
+
+
+def _artifact_changes(case: FilingArtifactCase) -> dict[str, dict[str, float]]:
+    rows_by_issuer: dict[str, list[FilingTraceRow]] = {}
+    for row in case.rows:
+        rows_by_issuer.setdefault(row.issuer, []).append(row)
+    changes: dict[str, dict[str, float]] = {}
+    for issuer, rows in rows_by_issuer.items():
+        ordered = sorted(rows, key=lambda row: row.period)
+        if len(ordered) < 2:
+            continue
+        prior = ordered[-2]
+        next_ = ordered[-1]
+        factor = case.adjustment_factors.get(issuer, 1.0)
+        adjusted_prior_shares = prior.shares * factor
+        adjusted_delta = next_.shares - adjusted_prior_shares
+        observed_delta = next_.shares - prior.shares
+        adjusted_price = prior.value / adjusted_prior_shares if adjusted_prior_shares else 0.0
+        observed_price = prior.value / prior.shares if prior.shares else 0.0
+        changes[issuer] = {
+            "prior_value": prior.value,
+            "next_value": next_.value,
+            "prior_shares": prior.shares,
+            "next_shares": next_.shares,
+            "adjustment_factor": factor,
+            "adjusted_prior_shares": adjusted_prior_shares,
+            "adjusted_delta": adjusted_delta,
+            "observed_delta": observed_delta,
+            "value": abs(adjusted_delta) * adjusted_price,
+            "observed_value": abs(observed_delta) * observed_price,
+            "observed_fraction": abs(observed_delta) / prior.shares if prior.shares else 0.0,
+        }
+    return changes
 
 
 def _oracle_margin(score_by_id: dict[str, float], oracle: str) -> float:
@@ -603,4 +923,17 @@ def _trial_json(trial: FilingTraceTrial) -> dict:
         "source_url": trial.case.source_url,
         "target_accession": trial.case.target_accession,
     }
+    return data
+
+
+def _artifact_trial_json(trial: FilingArtifactTrial) -> dict:
+    data = asdict(trial)
+    data["case"] = {
+        "key": trial.case.key,
+        "real_case": trial.case.real_case,
+        "manager_cik": trial.case.manager_cik,
+        "source_url": trial.case.source_url,
+        "target_accession": trial.case.target_accession,
+    }
+    data["artifact_changes"] = _artifact_changes(trial.case)
     return data

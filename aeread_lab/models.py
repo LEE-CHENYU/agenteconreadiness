@@ -97,6 +97,8 @@ class OfflineAgent:
             return self._portfolio_choice(user)
         if "TASK: revealed_allocation" in system:
             return self._revealed_allocation(user)
+        if "TASK: principal_holding_filing_artifact" in system:
+            return self._principal_holding_filing_artifact(user)
         if "TASK: principal_holding_filing_trace_raw" in system:
             return self._principal_holding_filing_trace_raw(user)
         if "TASK: principal_holding_filing_trace" in system:
@@ -461,6 +463,33 @@ class OfflineAgent:
             issuer_id = max(
                 target_issuers,
                 key=lambda item: _filing_trace_action_value(target_issuers[item]),
+            )
+        return f"FINAL_ISSUER: {issuer_id}"
+
+    def _principal_holding_filing_artifact(self, user: str) -> str:
+        target_issuers = _extract_filing_artifact_changes(user)
+        if self.policy in {"artifact_blind", "mechanical_flow", "raw_change"}:
+            issuer_id = max(
+                target_issuers,
+                key=lambda item: target_issuers[item]["observed_value"],
+            )
+        elif self.policy in {"market_value", "market_return", "max_return", "value_drift"}:
+            issuer_id = max(
+                target_issuers,
+                key=lambda item: target_issuers[item]["next_value"]
+                - target_issuers[item]["prior_value"],
+            )
+        elif self.policy in {"percent_change", "relative_change", "largest_pct_change"}:
+            issuer_id = max(
+                target_issuers,
+                key=lambda item: target_issuers[item]["observed_fraction"],
+            )
+        elif self.policy in {"second_best", "runner_up", "near_miss"}:
+            issuer_id = _second_best_artifact_id(target_issuers)
+        else:
+            issuer_id = max(
+                target_issuers,
+                key=lambda item: target_issuers[item]["value"],
             )
         return f"FINAL_ISSUER: {issuer_id}"
 
@@ -4028,6 +4057,17 @@ def _second_best_filing_trace_id(trades: dict[str, dict[str, float | str]]) -> s
     return ranked[1] if len(ranked) > 1 else ranked[0]
 
 
+def _second_best_artifact_id(trades: dict[str, dict[str, float | str]]) -> str:
+    ranked = sorted(
+        trades,
+        key=lambda item: float(trades[item]["value"]),
+        reverse=True,
+    )
+    if not ranked:
+        raise ValueError("filing artifact prompt has no candidate issuers")
+    return ranked[1] if len(ranked) > 1 else ranked[0]
+
+
 def _extract_filing_trace_raw_changes(text: str) -> dict[str, dict[str, float | str]]:
     pattern = re.compile(
         r"filing_row\s+"
@@ -4074,6 +4114,64 @@ def _extract_filing_trace_raw_changes(text: str) -> dict[str, dict[str, float | 
             "previous_share_delta": previous_share_delta,
         }
     return changes
+
+
+def _extract_filing_artifact_changes(text: str) -> dict[str, dict[str, float | str]]:
+    base_changes = _extract_filing_trace_raw_changes(text)
+    factor_pattern = re.compile(
+        r"artifact_note\s+issuer=([a-zA-Z0-9_-]+)\s+"
+        r"adjustment_factor=([-+]?\d+(?:\.\d+)?)"
+    )
+    factors = {match.group(1): float(match.group(2)) for match in factor_pattern.finditer(text)}
+    note_pattern = re.compile(r"artifact_note\s+issuer=([a-zA-Z0-9_-]+)\s+note=(.*)")
+    for match in note_pattern.finditer(text):
+        factors.setdefault(match.group(1), _filing_artifact_factor_from_note(match.group(2)))
+    changes: dict[str, dict[str, float | str]] = {}
+    for issuer, trade in base_changes.items():
+        factor = factors.get(issuer, 1.0)
+        prior_shares = float(trade["prior_shares"])
+        next_shares = float(trade["next_shares"])
+        prior_value = float(trade["prior_value"])
+        adjusted_prior_shares = prior_shares * factor
+        adjusted_delta = next_shares - adjusted_prior_shares
+        observed_delta = next_shares - prior_shares
+        adjusted_price = prior_value / adjusted_prior_shares if adjusted_prior_shares else 0.0
+        observed_price = prior_value / prior_shares if prior_shares else 0.0
+        changes[issuer] = {
+            **trade,
+            "adjustment_factor": factor,
+            "adjusted_prior_shares": adjusted_prior_shares,
+            "adjusted_delta": adjusted_delta,
+            "observed_delta": observed_delta,
+            "value": abs(adjusted_delta) * adjusted_price,
+            "observed_value": abs(observed_delta) * observed_price,
+            "observed_fraction": abs(observed_delta) / prior_shares if prior_shares else 0.0,
+        }
+    return changes
+
+
+def _filing_artifact_factor_from_note(note: str) -> float:
+    lowered = note.lower()
+    numeric = re.search(r"(\d+(?:\.\d+)?)\s*[- ]for[- ]\s*1", lowered)
+    if numeric:
+        return float(numeric.group(1))
+    word_factors = {
+        "two": 2.0,
+        "three": 3.0,
+        "four": 4.0,
+        "five": 5.0,
+        "six": 6.0,
+        "seven": 7.0,
+        "eight": 8.0,
+        "nine": 9.0,
+        "ten": 10.0,
+    }
+    for word, factor in word_factors.items():
+        if f"{word}-for-one" in lowered or f"{word} for one" in lowered:
+            return factor
+        if f"{word}-for-1" in lowered or f"{word} for 1" in lowered:
+            return factor
+    return 1.0
 
 
 def _regime_ev_fraction(text: str) -> float:

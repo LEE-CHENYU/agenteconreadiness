@@ -30,6 +30,8 @@ proper scoring, bounds, and revealed-preference fit.
 | `principal_holding_prediction_blind_notes` | Blind filing-note predict-the-principal task: neutralize account/profile/security labels and use generic raw notes to test whether C1 performance depends on label shortcuts rather than revealed-style inference. | `python -m aeread_lab.cli --task principal_holding_prediction_blind_notes --agent offline:oracle` |
 | `principal_holding_filing_trace` | Real-derived C1 filing trace: populate neutralized predict-the-principal tasks from public SEC 13F-HR rows and test dollar-material share-driven action against market-value drift, low-turnover, max-position, previous-trend, percent-change, and runner-up action shortcuts. | `python -m aeread_lab.cli --task principal_holding_filing_trace --agent offline:oracle` |
 | `principal_holding_filing_trace_raw` | Raw-row real-derived C1 filing trace: remove the precomputed candidate-change table and require the same dollar-material share-action inference directly from neutralized SEC filing rows. | `python -m aeread_lab.cli --task principal_holding_filing_trace_raw --agent offline:oracle` |
+| `principal_holding_filing_artifact` | Filing-artifact C1 trace: adjust raw filing-row share changes for mechanical corporate actions before scoring the principal's discretionary dollar-material action. | `python -m aeread_lab.cli --task principal_holding_filing_artifact --agent offline:oracle` |
+| `principal_holding_filing_artifact_natural` | Natural-note filing-artifact C1 trace: remove the structured adjustment factor and require the same artifact adjustment from natural corporate-action notes. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_natural --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -182,6 +184,13 @@ interpreting the economic metric.
   share-driven issuer in public SEC-derived rows is better after removing the
   candidate-change scaffold; the same shortcut miss rates and oracle target
   margin are reported separately.
+- `principal_holding_filing_artifact`: lower score regret to the adjusted
+  discretionary share action is better after applying structured corporate-action
+  factors; artifact-blind, value-drift, percent-change, second-best miss rates,
+  and oracle target margin are reported separately.
+- `principal_holding_filing_artifact_natural`: same score, but the prompt omits
+  the structured factor and provides only natural corporate-action notes, testing
+  whether the adjustment survives less scaffolded filing evidence.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -511,6 +520,13 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    whether misses are runner-up action errors, value-drift errors, or
    filing-artifact errors; and how noisy predict-the-principal fidelity remains
    when the reference is a quarterly public filing rather than a synthetic
-   oracle?
+   oracle? PR 116 follows the filing-artifact branch directly: a split-adjusted
+   trace and a natural-note variant both make the raw observed share change,
+   reported value drift, percentage change, and runner-up adjusted action
+   distinct. Offline baselines expose the failure modes, but live `nano`, `mini`,
+   and `gpt-5.5` solve both structured and natural-note versions, so the next
+   depth step should combine artifact adjustment with weaker notes, multiple
+   simultaneous artifacts, or runner-up ambiguity rather than adding more clean
+   artifact examples.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.

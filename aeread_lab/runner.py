@@ -53,6 +53,8 @@ TASK_ORDER = (
     "principal_holding_prediction_blind_notes",
     "principal_holding_filing_trace",
     "principal_holding_filing_trace_raw",
+    "principal_holding_filing_artifact",
+    "principal_holding_filing_artifact_natural",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -162,6 +164,14 @@ _CASE_TASKS = {
     "principal_holding_filing_trace_raw": (
         principal_holding_filing_trace_task.run_principal_holding_filing_trace_raw_game,
         principal_holding_filing_trace_task.DEFAULT_CASES,
+    ),
+    "principal_holding_filing_artifact": (
+        principal_holding_filing_trace_task.run_principal_holding_filing_artifact_game,
+        principal_holding_filing_trace_task.ARTIFACT_CASES,
+    ),
+    "principal_holding_filing_artifact_natural": (
+        principal_holding_filing_trace_task.run_principal_holding_filing_artifact_natural_game,
+        principal_holding_filing_trace_task.ARTIFACT_CASES,
     ),
     "ambiguity": (ambiguity_task.run_ambiguity_game, ambiguity_task.DEFAULT_CASES),
     "bargaining": (bargaining_task.run_bargaining_game, bargaining_task.DEFAULT_CASES),

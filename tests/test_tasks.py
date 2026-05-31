@@ -176,7 +176,13 @@ from aeread_lab.tasks.principal_holding_prediction_noisy import (
     DEFAULT_CASES as NOISY_PRINCIPAL_HOLDING_CASES,
 )
 from aeread_lab.tasks.principal_holding_filing_trace import (
+    ARTIFACT_CASES as PRINCIPAL_HOLDING_FILING_ARTIFACT_CASES,
+)
+from aeread_lab.tasks.principal_holding_filing_trace import (
     DEFAULT_CASES as PRINCIPAL_HOLDING_FILING_TRACE_CASES,
+)
+from aeread_lab.tasks.principal_holding_filing_trace import (
+    _artifact_prompt as principal_holding_filing_artifact_prompt,
 )
 from aeread_lab.tasks.principal_holding_filing_trace import (
     _raw_prompt as principal_holding_filing_trace_raw_prompt,
@@ -425,6 +431,16 @@ class TaskSmokeTests(unittest.TestCase):
 
     def test_sample_limit_slices_principal_holding_blind_notes_cases(self):
         results = run_tasks("principal_holding_prediction_blind_notes", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
+    def test_sample_limit_slices_principal_holding_filing_artifact_cases(self):
+        results = run_tasks("principal_holding_filing_artifact", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
+    def test_sample_limit_slices_principal_holding_filing_artifact_natural_cases(self):
+        results = run_tasks("principal_holding_filing_artifact_natural", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_score_regret"], 1e-9)
 
@@ -682,6 +698,92 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(second_best_row["status"], "stable_non_oracle")
         self.assertEqual(second_best_row["modal_choice"], "sec_tiger_h")
         self.assertEqual(second_best_row["modal_reference_matches"], ["second_best"])
+
+    def test_filing_artifact_prompt_exposes_adjustment_without_candidate_scaffold(self):
+        prompt = principal_holding_filing_artifact_prompt(
+            PRINCIPAL_HOLDING_FILING_ARTIFACT_CASES[0]
+        )
+        self.assertIn("artifact_note issuer=sec_artifact_a adjustment_factor=4", prompt)
+        self.assertIn("filing_row period=2026q1", prompt)
+        self.assertIn("issuer_choices=sec_artifact_a", prompt)
+        self.assertNotIn("candidate_trade=", prompt)
+
+    def test_filing_artifact_natural_prompt_removes_structured_factor(self):
+        prompt = principal_holding_filing_artifact_prompt(
+            PRINCIPAL_HOLDING_FILING_ARTIFACT_CASES[0],
+            include_factor=False,
+        )
+        self.assertIn("artifact_note issuer=sec_artifact_a note=", prompt)
+        self.assertIn("4-for-1 share split", prompt)
+        self.assertNotIn("adjustment_factor=", prompt)
+
+    def test_filing_artifact_oracle_beats_artifact_blind_shortcuts(self):
+        rows = comparison_table(
+            run_sweep(
+                task="principal_holding_filing_artifact",
+                agent_specs=[
+                    "offline:oracle",
+                    "offline:artifact_blind",
+                    "offline:market_value",
+                    "offline:percent_change",
+                    "offline:second_best",
+                ],
+            )
+        )
+        by_agent = {row["agent"]: row for row in rows}
+        self.assertEqual(by_agent["offline:oracle"]["value"], 0.0)
+        self.assertGreater(by_agent["offline:artifact_blind"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:market_value"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:percent_change"]["value"], 0.6)
+        self.assertGreater(by_agent["offline:second_best"]["value"], 0.1)
+
+    def test_filing_artifact_natural_oracle_beats_artifact_blind_shortcuts(self):
+        rows = comparison_table(
+            run_sweep(
+                task="principal_holding_filing_artifact_natural",
+                agent_specs=[
+                    "offline:oracle",
+                    "offline:artifact_blind",
+                    "offline:market_value",
+                    "offline:percent_change",
+                    "offline:second_best",
+                ],
+            )
+        )
+        by_agent = {row["agent"]: row for row in rows}
+        self.assertEqual(by_agent["offline:oracle"]["value"], 0.0)
+        self.assertGreater(by_agent["offline:artifact_blind"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:market_value"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:second_best"]["value"], 0.1)
+
+    def test_filing_artifact_case_key_targets_adjusted_fixture(self):
+        results = run_tasks(
+            "principal_holding_filing_artifact",
+            OfflineAgent("oracle"),
+            case_keys=["split_adjustment_vs_discretionary_reduction"],
+        )
+        self.assertEqual(results[0]["n_trials"], 1)
+        trial = results[0]["trials"][0]
+        self.assertEqual(trial["principal_trade"], "sec_artifact_b")
+        self.assertEqual(trial["artifact_blind_trade"], "sec_artifact_a")
+        self.assertEqual(trial["market_value_trade"], "sec_artifact_d")
+        self.assertEqual(trial["percent_change_trade"], "sec_artifact_e")
+        self.assertEqual(trial["second_best_trade"], "sec_artifact_c")
+        self.assertAlmostEqual(trial["artifact_changes"]["sec_artifact_a"]["value"], 0.0)
+        self.assertEqual(trial["chosen_trade"], "sec_artifact_b")
+
+    def test_filing_artifact_stability_attribution_labels_artifact_blind(self):
+        payload = run_stability_sweep(
+            task="principal_holding_filing_artifact",
+            agent_specs=["offline:oracle", "offline:artifact_blind"],
+            repeat_count=2,
+            case_keys=["split_adjustment_vs_discretionary_reduction"],
+        )
+        rows = stability_sweep_case_table(payload)
+        artifact_blind_row = next(row for row in rows if row["agent"] == "offline:artifact_blind")
+        self.assertEqual(artifact_blind_row["status"], "stable_non_oracle")
+        self.assertEqual(artifact_blind_row["modal_choice"], "sec_artifact_a")
+        self.assertEqual(artifact_blind_row["modal_reference_matches"], ["artifact_blind"])
 
     def test_format_stability_sweep_includes_reference_counts(self):
         payload = run_stability_sweep(
