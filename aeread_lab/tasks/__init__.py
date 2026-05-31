@@ -91,6 +91,7 @@ from .regime import (
 )
 from .revealed_allocation import run_revealed_allocation_game
 from .retail import run_retail_game
+from .saturation import run_saturation_battery
 from .screening import run_screening_game
 from .strategic_drift import run_strategic_drift_game
 from .supplier_scam import run_supplier_scam_game, run_supplier_scam_natural_game
@@ -176,6 +177,7 @@ __all__ = [
     "run_regime_relationship_verifier",
     "run_revealed_allocation_game",
     "run_retail_game",
+    "run_saturation_battery",
     "run_screening_game",
     "run_strategic_drift_game",
     "run_supplier_scam_game",

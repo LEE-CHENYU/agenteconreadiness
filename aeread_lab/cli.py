@@ -12,6 +12,7 @@ from aeread_lab.runner import run_stability_probe, run_stability_sweep, run_swee
 
 
 TASKS = (
+    "saturation",
     "regime",
     "regime_relationship",
     "regime_holdout",
@@ -1022,6 +1023,18 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"scam_supplier={result['scam_supplier_rate']:.2f} "
                 f"timing_violate={result.get('timing_reserve_violation_rate', 0.0):.2f} "
                 f"reputation_miss={result.get('reputation_miss_rate', 0.0):.2f}"
+            )
+        elif task == "saturation":
+            print(
+                f"saturation (gate): sets={result['n_menu_sets']} "
+                f"mean_ccei={_fmt(result['mean_ccei'])} "
+                f"ci95={_fmt_ci(result.get('mean_ccei_ci95'))} "
+                f"garp_pass_rate={result.get('garp_pass_rate', 0.0):.2f} "
+                f"garp_ci={_fmt_ci(result.get('garp_pass_rate_ci95'))} "
+                f"warp_total={result['total_warp_violations']} "
+                f"garp_only_sets={result['garp_only_violation_sets']} "
+                f"tol_spread={result['tolerance_max_ccei_spread']:.1e} "
+                f"saturated={result['saturated']}"
             )
     print("=" * 72)
     print("OpenAI-only API path: --agent openai:gpt-5.5, --agent openai:mini, or --agent openai:nano")

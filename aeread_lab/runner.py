@@ -32,6 +32,7 @@ from aeread_lab.tasks import (
     regime as regime_task,
     revealed_allocation as revealed_allocation_task,
     retail as retail_task,
+    saturation as saturation_task,
     screening as screening_task,
     strategic_drift as strategic_drift_task,
     supplier_scam as supplier_scam_task,
@@ -39,6 +40,7 @@ from aeread_lab.tasks import (
 
 
 TASK_ORDER = (
+    "saturation",
     "regime",
     "regime_relationship",
     "regime_holdout",
@@ -524,6 +526,11 @@ def run_task(
     keys = _normalize_case_keys(case_keys)
     if keys and task not in _CASE_TASKS:
         raise ValueError(f"--case is supported only for keyed case tasks, not {task}")
+    if task == "saturation":
+        menu_sets = saturation_task.default_menu_sets()
+        if limit is not None:
+            menu_sets = menu_sets[:limit]
+        return saturation_task.run_saturation_battery(agent, menu_sets=menu_sets)
     if task == "regime":
         return regime_task.run_regime_battery(
             agent,

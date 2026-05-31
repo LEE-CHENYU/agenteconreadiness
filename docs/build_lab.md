@@ -94,6 +94,7 @@ source rows, not more variants of the same single component.
 
 | Build | Why it matters | Command |
 |---|---|---|
+| `saturation` | **The Layer-1 / gate instrument** (rationality-saturation). Budget-allocation menus scored by real revealed-preference axioms — WARP, GARP (transitive-closure cycle check), and CCEI (Afriat efficiency index, the headline gate metric). Multi-seed (8 independent menu sets, 2- and 3-good) with bootstrap + Wilson CIs and a tolerance-sensitivity sweep; validity controls (oracle saturates at CCEI 1.0, cycler/random fire below). 3-good menus expose length-3 cycles a WARP-only probe misses (GARP strictly subsumes WARP). Axiom core in `aeread_lab/axioms.py`, golden-answer-tested. | `python -m aeread_lab.cli --task saturation --agent offline:oracle` |
 | `regime` | Four-regime utility battery across even-money, skewed, thin-edge, negative-EV, and hard-barrier gamble families: EV single-shot, Kelly compounding, CVaR under ruin, configured-principal CRRA. This is the re-centered regime-appropriateness axis. | `python -m aeread_lab.cli --task regime --agent offline:oracle` |
 | `regime_relationship` | Generator-verifier prototype for regime laws: procedurally generated gambles must satisfy EV >= Kelly, Kelly >= CVaR, and Kelly >= CRRA while also matching oracle fractions closely enough to catch degenerate relationship-only answers. | `python -m aeread_lab.cli --task regime_relationship --agent offline:oracle` |
 | `regime_holdout` | Generated holdout regime-law family: broader gamble shapes reuse the same relationship laws but require fresh fit to the EV, Kelly, CVaR, and CRRA fractions instead of memorized fixture patterns. | `python -m aeread_lab.cli --task regime_holdout --agent offline:oracle` |
@@ -238,6 +239,15 @@ it also reports `parse`, the fraction of trials with a valid task-specific
 `FINAL_*` answer. Treat low parse rate as an eval-format failure before
 interpreting the economic metric.
 
+- `saturation` (gate): higher `mean_ccei` (Afriat efficiency, headline) and
+  `garp_pass_rate` are better — both reported with CIs (bootstrap / Wilson). A
+  rational agent saturates: CCEI ≈ 1.0, GARP passes on every menu set, 0 WARP
+  violations. `garp_only_violation_sets` counts sets where GARP caught a cycle
+  WARP missed (the instrument doing more than a pairwise check).
+  `tolerance_max_ccei_spread` should be ~0 for a clean verdict (the number is not
+  an epsilon artifact). `saturated` is the boolean gate verdict (mean CCEI ≥ 0.99
+  AND GARP passes on all sets). Offline validity controls: `offline:oracle`
+  (saturates), `offline:random` and `offline:cycler` (fire — CCEI well below 1).
 - `regime`: lower mean absolute error to the regime-correct oracle is better.
 - `regime_relationship`: lower mean absolute error is the primary fit signal;
   relationship-law violation, fit-fail, and combined fail rates are reported
@@ -663,6 +673,39 @@ python -m aeread_lab.cli --sweep --task regime_holdout \
 python -m aeread_lab.cli --sweep --task regime_law_audit \
   --agents offline:oracle,offline:law_accept,offline:law_reject,offline:law_invert --no-cache
 ```
+
+Gate (saturation) offline validity controls — oracle saturates, cycler/random fire:
+
+```bash
+python -m unittest tests.test_axioms tests.test_saturation
+python -m aeread_lab.cli --sweep --task saturation \
+  --agents offline:oracle,offline:random,offline:cycler --no-cache
+```
+
+### Gate result — first live run (2026-05-31)
+
+The `saturation` gate ran on real OpenAI models (8 menu sets × 8 menus = 64 live
+calls each, default `reasoning_effort=low`, 0 parse failures). CCEI = Afriat
+efficiency index (1.0 = perfectly GARP-consistent). This is AERead's own measured
+gate-saturation, not a cited number:
+
+| Agent | mean CCEI (95% CI) | min CCEI | GARP pass rate | WARP | saturated |
+|---|---|---|---|---|---|
+| `offline:oracle` (control) | 1.000 (1.00, 1.00) | 1.000 | 100% | 0 | yes |
+| `openai:mini` (gpt-5.4-mini) | 1.000 (1.00, 1.00) | 1.000 | 100% | 0 | **yes** |
+| `openai:nano` (gpt-5.4-nano) | 0.9375 (0.856, 1.00) | 0.7125 | 75% (6/8) | 2 | **no** |
+| `offline:cycler` (control) | 0.368 (0.33, 0.42) | — | 0% | 106 | no |
+
+Reading: `mini` clears the coherence floor perfectly; `nano` does **not** — it
+violates GARP on 2 of 8 menu sets (min CCEI 0.71 ≈ 29% revealed budget waste on
+its worst set). This is the gate doing its job: a capability gradient where the
+sub-frontier model fails coherence and the frontier-tier model saturates,
+corroborating "rationality is a saturated floor *for frontier models*" with own
+data. Caveat: n=8 sets — nano's GARP-pass-rate CI is wide (0.41–0.93); the
+2 hard GARP failures + min CCEI 0.71 are not noise, but the *rate* needs 20–30
+sets to tighten before any leaderboard claim (mandatory-CI discipline). Not yet
+run: gpt-5.5 + a Claude model (the frontier-inclusive capability curve), and a
+higher-`reasoning_effort` sweep (does nano's incoherence survive more thinking?).
 
 ## Expansion order
 

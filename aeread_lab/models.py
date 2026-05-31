@@ -210,6 +210,8 @@ class OfflineAgent:
             return self._scam_estimate(user)
         if "TASK: scam_pitch" in system:
             return self._scam_pitch(user)
+        if "TASK: saturation_allocation" in system:
+            return self._saturation_allocation(user)
         return "FINAL_ANSWER: offline baseline has no handler"
 
     def _regime_fraction(self, user: str) -> str:
@@ -1808,6 +1810,47 @@ class OfflineAgent:
             value = true_value
         return f"FINAL_VALUE: {value:.2f}"
 
+    def _saturation_allocation(self, user: str) -> str:
+        """Budget-allocation handler for the rationality-saturation gate.
+
+        Policies (known-answer validation controls):
+        - oracle / cobb_douglas: fixed-alpha Cobb-Douglas maximizer -> satisfies
+          GARP by construction (CCEI = 1.0). The saturation target.
+        - random: spends the budget on a seed-shuffled split keyed to the menu ->
+          inconsistent across menus (GARP/WARP violations, CCEI < 1).
+        - cycler: deliberately spends almost entirely on the *most expensive* good
+          -> a strong, structured inconsistency (cost-inefficient cycles).
+        Default (unrecognized policy) behaves as the oracle so the gate's offline
+        baseline is consistent unless a violation policy is explicitly requested.
+        """
+        prices, budget, trip_key = _extract_saturation_menu(user)
+        if not prices or budget <= 0:
+            return "FINAL_BUNDLE: 0"
+        n = len(prices)
+
+        if self.policy == "random":
+            # Menu-keyed pseudo-random split: deterministic but price-incoherent
+            # across menus (different alphas each menu -> revealed-pref cycles).
+            h = abs(hash(trip_key or user[:24]))
+            weights = [((h >> (3 * k)) % 7) + 1 for k in range(n)]
+            total = sum(weights)
+            qty = [(w / total) * budget / p for w, p in zip(weights, prices)]
+        elif self.policy == "cycler":
+            # Spend everything on the most expensive good -> maximally cost-
+            # inefficient, reliably violates GARP.
+            j = max(range(n), key=lambda k: prices[k])
+            qty = [0.0] * n
+            qty[j] = budget / prices[j]
+        else:
+            # oracle / cobb_douglas / default: fixed-alpha Cobb-Douglas optimum.
+            alphas = [0.6, 0.4, 0.5, 0.3, 0.55][:n]
+            if len(alphas) < n:
+                alphas = alphas + [0.4] * (n - len(alphas))
+            total = sum(alphas)
+            qty = [(a / total) * budget / p for a, p in zip(alphas, prices)]
+
+        return "FINAL_BUNDLE: " + ", ".join(f"{q:.6f}" for q in qty)
+
 
 def build_agent(spec: str) -> Agent:
     if spec.startswith("openai:"):
@@ -1879,6 +1922,20 @@ def _extract_float(text: str, key: str, default: float = 0.0) -> float:
         if match:
             return float(match.group(1))
     return default
+
+
+def _extract_saturation_menu(text: str) -> tuple[list[float], float, str]:
+    """Parse a saturation-allocation prompt -> (prices, budget, trip_key).
+
+    Prompt format (from tasks/saturation.py):
+      "Shopping trip <key>. Budget: $<B>. Prices: good1 @ $<p1>/unit, good2 @ $<p2>/unit. ..."
+    """
+    budget_match = re.search(r"Budget:\s*\$?\s*([-+]?\d+(?:\.\d+)?)", text, flags=re.IGNORECASE)
+    budget = float(budget_match.group(1)) if budget_match else 0.0
+    prices = [float(p) for p in re.findall(r"good\d+\s*@\s*\$?\s*([-+]?\d+(?:\.\d+)?)\s*/unit", text, flags=re.IGNORECASE)]
+    trip_match = re.search(r"Shopping trip\s+(\S+?)[.\s]", text, flags=re.IGNORECASE)
+    trip_key = trip_match.group(1) if trip_match else ""
+    return prices, budget, trip_key
 
 
 def _extract_word(text: str, key: str, default: str = "") -> str:
