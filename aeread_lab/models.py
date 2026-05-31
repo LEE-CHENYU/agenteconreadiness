@@ -413,6 +413,11 @@ class OfflineAgent:
                 target_trades,
                 key=lambda item: abs(target_trades[item]["previous_share_delta"]),
             )
+        elif self.policy in {"percent_change", "relative_change", "largest_pct_change"}:
+            trade_id = max(
+                target_trades,
+                key=lambda item: _filing_trace_share_change_fraction(target_trades[item]),
+            )
         else:
             trade_id = max(
                 target_trades,
@@ -442,6 +447,11 @@ class OfflineAgent:
             issuer_id = max(
                 target_issuers,
                 key=lambda item: abs(target_issuers[item]["previous_share_delta"]),
+            )
+        elif self.policy in {"percent_change", "relative_change", "largest_pct_change"}:
+            issuer_id = max(
+                target_issuers,
+                key=lambda item: _filing_trace_share_change_fraction(target_issuers[item]),
             )
         else:
             issuer_id = max(
@@ -3994,6 +4004,13 @@ def _filing_trace_action_value(trade: dict[str, float | str]) -> float:
         return 0.0
     prior_price = float(trade["prior_value"]) / prior_shares
     return abs(float(trade["next_shares"]) - prior_shares) * prior_price
+
+
+def _filing_trace_share_change_fraction(trade: dict[str, float | str]) -> float:
+    prior_shares = float(trade["prior_shares"])
+    if prior_shares <= 0:
+        return 0.0
+    return abs(float(trade["next_shares"]) - prior_shares) / prior_shares
 
 
 def _extract_filing_trace_raw_changes(text: str) -> dict[str, dict[str, float | str]]:

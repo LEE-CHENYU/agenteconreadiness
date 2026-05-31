@@ -9,13 +9,13 @@ from aeread_lab.stats import bootstrap_mean_ci, mean
 
 PRINCIPAL_HOLDING_FILING_TRACE_SYSTEM = (
     "TASK: principal_holding_filing_trace\n"
-    "Infer the material next holding action from real-derived 13F filing rows. "
+    "Infer the dollar-material next holding action from real-derived 13F filing rows. "
     "Return one final line only: FINAL_TRADE: <trade_id>."
 )
 
 PRINCIPAL_HOLDING_FILING_TRACE_RAW_SYSTEM = (
     "TASK: principal_holding_filing_trace_raw\n"
-    "Infer the material next holding action from raw real-derived 13F filing rows. "
+    "Infer the dollar-material next holding action from raw real-derived 13F filing rows. "
     "Return one final line only: FINAL_ISSUER: <issuer_id>."
 )
 
@@ -62,6 +62,7 @@ class FilingTraceTrial:
     low_turnover_trade: str
     max_position_trade: str
     trend_trade: str
+    percent_change_trade: str
     chosen_trade: str | None
     principal_score: float
     chosen_score: float | None
@@ -195,6 +196,7 @@ def run_principal_holding_filing_trace_game(
         low_turnover = low_turnover_trade(case)
         max_position = max_position_trade(case)
         trend = trend_trade(case)
+        percent_change = percent_change_trade(case)
         score_by_id = _normalized_action_scores(case)
         oracle_margin = _oracle_margin(score_by_id, principal)
         response = agent.complete(PRINCIPAL_HOLDING_FILING_TRACE_SYSTEM, _prompt(case))
@@ -209,6 +211,7 @@ def run_principal_holding_filing_trace_game(
                 low_turnover_trade=low_turnover,
                 max_position_trade=max_position,
                 trend_trade=trend,
+                percent_change_trade=percent_change,
                 chosen_trade=chosen,
                 principal_score=score_by_id[principal],
                 chosen_score=chosen_score,
@@ -234,6 +237,7 @@ def run_principal_holding_filing_trace_raw_game(
         low_turnover = _issuer_for_trade(case, low_turnover_trade(case))
         max_position = _issuer_for_trade(case, max_position_trade(case))
         trend = _issuer_for_trade(case, trend_trade(case))
+        percent_change = _issuer_for_trade(case, percent_change_trade(case))
         score_by_id = _normalized_issuer_action_scores(case)
         oracle_margin = _oracle_margin(score_by_id, principal)
         response = agent.complete(
@@ -251,6 +255,7 @@ def run_principal_holding_filing_trace_raw_game(
                 low_turnover_trade=low_turnover,
                 max_position_trade=max_position,
                 trend_trade=trend,
+                percent_change_trade=percent_change,
                 chosen_trade=chosen,
                 principal_score=score_by_id[principal],
                 chosen_score=chosen_score,
@@ -288,6 +293,10 @@ def trend_trade(case: FilingTraceCase) -> str:
     return max(case.target_trades, key=lambda trade: abs(trade.previous_share_delta)).trade_id
 
 
+def percent_change_trade(case: FilingTraceCase) -> str:
+    return max(case.target_trades, key=_share_change_fraction).trade_id
+
+
 def summarize_filing_trace_trials(
     agent_name: str,
     trials: list[FilingTraceTrial],
@@ -307,6 +316,9 @@ def summarize_filing_trace_trials(
         trial for trial in trials if trial.max_position_trade != trial.principal_trade
     ]
     trend_missable = [trial for trial in trials if trial.trend_trade != trial.principal_trade]
+    percent_change_missable = [
+        trial for trial in trials if trial.percent_change_trade != trial.principal_trade
+    ]
     return {
         "task": task,
         "agent": agent_name,
@@ -325,6 +337,10 @@ def summarize_filing_trace_trials(
         "low_turnover_miss_rate": _reference_miss_rate(low_turnover_missable, "low_turnover_trade"),
         "max_position_miss_rate": _reference_miss_rate(max_position_missable, "max_position_trade"),
         "trend_miss_rate": _reference_miss_rate(trend_missable, "trend_trade"),
+        "percent_change_miss_rate": _reference_miss_rate(
+            percent_change_missable,
+            "percent_change_trade",
+        ),
         "trials": [_trial_json(trial) for trial in trials],
     }
 
@@ -340,7 +356,8 @@ def _prompt(case: FilingTraceCase) -> str:
         f"case={case.key}",
         f"real_case={case.real_case}",
         "Rows are neutralized but derived from public SEC 13F-HR information tables.",
-        "The task is to identify the material share-driven holding action, not the largest market-value drift and not the lowest-turnover hold.",
+        "The task is to identify the dollar-material share-driven holding action: approximate prior reported value per share times absolute share-count change.",
+        "Do not choose only by market-value drift, prior position size, previous-period trend, no-change turnover, or largest percentage reduction.",
         "Historical filing rows:",
     ]
     for row in case.history:
@@ -358,8 +375,7 @@ def _prompt(case: FilingTraceCase) -> str:
             f"previous_share_delta={trade.previous_share_delta:.0f}"
         )
     lines.append(
-        "Choose the candidate with the strongest share-driven action implied by the filings. "
-        "Do not choose only by value increase, prior position size, previous-quarter trend, or no-change turnover."
+        "Choose the candidate with the largest approximate dollar value of share-count change implied by the filings."
     )
     return "\n".join(lines)
 
@@ -369,8 +385,9 @@ def _raw_prompt(case: FilingTraceCase) -> str:
         f"case={case.key}",
         f"real_case={case.real_case}",
         "Rows are neutralized but derived from public SEC 13F-HR information tables.",
-        "The final period is the next disclosed filing; infer the issuer with the material share-driven action from the raw rows.",
-        "Do not choose only by reported value movement, prior position size, previous-period trend, or no-change turnover.",
+        "The final period is the next disclosed filing; infer the issuer with the dollar-material share-driven action from the raw rows.",
+        "Dollar materiality means approximate prior reported value per share times absolute share-count change.",
+        "Do not choose only by reported value movement, prior position size, previous-period trend, no-change turnover, or largest percentage reduction.",
         "Raw filing rows:",
     ]
     for row in _raw_filing_rows(case):
@@ -380,13 +397,19 @@ def _raw_prompt(case: FilingTraceCase) -> str:
         )
     issuers = ", ".join(sorted({trade.issuer for trade in case.target_trades}))
     lines.append(f"issuer_choices={issuers}")
-    lines.append("Return the issuer id with the strongest material share-driven action.")
+    lines.append("Return the issuer id with the largest approximate dollar value of share-count change.")
     return "\n".join(lines)
 
 
 def _action_value(trade: FilingTraceTrade) -> float:
     prior_price = trade.prior_value / trade.prior_shares if trade.prior_shares else 0.0
     return abs(trade.next_shares - trade.prior_shares) * prior_price
+
+
+def _share_change_fraction(trade: FilingTraceTrade) -> float:
+    if trade.prior_shares <= 0:
+        return 0.0
+    return abs(trade.next_shares - trade.prior_shares) / trade.prior_shares
 
 
 def _normalized_action_scores(case: FilingTraceCase) -> dict[str, float]:

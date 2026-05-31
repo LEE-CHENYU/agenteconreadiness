@@ -564,6 +564,7 @@ class TaskSmokeTests(unittest.TestCase):
                     "offline:market_value",
                     "offline:low_turnover",
                     "offline:max_position",
+                    "offline:percent_change",
                 ],
             )
         )
@@ -572,6 +573,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(by_agent["offline:market_value"]["value"], 0.9)
         self.assertGreater(by_agent["offline:low_turnover"]["value"], 0.9)
         self.assertGreater(by_agent["offline:max_position"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:percent_change"]["value"], 0.7)
 
     def test_real_derived_filing_trace_case_key_targets_fixture(self):
         results = run_tasks(
@@ -584,6 +586,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(trial["case"]["manager_cik"], "0001067983")
         self.assertEqual(trial["principal_trade"], "reduce_chevron")
         self.assertEqual(trial["market_value_trade"], "price_drift_oxy")
+        self.assertEqual(trial["percent_change_trade"], "reduce_constellation")
         self.assertEqual(results[0]["accuracy"], 1.0)
 
     def test_raw_real_derived_filing_trace_oracle_beats_shortcuts(self):
@@ -596,6 +599,7 @@ class TaskSmokeTests(unittest.TestCase):
                     "offline:low_turnover",
                     "offline:max_position",
                     "offline:trend",
+                    "offline:percent_change",
                 ],
             )
         )
@@ -605,6 +609,7 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(by_agent["offline:low_turnover"]["value"], 0.9)
         self.assertGreater(by_agent["offline:max_position"]["value"], 0.9)
         self.assertGreater(by_agent["offline:trend"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:percent_change"]["value"], 0.7)
 
     def test_raw_real_derived_filing_trace_removes_candidate_scaffold(self):
         prompt = principal_holding_filing_trace_raw_prompt(
@@ -625,6 +630,7 @@ class TaskSmokeTests(unittest.TestCase):
         trial = results[0]["trials"][0]
         self.assertEqual(trial["principal_trade"], "sec_chevron")
         self.assertEqual(trial["market_value_trade"], "sec_oxy")
+        self.assertEqual(trial["percent_change_trade"], "sec_constellation")
         self.assertEqual(trial["chosen_trade"], "sec_chevron")
         self.assertEqual(results[0]["accuracy"], 1.0)
 

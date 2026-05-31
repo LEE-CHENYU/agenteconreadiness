@@ -375,7 +375,8 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"market_value_miss={result['market_value_miss_rate']:.2f} "
                 f"low_turnover_miss={result['low_turnover_miss_rate']:.2f} "
                 f"max_position_miss={result['max_position_miss_rate']:.2f} "
-                f"trend_miss={result['trend_miss_rate']:.2f}"
+                f"trend_miss={result['trend_miss_rate']:.2f} "
+                f"percent_change_miss={result['percent_change_miss_rate']:.2f}"
             )
         elif task == "principal_holding_filing_trace_raw":
             print(
@@ -387,7 +388,8 @@ def _print_human(payload: dict[str, Any]) -> None:
                 f"market_value_miss={result['market_value_miss_rate']:.2f} "
                 f"low_turnover_miss={result['low_turnover_miss_rate']:.2f} "
                 f"max_position_miss={result['max_position_miss_rate']:.2f} "
-                f"trend_miss={result['trend_miss_rate']:.2f}"
+                f"trend_miss={result['trend_miss_rate']:.2f} "
+                f"percent_change_miss={result['percent_change_miss_rate']:.2f}"
             )
         elif task == "ambiguity":
             print(
