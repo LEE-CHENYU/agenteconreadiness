@@ -111,6 +111,13 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_PROVENANCE_SYSTEM = (
     "FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_CONTEXT_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_metadata_source_context\n"
+    "Infer the dollar-material discretionary holding action from repeated public-filing "
+    "rows, corporate-action source packets, and a separate registry. Return one final "
+    "line only: FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -838,6 +845,28 @@ ARTIFACT_METADATA_SOURCE_PROVENANCE_CASES = [
 ]
 
 
+ARTIFACT_METADATA_SOURCE_CONTEXT_CASES = [
+    FilingArtifactCase(
+        key="multi_artifact_source_context_conflicting_registry_close_runner_up",
+        real_case=(
+            "13F-style filing trace where repeated issuer history is paired with "
+            "natural source packets for target-period stock-split registry rows"
+        ),
+        manager_cik="0000000001",
+        manager_name="NEUTRALIZED PUBLIC-FILING ARTIFACT SOURCE-CONTEXT TRACE",
+        source_url=(
+            "public SEC-style repeated issuer filing rows plus neutralized corporate-action "
+            "registry rows and natural source packets"
+        ),
+        target_accession="neutralized-2026q1-artifact-metadata-source-context",
+        rows=ARTIFACT_METADATA_SOURCE_PROVENANCE_CASES[0].rows,
+        adjustment_factors=dict(ARTIFACT_METADATA_SOURCE_PROVENANCE_CASES[0].adjustment_factors),
+        artifact_notes=dict(ARTIFACT_METADATA_SOURCE_PROVENANCE_CASES[0].artifact_notes),
+        corporate_actions=ARTIFACT_METADATA_SOURCE_PROVENANCE_CASES[0].corporate_actions,
+    ),
+]
+
+
 def run_principal_holding_filing_trace_game(
     agent: Agent,
     cases: list[FilingTraceCase] | None = None,
@@ -1133,6 +1162,23 @@ def run_principal_holding_filing_artifact_metadata_source_provenance_game(
     )
 
 
+def run_principal_holding_filing_artifact_metadata_source_context_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_METADATA_SOURCE_CONTEXT_CASES,
+        task="principal_holding_filing_artifact_metadata_source_context",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_CONTEXT_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+        include_metadata=True,
+        include_conflict_warning=False,
+        include_source_context=True,
+    )
+
+
 def _run_principal_holding_filing_artifact_game(
     agent: Agent,
     *,
@@ -1145,6 +1191,7 @@ def _run_principal_holding_filing_artifact_game(
     include_conflict_warning: bool = True,
     include_validation_process: bool = False,
     include_source_provenance: bool = False,
+    include_source_context: bool = False,
 ) -> dict:
     cases = cases or ARTIFACT_CASES
     trials: list[FilingArtifactTrial] = []
@@ -1169,6 +1216,7 @@ def _run_principal_holding_filing_artifact_game(
                 include_conflict_warning=include_conflict_warning,
                 include_validation_process=include_validation_process,
                 include_source_provenance=include_source_provenance,
+                include_source_context=include_source_context,
             ),
         )
         chosen = parse_token("FINAL_ISSUER", response)
@@ -1467,6 +1515,7 @@ def _artifact_prompt(
     include_conflict_warning: bool = True,
     include_validation_process: bool = False,
     include_source_provenance: bool = False,
+    include_source_context: bool = False,
 ) -> str:
     lines = [
         f"case={case.key}",
@@ -1533,6 +1582,9 @@ def _artifact_prompt(
                 "corporate-action records; third_party_backfill_feed sources are "
                 "lower-reliability registry metadata."
             )
+        if include_source_context:
+            lines.append("Corporate action source packets:")
+            lines.extend(_corporate_action_source_packets(case))
         lines.append("Corporate action registry:")
         for entry in _corporate_action_registry_entries(case):
             line = (
@@ -1568,6 +1620,26 @@ def _corporate_action_registry_entries(
         for issuer, factor in sorted(case.adjustment_factors.items())
         if factor != 1
     )
+
+
+def _corporate_action_source_packets(case: FilingArtifactCase) -> list[str]:
+    packets: list[str] = []
+    for entry in _corporate_action_registry_entries(case):
+        if entry.source == "issuer_exchange_notice":
+            packets.append(
+                f"source_packet issuer={entry.issuer} provenance=issuer_exchange_notice "
+                f"text=Issuer/exchange notice reports a {_split_ratio_label(entry.ratio)} "
+                f"stock split effective {entry.effective_period}; transfer-agent notice "
+                "and exchange action bulletin are attached."
+            )
+        elif entry.source == "third_party_backfill_feed":
+            packets.append(
+                f"source_packet issuer={entry.issuer} provenance=third_party_backfill_feed "
+                f"text=Third-party security-master backfill lists a {_split_ratio_label(entry.ratio)} "
+                f"stock split effective {entry.effective_period}; no issuer notice, exchange "
+                "bulletin, or transfer-agent attachment is present."
+            )
+    return packets
 
 
 def _registry_has_missing_split_entries(case: FilingArtifactCase) -> bool:

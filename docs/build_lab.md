@@ -52,6 +52,10 @@ corporate-action context can induce that same validation without handing the
 agent a procedural scaffold. PR 129 tests the source-provenance branch with
 direct-vs-backfill source labels but no procedure; `nano` and `mini` still
 collapse to metadata-trusting choices, so source labels alone are not enough.
+PR 130 adds richer natural source packets; this still does not replace the
+procedure and even makes `gpt-5.5` metadata-trusting-modal in repeat-6, so
+source context can increase deference to confirmed registry rows unless it is
+paired with a validation operation.
 
 ## What is implemented
 
@@ -84,6 +88,7 @@ collapse to metadata-trusting choices, so source labels alone are not enough.
 | `principal_holding_filing_artifact_metadata_history_conflict` | Repeated-history conflicting-metadata C1 control: add an earlier issuer-level filing period while keeping the wrong confirmed split unmarked. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_history_conflict --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_validation_process` | Metadata-validation-process C1 control: keep the repeated-history wrong confirmed split, but add a generic row-ratio validation process without restoring the explicit conflict warning. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_validation_process --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_source_provenance` | Source-provenance C1 control: keep the repeated-history wrong confirmed split, but replace the validation process with registry source-reliability labels. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_provenance --agent offline:oracle` |
+| `principal_holding_filing_artifact_metadata_source_context` | Source-context C1 control: keep the repeated-history wrong confirmed split, but replace the validation process with natural issuer/exchange and third-party source packets. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_context --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -287,6 +292,11 @@ interpreting the economic metric.
   repeated-history wrong confirmed registry row, but with registry source
   provenance instead of the validation process; this tests whether source
   reliability labels alone can trigger the needed row/metadata cross-check.
+- `principal_holding_filing_artifact_metadata_source_context`: same
+  repeated-history wrong confirmed registry row, but with natural source
+  packets instead of the validation process; this tests whether richer
+  source-grounding helps or merely increases deference to confirmed registry
+  metadata.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -696,6 +706,12 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    metadata-trusting and `mini` remains metadata-trusting-modal in repeat-6.
    The next useful C1 move is therefore real corporate-action context or an
    even more natural source-grounding surface, not another synthetic source label
-   or clean annotated history.
+   or clean annotated history. PR 130 tests that richer source-grounding surface
+   with natural source packets. `nano` stays stable metadata-trusting and both
+   `mini` and `gpt-5.5` become metadata-trusting-modal in repeat-6. The result
+   is negative but useful: context that still leaves the false row `confirmed`
+   can amplify metadata deference. The next C1 move should remove the registry
+   confirmation crutch or use real corporate-action source rows rather than
+   adding more prose around the same confirmed false record.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.
