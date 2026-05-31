@@ -29,7 +29,8 @@ These are **points on one CRRA-γ × dynamics × barrier axis** (EV = γ0 single
 | Finding | Evidence | Confidence |
 |---|---|---|
 | Rationality (gate) saturated for frontier | probes + Chen 2023 CCEI ≈0.998 + TERMS AGR⁺ 0.95–0.999 | **high** |
-| Persona-fit *mechanism* works | predict-then-validate diagonal dominance (stylized investors) | medium-high |
+| Persona-fit *mechanism* works (stylized personas, real LLMs) | predict-then-validate diagonal dominance: Sonnet 4.6 +0.694 (3/3 rows self-match), Haiku 4.5 +0.563, both beat unconfigured default, below oracle ceiling +0.743 | medium-high |
+| Persona-fidelity on *real* 13F is hard (single-investor first run) | Buffett 13F utility fit is clean (α_kelly 0.7, δ 0.196, 98.5% reachability, 100% holdout); but LLM-as-Buffett predicting held-out quarters ≈ persistence baseline (MAE 0.52, −4.4%), rank-corr ρ=0.27, **asymmetric** (trims ρ0.22 recoverable, adds ρ0.04 near-random), conviction magnitude 4–5× too small | medium (1 investor) |
 | **EV-default is a liability (regime-blindness)** | a frontier model over-bet into ruin at the first compounding step before switching to Kelly | medium-high |
 | **Alignment↔economic tradeoff** | Andon Vending-Bench (Opus 4.8 better-aligned/worse-performance) + TERMS (Opus 4.6 > 4.7 surplus) | medium (2 benchmarks) |
 | Adversarial belief-manipulation test valid | scam-arena: control overpays while frontier resists single-decision scams | medium |
