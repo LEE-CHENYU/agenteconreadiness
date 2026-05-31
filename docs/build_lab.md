@@ -489,10 +489,13 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    `nano`; PRs 106-112 turn that into repeat reliability, target-margin,
    case-outcome attribution, baseline attribution, cross-agent sweeps, and
    per-case sweep drilldowns with keyed case targeting. PR 113 starts the
-   real-derived path with one public SEC 13F-HR filing trace, so the uncovered
-   questions are now narrower than "add more cases": does the flow/turnover
-   shortcut survive actual filing rows; do smaller aliases confuse market-value
-   drift with share action; and how noisy is predict-the-principal fidelity when
-   the reference is a quarterly public filing rather than a synthetic oracle?
+   real-derived path with one public SEC 13F-HR filing trace. Its first live
+   alias sweep is stable-oracle for `nano`, `mini`, and `gpt-5.5`, so the
+   uncovered questions are now narrower than "add more cases": which real
+   filing traces are genuinely ambiguous enough to test the flow/turnover
+   shortcut; do smaller aliases confuse market-value drift with share action
+   when the filing evidence is less clean; and how noisy is
+   predict-the-principal fidelity when the reference is a quarterly public
+   filing rather than a synthetic oracle?
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.
