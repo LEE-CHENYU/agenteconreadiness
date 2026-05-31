@@ -469,16 +469,26 @@ class OfflineAgent:
     def _principal_holding_filing_artifact(self, user: str) -> str:
         strict_metadata = self.policy not in {"metadata_naive", "registry_noise", "stale_metadata"}
         infer_missing_artifacts = self.policy not in {"metadata_only", "registry_only"}
+        validate_metadata = self.policy not in {
+            "metadata_naive",
+            "metadata_trusting",
+            "registry_noise",
+            "registry_trusting",
+            "stale_metadata",
+        }
         target_issuers = _extract_filing_artifact_changes(
             user,
             strict_metadata=strict_metadata,
             infer_missing_artifacts=infer_missing_artifacts,
+            validate_metadata=validate_metadata,
         )
         if self.policy in {
             "metadata_naive",
             "metadata_only",
+            "metadata_trusting",
             "registry_noise",
             "registry_only",
+            "registry_trusting",
             "stale_metadata",
         }:
             issuer_id = max(
@@ -4138,6 +4148,7 @@ def _extract_filing_artifact_changes(
     *,
     strict_metadata: bool = True,
     infer_missing_artifacts: bool = True,
+    validate_metadata: bool = True,
 ) -> dict[str, dict[str, float | str]]:
     base_changes = _extract_filing_trace_raw_changes(text)
     factor_pattern = re.compile(
@@ -4152,6 +4163,7 @@ def _extract_filing_artifact_changes(
         text,
         base_changes,
         strict_metadata=strict_metadata,
+        validate_metadata=validate_metadata,
     ).items():
         factors.setdefault(issuer, factor)
     if infer_missing_artifacts:
@@ -4190,6 +4202,7 @@ def _extract_corporate_action_factors(
     base_changes: dict[str, dict[str, float | str]],
     *,
     strict_metadata: bool,
+    validate_metadata: bool,
 ) -> dict[str, float]:
     factors: dict[str, float] = {}
     active_statuses = {"active", "confirmed", "effective"}
@@ -4216,8 +4229,19 @@ def _extract_corporate_action_factors(
                 continue
             if fields.get("status", "confirmed") not in active_statuses:
                 continue
-        factors.setdefault(issuer, float(ratio_match.group(1)))
+        ratio = float(ratio_match.group(1))
+        if validate_metadata and not _corporate_action_matches_rows(base_changes[issuer], ratio):
+            continue
+        factors.setdefault(issuer, ratio)
     return factors
+
+
+def _corporate_action_matches_rows(trade: dict[str, float | str], ratio: float) -> bool:
+    prior_shares = float(trade["prior_shares"])
+    if prior_shares <= 0:
+        return False
+    observed_ratio = float(trade["next_shares"]) / prior_shares
+    return abs(observed_ratio - ratio) <= 0.02
 
 
 def _infer_filing_artifact_factors(

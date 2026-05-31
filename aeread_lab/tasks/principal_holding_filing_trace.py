@@ -76,6 +76,13 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_PARTIAL_SYSTEM = (
     "missing split records. Return one final line only: FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_CONFLICT_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_metadata_conflict\n"
+    "Infer the dollar-material discretionary holding action from public-filing rows by "
+    "validating confirmed corporate-action registry records against filing-row evidence "
+    "before applying them. Return one final line only: FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -161,6 +168,7 @@ class FilingArtifactTrial:
     market_value_trade: str
     percent_change_trade: str
     second_best_trade: str
+    metadata_trusting_trade: str | None
     chosen_trade: str | None
     principal_score: float
     chosen_score: float | None
@@ -637,6 +645,51 @@ ARTIFACT_METADATA_PARTIAL_CASES = [
 ]
 
 
+ARTIFACT_METADATA_CONFLICT_CASES = [
+    FilingArtifactCase(
+        key="multi_artifact_conflicting_registry_close_runner_up",
+        real_case=(
+            "13F-style filing trace where the registry contains the right split "
+            "records plus a wrong-but-confirmed target-period split record that "
+            "conflicts with the filing-row ratios"
+        ),
+        manager_cik="0000000001",
+        manager_name="NEUTRALIZED PUBLIC-FILING ARTIFACT CONFLICTING-REGISTRY TRACE",
+        source_url=(
+            "public SEC-style 13F information table rows plus a neutralized "
+            "corporate-action registry with a confirmed conflicting record"
+        ),
+        target_accession="neutralized-2026q1-artifact-metadata-conflict",
+        rows=ARTIFACT_STRESS_CASES[0].rows,
+        adjustment_factors=dict(ARTIFACT_STRESS_CASES[0].adjustment_factors),
+        artifact_notes=dict(ARTIFACT_STRESS_CASES[0].artifact_notes),
+        corporate_actions=(
+            CorporateActionRegistryEntry(
+                "sec_stress_a",
+                "stock_split",
+                5.0,
+                "2026q1",
+                "neutralized_corporate_action_registry",
+            ),
+            CorporateActionRegistryEntry(
+                "sec_stress_d",
+                "stock_split",
+                4.0,
+                "2026q1",
+                "neutralized_corporate_action_registry",
+            ),
+            CorporateActionRegistryEntry(
+                "sec_stress_f",
+                "stock_split",
+                3.0,
+                "2026q1",
+                "neutralized_corporate_action_registry",
+            ),
+        ),
+    ),
+]
+
+
 def run_principal_holding_filing_trace_game(
     agent: Agent,
     cases: list[FilingTraceCase] | None = None,
@@ -850,6 +903,21 @@ def run_principal_holding_filing_artifact_metadata_partial_game(
     )
 
 
+def run_principal_holding_filing_artifact_metadata_conflict_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_METADATA_CONFLICT_CASES,
+        task="principal_holding_filing_artifact_metadata_conflict",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_CONFLICT_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+        include_metadata=True,
+    )
+
+
 def _run_principal_holding_filing_artifact_game(
     agent: Agent,
     *,
@@ -868,6 +936,9 @@ def _run_principal_holding_filing_artifact_game(
         market_value = artifact_market_value_issuer(case)
         percent_change = artifact_percent_change_issuer(case)
         second_best = artifact_second_best_issuer(case)
+        metadata_trusting = (
+            artifact_metadata_trusting_issuer(case) if include_metadata else None
+        )
         score_by_id = _normalized_artifact_scores(case)
         oracle_margin = _oracle_margin(score_by_id, principal)
         response = agent.complete(
@@ -890,6 +961,7 @@ def _run_principal_holding_filing_artifact_game(
                 market_value_trade=market_value,
                 percent_change_trade=percent_change,
                 second_best_trade=second_best,
+                metadata_trusting_trade=metadata_trusting,
                 chosen_trade=chosen,
                 principal_score=score_by_id[principal],
                 chosen_score=chosen_score,
@@ -963,6 +1035,24 @@ def artifact_second_best_issuer(case: FilingArtifactCase) -> str:
     if not ranked:
         raise ValueError("filing artifact case has no issuer changes")
     return ranked[1] if len(ranked) > 1 else ranked[0]
+
+
+def artifact_metadata_trusting_issuer(case: FilingArtifactCase) -> str | None:
+    factors: dict[str, float] = {}
+    target_period = _artifact_target_period(case)
+    active_statuses = {"", "active", "confirmed", "effective"}
+    for entry in _corporate_action_registry_entries(case):
+        if entry.action != "stock_split":
+            continue
+        if entry.effective_period != target_period:
+            continue
+        if entry.status not in active_statuses:
+            continue
+        factors.setdefault(entry.issuer, entry.ratio)
+    if not factors:
+        return None
+    changes = _artifact_changes_with_factors(case, factors)
+    return max(changes, key=lambda issuer: changes[issuer]["value"])
 
 
 def summarize_filing_trace_trials(
@@ -1047,6 +1137,12 @@ def summarize_filing_artifact_trials(
     second_best_missable = [
         trial for trial in trials if trial.second_best_trade != trial.principal_trade
     ]
+    metadata_trusting_missable = [
+        trial
+        for trial in trials
+        if trial.metadata_trusting_trade is not None
+        and trial.metadata_trusting_trade != trial.principal_trade
+    ]
     return {
         "task": task,
         "agent": agent_name,
@@ -1076,6 +1172,10 @@ def summarize_filing_artifact_trials(
         "second_best_miss_rate": _artifact_reference_miss_rate(
             second_best_missable,
             "second_best_trade",
+        ),
+        "metadata_trusting_miss_rate": _artifact_reference_miss_rate(
+            metadata_trusting_missable,
+            "metadata_trusting_trade",
         ),
         "trials": [_artifact_trial_json(trial) for trial in trials],
     }
@@ -1190,6 +1290,12 @@ def _artifact_prompt(
                 "split record is missing, use clean integer row-ratio evidence paired "
                 "with comparable economic exposure to identify mechanical unit changes."
             )
+        if _registry_has_conflicting_split_entries(case):
+            lines.append(
+                "Registry records may conflict with filing rows. Validate confirmed "
+                "stock-split records against target-period row-ratio evidence before "
+                "applying them."
+            )
         lines.append("Corporate action registry:")
         for entry in _corporate_action_registry_entries(case):
             line = (
@@ -1246,6 +1352,47 @@ def _registry_has_missing_split_entries(case: FilingArtifactCase) -> bool:
     return bool(expected - confirmed)
 
 
+def _registry_has_conflicting_split_entries(case: FilingArtifactCase) -> bool:
+    if not case.corporate_actions:
+        return False
+    target_period = _artifact_target_period(case)
+    rows_by_issuer = _artifact_rows_by_issuer(case)
+    for entry in case.corporate_actions:
+        if (
+            entry.action != "stock_split"
+            or entry.effective_period != target_period
+            or entry.status not in {"active", "confirmed", "effective"}
+        ):
+            continue
+        row_pair = rows_by_issuer.get(entry.issuer)
+        if not row_pair:
+            continue
+        prior, next_row = row_pair
+        if prior.shares <= 0:
+            continue
+        observed_ratio = next_row.shares / prior.shares
+        if abs(observed_ratio - entry.ratio) > 0.02:
+            return True
+    return False
+
+
+def _artifact_rows_by_issuer(
+    case: FilingArtifactCase,
+) -> dict[str, tuple[FilingTraceRow, FilingTraceRow]]:
+    periods = sorted({row.period for row in case.rows})
+    if len(periods) < 2:
+        return {}
+    prior_period, next_period = periods[-2], periods[-1]
+    rows: dict[str, dict[str, FilingTraceRow]] = {}
+    for row in case.rows:
+        rows.setdefault(row.issuer, {})[row.period] = row
+    return {
+        issuer: (period_rows[prior_period], period_rows[next_period])
+        for issuer, period_rows in rows.items()
+        if prior_period in period_rows and next_period in period_rows
+    }
+
+
 def _artifact_target_period(case: FilingArtifactCase) -> str:
     return sorted({row.period for row in case.rows})[-1]
 
@@ -1293,6 +1440,13 @@ def _normalized_artifact_scores(case: FilingArtifactCase) -> dict[str, float]:
 
 
 def _artifact_changes(case: FilingArtifactCase) -> dict[str, dict[str, float]]:
+    return _artifact_changes_with_factors(case, case.adjustment_factors)
+
+
+def _artifact_changes_with_factors(
+    case: FilingArtifactCase,
+    factors: dict[str, float],
+) -> dict[str, dict[str, float]]:
     rows_by_issuer: dict[str, list[FilingTraceRow]] = {}
     for row in case.rows:
         rows_by_issuer.setdefault(row.issuer, []).append(row)
@@ -1303,7 +1457,7 @@ def _artifact_changes(case: FilingArtifactCase) -> dict[str, dict[str, float]]:
             continue
         prior = ordered[-2]
         next_ = ordered[-1]
-        factor = case.adjustment_factors.get(issuer, 1.0)
+        factor = factors.get(issuer, 1.0)
         adjusted_prior_shares = prior.shares * factor
         adjusted_delta = next_.shares - adjusted_prior_shares
         observed_delta = next_.shares - prior.shares
