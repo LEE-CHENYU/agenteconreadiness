@@ -79,7 +79,17 @@ Current uncovered directions from the tests:
   offline baselines now separate status-aware metadata use from status-blind
   registry use, and live repeat-6 makes all OpenAI aliases stable-oracle. That
   pins the PR 130 regression on confirmed-status deference, not source-context
-  deference in general.
+  deference in general. PR 132 removes status labels from every row and
+  reopens the smaller-alias metadata-trusting/status-blind failure; PR 133
+  removes generic confirmation wording and shows the residual is not a wording
+  artifact. PR 134 then adds a realistic source-audit protocol over the same
+  status-neutral evidence and restores stable-oracle behavior for all aliases
+  in repeat-6. The question raised by the latest result is not how many filing
+  cases to add; it is which audit operation creates the recovery: primary
+  source attachment recognition, third-party backfill skepticism, row-ratio
+  reconciliation, or the full combination. The next uncovered directions are
+  audit-component ablations and real corporate-action source rows, plus real
+  13F inversion noise where source quality is not synthetically clean.
 - Real-derived C1 runner-up ambiguity: the Tiger `mini` runner-up miss did not
   reproduce in build-lab repeats. The question is which real filing trace
   creates repeat-reliable runner-up confusion under a clear dollar-material
@@ -233,6 +243,7 @@ Current uncovered directions from the tests:
 | 131 | `review/131-metadata-source-status-ablation` | source-status ablation registry scaffold | keeps PR130's natural source packets but changes the false third-party split from confirmed to unverified; offline status-aware metadata solves while status-blind metadata-naive has full regret, and live repeat-6 makes all three OpenAI aliases stable-oracle |
 | 132 | `review/132-metadata-source-status-neutral` | source-status-neutral registry scaffold | keeps PR130's natural source packets but removes status labels from every split row; offline source-trusting solves while metadata-trusting has full regret, and live repeat-6 keeps only `gpt-5.5` stable-oracle while `mini`/`nano` revert to metadata-trusting/status-blind-modal |
 | 133 | `review/133-metadata-source-status-neutral-intro` | source-status-neutral intro-wording scaffold | keeps PR132's status-neutral registry and source packets but removes the generic metadata-intro word `confirmed`; repeat-6 keeps `gpt-5.5` stable-oracle while `mini`/`nano` remain metadata-trusting/status-blind-modal, so the residual smaller-alias failure is not a wording artifact |
+| 134 | `review/134-metadata-source-audit` | source-audit registry scaffold | keeps PR133's status-neutral source packets but adds an operations-style primary-source/backfill audit and row-ratio reconciliation protocol; repeat-6 makes `nano`, `mini`, and `gpt-5.5` stable-oracle, shifting the next question to audit-component ablations and real source rows |
 
 ## Task result ledger
 
@@ -272,6 +283,7 @@ unless explicitly marked as historical/upstream.
 | `principal_holding_filing_artifact_metadata_source_status_ablation` | repeated-history artifact C1 control with natural source packets and an unverified false third-party split row | oracle score regret 0; source-reliability and metadata-trusting regret 0; second-best regret 0.0645161; percent-change regret 0.774194; metadata-naive, artifact-blind, and market-value baselines regret 1; oracle margin 0.0645161 | follows the PR130 negative result by removing the false row's confirmed status while keeping the same source-context surface. Offline dynamic range isolates confirmed-status deference: status-aware metadata use solves, but status-blind registry use still selects the false split. Live repeat-3 and repeat-6 make `nano`, `mini`, and `gpt-5.5` stable-oracle, so the PR130 live regression was tied to confirmed status |
 | `principal_holding_filing_artifact_metadata_source_status_neutral` | repeated-history artifact C1 control with natural source packets and no registry status labels | oracle score regret 0; source-reliability and metadata-source-trusting regret 0; second-best regret 0.0645161; percent-change regret 0.774194; metadata-trusting, metadata-naive, artifact-blind, and market-value baselines regret 1; oracle margin 0.0645161 | follows PR131 by removing status labels from both true and false source-context rows. This isolates whether live recovery came from the false row being negatively marked `unverified`, or from absence of a false `confirmed` cue plus source/row evidence. Live repeat-3 has `gpt-5.5` stable-oracle, `mini` oracle-modal with one percent-change miss, and `nano` stable metadata-trusting/status-blind; repeat-6 keeps `gpt-5.5` stable-oracle while `mini` and `nano` are metadata-trusting/status-blind-modal. Source context without a status signal is not enough for smaller aliases |
 | `principal_holding_filing_artifact_metadata_source_status_neutral_intro` | repeated-history artifact C1 control with natural source packets, no registry status labels, and no generic confirmation wording | oracle score regret 0; source-reliability and metadata-source-trusting regret 0; second-best regret 0.0645161; percent-change regret 0.774194; metadata-trusting, metadata-naive, artifact-blind, and market-value baselines regret 1; oracle margin 0.0645161 | follows PR132 by removing the prompt-intro `confirmed` word while leaving source packets and status-neutral registry rows unchanged. Live repeat-3 has `gpt-5.5` stable-oracle, `mini` stable metadata-trusting/status-blind, and `nano` metadata-trusting/status-blind-modal; repeat-6 keeps `gpt-5.5` stable-oracle while `mini` and `nano` remain metadata-trusting/status-blind-modal. The residual smaller-alias failure is not a prompt-wording artifact |
+| `principal_holding_filing_artifact_metadata_source_audit` | repeated-history artifact C1 control with status-neutral source packets and a primary-source/backfill audit protocol | oracle score regret 0; source-reliability and metadata-source-trusting regret 0; second-best regret 0.0645161; percent-change regret 0.774194; metadata-trusting, metadata-naive, artifact-blind, and market-value baselines regret 1; oracle margin 0.0645161 | follows PR133 by adding an operations-style audit protocol rather than another case: issuer/exchange/transfer-agent attachments are primary evidence, while third-party backfill rows without attachments must be reconciled against filing-row ratios before use. Live repeat-3 has `nano` and `gpt-5.5` stable-oracle while `mini` is oracle-modal with one percent-change miss; repeat-6 makes all aliases stable-oracle. The latest question is which audit component carries the recovery and whether real source rows preserve it |
 | `ambiguity` | maxmin/alpha-maxmin under Knightian ambiguity | oracle configured regret 0 across 5 cases; reference-prior regret 11.5796; pure-maxmin regret 2.32038; optimistic regret 14.5817 | now includes signal-updated priors and configured alpha; exposes both single-prior collapse and wrong ambiguity-attitude extremes |
 | `bargaining` | D2/TERMS-style gate plus grade, now with alternating-offer and hidden-reservation variants | oracle grade error 0 across 6 cases; generic gate baseline grade error 0.374225; round-blind alternating-offer miss 1.00; optimistic-budget hidden-reservation miss 1.00 | confirms "gate-only surplus extraction" is not grade fidelity and adds first protocol/reservation-depth stressors |
 | `belief_bargaining` | cue use, posterior bargaining, multi-turn opponent modeling, and strategic cheap-talk likelihoods | oracle surplus gap 0 across 9 prompts; prior baseline gap 13.6088; single-cue baseline gap 33.5649 with multi-turn miss 1.00; literal-claim baseline gap 60.1056; live `nano` strategic base gap 52.4859 but scaffold gap 0 | implements the bargaining-Bayes falsifier from source `7cb0ca8`: when posterior state is externalized, `nano` closes the strategic cheap-talk gap, isolating implicit sequential belief-state failure |
@@ -649,9 +661,16 @@ revealed-style inference.
 | PR133 source-status-neutral-intro live follow-up | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_metadata_source_status_neutral_intro --agents openai:nano,openai:mini,openai:gpt-5.5 --repeat 6 --case multi_artifact_source_status_neutral_intro_conflicting_registry_close_runner_up --no-cache` | `gpt-5.5` remains stable-oracle; `mini` is metadata-trusting/status-blind-modal with mean regret 0.833333; `nano` is stable metadata-trusting/status-blind with mean regret 1 |
 | PR133 full all-task oracle | `python -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 103 current task runners execute; oracle path remains clean, including `principal_holding_filing_artifact_metadata_source_status_neutral_intro` with `n=1`, score regret 0, accuracy 1.00, and oracle margin 0.0645 |
 | PR133 full pytest | `python -m pytest` | 331 tests passed |
+| PR134 focused source-audit tests | `python -m pytest tests/test_tasks.py -k 'source_audit or source_status_neutral_intro or source_status_neutral or source_status_ablation or source_context or source_provenance or validation_process or metadata_history_conflict or history_conflict or metadata_unmarked_conflict or filing_artifact_metadata'` | 52 selected tests passed; the prompt adds a source-audit protocol while keeping status-neutral registry rows, no generic confirmation wording, no explicit conflict warning, and no `Validation process:` block |
+| PR134 broader C1 filing tests | `python -m pytest tests/test_tasks.py -k 'filing_artifact or filing_trace or principal_holding'` | 88 selected tests passed |
+| PR134 source-audit shortcut sweep | `python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_metadata_source_audit --agents offline:oracle,offline:source_reliability,offline:metadata_source_trusting,offline:metadata_trusting,offline:metadata_naive,offline:artifact_blind,offline:market_value,offline:percent_change,offline:second_best --no-cache` | oracle, source-reliability, and metadata-source-trusting rank first with score regret 0; second-best regret 0.0645161; percent-change regret 0.774194; metadata-trusting, metadata-naive, artifact-blind, and market-value regret 1 |
+| PR134 source-audit live repeat | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_metadata_source_audit --agents openai:nano,openai:mini,openai:gpt-5.5 --repeat 3 --case multi_artifact_source_audit_conflicting_registry_close_runner_up --no-cache` | `nano` and `gpt-5.5` are stable-oracle; `mini` is unstable-oracle-modal with mean regret 0.258065, accuracy 0.666667, and one percent-change miss |
+| PR134 source-audit live follow-up | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_metadata_source_audit --agents openai:nano,openai:mini,openai:gpt-5.5 --repeat 6 --case multi_artifact_source_audit_conflicting_registry_close_runner_up --no-cache` | `nano`, `mini`, and `gpt-5.5` are stable-oracle with parse floor 1.00, score regret 0, accuracy 1.00, and modal `sec_stress_b` |
+| PR134 full all-task oracle | `python -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 104 current task runners execute; oracle path remains clean, including `principal_holding_filing_artifact_metadata_source_audit` with `n=1`, score regret 0, accuracy 1.00, and oracle margin 0.0645 |
+| PR134 full pytest | `python -m pytest` | 335 tests passed |
 | Whitespace check | `git diff --check` | passed with no output |
-| API key scan | `rg -n "sk-proj-[A-Za-z0-9_-]{20,}" .` | no tracked API key strings found |
-| Provider guardrail scan | `rg --pcre2 -n "openai:(?!gpt-5\\.5|mini|nano)|gpt-4|claude|gemini|anthropic" -S aeread_lab tests docs` | only expected documentation/test guardrail matches; no non-OpenAI client path added |
+| API key scan | `rg -n "sk-proj-[A-Za-z0-9_-]{40,}" . || true` | no tracked API key strings found |
+| Provider guardrail scan | `rg --pcre2 -n "openai:(?!gpt-5\\.5|mini|nano)|gpt-4|claude|gemini|anthropic|\\bgrok\\b|\\bdeepseek\\b|\\bllama\\b|\\bmistral\\b|\\bcohere\\b|\\bperplexity\\b" -S aeread_lab tests docs README.md || true` | only expected documentation/test guardrail matches plus the OpenAI runtime path; no non-OpenAI client path added |
 
 ### Live OpenAI API validation
 
@@ -1377,3 +1396,23 @@ build lab should not depend on `.playwright-mcp/` logs or the local
      PR 130 regression on confirmed-status deference specifically; the next C1
      depth step should use real corporate-action source rows or real 13F
      inversion noise rather than another synthetic confirmed false record.
+108. PR 132 removes every registry status label while keeping the same source
+     packets. Offline baselines still separate the desired source/row
+     validation behavior from status-blind metadata trust, but live repeat-6
+     leaves only `gpt-5.5` stable-oracle; `nano` and `mini` revert to
+     metadata-trusting/status-blind-modal. The new question is not case breadth:
+     it is whether smaller aliases need a negative status, an explicit
+     validation procedure, or a more operational source audit to connect source
+     packets to filing-row ratios.
+109. PR 133 removes the remaining prompt-intro `confirmed` wording from PR 132.
+     The result is unchanged for the smaller aliases in repeat-6. This rules
+     out a trivial wording artifact and sharpens the next direction to a real
+     evidence-use question: source context without status is present, but the
+     model is not reliably performing the row/metadata cross-check.
+110. PR 134 adds an operations-style source-audit protocol over the same
+     status-neutral evidence. Repeat-3 leaves `mini` with one percent-change
+     miss, but repeat-6 makes `nano`, `mini`, and `gpt-5.5` stable-oracle. The
+     depth question produced by the test is now an ablation map, not more
+     examples: test primary-source attachment recognition, third-party backfill
+     skepticism, and row-ratio reconciliation separately, then replace the
+     synthetic source packets with real corporate-action source rows.

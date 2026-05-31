@@ -71,7 +71,16 @@ label, so PR 133 removes that confirmation wording while leaving the registry
 and source packets unchanged. Repeat-6 keeps `gpt-5.5` stable-oracle, while
 `mini` and `nano` remain metadata-trusting/status-blind-modal; the residual is
 therefore not a wording artifact. Smaller aliases need an explicit negative
-status, a validation process, or a stronger source-audit scaffold.
+status, a validation process, or a stronger source-audit scaffold. PR 134 tests
+that last branch without adding a new case target: it keeps the status-neutral
+registry and source packets, but adds an operations-style source audit for
+primary issuer/exchange/transfer-agent evidence versus unbacked third-party
+backfill rows. Repeat-6 makes `nano`, `mini`, and `gpt-5.5` stable-oracle. The
+result is depth, not breadth: the useful object is the audit operation that
+connects source provenance to row-ratio reconciliation, not another filing
+fixture. The next questions are which sub-operation carries the gain, whether
+real corporate-action source rows induce the same cross-check, and whether
+real 13F inversion noise reopens the failure under less synthetic evidence.
 
 ## What is implemented
 
@@ -108,6 +117,7 @@ status, a validation process, or a stronger source-audit scaffold.
 | `principal_holding_filing_artifact_metadata_source_status_ablation` | Source-status-ablation C1 control: keep natural source packets but mark the false third-party split row unverified, testing whether the PR130 miss depended on the false row's confirmed status. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_status_ablation --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_source_status_neutral` | Source-status-neutral C1 control: keep natural source packets but remove all registry status labels, testing whether source context or row validation survives once `confirmed` is absent everywhere. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_status_neutral --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_source_status_neutral_intro` | Source-status-neutral-intro C1 control: keep the status-neutral source packet task but remove the generic metadata-intro word `confirmed`, testing whether PR132's smaller-alias miss was a wording artifact. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_status_neutral_intro --agent offline:oracle` |
+| `principal_holding_filing_artifact_metadata_source_audit` | Source-audit C1 control: keep status-neutral source packets but add a realistic audit protocol that treats issuer/exchange/transfer-agent attachments as primary evidence and reconciles unbacked third-party split claims against filing-row ratios. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_audit --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -753,6 +763,16 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    status-blind metadata-naive baseline has full regret. Live repeat-3 and
    repeat-6 make `nano`, `mini`, and `gpt-5.5` stable-oracle, so the persistent
    PR 130 failure was the false row's `confirmed` status, not merely the
-   presence of natural source packets.
+   presence of natural source packets. PR 132 removes all status labels while
+   keeping the same source packets; `gpt-5.5` remains stable-oracle, but `nano`
+   and `mini` become metadata-trusting/status-blind-modal. PR 133 removes the
+   remaining generic confirmation wording and gets the same smaller-alias miss,
+   so the issue is not case count or phrasing. PR 134 adds an operations-style
+   source audit that tells the model how primary source attachments and
+   third-party backfill rows should be reconciled against filing-row ratios.
+   Repeat-6 makes all three aliases stable-oracle. The next C1 question is
+   which audit sub-operation is doing the work, and whether real
+   corporate-action source rows or real 13F inversion noise preserve the same
+   source-to-row cross-check without a synthetic protocol sentence.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.
