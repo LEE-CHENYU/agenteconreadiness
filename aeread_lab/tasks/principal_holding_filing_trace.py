@@ -54,6 +54,13 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_IMPLICIT_STABLE_SYSTEM = (
     "FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_metadata\n"
+    "Infer the dollar-material discretionary holding action from public-filing rows by "
+    "joining raw filing rows to a separate corporate-action registry. Return one final "
+    "line only: FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -594,6 +601,7 @@ def run_principal_holding_filing_artifact_game(
         system=PRINCIPAL_HOLDING_FILING_ARTIFACT_SYSTEM,
         include_factor=True,
         include_notes=True,
+        include_metadata=False,
     )
 
 
@@ -608,6 +616,7 @@ def run_principal_holding_filing_artifact_natural_game(
         system=PRINCIPAL_HOLDING_FILING_ARTIFACT_NATURAL_SYSTEM,
         include_factor=False,
         include_notes=True,
+        include_metadata=False,
     )
 
 
@@ -622,6 +631,7 @@ def run_principal_holding_filing_artifact_stress_game(
         system=PRINCIPAL_HOLDING_FILING_ARTIFACT_STRESS_SYSTEM,
         include_factor=False,
         include_notes=True,
+        include_metadata=False,
     )
 
 
@@ -636,6 +646,7 @@ def run_principal_holding_filing_artifact_implicit_game(
         system=PRINCIPAL_HOLDING_FILING_ARTIFACT_IMPLICIT_SYSTEM,
         include_factor=False,
         include_notes=False,
+        include_metadata=False,
     )
 
 
@@ -650,6 +661,22 @@ def run_principal_holding_filing_artifact_implicit_stable_game(
         system=PRINCIPAL_HOLDING_FILING_ARTIFACT_IMPLICIT_STABLE_SYSTEM,
         include_factor=False,
         include_notes=False,
+        include_metadata=False,
+    )
+
+
+def run_principal_holding_filing_artifact_metadata_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_STRESS_CASES,
+        task="principal_holding_filing_artifact_metadata",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+        include_metadata=True,
     )
 
 
@@ -661,6 +688,7 @@ def _run_principal_holding_filing_artifact_game(
     system: str,
     include_factor: bool,
     include_notes: bool,
+    include_metadata: bool,
 ) -> dict:
     cases = cases or ARTIFACT_CASES
     trials: list[FilingArtifactTrial] = []
@@ -674,7 +702,12 @@ def _run_principal_holding_filing_artifact_game(
         oracle_margin = _oracle_margin(score_by_id, principal)
         response = agent.complete(
             system,
-            _artifact_prompt(case, include_factor=include_factor, include_notes=include_notes),
+            _artifact_prompt(
+                case,
+                include_factor=include_factor,
+                include_notes=include_notes,
+                include_metadata=include_metadata,
+            ),
         )
         chosen = parse_token("FINAL_ISSUER", response)
         chosen = chosen if chosen in score_by_id else None
@@ -939,6 +972,7 @@ def _artifact_prompt(
     *,
     include_factor: bool = True,
     include_notes: bool = True,
+    include_metadata: bool = False,
 ) -> str:
     lines = [
         f"case={case.key}",
@@ -973,12 +1007,30 @@ def _artifact_prompt(
             "stable economic exposure should be treated as mechanical unit changes before "
             "scoring discretionary share actions."
         )
+    if include_metadata:
+        lines.append("Corporate action registry:")
+        for issuer in sorted(case.adjustment_factors):
+            factor = case.adjustment_factors[issuer]
+            if factor == 1:
+                continue
+            ratio = _split_ratio_label(factor)
+            lines.append(
+                f"corporate_action issuer={issuer} action=stock_split ratio={ratio} "
+                "effective_period=2026q1 source=neutralized_corporate_action_registry"
+            )
     issuers = ", ".join(sorted({row.issuer for row in case.rows}))
     lines.append(f"issuer_choices={issuers}")
     lines.append(
         "Return the issuer id with the largest adjusted dollar-material discretionary share action."
     )
     return "\n".join(lines)
+
+
+def _split_ratio_label(factor: float) -> str:
+    rounded = round(factor)
+    if abs(factor - rounded) < 1e-9:
+        return f"{rounded}-for-1"
+    return f"{factor:.6g}-for-1"
 
 
 def _action_value(trade: FilingTraceTrade) -> float:

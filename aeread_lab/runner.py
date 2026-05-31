@@ -58,6 +58,7 @@ TASK_ORDER = (
     "principal_holding_filing_artifact_stress",
     "principal_holding_filing_artifact_implicit",
     "principal_holding_filing_artifact_implicit_stable",
+    "principal_holding_filing_artifact_metadata",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -187,6 +188,10 @@ _CASE_TASKS = {
     "principal_holding_filing_artifact_implicit_stable": (
         principal_holding_filing_trace_task.run_principal_holding_filing_artifact_implicit_stable_game,
         principal_holding_filing_trace_task.ARTIFACT_IMPLICIT_STABLE_CASES,
+    ),
+    "principal_holding_filing_artifact_metadata": (
+        principal_holding_filing_trace_task.run_principal_holding_filing_artifact_metadata_game,
+        principal_holding_filing_trace_task.ARTIFACT_STRESS_CASES,
     ),
     "ambiguity": (ambiguity_task.run_ambiguity_game, ambiguity_task.DEFAULT_CASES),
     "bargaining": (bargaining_task.run_bargaining_game, bargaining_task.DEFAULT_CASES),

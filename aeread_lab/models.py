@@ -4126,6 +4126,12 @@ def _extract_filing_artifact_changes(text: str) -> dict[str, dict[str, float | s
     note_pattern = re.compile(r"artifact_note\s+issuer=([a-zA-Z0-9_-]+)\s+note=(.*)")
     for match in note_pattern.finditer(text):
         factors.setdefault(match.group(1), _filing_artifact_factor_from_note(match.group(2)))
+    metadata_pattern = re.compile(
+        r"corporate_action\s+issuer=([a-zA-Z0-9_-]+)\s+"
+        r".*?ratio=([-+]?\d+(?:\.\d+)?)[- ]for[- ]1"
+    )
+    for match in metadata_pattern.finditer(text):
+        factors.setdefault(match.group(1), float(match.group(2)))
     if not factors and "No separate corporate-action notes are provided" in text:
         factors.update(_infer_filing_artifact_factors(base_changes))
     changes: dict[str, dict[str, float | str]] = {}

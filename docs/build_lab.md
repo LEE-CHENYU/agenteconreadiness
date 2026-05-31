@@ -34,11 +34,13 @@ channel and shows that no-note artifact inference can also trigger
 reported-value drift in `gpt-5.5`. PR 121 controls one evidence channel by
 keeping the same implicit split-like row ratios but making the affected reported
 values stable, so the result can distinguish artifact-inference weakness from a
-conflicting value-drift signal. The open question is therefore not "how many
-more filing cases can we add?" It is which evidence channel makes
-dollar-material principal-choice inference robust: row-ratio patterns, value
-stability, real corporate-action metadata, repeated filing history, or a
-different shortcut attribution.
+conflicting value-drift signal. PR 122 adds the complementary metadata control:
+same conflicting-value rows as PR 120, but a separate corporate-action registry
+identifies the split rows. The open question is therefore not "how many more
+filing cases can we add?" It is which evidence channel makes dollar-material
+principal-choice inference robust: row-ratio patterns, value stability, real
+corporate-action metadata, repeated filing history, or a different shortcut
+attribution.
 
 ## What is implemented
 
@@ -63,6 +65,7 @@ different shortcut attribution.
 | `principal_holding_filing_artifact_stress` | Composite filing-artifact C1 stress: combine multiple corporate-action artifacts, value drift, percentage salience, and a close runner-up discretionary action. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_stress --agent offline:oracle` |
 | `principal_holding_filing_artifact_implicit` | Implicit filing-artifact C1 stress: remove corporate-action notes and require split-like artifact inference from raw filing-row patterns before scoring the discretionary action. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_implicit --agent offline:oracle` |
 | `principal_holding_filing_artifact_implicit_stable` | Value-stable implicit filing-artifact C1 control: keep the no-note split-like row-ratio task but remove the conflicting reported-value jump from the artifact row. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_implicit_stable --agent offline:oracle` |
+| `principal_holding_filing_artifact_metadata` | Corporate-action metadata C1 control: keep the conflicting-value no-note stress rows, but add a separate stock-split registry that must be joined to filing rows. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -234,6 +237,10 @@ interpreting the economic metric.
   setup, but the split-like artifact rows also have value-stability evidence;
   this tests whether PR 120's no-note misses come from implicit artifact
   inference itself or from a conflicting reported-value channel.
+- `principal_holding_filing_artifact_metadata`: same score and conflicting-value
+  rows as PR 120, but adds a separate corporate-action registry; this tests
+  whether metadata can override reported-value drift without returning to
+  inline artifact notes.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -603,6 +610,11 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    and the repeat-6 `nano`/`gpt-5.5` follow-up also stays stable-oracle. That
    makes the PR 120 top-alias miss an evidence-channel conflict result: no notes
    alone are not enough to break the top alias when clean row-ratio evidence is
-   paired with stable reported value.
+   paired with stable reported value. PR 122 tests the complementary fix:
+   restoring a separate corporate-action registry while keeping the conflicting
+   reported-value movement. `gpt-5.5` becomes stable-oracle in the repeat-6
+   metadata control, while `nano` remains oracle-modal with one artifact-blind
+   miss. The top-alias failure is therefore a missing-metadata/value-conflict
+   issue; the smaller-model residual is registry-use reliability.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.
