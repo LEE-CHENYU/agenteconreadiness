@@ -104,6 +104,13 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_VALIDATION_PROCESS_SYSTEM = (
     "against filing rows. Return one final line only: FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_PROVENANCE_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_metadata_source_provenance\n"
+    "Infer the dollar-material discretionary holding action from repeated public-filing "
+    "rows and a provenance-labeled corporate-action registry. Return one final line only: "
+    "FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -787,6 +794,50 @@ ARTIFACT_METADATA_VALIDATION_PROCESS_CASES = [
 ]
 
 
+ARTIFACT_METADATA_SOURCE_PROVENANCE_CASES = [
+    FilingArtifactCase(
+        key="multi_artifact_source_provenance_conflicting_registry_close_runner_up",
+        real_case=(
+            "13F-style filing trace where repeated issuer history is paired with "
+            "source-provenance labels for target-period stock-split registry rows"
+        ),
+        manager_cik="0000000001",
+        manager_name="NEUTRALIZED PUBLIC-FILING ARTIFACT SOURCE-PROVENANCE TRACE",
+        source_url=(
+            "public SEC-style repeated issuer filing rows plus a neutralized "
+            "corporate-action registry with source-provenance labels"
+        ),
+        target_accession="neutralized-2026q1-artifact-metadata-source-provenance",
+        rows=ARTIFACT_METADATA_HISTORY_CONFLICT_CASES[0].rows,
+        adjustment_factors=dict(ARTIFACT_METADATA_HISTORY_CONFLICT_CASES[0].adjustment_factors),
+        artifact_notes=dict(ARTIFACT_METADATA_HISTORY_CONFLICT_CASES[0].artifact_notes),
+        corporate_actions=(
+            CorporateActionRegistryEntry(
+                "sec_stress_a",
+                "stock_split",
+                5.0,
+                "2026q1",
+                "issuer_exchange_notice",
+            ),
+            CorporateActionRegistryEntry(
+                "sec_stress_d",
+                "stock_split",
+                4.0,
+                "2026q1",
+                "third_party_backfill_feed",
+            ),
+            CorporateActionRegistryEntry(
+                "sec_stress_f",
+                "stock_split",
+                3.0,
+                "2026q1",
+                "issuer_exchange_notice",
+            ),
+        ),
+    ),
+]
+
+
 def run_principal_holding_filing_trace_game(
     agent: Agent,
     cases: list[FilingTraceCase] | None = None,
@@ -1065,6 +1116,23 @@ def run_principal_holding_filing_artifact_metadata_validation_process_game(
     )
 
 
+def run_principal_holding_filing_artifact_metadata_source_provenance_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_METADATA_SOURCE_PROVENANCE_CASES,
+        task="principal_holding_filing_artifact_metadata_source_provenance",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_PROVENANCE_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+        include_metadata=True,
+        include_conflict_warning=False,
+        include_source_provenance=True,
+    )
+
+
 def _run_principal_holding_filing_artifact_game(
     agent: Agent,
     *,
@@ -1076,6 +1144,7 @@ def _run_principal_holding_filing_artifact_game(
     include_metadata: bool,
     include_conflict_warning: bool = True,
     include_validation_process: bool = False,
+    include_source_provenance: bool = False,
 ) -> dict:
     cases = cases or ARTIFACT_CASES
     trials: list[FilingArtifactTrial] = []
@@ -1099,6 +1168,7 @@ def _run_principal_holding_filing_artifact_game(
                 include_metadata=include_metadata,
                 include_conflict_warning=include_conflict_warning,
                 include_validation_process=include_validation_process,
+                include_source_provenance=include_source_provenance,
             ),
         )
         chosen = parse_token("FINAL_ISSUER", response)
@@ -1396,6 +1466,7 @@ def _artifact_prompt(
     include_metadata: bool = False,
     include_conflict_warning: bool = True,
     include_validation_process: bool = False,
+    include_source_provenance: bool = False,
 ) -> str:
     lines = [
         f"case={case.key}",
@@ -1455,6 +1526,12 @@ def _artifact_prompt(
                 "compute observed_ratio=next_period_shares/prior_period_shares from "
                 "the filing rows. Apply the split only when observed_ratio approximately "
                 "matches the registry ratio before scoring discretionary share actions."
+            )
+        if include_source_provenance:
+            lines.append(
+                "Registry provenance: issuer_exchange_notice sources are direct "
+                "corporate-action records; third_party_backfill_feed sources are "
+                "lower-reliability registry metadata."
             )
         lines.append("Corporate action registry:")
         for entry in _corporate_action_registry_entries(case):

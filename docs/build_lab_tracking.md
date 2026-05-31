@@ -64,9 +64,13 @@ Current uncovered directions from the tests:
   smaller aliases remain metadata-trusting-modal. PR 128 adds a generic
   row-ratio validation process without restoring the explicit conflict warning;
   all aliases become stable-oracle in repeat-6. The current question is
-  therefore depth within registry grounding: whether real corporate-action
-  provenance or source reliability can induce metadata-row cross-checking
-  without a procedural validation scaffold.
+  therefore depth within registry grounding: whether source reliability can
+  induce metadata-row cross-checking without a procedural validation scaffold.
+  PR 129 tests direct-vs-backfill source provenance without the procedure;
+  `nano` and `mini` still choose metadata-trusting actions in repeat-6, while
+  `gpt-5.5` remains stable-oracle. The next C1 question is real
+  corporate-action context or a more natural source-grounding surface, not more
+  synthetic provenance labels.
 - Real-derived C1 runner-up ambiguity: the Tiger `mini` runner-up miss did not
   reproduce in build-lab repeats. The question is which real filing trace
   creates repeat-reliable runner-up confusion under a clear dollar-material
@@ -215,6 +219,7 @@ Current uncovered directions from the tests:
 | 126 | `review/126-unmarked-conflicting-metadata` | unmarked wrong-confirmed registry control | removes the explicit conflict warning from PR125 while keeping the false confirmed split; `nano` and `mini` become metadata-trusting-modal, while `gpt-5.5` remains stable-oracle |
 | 127 | `review/127-history-conflicting-metadata` | repeated-history wrong-confirmed registry control | adds an earlier filing period for every issuer while keeping the false confirmed split unmarked; `nano` and `mini` remain metadata-trusting-modal, while `gpt-5.5` remains stable-oracle |
 | 128 | `review/128-metadata-validation-process` | generic metadata-validation process scaffold | adds row-ratio validation process without restoring the conflict warning; repeat-6 makes `nano`, `mini`, and `gpt-5.5` stable-oracle |
+| 129 | `review/129-metadata-source-provenance` | source-provenance registry scaffold | replaces the validation process with direct-vs-backfill source labels; repeat-6 keeps `nano` stable metadata-trusting and `mini` metadata-trusting-modal while `gpt-5.5` remains stable-oracle |
 
 ## Task result ledger
 
@@ -249,6 +254,7 @@ unless explicitly marked as historical/upstream.
 | `principal_holding_filing_artifact_metadata_unmarked_conflict` | conflicting-value artifact C1 control with an unmarked wrong confirmed stock-split registry record | oracle score regret 0; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind, market-value, and metadata-trusting baselines regret 1; oracle margin 0.0645161 | removes PR125's explicit registry-conflict warning while keeping the same false confirmed split. Live repeat-3 has `nano` stable metadata-trusting non-oracle, `mini` unstable-non-oracle-modal, and `gpt-5.5` stable-oracle; repeat-6 keeps `gpt-5.5` stable while `nano` and `mini` are metadata-trusting-modal |
 | `principal_holding_filing_artifact_metadata_history_conflict` | repeated-history artifact C1 control with an unmarked wrong confirmed stock-split registry record | oracle score regret 0; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind, market-value, and metadata-trusting baselines regret 1; oracle margin 0.0645161 | adds a prior issuer-level filing period to PR126 without adding a conflict warning. Live repeat-3 and repeat-6 keep `gpt-5.5` stable-oracle while `nano` and `mini` remain metadata-trusting-modal, so synthetic history alone does not fix the smaller-alias validation failure |
 | `principal_holding_filing_artifact_metadata_validation_process` | repeated-history artifact C1 control with a row-ratio metadata-validation process | oracle score regret 0; metadata-validator regret 0; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind, market-value, and metadata-trusting baselines regret 1; oracle margin 0.0645161 | adds a generic process cue to compute observed row ratios before accepting registry splits, but does not restore the explicit conflict warning. Live repeat-3 has `nano` and `gpt-5.5` stable-oracle while `mini` has one percent-change miss; repeat-6 makes all three aliases stable-oracle, so the PR126/127 smaller-alias failure was process-cue sensitivity rather than missing row evidence |
+| `principal_holding_filing_artifact_metadata_source_provenance` | repeated-history artifact C1 control with source-labeled stock-split registry rows | oracle score regret 0; source-reliability regret 0; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind, market-value, and metadata-trusting baselines regret 1; oracle margin 0.0645161 | replaces PR128's row-ratio validation process with source provenance labels that distinguish direct issuer/exchange notices from lower-reliability third-party backfill metadata. Live repeat-3 has `gpt-5.5` stable-oracle, `mini` stable metadata-trusting, and `nano` metadata-trusting-modal; repeat-6 keeps `gpt-5.5` stable-oracle while `nano` is stable metadata-trusting and `mini` is metadata-trusting-modal. Source labels alone do not fix the smaller-alias validation failure |
 | `ambiguity` | maxmin/alpha-maxmin under Knightian ambiguity | oracle configured regret 0 across 5 cases; reference-prior regret 11.5796; pure-maxmin regret 2.32038; optimistic regret 14.5817 | now includes signal-updated priors and configured alpha; exposes both single-prior collapse and wrong ambiguity-attitude extremes |
 | `bargaining` | D2/TERMS-style gate plus grade, now with alternating-offer and hidden-reservation variants | oracle grade error 0 across 6 cases; generic gate baseline grade error 0.374225; round-blind alternating-offer miss 1.00; optimistic-budget hidden-reservation miss 1.00 | confirms "gate-only surplus extraction" is not grade fidelity and adds first protocol/reservation-depth stressors |
 | `belief_bargaining` | cue use, posterior bargaining, multi-turn opponent modeling, and strategic cheap-talk likelihoods | oracle surplus gap 0 across 9 prompts; prior baseline gap 13.6088; single-cue baseline gap 33.5649 with multi-turn miss 1.00; literal-claim baseline gap 60.1056; live `nano` strategic base gap 52.4859 but scaffold gap 0 | implements the bargaining-Bayes falsifier from source `7cb0ca8`: when posterior state is externalized, `nano` closes the strategic cheap-talk gap, isolating implicit sequential belief-state failure |
@@ -591,6 +597,13 @@ revealed-style inference.
 | PR128 validation-process live follow-up | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_metadata_validation_process --agents openai:nano,openai:mini,openai:gpt-5.5 --repeat 6 --case multi_artifact_validation_process_conflicting_registry_close_runner_up --no-cache` | `nano`, `mini`, and `gpt-5.5` are stable-oracle with parse floor 1.00, score regret 0, accuracy 1.00, and modal `sec_stress_b` |
 | PR128 full all-task oracle | `python -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 98 current task runners execute; oracle path remains clean, including `principal_holding_filing_artifact_metadata_validation_process` with `n=1`, score regret 0, accuracy 1.00, and oracle margin 0.0645 |
 | PR128 full pytest | `python -m pytest` | 311 tests passed |
+| PR129 focused source-provenance tests | `python -m pytest tests/test_tasks.py -k 'source_provenance or validation_process or metadata_history_conflict or history_conflict or metadata_unmarked_conflict or filing_artifact_metadata'` | 32 selected tests passed; the prompt adds source-provenance labels, keeps the false confirmed split, and omits both the explicit conflict warning and the row-ratio validation process |
+| PR129 broader C1 filing tests | `python -m pytest tests/test_tasks.py -k 'filing_artifact or filing_trace or principal_holding'` | 68 selected tests passed |
+| PR129 source-provenance shortcut sweep | `python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_metadata_source_provenance --agents offline:oracle,offline:source_reliability,offline:artifact_blind,offline:market_value,offline:percent_change,offline:second_best,offline:metadata_trusting --no-cache` | oracle and source-reliability rank first with score regret 0; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind, market-value, and metadata-trusting regret 1 |
+| PR129 source-provenance live repeat | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_metadata_source_provenance --agents openai:nano,openai:mini,openai:gpt-5.5 --repeat 3 --case multi_artifact_source_provenance_conflicting_registry_close_runner_up --no-cache` | `gpt-5.5` is stable-oracle; `mini` is stable metadata-trusting with mean regret 1; `nano` is unstable-non-oracle-modal with mean regret 0.666667 and choice refs `metadata_trusting:2` |
+| PR129 source-provenance live follow-up | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_metadata_source_provenance --agents openai:nano,openai:mini,openai:gpt-5.5 --repeat 6 --case multi_artifact_source_provenance_conflicting_registry_close_runner_up --no-cache` | `gpt-5.5` is stable-oracle; `nano` is stable metadata-trusting with mean regret 1 and choice refs `metadata_trusting:6`; `mini` is unstable-non-oracle-modal with mean regret 0.833333 and choice refs `metadata_trusting:5` |
+| PR129 full all-task oracle | `python -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 99 current task runners execute; oracle path remains clean, including `principal_holding_filing_artifact_metadata_source_provenance` with `n=1`, score regret 0, accuracy 1.00, and oracle margin 0.0645 |
+| PR129 full pytest | `python -m pytest` | 315 tests passed |
 | Whitespace check | `git diff --check` | passed with no output |
 | API key scan | `rg -n "sk-proj-[A-Za-z0-9_-]{20,}" .` | no tracked API key strings found |
 | Provider guardrail scan | `rg --pcre2 -n "openai:(?!gpt-5\\.5|mini|nano)|gpt-4|claude|gemini|anthropic" -S aeread_lab tests docs` | only expected documentation/test guardrail matches; no non-OpenAI client path added |
@@ -1289,3 +1302,13 @@ build lab should not depend on `.playwright-mcp/` logs or the local
      next uncovered direction is whether real source provenance, source
      reliability fields, or less explicit corporate-action context can trigger
      the same row/metadata cross-check without handing over the procedure.
+105. PR 129 tests the source-provenance branch and the result is negative for
+     smaller aliases. It keeps the repeated issuer rows and false confirmed
+     split, replaces the procedure with source labels that distinguish direct
+     issuer/exchange notices from lower-reliability third-party backfill
+     metadata, and still omits the explicit conflict warning. `gpt-5.5` stays
+     stable-oracle, but `nano` is stable metadata-trusting and `mini` remains
+     metadata-trusting-modal in repeat-6. Source labels by themselves are
+     therefore not enough; the next C1 depth step should use real
+     corporate-action context or a more natural source-grounding surface rather
+     than another synthetic provenance label.
