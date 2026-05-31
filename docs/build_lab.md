@@ -67,6 +67,7 @@ attribution.
 | `principal_holding_filing_artifact_implicit_stable` | Value-stable implicit filing-artifact C1 control: keep the no-note split-like row-ratio task but remove the conflicting reported-value jump from the artifact row. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_implicit_stable --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata` | Corporate-action metadata C1 control: keep the conflicting-value no-note stress rows, but add a separate stock-split registry that must be joined to filing rows. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_noisy` | Noisy corporate-action metadata C1 control: keep the conflicting-value rows and correct split records, but add stale, unconfirmed, non-split, and unmatched registry distractors. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_noisy --agent offline:oracle` |
+| `principal_holding_filing_artifact_metadata_partial` | Partial corporate-action metadata C1 control: keep one confirmed split record but omit another target-period split, forcing row-pattern inference for missing registry coverage. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_partial --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -247,6 +248,10 @@ interpreting the economic metric.
   unconfirmed, non-split, and unmatched records alongside the confirmed
   target-period split records; this tests registry-field discrimination rather
   than simply adding another clean metadata row.
+- `principal_holding_filing_artifact_metadata_partial`: same score and
+  conflicting-value rows, but one target-period split is absent from the
+  registry; this tests whether the model treats metadata as exhaustive or
+  combines it with clean row-ratio evidence.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -628,6 +633,13 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    follows an unconfirmed distractor, but live repeat-3 across all aliases and
    repeat-6 on `nano`/`gpt-5.5` are stable-oracle. That turns the next C1
    metadata question into partial/missing coverage or wrong-but-confirmed
-   metadata, not additional noisy extras around already-correct records.
+   metadata, not additional noisy extras around already-correct records. PR 124
+   follows the partial-coverage branch: one confirmed split record is present,
+   but another target-period split is missing and must be inferred from row
+   ratios. The offline metadata-only baseline collapses to the omitted raw split
+   artifact, `mini` and `gpt-5.5` solve the live repeat-3, and the repeat-6
+   follow-up keeps `gpt-5.5` stable while `nano` remains unstable with an
+   artifact-blind modal choice. That makes registry completeness the active C1
+   metadata failure, not ordinary registry distractors.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.

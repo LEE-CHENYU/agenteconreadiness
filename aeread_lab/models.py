@@ -468,11 +468,19 @@ class OfflineAgent:
 
     def _principal_holding_filing_artifact(self, user: str) -> str:
         strict_metadata = self.policy not in {"metadata_naive", "registry_noise", "stale_metadata"}
+        infer_missing_artifacts = self.policy not in {"metadata_only", "registry_only"}
         target_issuers = _extract_filing_artifact_changes(
             user,
             strict_metadata=strict_metadata,
+            infer_missing_artifacts=infer_missing_artifacts,
         )
-        if self.policy in {"metadata_naive", "registry_noise", "stale_metadata"}:
+        if self.policy in {
+            "metadata_naive",
+            "metadata_only",
+            "registry_noise",
+            "registry_only",
+            "stale_metadata",
+        }:
             issuer_id = max(
                 target_issuers,
                 key=lambda item: target_issuers[item]["value"],
@@ -4129,6 +4137,7 @@ def _extract_filing_artifact_changes(
     text: str,
     *,
     strict_metadata: bool = True,
+    infer_missing_artifacts: bool = True,
 ) -> dict[str, dict[str, float | str]]:
     base_changes = _extract_filing_trace_raw_changes(text)
     factor_pattern = re.compile(
@@ -4145,8 +4154,13 @@ def _extract_filing_artifact_changes(
         strict_metadata=strict_metadata,
     ).items():
         factors.setdefault(issuer, factor)
-    if not factors and "No separate corporate-action notes are provided" in text:
-        factors.update(_infer_filing_artifact_factors(base_changes))
+    if infer_missing_artifacts:
+        if "Registry coverage may be incomplete" in text:
+            inferred = _infer_filing_artifact_factors(base_changes)
+            for issuer, factor in inferred.items():
+                factors.setdefault(issuer, factor)
+        elif not factors and "No separate corporate-action notes are provided" in text:
+            factors.update(_infer_filing_artifact_factors(base_changes))
     changes: dict[str, dict[str, float | str]] = {}
     for issuer, trade in base_changes.items():
         factor = factors.get(issuer, 1.0)

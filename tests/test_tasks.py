@@ -189,6 +189,9 @@ from aeread_lab.tasks.principal_holding_filing_trace import (
     ARTIFACT_METADATA_NOISY_CASES as PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_NOISY_CASES,
 )
 from aeread_lab.tasks.principal_holding_filing_trace import (
+    ARTIFACT_METADATA_PARTIAL_CASES as PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_PARTIAL_CASES,
+)
+from aeread_lab.tasks.principal_holding_filing_trace import (
     DEFAULT_CASES as PRINCIPAL_HOLDING_FILING_TRACE_CASES,
 )
 from aeread_lab.tasks.principal_holding_filing_trace import (
@@ -498,6 +501,15 @@ class TaskSmokeTests(unittest.TestCase):
     def test_sample_limit_slices_principal_holding_filing_artifact_metadata_noisy_cases(self):
         results = run_tasks(
             "principal_holding_filing_artifact_metadata_noisy",
+            OfflineAgent("oracle"),
+            sample_limit=1,
+        )
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
+    def test_sample_limit_slices_principal_holding_filing_artifact_metadata_partial_cases(self):
+        results = run_tasks(
+            "principal_holding_filing_artifact_metadata_partial",
             OfflineAgent("oracle"),
             sample_limit=1,
         )
@@ -846,6 +858,20 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("artifact_note", prompt)
         self.assertNotIn("adjustment_factor=", prompt)
 
+    def test_filing_artifact_metadata_partial_prompt_marks_missing_coverage(self):
+        prompt = principal_holding_filing_artifact_prompt(
+            PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_PARTIAL_CASES[0],
+            include_factor=False,
+            include_notes=False,
+            include_metadata=True,
+        )
+        self.assertIn("Registry coverage may be incomplete", prompt)
+        self.assertNotIn("issuer=sec_stress_a action=stock_split", prompt)
+        self.assertIn("corporate_action issuer=sec_stress_f action=stock_split ratio=3-for-1", prompt)
+        self.assertIn("status=unconfirmed", prompt)
+        self.assertNotIn("artifact_note", prompt)
+        self.assertNotIn("adjustment_factor=", prompt)
+
     def test_filing_artifact_oracle_beats_artifact_blind_shortcuts(self):
         rows = comparison_table(
             run_sweep(
@@ -987,6 +1013,28 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(by_agent["offline:second_best"]["value"], 0.05)
         self.assertGreater(by_agent["offline:metadata_naive"]["value"], 0.05)
 
+    def test_filing_artifact_metadata_partial_oracle_beats_metadata_only(self):
+        rows = comparison_table(
+            run_sweep(
+                task="principal_holding_filing_artifact_metadata_partial",
+                agent_specs=[
+                    "offline:oracle",
+                    "offline:artifact_blind",
+                    "offline:market_value",
+                    "offline:percent_change",
+                    "offline:second_best",
+                    "offline:metadata_only",
+                ],
+            )
+        )
+        by_agent = {row["agent"]: row for row in rows}
+        self.assertEqual(by_agent["offline:oracle"]["value"], 0.0)
+        self.assertGreater(by_agent["offline:artifact_blind"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:market_value"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:percent_change"]["value"], 0.7)
+        self.assertGreater(by_agent["offline:second_best"]["value"], 0.05)
+        self.assertGreater(by_agent["offline:metadata_only"]["value"], 0.9)
+
     def test_filing_artifact_case_key_targets_adjusted_fixture(self):
         results = run_tasks(
             "principal_holding_filing_artifact",
@@ -1098,6 +1146,32 @@ class TaskSmokeTests(unittest.TestCase):
         )
         naive_trial = naive_results[0]["trials"][0]
         self.assertEqual(naive_trial["chosen_trade"], "sec_stress_c")
+
+    def test_filing_artifact_metadata_partial_case_key_combines_registry_and_rows(self):
+        results = run_tasks(
+            "principal_holding_filing_artifact_metadata_partial",
+            OfflineAgent("oracle"),
+            case_keys=["multi_artifact_partial_registry_close_runner_up"],
+        )
+        self.assertEqual(results[0]["n_trials"], 1)
+        trial = results[0]["trials"][0]
+        self.assertEqual(trial["principal_trade"], "sec_stress_b")
+        self.assertEqual(trial["artifact_blind_trade"], "sec_stress_a")
+        self.assertEqual(trial["market_value_trade"], "sec_stress_f")
+        self.assertEqual(trial["percent_change_trade"], "sec_stress_e")
+        self.assertEqual(trial["second_best_trade"], "sec_stress_c")
+        self.assertAlmostEqual(trial["artifact_changes"]["sec_stress_a"]["value"], 0.0)
+        self.assertAlmostEqual(trial["artifact_changes"]["sec_stress_f"]["value"], 0.0)
+        self.assertLess(trial["oracle_margin"], 0.07)
+        self.assertEqual(trial["chosen_trade"], "sec_stress_b")
+
+        metadata_only_results = run_tasks(
+            "principal_holding_filing_artifact_metadata_partial",
+            OfflineAgent("metadata_only"),
+            case_keys=["multi_artifact_partial_registry_close_runner_up"],
+        )
+        metadata_only_trial = metadata_only_results[0]["trials"][0]
+        self.assertEqual(metadata_only_trial["chosen_trade"], "sec_stress_a")
 
     def test_filing_artifact_stability_attribution_labels_artifact_blind(self):
         payload = run_stability_sweep(

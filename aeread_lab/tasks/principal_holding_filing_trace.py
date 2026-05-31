@@ -69,6 +69,13 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_NOISY_SYSTEM = (
     "FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_PARTIAL_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_metadata_partial\n"
+    "Infer the dollar-material discretionary holding action from public-filing rows by "
+    "combining a partial corporate-action registry with row-pattern evidence for "
+    "missing split records. Return one final line only: FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -584,6 +591,52 @@ ARTIFACT_METADATA_NOISY_CASES = [
 ]
 
 
+ARTIFACT_METADATA_PARTIAL_CASES = [
+    FilingArtifactCase(
+        key="multi_artifact_partial_registry_close_runner_up",
+        real_case=(
+            "13F-style filing trace where the registry confirms one split artifact "
+            "but omits another target-period split-like artifact that must be "
+            "inferred from row-ratio evidence"
+        ),
+        manager_cik="0000000001",
+        manager_name="NEUTRALIZED PUBLIC-FILING ARTIFACT PARTIAL-REGISTRY TRACE",
+        source_url=(
+            "public SEC-style 13F information table rows plus a neutralized partial "
+            "corporate-action registry"
+        ),
+        target_accession="neutralized-2026q1-artifact-metadata-partial",
+        rows=ARTIFACT_STRESS_CASES[0].rows,
+        adjustment_factors=dict(ARTIFACT_STRESS_CASES[0].adjustment_factors),
+        artifact_notes=dict(ARTIFACT_STRESS_CASES[0].artifact_notes),
+        corporate_actions=(
+            CorporateActionRegistryEntry(
+                "sec_stress_f",
+                "stock_split",
+                3.0,
+                "2026q1",
+                "neutralized_corporate_action_registry",
+            ),
+            CorporateActionRegistryEntry(
+                "sec_stress_c",
+                "stock_split",
+                2.0,
+                "2026q1",
+                "third_party_preliminary_feed",
+                status="unconfirmed",
+            ),
+            CorporateActionRegistryEntry(
+                "sec_stress_z",
+                "stock_split",
+                4.0,
+                "2026q1",
+                "unmatched_vendor_feed",
+            ),
+        ),
+    ),
+]
+
+
 def run_principal_holding_filing_trace_game(
     agent: Agent,
     cases: list[FilingTraceCase] | None = None,
@@ -776,6 +829,21 @@ def run_principal_holding_filing_artifact_metadata_noisy_game(
         cases=cases or ARTIFACT_METADATA_NOISY_CASES,
         task="principal_holding_filing_artifact_metadata_noisy",
         system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_NOISY_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+        include_metadata=True,
+    )
+
+
+def run_principal_holding_filing_artifact_metadata_partial_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_METADATA_PARTIAL_CASES,
+        task="principal_holding_filing_artifact_metadata_partial",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_PARTIAL_SYSTEM,
         include_factor=False,
         include_notes=False,
         include_metadata=True,
@@ -1116,6 +1184,12 @@ def _artifact_prompt(
             )
         )
     if include_metadata:
+        if _registry_has_missing_split_entries(case):
+            lines.append(
+                "Registry coverage may be incomplete. If a confirmed target-period "
+                "split record is missing, use clean integer row-ratio evidence paired "
+                "with comparable economic exposure to identify mechanical unit changes."
+            )
         lines.append("Corporate action registry:")
         for entry in _corporate_action_registry_entries(case):
             line = (
@@ -1144,13 +1218,36 @@ def _corporate_action_registry_entries(
             issuer,
             "stock_split",
             factor,
-            "2026q1",
+            _artifact_target_period(case),
             "neutralized_corporate_action_registry",
             status="",
         )
         for issuer, factor in sorted(case.adjustment_factors.items())
         if factor != 1
     )
+
+
+def _registry_has_missing_split_entries(case: FilingArtifactCase) -> bool:
+    if not case.corporate_actions:
+        return False
+    target_period = _artifact_target_period(case)
+    expected = {
+        issuer
+        for issuer, factor in case.adjustment_factors.items()
+        if factor != 1
+    }
+    confirmed = {
+        entry.issuer
+        for entry in case.corporate_actions
+        if entry.action == "stock_split"
+        and entry.effective_period == target_period
+        and entry.status in {"active", "confirmed", "effective"}
+    }
+    return bool(expected - confirmed)
+
+
+def _artifact_target_period(case: FilingArtifactCase) -> str:
+    return sorted({row.period for row in case.rows})[-1]
 
 
 def _split_ratio_label(factor: float) -> str:
