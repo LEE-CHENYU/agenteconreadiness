@@ -125,6 +125,13 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_STATUS_ABLATION_SYSTEM = (
     "issuer-confirmed. Return one final line only: FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_metadata_source_status_neutral\n"
+    "Infer the dollar-material discretionary holding action from repeated public-filing "
+    "rows, corporate-action source packets, and a registry whose split rows do not "
+    "carry status labels. Return one final line only: FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -921,6 +928,53 @@ ARTIFACT_METADATA_SOURCE_STATUS_ABLATION_CASES = [
 ]
 
 
+ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_CASES = [
+    FilingArtifactCase(
+        key="multi_artifact_source_status_neutral_conflicting_registry_close_runner_up",
+        real_case=(
+            "13F-style filing trace where repeated issuer history is paired with "
+            "natural source packets and status-neutral target-period split rows"
+        ),
+        manager_cik="0000000001",
+        manager_name="NEUTRALIZED PUBLIC-FILING ARTIFACT SOURCE-STATUS NEUTRAL TRACE",
+        source_url=(
+            "public SEC-style repeated issuer filing rows plus neutralized corporate-action "
+            "registry rows with natural source packets and no status labels"
+        ),
+        target_accession="neutralized-2026q1-artifact-metadata-source-status-neutral",
+        rows=ARTIFACT_METADATA_SOURCE_PROVENANCE_CASES[0].rows,
+        adjustment_factors=dict(ARTIFACT_METADATA_SOURCE_PROVENANCE_CASES[0].adjustment_factors),
+        artifact_notes=dict(ARTIFACT_METADATA_SOURCE_PROVENANCE_CASES[0].artifact_notes),
+        corporate_actions=(
+            CorporateActionRegistryEntry(
+                "sec_stress_a",
+                "stock_split",
+                5.0,
+                "2026q1",
+                "issuer_exchange_notice",
+                status="",
+            ),
+            CorporateActionRegistryEntry(
+                "sec_stress_d",
+                "stock_split",
+                4.0,
+                "2026q1",
+                "third_party_backfill_feed",
+                status="",
+            ),
+            CorporateActionRegistryEntry(
+                "sec_stress_f",
+                "stock_split",
+                3.0,
+                "2026q1",
+                "issuer_exchange_notice",
+                status="",
+            ),
+        ),
+    ),
+]
+
+
 def run_principal_holding_filing_trace_game(
     agent: Agent,
     cases: list[FilingTraceCase] | None = None,
@@ -1242,6 +1296,23 @@ def run_principal_holding_filing_artifact_metadata_source_status_ablation_game(
         cases=cases or ARTIFACT_METADATA_SOURCE_STATUS_ABLATION_CASES,
         task="principal_holding_filing_artifact_metadata_source_status_ablation",
         system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_STATUS_ABLATION_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+        include_metadata=True,
+        include_conflict_warning=False,
+        include_source_context=True,
+    )
+
+
+def run_principal_holding_filing_artifact_metadata_source_status_neutral_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_CASES,
+        task="principal_holding_filing_artifact_metadata_source_status_neutral",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_SYSTEM,
         include_factor=False,
         include_notes=False,
         include_metadata=True,

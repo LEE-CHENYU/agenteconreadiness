@@ -471,20 +471,26 @@ class OfflineAgent:
         infer_missing_artifacts = self.policy not in {"metadata_only", "registry_only"}
         validate_metadata = self.policy not in {
             "metadata_naive",
+            "metadata_source_trusting",
             "metadata_trusting",
             "registry_noise",
             "registry_trusting",
             "stale_metadata",
         }
+        trusted_metadata_sources = (
+            {"issuer_exchange_notice"} if self.policy == "metadata_source_trusting" else None
+        )
         target_issuers = _extract_filing_artifact_changes(
             user,
             strict_metadata=strict_metadata,
             infer_missing_artifacts=infer_missing_artifacts,
             validate_metadata=validate_metadata,
+            trusted_metadata_sources=trusted_metadata_sources,
         )
         if self.policy in {
             "metadata_naive",
             "metadata_only",
+            "metadata_source_trusting",
             "metadata_trusting",
             "registry_noise",
             "registry_only",
@@ -4149,6 +4155,7 @@ def _extract_filing_artifact_changes(
     strict_metadata: bool = True,
     infer_missing_artifacts: bool = True,
     validate_metadata: bool = True,
+    trusted_metadata_sources: set[str] | None = None,
 ) -> dict[str, dict[str, float | str]]:
     base_changes = _extract_filing_trace_raw_changes(text)
     factor_pattern = re.compile(
@@ -4164,6 +4171,7 @@ def _extract_filing_artifact_changes(
         base_changes,
         strict_metadata=strict_metadata,
         validate_metadata=validate_metadata,
+        trusted_metadata_sources=trusted_metadata_sources,
     ).items():
         factors.setdefault(issuer, factor)
     if infer_missing_artifacts:
@@ -4203,6 +4211,7 @@ def _extract_corporate_action_factors(
     *,
     strict_metadata: bool,
     validate_metadata: bool,
+    trusted_metadata_sources: set[str] | None,
 ) -> dict[str, float]:
     factors: dict[str, float] = {}
     active_statuses = {"active", "confirmed", "effective"}
@@ -4219,6 +4228,11 @@ def _extract_corporate_action_factors(
         if not issuer or issuer not in base_changes:
             continue
         if fields.get("action") != "stock_split":
+            continue
+        if (
+            trusted_metadata_sources is not None
+            and fields.get("source") not in trusted_metadata_sources
+        ):
             continue
         ratio_match = re.match(r"([-+]?\d+(?:\.\d+)?)[- ]for[- ]1$", fields.get("ratio", ""))
         if not ratio_match:

@@ -68,6 +68,7 @@ TASK_ORDER = (
     "principal_holding_filing_artifact_metadata_source_provenance",
     "principal_holding_filing_artifact_metadata_source_context",
     "principal_holding_filing_artifact_metadata_source_status_ablation",
+    "principal_holding_filing_artifact_metadata_source_status_neutral",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -237,6 +238,10 @@ _CASE_TASKS = {
     "principal_holding_filing_artifact_metadata_source_status_ablation": (
         principal_holding_filing_trace_task.run_principal_holding_filing_artifact_metadata_source_status_ablation_game,
         principal_holding_filing_trace_task.ARTIFACT_METADATA_SOURCE_STATUS_ABLATION_CASES,
+    ),
+    "principal_holding_filing_artifact_metadata_source_status_neutral": (
+        principal_holding_filing_trace_task.run_principal_holding_filing_artifact_metadata_source_status_neutral_game,
+        principal_holding_filing_trace_task.ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_CASES,
     ),
     "ambiguity": (ambiguity_task.run_ambiguity_game, ambiguity_task.DEFAULT_CASES),
     "bargaining": (bargaining_task.run_bargaining_game, bargaining_task.DEFAULT_CASES),

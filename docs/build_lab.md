@@ -61,7 +61,11 @@ surface, so the question becomes whether live aliases were trusting the
 `confirmed` status specifically or a broader status-blind registry story.
 Repeat-6 makes `nano`, `mini`, and `gpt-5.5` stable-oracle, so the PR 130
 regression is best read as confirmed-status deference rather than source
-context deference in general.
+context deference in general. PR 132 removes status labels from every source
+context row: `gpt-5.5` stays stable-oracle, but `mini` and `nano` become
+metadata-trusting/status-blind-modal, so smaller aliases need an explicit
+negative status or validation process; natural source context alone is not yet
+a reliable substitute.
 
 ## What is implemented
 
@@ -96,6 +100,7 @@ context deference in general.
 | `principal_holding_filing_artifact_metadata_source_provenance` | Source-provenance C1 control: keep the repeated-history wrong confirmed split, but replace the validation process with registry source-reliability labels. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_provenance --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_source_context` | Source-context C1 control: keep the repeated-history wrong confirmed split, but replace the validation process with natural issuer/exchange and third-party source packets. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_context --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_source_status_ablation` | Source-status-ablation C1 control: keep natural source packets but mark the false third-party split row unverified, testing whether the PR130 miss depended on the false row's confirmed status. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_status_ablation --agent offline:oracle` |
+| `principal_holding_filing_artifact_metadata_source_status_neutral` | Source-status-neutral C1 control: keep natural source packets but remove all registry status labels, testing whether source context or row validation survives once `confirmed` is absent everywhere. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_status_neutral --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -309,6 +314,11 @@ interpreting the economic metric.
   is `unverified` instead of `confirmed`; this tests whether PR 130's live
   metadata deference was a confirmed-status crutch or a more general
   status-blind registry shortcut.
+- `principal_holding_filing_artifact_metadata_source_status_neutral`: same
+  repeated-history source-context surface, but every target-period split row
+  omits a status label; this tests whether PR 131 solved because the false row
+  was negatively marked or because removing `confirmed` from the false row lets
+  source context / row evidence take over.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
