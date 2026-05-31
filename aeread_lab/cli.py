@@ -25,6 +25,7 @@ TASKS = (
     "principal_holding_prediction_notes",
     "principal_holding_prediction_blind_notes",
     "principal_holding_filing_trace",
+    "principal_holding_filing_trace_raw",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -367,6 +368,18 @@ def _print_human(payload: dict[str, Any]) -> None:
         elif task == "principal_holding_filing_trace":
             print(
                 f"principal_holding_filing_trace: n={result['n_trials']} "
+                f"score_regret={_fmt(result['mean_score_regret'])} "
+                f"ci95={_fmt_ci(result.get('mean_score_regret_ci95'))} "
+                f"margin_min={_fmt(result.get('min_oracle_margin'))} "
+                f"accuracy={result['accuracy']:.2f} "
+                f"market_value_miss={result['market_value_miss_rate']:.2f} "
+                f"low_turnover_miss={result['low_turnover_miss_rate']:.2f} "
+                f"max_position_miss={result['max_position_miss_rate']:.2f} "
+                f"trend_miss={result['trend_miss_rate']:.2f}"
+            )
+        elif task == "principal_holding_filing_trace_raw":
+            print(
+                f"principal_holding_filing_trace_raw: n={result['n_trials']} "
                 f"score_regret={_fmt(result['mean_score_regret'])} "
                 f"ci95={_fmt_ci(result.get('mean_score_regret_ci95'))} "
                 f"margin_min={_fmt(result.get('min_oracle_margin'))} "

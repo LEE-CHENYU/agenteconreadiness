@@ -13,6 +13,12 @@ PRINCIPAL_HOLDING_FILING_TRACE_SYSTEM = (
     "Return one final line only: FINAL_TRADE: <trade_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_TRACE_RAW_SYSTEM = (
+    "TASK: principal_holding_filing_trace_raw\n"
+    "Infer the material next holding action from raw real-derived 13F filing rows. "
+    "Return one final line only: FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -43,6 +49,7 @@ class FilingTraceCase:
     manager_cik: str
     manager_name: str
     source_url: str
+    target_accession: str
     history: tuple[FilingTraceRow, ...]
     target_trades: tuple[FilingTraceTrade, ...]
 
@@ -77,6 +84,7 @@ DEFAULT_CASES = [
         manager_cik="0001067983",
         manager_name="BERKSHIRE HATHAWAY INC",
         source_url="https://www.sec.gov/Archives/edgar/data/1067983/",
+        target_accession="0001193125-26-226661",
         history=(
             FilingTraceRow("2025q3", "0001193125-25-282901", "sec_apple", 60656116097, 238212764),
             FilingTraceRow("2025q4", "0001193125-26-054580", "sec_apple", 61961735283, 227917808),
@@ -214,6 +222,52 @@ def run_principal_holding_filing_trace_game(
     return summarize_filing_trace_trials(agent.name, trials)
 
 
+def run_principal_holding_filing_trace_raw_game(
+    agent: Agent,
+    cases: list[FilingTraceCase] | None = None,
+) -> dict:
+    cases = cases or DEFAULT_CASES
+    trials: list[FilingTraceTrial] = []
+    for case in cases:
+        principal = _issuer_for_trade(case, material_action_trade(case))
+        market_value = _issuer_for_trade(case, market_value_trade(case))
+        low_turnover = _issuer_for_trade(case, low_turnover_trade(case))
+        max_position = _issuer_for_trade(case, max_position_trade(case))
+        trend = _issuer_for_trade(case, trend_trade(case))
+        score_by_id = _normalized_issuer_action_scores(case)
+        oracle_margin = _oracle_margin(score_by_id, principal)
+        response = agent.complete(
+            PRINCIPAL_HOLDING_FILING_TRACE_RAW_SYSTEM,
+            _raw_prompt(case),
+        )
+        chosen = parse_token("FINAL_ISSUER", response)
+        chosen = chosen if chosen in score_by_id else None
+        chosen_score = score_by_id[chosen] if chosen else None
+        trials.append(
+            FilingTraceTrial(
+                case=case,
+                principal_trade=principal,
+                market_value_trade=market_value,
+                low_turnover_trade=low_turnover,
+                max_position_trade=max_position,
+                trend_trade=trend,
+                chosen_trade=chosen,
+                principal_score=score_by_id[principal],
+                chosen_score=chosen_score,
+                score_regret=score_by_id[principal] - chosen_score
+                if chosen_score is not None
+                else None,
+                oracle_margin=oracle_margin,
+                raw_response=response,
+            )
+        )
+    return summarize_filing_trace_trials(
+        agent.name,
+        trials,
+        task="principal_holding_filing_trace_raw",
+    )
+
+
 def material_action_trade(case: FilingTraceCase) -> str:
     return max(case.target_trades, key=_action_value).trade_id
 
@@ -234,7 +288,12 @@ def trend_trade(case: FilingTraceCase) -> str:
     return max(case.target_trades, key=lambda trade: abs(trade.previous_share_delta)).trade_id
 
 
-def summarize_filing_trace_trials(agent_name: str, trials: list[FilingTraceTrial]) -> dict:
+def summarize_filing_trace_trials(
+    agent_name: str,
+    trials: list[FilingTraceTrial],
+    *,
+    task: str = "principal_holding_filing_trace",
+) -> dict:
     regrets = [trial.score_regret for trial in trials if trial.score_regret is not None]
     parsed = [trial for trial in trials if trial.chosen_trade is not None]
     margins = [trial.oracle_margin for trial in trials]
@@ -249,7 +308,7 @@ def summarize_filing_trace_trials(agent_name: str, trials: list[FilingTraceTrial
     ]
     trend_missable = [trial for trial in trials if trial.trend_trade != trial.principal_trade]
     return {
-        "task": "principal_holding_filing_trace",
+        "task": task,
         "agent": agent_name,
         "n_trials": len(trials),
         "parse_rate": len(parsed) / len(trials) if trials else 0.0,
@@ -305,6 +364,26 @@ def _prompt(case: FilingTraceCase) -> str:
     return "\n".join(lines)
 
 
+def _raw_prompt(case: FilingTraceCase) -> str:
+    lines = [
+        f"case={case.key}",
+        f"real_case={case.real_case}",
+        "Rows are neutralized but derived from public SEC 13F-HR information tables.",
+        "The final period is the next disclosed filing; infer the issuer with the material share-driven action from the raw rows.",
+        "Do not choose only by reported value movement, prior position size, previous-period trend, or no-change turnover.",
+        "Raw filing rows:",
+    ]
+    for row in _raw_filing_rows(case):
+        lines.append(
+            f"filing_row period={row.period} accession={row.accession} "
+            f"issuer={row.issuer} reported_value={row.value:.0f} shares={row.shares:.0f}"
+        )
+    issuers = ", ".join(sorted({trade.issuer for trade in case.target_trades}))
+    lines.append(f"issuer_choices={issuers}")
+    lines.append("Return the issuer id with the strongest material share-driven action.")
+    return "\n".join(lines)
+
+
 def _action_value(trade: FilingTraceTrade) -> float:
     prior_price = trade.prior_value / trade.prior_shares if trade.prior_shares else 0.0
     return abs(trade.next_shares - trade.prior_shares) * prior_price
@@ -318,10 +397,40 @@ def _normalized_action_scores(case: FilingTraceCase) -> dict[str, float]:
     return {trade_id: value / max_value for trade_id, value in values.items()}
 
 
+def _normalized_issuer_action_scores(case: FilingTraceCase) -> dict[str, float]:
+    values = {trade.issuer: _action_value(trade) for trade in case.target_trades}
+    max_value = max(values.values()) if values else 0.0
+    if max_value <= 0:
+        return {issuer: 0.0 for issuer in values}
+    return {issuer: value / max_value for issuer, value in values.items()}
+
+
 def _oracle_margin(score_by_id: dict[str, float], oracle: str) -> float:
     oracle_score = score_by_id[oracle]
     alternatives = [score for trade_id, score in score_by_id.items() if trade_id != oracle]
     return oracle_score - max(alternatives) if alternatives else oracle_score
+
+
+def _issuer_for_trade(case: FilingTraceCase, trade_id: str) -> str:
+    for trade in case.target_trades:
+        if trade.trade_id == trade_id:
+            return trade.issuer
+    raise ValueError(f"unknown trade id: {trade_id}")
+
+
+def _raw_filing_rows(case: FilingTraceCase) -> tuple[FilingTraceRow, ...]:
+    rows: dict[tuple[str, str], FilingTraceRow] = {}
+    for row in case.history:
+        rows[(row.period, row.issuer)] = row
+    for trade in case.target_trades:
+        rows[(trade.next_period, trade.issuer)] = FilingTraceRow(
+            period=trade.next_period,
+            accession=case.target_accession,
+            issuer=trade.issuer,
+            value=trade.next_value,
+            shares=trade.next_shares,
+        )
+    return tuple(sorted(rows.values(), key=lambda row: (row.issuer, row.period)))
 
 
 def _trial_json(trial: FilingTraceTrial) -> dict:
@@ -331,5 +440,6 @@ def _trial_json(trial: FilingTraceTrial) -> dict:
         "real_case": trial.case.real_case,
         "manager_cik": trial.case.manager_cik,
         "source_url": trial.case.source_url,
+        "target_accession": trial.case.target_accession,
     }
     return data

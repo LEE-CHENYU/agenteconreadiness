@@ -97,6 +97,8 @@ class OfflineAgent:
             return self._portfolio_choice(user)
         if "TASK: revealed_allocation" in system:
             return self._revealed_allocation(user)
+        if "TASK: principal_holding_filing_trace_raw" in system:
+            return self._principal_holding_filing_trace_raw(user)
         if "TASK: principal_holding_filing_trace" in system:
             return self._principal_holding_filing_trace(user)
         if "TASK: principal_holding_prediction_blind_notes" in system:
@@ -417,6 +419,36 @@ class OfflineAgent:
                 key=lambda item: _filing_trace_action_value(target_trades[item]),
             )
         return f"FINAL_TRADE: {trade_id}"
+
+    def _principal_holding_filing_trace_raw(self, user: str) -> str:
+        target_issuers = _extract_filing_trace_raw_changes(user)
+        if self.policy in {"market_value", "market_return", "max_return", "value_drift"}:
+            issuer_id = max(
+                target_issuers,
+                key=lambda item: target_issuers[item]["next_value"]
+                - target_issuers[item]["prior_value"],
+            )
+        elif self.policy in {"low_turnover", "min_turnover", "hold"}:
+            issuer_id = min(
+                target_issuers,
+                key=lambda item: abs(
+                    target_issuers[item]["next_shares"]
+                    - target_issuers[item]["prior_shares"]
+                ),
+            )
+        elif self.policy in {"max_position", "largest_position"}:
+            issuer_id = max(target_issuers, key=lambda item: target_issuers[item]["prior_value"])
+        elif self.policy in {"trend", "trend_chase"}:
+            issuer_id = max(
+                target_issuers,
+                key=lambda item: abs(target_issuers[item]["previous_share_delta"]),
+            )
+        else:
+            issuer_id = max(
+                target_issuers,
+                key=lambda item: _filing_trace_action_value(target_issuers[item]),
+            )
+        return f"FINAL_ISSUER: {issuer_id}"
 
     def _ambiguity_action(self, user: str) -> str:
         state_ids = _extract_state_ids(user)
@@ -3962,6 +3994,54 @@ def _filing_trace_action_value(trade: dict[str, float | str]) -> float:
         return 0.0
     prior_price = float(trade["prior_value"]) / prior_shares
     return abs(float(trade["next_shares"]) - prior_shares) * prior_price
+
+
+def _extract_filing_trace_raw_changes(text: str) -> dict[str, dict[str, float | str]]:
+    pattern = re.compile(
+        r"filing_row\s+"
+        r"period=([a-zA-Z0-9_-]+)\s+"
+        r"accession=([a-zA-Z0-9_-]+)\s+"
+        r"issuer=([a-zA-Z0-9_-]+)\s+"
+        r"reported_value=([-+]?\d+(?:\.\d+)?)\s+"
+        r"shares=([-+]?\d+(?:\.\d+)?)"
+    )
+    by_issuer: dict[str, dict[str, dict[str, float | str]]] = {}
+    periods: set[str] = set()
+    for match in pattern.finditer(text):
+        period = match.group(1)
+        issuer = match.group(3)
+        periods.add(period)
+        by_issuer.setdefault(issuer, {})[period] = {
+            "accession": match.group(2),
+            "value": float(match.group(4)),
+            "shares": float(match.group(5)),
+        }
+    ordered_periods = sorted(periods)
+    if len(ordered_periods) < 2:
+        return {}
+    previous_period = ordered_periods[-3] if len(ordered_periods) >= 3 else None
+    prior_period = ordered_periods[-2]
+    next_period = ordered_periods[-1]
+    changes: dict[str, dict[str, float | str]] = {}
+    for issuer, rows in by_issuer.items():
+        if prior_period not in rows or next_period not in rows:
+            continue
+        previous_share_delta = 0.0
+        if previous_period is not None and previous_period in rows:
+            previous_share_delta = (
+                float(rows[prior_period]["shares"]) - float(rows[previous_period]["shares"])
+            )
+        changes[issuer] = {
+            "issuer": issuer,
+            "prior_period": prior_period,
+            "next_period": next_period,
+            "prior_value": float(rows[prior_period]["value"]),
+            "next_value": float(rows[next_period]["value"]),
+            "prior_shares": float(rows[prior_period]["shares"]),
+            "next_shares": float(rows[next_period]["shares"]),
+            "previous_share_delta": previous_share_delta,
+        }
+    return changes
 
 
 def _regime_ev_fraction(text: str) -> float:

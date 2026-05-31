@@ -175,6 +175,12 @@ from aeread_lab.tasks.principal_holding_prediction_notes import run_principal_ho
 from aeread_lab.tasks.principal_holding_prediction_noisy import (
     DEFAULT_CASES as NOISY_PRINCIPAL_HOLDING_CASES,
 )
+from aeread_lab.tasks.principal_holding_filing_trace import (
+    DEFAULT_CASES as PRINCIPAL_HOLDING_FILING_TRACE_CASES,
+)
+from aeread_lab.tasks.principal_holding_filing_trace import (
+    _raw_prompt as principal_holding_filing_trace_raw_prompt,
+)
 from aeread_lab.tasks.principal_holding_prediction_noisy import _prompt as noisy_principal_holding_prompt
 from aeread_lab.tasks.principal_holding_prediction_noisy import run_noisy_principal_holding_prediction_game
 from aeread_lab.tasks.pricing import COUNTERFACTUAL_SETS as PRICING_COUNTERFACTUAL_SETS
@@ -578,6 +584,48 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(trial["case"]["manager_cik"], "0001067983")
         self.assertEqual(trial["principal_trade"], "reduce_chevron")
         self.assertEqual(trial["market_value_trade"], "price_drift_oxy")
+        self.assertEqual(results[0]["accuracy"], 1.0)
+
+    def test_raw_real_derived_filing_trace_oracle_beats_shortcuts(self):
+        rows = comparison_table(
+            run_sweep(
+                task="principal_holding_filing_trace_raw",
+                agent_specs=[
+                    "offline:oracle",
+                    "offline:market_value",
+                    "offline:low_turnover",
+                    "offline:max_position",
+                    "offline:trend",
+                ],
+            )
+        )
+        by_agent = {row["agent"]: row for row in rows}
+        self.assertEqual(by_agent["offline:oracle"]["value"], 0.0)
+        self.assertGreater(by_agent["offline:market_value"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:low_turnover"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:max_position"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:trend"]["value"], 0.9)
+
+    def test_raw_real_derived_filing_trace_removes_candidate_scaffold(self):
+        prompt = principal_holding_filing_trace_raw_prompt(
+            PRINCIPAL_HOLDING_FILING_TRACE_CASES[0]
+        )
+        self.assertIn("filing_row period=2026q1", prompt)
+        self.assertIn("issuer_choices=sec_amex", prompt)
+        self.assertNotIn("candidate_trade=", prompt)
+        self.assertNotIn("prior_shares=", prompt)
+
+    def test_raw_real_derived_filing_trace_case_key_targets_fixture(self):
+        results = run_tasks(
+            "principal_holding_filing_trace_raw",
+            OfflineAgent("oracle"),
+            case_keys=["brk_2026q1_energy_rebalance"],
+        )
+        self.assertEqual(results[0]["n_trials"], 1)
+        trial = results[0]["trials"][0]
+        self.assertEqual(trial["principal_trade"], "sec_chevron")
+        self.assertEqual(trial["market_value_trade"], "sec_oxy")
+        self.assertEqual(trial["chosen_trade"], "sec_chevron")
         self.assertEqual(results[0]["accuracy"], 1.0)
 
     def test_format_stability_sweep_includes_reference_counts(self):
