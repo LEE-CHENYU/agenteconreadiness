@@ -61,6 +61,14 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SYSTEM = (
     "line only: FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_NOISY_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_metadata_noisy\n"
+    "Infer the dollar-material discretionary holding action from public-filing rows by "
+    "joining raw filing rows to a separate corporate-action registry that may contain "
+    "stale, unmatched, or unconfirmed records. Return one final line only: "
+    "FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -115,6 +123,16 @@ class FilingTraceTrial:
 
 
 @dataclass(frozen=True)
+class CorporateActionRegistryEntry:
+    issuer: str
+    action: str
+    ratio: float
+    effective_period: str
+    source: str
+    status: str = "confirmed"
+
+
+@dataclass(frozen=True)
 class FilingArtifactCase:
     key: str
     real_case: str
@@ -125,6 +143,7 @@ class FilingArtifactCase:
     rows: tuple[FilingTraceRow, ...]
     adjustment_factors: dict[str, float]
     artifact_notes: dict[str, str]
+    corporate_actions: tuple[CorporateActionRegistryEntry, ...] = ()
 
 
 @dataclass
@@ -497,6 +516,74 @@ ARTIFACT_IMPLICIT_STABLE_CASES = [
 ]
 
 
+ARTIFACT_METADATA_NOISY_CASES = [
+    FilingArtifactCase(
+        key="multi_artifact_noisy_registry_close_runner_up",
+        real_case=(
+            "13F-style filing trace where the corporate-action registry has the "
+            "right target-period split records but also stale, unconfirmed, "
+            "non-split, and unmatched distractors"
+        ),
+        manager_cik="0000000001",
+        manager_name="NEUTRALIZED PUBLIC-FILING ARTIFACT NOISY-REGISTRY TRACE",
+        source_url=(
+            "public SEC-style 13F information table rows plus a neutralized noisy "
+            "corporate-action registry"
+        ),
+        target_accession="neutralized-2026q1-artifact-metadata-noisy",
+        rows=ARTIFACT_STRESS_CASES[0].rows,
+        adjustment_factors=dict(ARTIFACT_STRESS_CASES[0].adjustment_factors),
+        artifact_notes=dict(ARTIFACT_STRESS_CASES[0].artifact_notes),
+        corporate_actions=(
+            CorporateActionRegistryEntry(
+                "sec_stress_a",
+                "stock_split",
+                5.0,
+                "2026q1",
+                "neutralized_corporate_action_registry",
+            ),
+            CorporateActionRegistryEntry(
+                "sec_stress_c",
+                "stock_split",
+                2.0,
+                "2026q1",
+                "third_party_preliminary_feed",
+                status="unconfirmed",
+            ),
+            CorporateActionRegistryEntry(
+                "sec_stress_d",
+                "spin_off",
+                1.0,
+                "2026q1",
+                "issuer_news_feed",
+            ),
+            CorporateActionRegistryEntry(
+                "sec_stress_f",
+                "stock_split",
+                3.0,
+                "2026q1",
+                "neutralized_corporate_action_registry",
+            ),
+            CorporateActionRegistryEntry(
+                "sec_stress_c",
+                "stock_split",
+                3.0,
+                "2025q3",
+                "archived_vendor_feed",
+                status="stale",
+            ),
+            CorporateActionRegistryEntry(
+                "sec_stress_z",
+                "stock_split",
+                4.0,
+                "2026q1",
+                "unmatched_vendor_feed",
+            ),
+        ),
+    ),
+]
+
+
 def run_principal_holding_filing_trace_game(
     agent: Agent,
     cases: list[FilingTraceCase] | None = None,
@@ -674,6 +761,21 @@ def run_principal_holding_filing_artifact_metadata_game(
         cases=cases or ARTIFACT_STRESS_CASES,
         task="principal_holding_filing_artifact_metadata",
         system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+        include_metadata=True,
+    )
+
+
+def run_principal_holding_filing_artifact_metadata_noisy_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_METADATA_NOISY_CASES,
+        task="principal_holding_filing_artifact_metadata_noisy",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_NOISY_SYSTEM,
         include_factor=False,
         include_notes=False,
         include_metadata=True,
@@ -1002,28 +1104,53 @@ def _artifact_prompt(
                 )
     else:
         lines.append(
-            "No separate corporate-action notes are provided. Infer split-like artifacts from "
-            "filing-row patterns: clean integer-multiple share changes paired with roughly "
-            "stable economic exposure should be treated as mechanical unit changes before "
-            "scoring discretionary share actions."
+            "No separate corporate-action notes are provided. Use filing rows and any "
+            "target-period confirmed corporate-action registry records to identify mechanical "
+            "unit changes before scoring discretionary share actions."
+            if include_metadata
+            else (
+                "No separate corporate-action notes are provided. Infer split-like artifacts from "
+                "filing-row patterns: clean integer-multiple share changes paired with roughly "
+                "stable economic exposure should be treated as mechanical unit changes before "
+                "scoring discretionary share actions."
+            )
         )
     if include_metadata:
         lines.append("Corporate action registry:")
-        for issuer in sorted(case.adjustment_factors):
-            factor = case.adjustment_factors[issuer]
-            if factor == 1:
-                continue
-            ratio = _split_ratio_label(factor)
-            lines.append(
-                f"corporate_action issuer={issuer} action=stock_split ratio={ratio} "
-                "effective_period=2026q1 source=neutralized_corporate_action_registry"
+        for entry in _corporate_action_registry_entries(case):
+            line = (
+                f"corporate_action issuer={entry.issuer} action={entry.action} "
+                f"ratio={_split_ratio_label(entry.ratio)} "
+                f"effective_period={entry.effective_period} source={entry.source}"
             )
+            if entry.status:
+                line = f"{line} status={entry.status}"
+            lines.append(line)
     issuers = ", ".join(sorted({row.issuer for row in case.rows}))
     lines.append(f"issuer_choices={issuers}")
     lines.append(
         "Return the issuer id with the largest adjusted dollar-material discretionary share action."
     )
     return "\n".join(lines)
+
+
+def _corporate_action_registry_entries(
+    case: FilingArtifactCase,
+) -> tuple[CorporateActionRegistryEntry, ...]:
+    if case.corporate_actions:
+        return case.corporate_actions
+    return tuple(
+        CorporateActionRegistryEntry(
+            issuer,
+            "stock_split",
+            factor,
+            "2026q1",
+            "neutralized_corporate_action_registry",
+            status="",
+        )
+        for issuer, factor in sorted(case.adjustment_factors.items())
+        if factor != 1
+    )
 
 
 def _split_ratio_label(factor: float) -> str:

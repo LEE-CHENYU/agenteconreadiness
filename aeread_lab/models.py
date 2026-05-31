@@ -467,8 +467,17 @@ class OfflineAgent:
         return f"FINAL_ISSUER: {issuer_id}"
 
     def _principal_holding_filing_artifact(self, user: str) -> str:
-        target_issuers = _extract_filing_artifact_changes(user)
-        if self.policy in {"artifact_blind", "mechanical_flow", "raw_change"}:
+        strict_metadata = self.policy not in {"metadata_naive", "registry_noise", "stale_metadata"}
+        target_issuers = _extract_filing_artifact_changes(
+            user,
+            strict_metadata=strict_metadata,
+        )
+        if self.policy in {"metadata_naive", "registry_noise", "stale_metadata"}:
+            issuer_id = max(
+                target_issuers,
+                key=lambda item: target_issuers[item]["value"],
+            )
+        elif self.policy in {"artifact_blind", "mechanical_flow", "raw_change"}:
             issuer_id = max(
                 target_issuers,
                 key=lambda item: target_issuers[item]["observed_value"],
@@ -4116,7 +4125,11 @@ def _extract_filing_trace_raw_changes(text: str) -> dict[str, dict[str, float | 
     return changes
 
 
-def _extract_filing_artifact_changes(text: str) -> dict[str, dict[str, float | str]]:
+def _extract_filing_artifact_changes(
+    text: str,
+    *,
+    strict_metadata: bool = True,
+) -> dict[str, dict[str, float | str]]:
     base_changes = _extract_filing_trace_raw_changes(text)
     factor_pattern = re.compile(
         r"artifact_note\s+issuer=([a-zA-Z0-9_-]+)\s+"
@@ -4126,12 +4139,12 @@ def _extract_filing_artifact_changes(text: str) -> dict[str, dict[str, float | s
     note_pattern = re.compile(r"artifact_note\s+issuer=([a-zA-Z0-9_-]+)\s+note=(.*)")
     for match in note_pattern.finditer(text):
         factors.setdefault(match.group(1), _filing_artifact_factor_from_note(match.group(2)))
-    metadata_pattern = re.compile(
-        r"corporate_action\s+issuer=([a-zA-Z0-9_-]+)\s+"
-        r".*?ratio=([-+]?\d+(?:\.\d+)?)[- ]for[- ]1"
-    )
-    for match in metadata_pattern.finditer(text):
-        factors.setdefault(match.group(1), float(match.group(2)))
+    for issuer, factor in _extract_corporate_action_factors(
+        text,
+        base_changes,
+        strict_metadata=strict_metadata,
+    ).items():
+        factors.setdefault(issuer, factor)
     if not factors and "No separate corporate-action notes are provided" in text:
         factors.update(_infer_filing_artifact_factors(base_changes))
     changes: dict[str, dict[str, float | str]] = {}
@@ -4156,6 +4169,41 @@ def _extract_filing_artifact_changes(text: str) -> dict[str, dict[str, float | s
             "observed_fraction": abs(observed_delta) / prior_shares if prior_shares else 0.0,
         }
     return changes
+
+
+def _extract_corporate_action_factors(
+    text: str,
+    base_changes: dict[str, dict[str, float | str]],
+    *,
+    strict_metadata: bool,
+) -> dict[str, float]:
+    factors: dict[str, float] = {}
+    active_statuses = {"active", "confirmed", "effective"}
+    for line in text.splitlines():
+        if not line.startswith("corporate_action "):
+            continue
+        fields = {
+            key: value
+            for part in line.split()[1:]
+            if "=" in part
+            for key, value in [part.split("=", 1)]
+        }
+        issuer = fields.get("issuer")
+        if not issuer or issuer not in base_changes:
+            continue
+        if fields.get("action") != "stock_split":
+            continue
+        ratio_match = re.match(r"([-+]?\d+(?:\.\d+)?)[- ]for[- ]1$", fields.get("ratio", ""))
+        if not ratio_match:
+            continue
+        if strict_metadata:
+            next_period = str(base_changes[issuer]["next_period"])
+            if fields.get("effective_period") != next_period:
+                continue
+            if fields.get("status", "confirmed") not in active_statuses:
+                continue
+        factors.setdefault(issuer, float(ratio_match.group(1)))
+    return factors
 
 
 def _infer_filing_artifact_factors(

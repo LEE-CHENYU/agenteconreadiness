@@ -48,9 +48,12 @@ Current uncovered directions from the tests:
   implicit split-like rows value-stable, and live repeats stabilize both
   `nano` and `gpt-5.5`. PR 122 restores a separate corporate-action registry
   while keeping the conflicting-value rows; this stabilizes `gpt-5.5` but leaves
-  one `nano` artifact-blind miss in repeat-6. The current question is now real
-  metadata reliability under noisier filing traces, especially for smaller
-  aliases.
+  one `nano` artifact-blind miss in repeat-6. PR 123 adds stale, unconfirmed,
+  non-split, and unmatched registry distractors while keeping the correct
+  confirmed target-period split records, and repeat-6 stabilizes `nano` and
+  `gpt-5.5`. The current question is therefore not more noisy registry rows; it
+  is partial/missing coverage, wrong-but-confirmed metadata, and real filing
+  traces where registry state must be reconciled with row-pattern evidence.
 - Real-derived C1 runner-up ambiguity: the Tiger `mini` runner-up miss did not
   reproduce in build-lab repeats. The question is which real filing trace
   creates repeat-reliable runner-up confusion under a clear dollar-material
@@ -193,6 +196,7 @@ Current uncovered directions from the tests:
 | 120 | `review/120-implicit-filing-artifact` | implicit artifact-inference C1 stress | removes the artifact-note section from the composite stress prompt; offline baselines preserve dynamic range, and live repeats turn the next question into which evidence channel makes implicit corporate-action adjustment stable |
 | 121 | `review/121-implicit-value-stability` | value-stable implicit artifact control | keeps the no-note split-like row-ratio probe but removes the conflicting reported-value jump from one artifact row; live repeats become stable-oracle, so PR120's top-alias miss is an evidence-channel conflict result rather than no-notes alone |
 | 122 | `review/122-artifact-metadata-control` | corporate-action metadata control | keeps PR120's conflicting-value rows but adds a separate stock-split registry; live repeats stabilize `gpt-5.5` while `nano` still has one artifact-blind miss |
+| 123 | `review/123-noisy-artifact-metadata` | noisy corporate-action registry control | keeps the same conflicting-value rows and correct confirmed split records, but adds stale, unconfirmed, non-split, and unmatched registry distractors; live repeats are stable-oracle for all probed aliases, so noisy extras alone are not the residual C1 gap |
 
 ## Task result ledger
 
@@ -221,6 +225,7 @@ unless explicitly marked as historical/upstream.
 | `principal_holding_filing_artifact_implicit` | composite artifact C1 stress with no artifact-note section | oracle score regret 0; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind and market-value baselines regret 1; oracle margin 0.0645161 | uses the same composite stress fixture as PR 117 but removes the note channel, forcing split-like artifact inference from row patterns. This is a depth move on the PR 119 finding: the question is whether implicit artifact adjustment needs stronger row-ratio evidence, value-stability evidence, or real corporate-action context, not whether another annotated split case can be added |
 | `principal_holding_filing_artifact_implicit_stable` | no-note artifact C1 control with value-stable split-like rows | oracle score regret 0; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind and market-value baselines regret 1; oracle margin 0.0645161 | keeps the PR120 no-note row-ratio task but changes the split-like value-drift artifact into a value-stable row. Live repeat-3 across all aliases and repeat-6 on `nano`/`gpt-5.5` are stable-oracle, so the PR120 `gpt-5.5` market-value miss is best read as a conflict between row-ratio and reported-value channels |
 | `principal_holding_filing_artifact_metadata` | conflicting-value artifact C1 control with a separate stock-split registry | oracle score regret 0; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind and market-value baselines regret 1; oracle margin 0.0645161 | keeps the PR120 conflicting-value rows but adds a separate corporate-action registry instead of inline artifact notes. Live repeat-3 is stable-oracle for all aliases; repeat-6 stabilizes `gpt-5.5`, while `nano` remains oracle-modal with one artifact-blind miss |
+| `principal_holding_filing_artifact_metadata_noisy` | conflicting-value artifact C1 control with a noisy separate stock-split registry | oracle score regret 0; second-best and metadata-naive regret 0.0645161; percent-change regret 0.774194; artifact-blind and market-value baselines regret 1; oracle margin 0.0645161 | adds stale, unconfirmed, non-split, and unmatched registry records while retaining the correct confirmed target-period split records. Live repeat-3 across all aliases and repeat-6 on `nano`/`gpt-5.5` are stable-oracle, so noisy extra rows are not enough to reproduce the PR122 `nano` residual |
 | `ambiguity` | maxmin/alpha-maxmin under Knightian ambiguity | oracle configured regret 0 across 5 cases; reference-prior regret 11.5796; pure-maxmin regret 2.32038; optimistic regret 14.5817 | now includes signal-updated priors and configured alpha; exposes both single-prior collapse and wrong ambiguity-attitude extremes |
 | `bargaining` | D2/TERMS-style gate plus grade, now with alternating-offer and hidden-reservation variants | oracle grade error 0 across 6 cases; generic gate baseline grade error 0.374225; round-blind alternating-offer miss 1.00; optimistic-budget hidden-reservation miss 1.00 | confirms "gate-only surplus extraction" is not grade fidelity and adds first protocol/reservation-depth stressors |
 | `belief_bargaining` | cue use, posterior bargaining, multi-turn opponent modeling, and strategic cheap-talk likelihoods | oracle surplus gap 0 across 9 prompts; prior baseline gap 13.6088; single-cue baseline gap 33.5649 with multi-turn miss 1.00; literal-claim baseline gap 60.1056; live `nano` strategic base gap 52.4859 but scaffold gap 0 | implements the bargaining-Bayes falsifier from source `7cb0ca8`: when posterior state is externalized, `nano` closes the strategic cheap-talk gap, isolating implicit sequential belief-state failure |
@@ -523,6 +528,12 @@ revealed-style inference.
 | PR122 metadata live follow-up | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_metadata --agents openai:nano,openai:gpt-5.5 --repeat 6 --case multi_artifact_close_runner_up --no-cache` | `gpt-5.5` is stable-oracle; `nano` is unstable-oracle-modal with mean score regret 0.166667, oracle-hit 0.833333, and one `artifact_blind` choice |
 | PR122 full pytest | `python -m pytest` | 287 tests passed |
 | PR122 full all-task oracle | `python -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 92 current task runners execute; oracle path remains clean, including `principal_holding_filing_artifact_metadata` with `n=1`, score regret 0, accuracy 1.00, and oracle margin 0.0645 |
+| PR123 focused noisy-metadata tests | `python -m pytest tests/test_tasks.py -k 'metadata_noisy or filing_artifact_metadata_noisy or filing_artifact_metadata'` | 8 selected tests passed; the prompt includes stale/unconfirmed/unmatched registry distractors, and the naive metadata baseline chooses the unconfirmed registry distractor |
+| PR123 noisy-metadata shortcut sweep | `python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_metadata_noisy --agents offline:oracle,offline:artifact_blind,offline:market_value,offline:percent_change,offline:second_best,offline:metadata_naive --no-cache` | oracle rank 1; second-best and metadata-naive regret 0.0645161; percent-change regret 0.774194; artifact-blind and market-value regret 1 |
+| PR123 noisy-metadata live repeat | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_metadata_noisy --agents openai:nano,openai:mini,openai:gpt-5.5 --repeat 3 --case multi_artifact_noisy_registry_close_runner_up --no-cache` | all three aliases are stable-oracle with parse floor 1.00, score regret 0, accuracy 1.00, and modal `sec_stress_b` |
+| PR123 noisy-metadata live follow-up | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_metadata_noisy --agents openai:nano,openai:gpt-5.5 --repeat 6 --case multi_artifact_noisy_registry_close_runner_up --no-cache` | `nano` and `gpt-5.5` are stable-oracle with parse floor 1.00, score regret 0, accuracy 1.00, and modal `sec_stress_b` |
+| PR123 full pytest | `python -m pytest` | 291 tests passed |
+| PR123 full all-task oracle | `python -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 93 current task runners execute; oracle path remains clean, including `principal_holding_filing_artifact_metadata_noisy` with `n=1`, score regret 0, accuracy 1.00, and oracle margin 0.0645 |
 | Whitespace check | `git diff --check` | passed with no output |
 | API key scan | `rg -n "sk-proj-[A-Za-z0-9_-]{20,}" .` | no tracked API key strings found |
 | Provider guardrail scan | `rg -n "anthropic|claude|openrouter|chat\\.completions|ChatCompletion|OPENROUTER|ANTHROPIC" aeread_lab tests docs pyproject.toml README.md` | only expected documentation/test guardrail matches; no non-OpenAI client path added |
@@ -1159,3 +1170,13 @@ build lab should not depend on `.playwright-mcp/` logs or the local
     miss. This pins the top-alias PR 120 miss to missing metadata under a
     value-conflict, while leaving a smaller-model question about reliable
     registry use under repeated sampling.
+99. PR 123 tests whether that residual is caused by merely adding realistic
+    registry noise. It keeps the same conflicting-value rows and correct
+    confirmed split records, but adds stale, unconfirmed, non-split, and
+    unmatched corporate-action entries. The offline metadata-naive baseline
+    gets pulled to the unconfirmed `sec_stress_c` distractor, but live repeat-3
+    across `nano`, `mini`, and `gpt-5.5`, plus repeat-6 on `nano` and `gpt-5.5`,
+    are all stable-oracle. This makes the next depth question sharper:
+    distractor rows are not enough when the correct confirmed registry entries
+    are present; test partial/missing registry coverage, wrong-but-confirmed
+    metadata, or real filing traces where the registry and row pattern disagree.

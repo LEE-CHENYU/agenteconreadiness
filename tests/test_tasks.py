@@ -186,6 +186,9 @@ from aeread_lab.tasks.principal_holding_filing_trace import (
     ARTIFACT_IMPLICIT_STABLE_CASES as PRINCIPAL_HOLDING_FILING_ARTIFACT_IMPLICIT_STABLE_CASES,
 )
 from aeread_lab.tasks.principal_holding_filing_trace import (
+    ARTIFACT_METADATA_NOISY_CASES as PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_NOISY_CASES,
+)
+from aeread_lab.tasks.principal_holding_filing_trace import (
     DEFAULT_CASES as PRINCIPAL_HOLDING_FILING_TRACE_CASES,
 )
 from aeread_lab.tasks.principal_holding_filing_trace import (
@@ -486,6 +489,15 @@ class TaskSmokeTests(unittest.TestCase):
     def test_sample_limit_slices_principal_holding_filing_artifact_metadata_cases(self):
         results = run_tasks(
             "principal_holding_filing_artifact_metadata",
+            OfflineAgent("oracle"),
+            sample_limit=1,
+        )
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
+    def test_sample_limit_slices_principal_holding_filing_artifact_metadata_noisy_cases(self):
+        results = run_tasks(
+            "principal_holding_filing_artifact_metadata_noisy",
             OfflineAgent("oracle"),
             sample_limit=1,
         )
@@ -817,6 +829,23 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("three-for-one split", prompt)
         self.assertNotIn("adjustment_factor=", prompt)
 
+    def test_filing_artifact_metadata_noisy_prompt_adds_registry_distractors(self):
+        prompt = principal_holding_filing_artifact_prompt(
+            PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_NOISY_CASES[0],
+            include_factor=False,
+            include_notes=False,
+            include_metadata=True,
+        )
+        self.assertIn("No separate corporate-action notes are provided", prompt)
+        self.assertIn("Corporate action registry:", prompt)
+        self.assertIn("corporate_action issuer=sec_stress_a action=stock_split ratio=5-for-1", prompt)
+        self.assertIn("corporate_action issuer=sec_stress_f action=stock_split ratio=3-for-1", prompt)
+        self.assertIn("status=unconfirmed", prompt)
+        self.assertIn("status=stale", prompt)
+        self.assertIn("issuer=sec_stress_z", prompt)
+        self.assertNotIn("artifact_note", prompt)
+        self.assertNotIn("adjustment_factor=", prompt)
+
     def test_filing_artifact_oracle_beats_artifact_blind_shortcuts(self):
         rows = comparison_table(
             run_sweep(
@@ -936,6 +965,28 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(by_agent["offline:percent_change"]["value"], 0.7)
         self.assertGreater(by_agent["offline:second_best"]["value"], 0.05)
 
+    def test_filing_artifact_metadata_noisy_oracle_beats_registry_noise(self):
+        rows = comparison_table(
+            run_sweep(
+                task="principal_holding_filing_artifact_metadata_noisy",
+                agent_specs=[
+                    "offline:oracle",
+                    "offline:artifact_blind",
+                    "offline:market_value",
+                    "offline:percent_change",
+                    "offline:second_best",
+                    "offline:metadata_naive",
+                ],
+            )
+        )
+        by_agent = {row["agent"]: row for row in rows}
+        self.assertEqual(by_agent["offline:oracle"]["value"], 0.0)
+        self.assertGreater(by_agent["offline:artifact_blind"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:market_value"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:percent_change"]["value"], 0.7)
+        self.assertGreater(by_agent["offline:second_best"]["value"], 0.05)
+        self.assertGreater(by_agent["offline:metadata_naive"]["value"], 0.05)
+
     def test_filing_artifact_case_key_targets_adjusted_fixture(self):
         results = run_tasks(
             "principal_holding_filing_artifact",
@@ -1021,6 +1072,32 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertAlmostEqual(trial["artifact_changes"]["sec_stress_f"]["value"], 0.0)
         self.assertLess(trial["oracle_margin"], 0.07)
         self.assertEqual(trial["chosen_trade"], "sec_stress_b")
+
+    def test_filing_artifact_metadata_noisy_case_key_ignores_bad_registry_rows(self):
+        results = run_tasks(
+            "principal_holding_filing_artifact_metadata_noisy",
+            OfflineAgent("oracle"),
+            case_keys=["multi_artifact_noisy_registry_close_runner_up"],
+        )
+        self.assertEqual(results[0]["n_trials"], 1)
+        trial = results[0]["trials"][0]
+        self.assertEqual(trial["principal_trade"], "sec_stress_b")
+        self.assertEqual(trial["artifact_blind_trade"], "sec_stress_a")
+        self.assertEqual(trial["market_value_trade"], "sec_stress_f")
+        self.assertEqual(trial["percent_change_trade"], "sec_stress_e")
+        self.assertEqual(trial["second_best_trade"], "sec_stress_c")
+        self.assertAlmostEqual(trial["artifact_changes"]["sec_stress_a"]["value"], 0.0)
+        self.assertAlmostEqual(trial["artifact_changes"]["sec_stress_f"]["value"], 0.0)
+        self.assertLess(trial["oracle_margin"], 0.07)
+        self.assertEqual(trial["chosen_trade"], "sec_stress_b")
+
+        naive_results = run_tasks(
+            "principal_holding_filing_artifact_metadata_noisy",
+            OfflineAgent("metadata_naive"),
+            case_keys=["multi_artifact_noisy_registry_close_runner_up"],
+        )
+        naive_trial = naive_results[0]["trials"][0]
+        self.assertEqual(naive_trial["chosen_trade"], "sec_stress_c")
 
     def test_filing_artifact_stability_attribution_labels_artifact_blind(self):
         payload = run_stability_sweep(
