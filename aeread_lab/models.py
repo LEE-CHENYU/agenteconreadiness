@@ -4126,6 +4126,8 @@ def _extract_filing_artifact_changes(text: str) -> dict[str, dict[str, float | s
     note_pattern = re.compile(r"artifact_note\s+issuer=([a-zA-Z0-9_-]+)\s+note=(.*)")
     for match in note_pattern.finditer(text):
         factors.setdefault(match.group(1), _filing_artifact_factor_from_note(match.group(2)))
+    if not factors and "No separate corporate-action notes are provided" in text:
+        factors.update(_infer_filing_artifact_factors(base_changes))
     changes: dict[str, dict[str, float | str]] = {}
     for issuer, trade in base_changes.items():
         factor = factors.get(issuer, 1.0)
@@ -4148,6 +4150,26 @@ def _extract_filing_artifact_changes(text: str) -> dict[str, dict[str, float | s
             "observed_fraction": abs(observed_delta) / prior_shares if prior_shares else 0.0,
         }
     return changes
+
+
+def _infer_filing_artifact_factors(
+    changes: dict[str, dict[str, float | str]]
+) -> dict[str, float]:
+    factors: dict[str, float] = {}
+    common_split_ratios = {2, 3, 4, 5, 10}
+    for issuer, trade in changes.items():
+        prior_shares = float(trade["prior_shares"])
+        next_shares = float(trade["next_shares"])
+        if prior_shares <= 0:
+            continue
+        ratio = next_shares / prior_shares
+        rounded = round(ratio)
+        if rounded not in common_split_ratios:
+            continue
+        if abs(ratio - rounded) > 0.02:
+            continue
+        factors[issuer] = float(rounded)
+    return factors
 
 
 def _filing_artifact_factor_from_note(note: str) -> float:

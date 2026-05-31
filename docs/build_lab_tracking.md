@@ -34,6 +34,35 @@ The strongest current evidence is not "new games are better"; it is that the
 regime-appropriateness and deployment-pressure lens can be made runnable,
 judge-free, and API-testable while staying OpenAI-only.
 
+Depth, not case count, is the operating rule. A new fixture counts only when it
+closes or sharpens a question raised by prior results: which shortcut fired,
+whether the miss is repeat-reliable, whether the evidence channel was too
+scaffolded, and whether the same mechanism survives in real-derived data.
+
+Current uncovered directions from the tests:
+
+- C1 filing inference: implicit corporate-action adjustment is the active
+  frontier. PR 119 showed repeated `nano` artifact-blind misses under natural
+  notes; PR 120 shows that removing notes can also trigger `gpt-5.5`
+  reported-value misses. The questions are whether row-ratio evidence is too
+  weak, whether real corporate-action metadata restores stability, and whether
+  artifact blindness or reported-value drift is the durable shortcut.
+- Real-derived C1 runner-up ambiguity: the Tiger `mini` runner-up miss did not
+  reproduce in build-lab repeats. The question is which real filing trace
+  creates repeat-reliable runner-up confusion under a clear dollar-material
+  objective, not how many public traces can be listed.
+- Calibration and market traces: live gaps are strongest when the model must
+  choose the reference class or infer opponent/inventory state from logs. The
+  next questions are context selection and state reconstruction, not more
+  explicit formula or static demand cases.
+- Mechanism and procurement: explicit static variants saturate quickly. The
+  uncovered directions are sequential response, participant dynamics,
+  equilibrium feedback, noisy ledgers, and reserve pressure.
+- De-prioritized unless they answer one of those questions: more clean
+  annotated split examples, static two-SKU procurement variants, deterministic
+  linear pricing-law holdouts, or additional cases without a named failure
+  mechanism.
+
 ## Private PR stack
 
 | PR | Branch | Adds | Current result |
@@ -157,6 +186,7 @@ judge-free, and API-testable while staying OpenAI-only.
 | 117 | `review/117-filing-artifact-stress` | composite filing-artifact stress probe | combines multiple split artifacts, a close runner-up action, value drift, and percent salience; live `nano` becomes unstable while `mini` and `gpt-5.5` stay stable-oracle |
 | 118 | `review/118-stability-shortcut-mixture` | choice-level shortcut-mixture attribution for repeat probes | stability summaries now count all repeated choices that hit named non-oracle references, not only the modal choice, so oracle-modal unstable runs still surface artifact-blind/value-drift shortcut mixtures |
 | 119 | `review/119-artifact-stress-choice-mix` | live choice-mixture drilldown on the artifact-stress case | repeat-9 OpenAI sweep confirms `mini` and `gpt-5.5` are stable-oracle; `nano` is oracle-modal with 3/9 non-oracle choices, all attributed to artifact-blind raw-share movement |
+| 120 | `review/120-implicit-filing-artifact` | implicit artifact-inference C1 stress | removes the artifact-note section from the composite stress prompt; offline baselines preserve dynamic range, and live repeats turn the next question into which evidence channel makes implicit corporate-action adjustment stable |
 
 ## Task result ledger
 
@@ -182,6 +212,7 @@ unless explicitly marked as historical/upstream.
 | `principal_holding_filing_artifact` | filing-artifact C1 trace with structured corporate-action factor | oracle score regret 0 on the split-adjusted trace; artifact-blind and market-value baselines regret 1; percent-change regret 0.691445; second-best regret 0.20561; oracle margin 0.20561 | follows the PR 115 open question about filing artifacts. The task proves the harness can separate a mechanical split-driven raw share jump from the discretionary dollar-material reduction, but the structured adjustment factor is still too explicit for live aliases |
 | `principal_holding_filing_artifact_natural` | filing-artifact C1 trace with natural corporate-action notes | same offline dynamic range as the structured artifact task; live repeat-3 on `nano`, `mini`, and `gpt-5.5` is stable-oracle | removes `adjustment_factor=` from the prompt and leaves the 4-for-1 split as natural note text. Current live aliases still solve, so this is a depth control rather than a tier separator; the next artifact probe needs weaker/noisier notes or artifact plus runner-up ambiguity |
 | `principal_holding_filing_artifact_stress` | composite filing-artifact C1 stress with multiple natural-note artifacts and a close runner-up | oracle score regret 0; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind and market-value baselines regret 1; oracle margin 0.0645161 | follows PR 116's limitation rather than adding clean cases. The live result separates aliases: `mini` and `gpt-5.5` solve, while `nano` is unstable across fresh repeats, with misses attributed to value-drift in one run and artifact-blind raw share movement in the drilldown |
+| `principal_holding_filing_artifact_implicit` | composite artifact C1 stress with no artifact-note section | oracle score regret 0; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind and market-value baselines regret 1; oracle margin 0.0645161 | uses the same composite stress fixture as PR 117 but removes the note channel, forcing split-like artifact inference from row patterns. This is a depth move on the PR 119 finding: the question is whether implicit artifact adjustment needs stronger row-ratio evidence, value-stability evidence, or real corporate-action context, not whether another annotated split case can be added |
 | `ambiguity` | maxmin/alpha-maxmin under Knightian ambiguity | oracle configured regret 0 across 5 cases; reference-prior regret 11.5796; pure-maxmin regret 2.32038; optimistic regret 14.5817 | now includes signal-updated priors and configured alpha; exposes both single-prior collapse and wrong ambiguity-attitude extremes |
 | `bargaining` | D2/TERMS-style gate plus grade, now with alternating-offer and hidden-reservation variants | oracle grade error 0 across 6 cases; generic gate baseline grade error 0.374225; round-blind alternating-offer miss 1.00; optimistic-budget hidden-reservation miss 1.00 | confirms "gate-only surplus extraction" is not grade fidelity and adds first protocol/reservation-depth stressors |
 | `belief_bargaining` | cue use, posterior bargaining, multi-turn opponent modeling, and strategic cheap-talk likelihoods | oracle surplus gap 0 across 9 prompts; prior baseline gap 13.6088; single-cue baseline gap 33.5649 with multi-turn miss 1.00; literal-claim baseline gap 60.1056; live `nano` strategic base gap 52.4859 but scaffold gap 0 | implements the bargaining-Bayes falsifier from source `7cb0ca8`: when posterior state is externalized, `nano` closes the strategic cheap-talk gap, isolating implicit sequential belief-state failure |
@@ -468,6 +499,10 @@ revealed-style inference.
 | PR118 full pytest | `python -m pytest` | 275 tests passed |
 | PR118 full all-task oracle | `python -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 89 current task runners execute; oracle path remains clean; PR118 changes reporting/attribution only and does not alter task oracles |
 | PR119 artifact-stress choice-mixture live repeat | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_stress --agents openai:nano,openai:mini,openai:gpt-5.5 --repeat 9 --case multi_artifact_close_runner_up --no-cache` | completed in the review copy; `mini` and `gpt-5.5` are stable-oracle with score regret 0; `nano` is unstable-oracle-modal with mean score regret 0.333333, accuracy 0.666667, oracle-hit 0.666667, non-oracle choice rate 0.333333, attributed non-oracle rate 1.00, and choice reference counts `artifact_blind:3` |
+| PR120 focused implicit-artifact tests | `python -m pytest tests/test_tasks.py -k 'filing_artifact or filing_trace or principal_holding'` | 32 selected tests passed; the no-note prompt omits all `artifact_note` lines, the offline oracle infers common split ratios from row patterns, and shortcut baselines remain separated |
+| PR120 implicit artifact shortcut sweep | `python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_implicit --agents offline:oracle,offline:artifact_blind,offline:market_value,offline:percent_change,offline:second_best --no-cache` | oracle rank 1; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind and market-value regret 1 |
+| PR120 full pytest | `python -m pytest` | 279 tests passed |
+| PR120 full all-task oracle | `python -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 90 current task runners execute; oracle path remains clean, including `principal_holding_filing_artifact_implicit` with `n=1`, score regret 0, accuracy 1.00, and oracle margin 0.0645 |
 | Whitespace check | `git diff --check` | passed with no output |
 | API key scan | `rg -n "sk-proj-[A-Za-z0-9_-]{20,}" .` | no tracked API key strings found |
 | Provider guardrail scan | `rg -n "anthropic|claude|openrouter|chat\\.completions|ChatCompletion|OPENROUTER|ANTHROPIC" aeread_lab tests docs pyproject.toml README.md` | only expected documentation/test guardrail matches; no non-OpenAI client path added |
@@ -558,6 +593,8 @@ not committed, and live commands source `.env` only for the subprocess.
 | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_stress --agents openai:nano --repeat 6 --case multi_artifact_close_runner_up --no-cache --json` | completed in the review copy; `nano` choice counts are `sec_stress_b:4`, `sec_stress_a:2`, parse 1.00, oracle-hit 0.666667, primary mean 0.333333, and the non-oracle choices match `artifact_blind` | the drilldown shows the live gap is stochastic and not a single fixed shortcut: a fresh run becomes oracle-modal but still has artifact-blind raw-share misses. |
 | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_stress --agents openai:nano,openai:mini,openai:gpt-5.5 --repeat 3 --case multi_artifact_close_runner_up --no-cache` | completed in the build-lab copy after cherry-pick; `mini` and `gpt-5.5` are stable-oracle with score regret 0; `nano` is again unstable-non-oracle-modal with mean score regret 0.666667, accuracy 0.333333, primary range 1, but modal `sec_stress_a` now matches `artifact_blind` | confirms the live tier split is reproducible while the exact `nano` shortcut is not fixed: fresh repeats alternate between reported-value artifact drift and raw-share artifact blindness, so the next question is repeat reliability and shortcut-mixture attribution. |
 | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_stress --agents openai:nano,openai:mini,openai:gpt-5.5 --repeat 9 --case multi_artifact_close_runner_up --no-cache` | completed in the review copy after PR 118 choice-mix instrumentation; `mini` and `gpt-5.5` are stable-oracle with score regret 0; `nano` is unstable-oracle-modal with mean score regret 0.333333, accuracy 0.666667, oracle-hit 0.666667, non-oracle choice rate 0.333333, attributed non-oracle rate 1.00, and choice reference counts `artifact_blind:3` | the longer live drilldown answers the PR 117/118 question: the tier split persists, but the durable `nano` failure signal is artifact-blind raw-share movement, not runner-up confusion; the earlier market-value modal miss looks stochastic rather than the dominant shortcut on this case. |
+| `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_implicit --agents openai:nano,openai:mini,openai:gpt-5.5 --repeat 3 --case multi_artifact_close_runner_up --no-cache` | completed in the review copy; `mini` is stable-oracle with score regret 0; `nano` is unstable-oracle-modal with mean score regret 0.333333 and one artifact-blind choice; `gpt-5.5` is unstable-oracle-modal with mean score regret 0.333333 and one market-value choice | removing artifact notes reopens the C1 artifact-inference gap beyond `nano`: the top alias can also miss when it has to infer the split-like adjustment from row patterns alone. |
+| `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_implicit --agents openai:nano,openai:gpt-5.5 --repeat 6 --case multi_artifact_close_runner_up --no-cache` | completed in the review copy; `nano` is stable-oracle with score regret 0; `gpt-5.5` is unstable-oracle-modal with mean score regret 0.333333, accuracy 0.666667, oracle-hit 0.666667, non-oracle choice rate 0.333333, attributed non-oracle rate 1.00, and choice reference counts `market_value:2` | the follow-up prevents overclaiming a persistent `nano` gap on the implicit version, but strengthens the new result: no-note artifact inference can trigger reported-value-drift misses in `gpt-5.5`, so the next depth question is whether stronger implicit evidence or a real corporate-action trace restores top-alias stability. |
 | `python3 -m aeread_lab.cli --task market_policy_shift --agent openai:nano --cache-dir /tmp/aeread_pr54_live_cache` | completed; n=4, parse 1.00, profit regret 18.691, price error 3.0037, static-Nash miss 0.00, last-price miss 0.00 | `nano` adjusts to the opponent-policy signals enough to avoid static/sticky baselines, but leaves moderate profit on the table from imperfect next-price inference |
 | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python3 -m aeread_lab.cli --task market_policy_inventory --agent openai:nano --cache-dir /tmp/aeread_pr70_live_cache` | completed; n=4, parse 1.00, constrained terminal-cash regret 165.418, price error 3.25, reserve violation 0.00, static-Nash miss 0.00, last-price miss 0.33, inventory-blind miss 0.00 | `nano` infers enough of the opponent-policy/inventory objective to avoid unsafe reserve failures and simple static/inventory-blind collapse, but leaves terminal cash on the table and partially anchors to last-price behavior |
 | `python3 -m aeread_lab.cli --task market_trace_inventory --agent openai:nano --cache-dir /tmp/aeread_pr85_live_cache` | completed; n=4, parse 1.00, constrained terminal-cash regret 4226.05, price error 19.65, reserve violation 0.50, static-Nash miss 0.50, last-price miss 0.33, trace-blind miss 1.00, inventory-blind miss 0.33 | removing the explicit opponent-policy label creates the strongest market live gap so far; `nano` overprices clearance/share-attack traces and misses the reserve/sell-through interaction |
@@ -1074,3 +1111,16 @@ build lab should not depend on `.playwright-mcp/` logs or the local
     the next C1 question: the current persistent failure is raw corporate-action
     artifact blindness under noisy natural notes, not simply generic
     value-drift salience or close-runner-up confusion.
+96. PR 120 asks the next narrower question by removing the artifact-note channel
+    from the same composite stress fixture. The implicit prompt tells agents to
+    infer split-like artifacts from raw row patterns, while the offline oracle
+    uses common integer split ratios to preserve the same mechanical target and
+    shortcut baselines. The first live repeat-3 shows `mini` solving, `nano`
+    making one artifact-blind miss, and `gpt-5.5` making one market-value miss;
+    the repeat-6 follow-up has `nano` solving and `gpt-5.5` still missing twice
+    toward market value. This makes implicit corporate-action inference a real
+    high-end stressor, not just a small-model artifact-blindness issue. The
+    next question is evidence-channel specific: do models need stronger row
+    ratio evidence, value-stability evidence, real corporate-action context, or
+    longer filing history before they stop treating raw reported values as the
+    principal's discretionary signal?

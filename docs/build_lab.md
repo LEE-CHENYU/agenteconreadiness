@@ -12,6 +12,31 @@ under stress, not agent count. Where omniscient optima are not a fair agent bar,
 the lab scores against accessible posterior/control targets, local oracles,
 proper scoring, bounds, and revealed-preference fit.
 
+## Depth-first rule
+
+The task list is not a case-count target. A new task, fixture, or live run is
+worth adding only when it answers a question created by a prior result: remove a
+scaffold, test repeat reliability, name the shortcut behind a miss, or move the
+same unresolved mechanism onto weaker or more realistic evidence.
+
+The readout after a test should be:
+
+1. Which capability or shortcut did the result uncover?
+2. Is the miss repeat-reliable across fresh calls and model aliases?
+3. Which reference did the non-oracle choice match?
+4. What evidence channel needs to be weakened, naturalized, or replaced by
+   real-derived data to falsify the current explanation?
+
+For the current C1 line, the live tests have narrowed the direction rather than
+expanded the case target. PR 119 made raw corporate-action artifact blindness
+the persistent `nano` signal under noisy natural notes. PR 120 removes the note
+channel and shows that no-note artifact inference can also trigger
+reported-value drift in `gpt-5.5`. The open question is therefore not "how many
+more filing cases can we add?" It is which evidence channel makes
+dollar-material principal-choice inference robust: row-ratio patterns, value
+stability, real corporate-action metadata, repeated filing history, or a
+different shortcut attribution.
+
 ## What is implemented
 
 | Build | Why it matters | Command |
@@ -33,6 +58,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `principal_holding_filing_artifact` | Filing-artifact C1 trace: adjust raw filing-row share changes for mechanical corporate actions before scoring the principal's discretionary dollar-material action. | `python -m aeread_lab.cli --task principal_holding_filing_artifact --agent offline:oracle` |
 | `principal_holding_filing_artifact_natural` | Natural-note filing-artifact C1 trace: remove the structured adjustment factor and require the same artifact adjustment from natural corporate-action notes. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_natural --agent offline:oracle` |
 | `principal_holding_filing_artifact_stress` | Composite filing-artifact C1 stress: combine multiple corporate-action artifacts, value drift, percentage salience, and a close runner-up discretionary action. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_stress --agent offline:oracle` |
+| `principal_holding_filing_artifact_implicit` | Implicit filing-artifact C1 stress: remove corporate-action notes and require split-like artifact inference from raw filing-row patterns before scoring the discretionary action. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_implicit --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -196,6 +222,10 @@ interpreting the economic metric.
   natural-note corporate-action artifacts and a close second-best discretionary
   action; this reports the same shortcut miss rates and oracle margin to
   distinguish artifact-blind collapse from near-miss runner-up errors.
+- `principal_holding_filing_artifact_implicit`: same score, but removes the
+  corporate-action notes and asks for split-like artifact inference from raw
+  filing-row patterns; this tests whether the artifact adjustment survives when
+  the row pattern, not an explicit note, carries the artifact evidence.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -548,6 +578,16 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    remains oracle-modal but makes 3/9 non-oracle choices, all attributed to
    artifact-blind raw-share movement; `mini` and `gpt-5.5` remain stable-oracle.
    That makes artifact blindness the persistent current C1 failure signal, with
-   reported-value drift demoted to a less persistent stochastic miss.
+   reported-value drift demoted to a less persistent stochastic miss. PR 120
+   removes the artifact-note section entirely and asks for split-like inference
+   from row patterns. The implicit version keeps offline dynamic range, makes
+   `mini` stable-oracle in the first live repeat, but reopens misses for both
+   `nano` and `gpt-5.5` across fresh repeats. In the repeat-6 follow-up,
+   `gpt-5.5` remains oracle-modal with two market-value misses while `nano`
+   solves, so the uncovered direction becomes robust implicit artifact
+   inference, not more annotated split examples. Future C1 additions should be
+   admitted only if they answer this question or one of the prior uncovered
+   questions: reproducible runner-up ambiguity, durable value-drift salience,
+   raw artifact blindness, or real-filing inversion noise.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.

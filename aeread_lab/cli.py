@@ -29,6 +29,7 @@ TASKS = (
     "principal_holding_filing_artifact",
     "principal_holding_filing_artifact_natural",
     "principal_holding_filing_artifact_stress",
+    "principal_holding_filing_artifact_implicit",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -400,6 +401,7 @@ def _print_human(payload: dict[str, Any]) -> None:
             "principal_holding_filing_artifact",
             "principal_holding_filing_artifact_natural",
             "principal_holding_filing_artifact_stress",
+            "principal_holding_filing_artifact_implicit",
         }:
             print(
                 f"{task}: n={result['n_trials']} "

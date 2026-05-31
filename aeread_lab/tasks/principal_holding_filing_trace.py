@@ -39,6 +39,13 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_STRESS_SYSTEM = (
     "line only: FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_IMPLICIT_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_implicit\n"
+    "Infer the dollar-material discretionary holding action from public-filing rows where "
+    "corporate-action artifacts must be inferred from row patterns rather than explicit "
+    "artifact notes. Return one final line only: FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -551,6 +558,7 @@ def run_principal_holding_filing_artifact_game(
         task="principal_holding_filing_artifact",
         system=PRINCIPAL_HOLDING_FILING_ARTIFACT_SYSTEM,
         include_factor=True,
+        include_notes=True,
     )
 
 
@@ -564,6 +572,7 @@ def run_principal_holding_filing_artifact_natural_game(
         task="principal_holding_filing_artifact_natural",
         system=PRINCIPAL_HOLDING_FILING_ARTIFACT_NATURAL_SYSTEM,
         include_factor=False,
+        include_notes=True,
     )
 
 
@@ -577,6 +586,21 @@ def run_principal_holding_filing_artifact_stress_game(
         task="principal_holding_filing_artifact_stress",
         system=PRINCIPAL_HOLDING_FILING_ARTIFACT_STRESS_SYSTEM,
         include_factor=False,
+        include_notes=True,
+    )
+
+
+def run_principal_holding_filing_artifact_implicit_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_STRESS_CASES,
+        task="principal_holding_filing_artifact_implicit",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_IMPLICIT_SYSTEM,
+        include_factor=False,
+        include_notes=False,
     )
 
 
@@ -587,6 +611,7 @@ def _run_principal_holding_filing_artifact_game(
     task: str,
     system: str,
     include_factor: bool,
+    include_notes: bool,
 ) -> dict:
     cases = cases or ARTIFACT_CASES
     trials: list[FilingArtifactTrial] = []
@@ -598,7 +623,10 @@ def _run_principal_holding_filing_artifact_game(
         second_best = artifact_second_best_issuer(case)
         score_by_id = _normalized_artifact_scores(case)
         oracle_margin = _oracle_margin(score_by_id, principal)
-        response = agent.complete(system, _artifact_prompt(case, include_factor=include_factor))
+        response = agent.complete(
+            system,
+            _artifact_prompt(case, include_factor=include_factor, include_notes=include_notes),
+        )
         chosen = parse_token("FINAL_ISSUER", response)
         chosen = chosen if chosen in score_by_id else None
         chosen_score = score_by_id[chosen] if chosen else None
@@ -857,7 +885,12 @@ def _raw_prompt(case: FilingTraceCase) -> str:
     return "\n".join(lines)
 
 
-def _artifact_prompt(case: FilingArtifactCase, *, include_factor: bool = True) -> str:
+def _artifact_prompt(
+    case: FilingArtifactCase,
+    *,
+    include_factor: bool = True,
+    include_notes: bool = True,
+) -> str:
     lines = [
         f"case={case.key}",
         f"real_case={case.real_case}",
@@ -872,15 +905,25 @@ def _artifact_prompt(case: FilingArtifactCase, *, include_factor: bool = True) -
             f"filing_row period={row.period} accession={row.accession} "
             f"issuer={row.issuer} reported_value={row.value:.0f} shares={row.shares:.0f}"
         )
-    lines.append("Artifact notes:")
-    for issuer in sorted(case.adjustment_factors):
-        if include_factor:
-            lines.append(
-                f"artifact_note issuer={issuer} adjustment_factor={case.adjustment_factors[issuer]:.6g} "
-                f"note={case.artifact_notes.get(issuer, 'no note')}"
-            )
-        else:
-            lines.append(f"artifact_note issuer={issuer} note={case.artifact_notes.get(issuer, 'no note')}")
+    if include_notes:
+        lines.append("Artifact notes:")
+        for issuer in sorted(case.adjustment_factors):
+            if include_factor:
+                lines.append(
+                    f"artifact_note issuer={issuer} adjustment_factor={case.adjustment_factors[issuer]:.6g} "
+                    f"note={case.artifact_notes.get(issuer, 'no note')}"
+                )
+            else:
+                lines.append(
+                    f"artifact_note issuer={issuer} note={case.artifact_notes.get(issuer, 'no note')}"
+                )
+    else:
+        lines.append(
+            "No separate corporate-action notes are provided. Infer split-like artifacts from "
+            "filing-row patterns: clean integer-multiple share changes paired with roughly "
+            "stable economic exposure should be treated as mechanical unit changes before "
+            "scoring discretionary share actions."
+        )
     issuers = ", ".join(sorted({row.issuer for row in case.rows}))
     lines.append(f"issuer_choices={issuers}")
     lines.append(
