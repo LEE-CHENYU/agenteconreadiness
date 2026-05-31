@@ -1,6 +1,8 @@
 # Layer 3 Use Case Candidates — Open List
 
-This is the **open candidate pool** for AERead Layer 3 (real-world economic decision use cases). v0 ships with **2 deep games** (C2 ProductProcurementGame + C8 SimplePricingGame — action-space-distinct decisions: discrete-action procurement + continuous-action pricing); the rest are listed here as candidates we'll evaluate for v0.5 / v1 / v1.5 / v2 expansion. **Listing is harmless** — having the full pool visible prevents us from missing high-leverage cases later.
+This is the **open candidate pool** for AERead Layer 3 (real-world economic decision use cases). v0 ships with **2 deep games** (C2 ProductProcurementGame + C8 SimplePricingGame — action-space-distinct decisions: discrete-action procurement + continuous-action pricing); the rest are listed here as candidates we'll evaluate for v0.5 / v1 / v1.5 / v2 expansion.
+
+**Depth-first discipline.** The candidate pool is a coverage map, not a case-count target. A new case, wrap, or fixture is worth adding only when it answers a question created by a prior result: a saturated gate that needs stress, a missing durable reference, an attribution ambiguity, or an external benchmark result that exposes an axis AERead cannot yet read. "More cases" without a named uncovered question is negative scope.
 
 ## Selection criteria
 
@@ -11,8 +13,9 @@ A good Layer 3 case satisfies:
 3. **Deployment-relevant** — agents actually do this in the wild today, OR will within ≤ 12 months
 4. **Distinct domain** — extends the OracleDecomposable generalization claim into a new structural form (bargaining ≠ matching ≠ auction ≠ forecasting)
 5. **Tractable simulator** — can be implemented in ≤ 1 week with reasonable data/code; some can wrap existing benchmarks (TERMS-Bench, EconEvals)
+6. **Question-answering leverage** — resolves an uncovered direction from earlier tests rather than merely increasing the number of shipped tasks
 
-Cases that fail (1) are Layer 1/2 (axiom probes / parameter fits). Cases that fail (2) belong in a different framework. Cases that fail (3) are fine but lower priority.
+Cases that fail (1) are Layer 1/2 (axiom probes / parameter fits). Cases that fail (2) belong in a different framework. Cases that fail (3) are fine but lower priority. Cases that fail (6) stay in the parking lot until a result makes them necessary.
 
 ## Value × testability matrix
 
@@ -30,14 +33,14 @@ The **top-right quadrant** (high value × high testability) is where AERead's le
 | **Low value** | D8 weather forecasting • G15 iterated ultimatum • G17 Allais paradox | C3 commons governance • C4 repeated PD • C5 multi-agent coord (γ-Bench) • G16 trust game | E11 budget-constraint learning • F13 web browsing under budget |
 
 **What the matrix tells us**:
-- **The top-right quadrant is the primary methodology-validation surface** — pricing, matching, trading, procurement, scheduling, auctions. These are the cases with both economic stakes and clean oracle decomposition, making them the strongest demonstration sites for the OracleDecomposable Eq. 4 generalization across non-bargaining domains (the methodology paper §3 contribution).
+- **The top-right quadrant is the primary methodology-validation surface only when it answers a live question** — pricing, matching, trading, procurement, scheduling, auctions. These are the cases with both economic stakes and clean oracle decomposition, making them strong demonstration sites for the OracleDecomposable Eq. 4 generalization across non-bargaining domains, but they are not a quota. The next build still has to name which prior-result ambiguity it resolves.
 - **The top-middle is the highest-priority "needs methodology work" zone** — B1 Calvano collusion + A7 price discrimination both have high economic value but require multi-round simulator engineering before they're testable at AERead's plug-and-play standard.
 - **The bottom-right is the academic-credibility cluster** — weather forecasting, iterated ultimatum, Allais paradox. These are clean, citable, and load-bearing for methodology-paper §3 validation across non-bargaining domains.
 - **The high-value × high-testability cell is sparser than ideal** — A2 EconEvals pricing, A6 two-sided matching, B3 algorithmic trading are listed there, but each has substantive oracle-derivation work pending before the OracleDecomposable interface ships clean. Mechanism-design contribution (per §9.3 Phase-0 option D below or external contributions via the OracleDecomposable submission channel): theoretically formalize the oracle for these cases to harden their testability score.
 
-**Open ask for Zihao** (per §9.3 (D) in the proposal): two complementary mechanism-design contributions, either of which closes the matrix gap:
+**Open ask for Zihao** (per §9.3 (D) in the proposal): two complementary mechanism-design contributions, either of which closes the matrix gap without turning the roadmap into a case-count exercise:
 
-1. **Propose new candidates** that aren't yet in this doc — strong theoretical formalization + deployment relevance (spectrum auctions, prediction markets, generalized second-price / AdWords, market-maker bid-ask spread, etc. are likely missing). Land them in the high-value rows wherever the testability allows.
+1. **Propose new candidates** that aren't yet in this doc only if they expose an uncovered structural direction — strong theoretical formalization + deployment relevance (spectrum auctions, prediction markets, generalized second-price / AdWords, market-maker bid-ask spread, etc. are likely missing). Land them in the high-value rows wherever the testability allows.
 2. **Formalize the oracle policy for existing high-value cases** that currently sit in medium testability (A2 EconEvals pricing or B1 Calvano collusion are highest-leverage). Deriving the closed-form oracle moves them into the high-testability column — strongest demonstration sites for the methodology paper §3 generalization claim.
 
 **Open contribution channel for external researchers**: the OracleDecomposable abstraction *is* the contribution interface — any economic-decision use case admitting (hidden state + controllable simulator + oracle policy + scalar utility) with declared OOD axes (per [`aeread_env_design.md`](aeread_env_design.md) §6) lands somewhere in the matrix above. The methodology paper §3 cites contributors whose cases enter v0.5 or later releases. **This is part of AERead's pre-commercial citation strategy**: the contribution channel itself is engagement bait — frontier-lab researchers who submit cases become co-authors on the methodology paper's generalization claim.
@@ -60,6 +63,21 @@ The value × testability matrix above scores *testability*. A complementary cut 
 **What this adds to the testability matrix**: testability and stakes are **anti-correlated at the top** — the cleanest-to-test cases (auctions, known-demand pricing) are mid-stakes and gate-saturating, while the highest-stakes cases (trading, capital allocation) sit in the low-testability column *and* are grade-only. The strategic implication is not "avoid the low-testability column" but "the low-testability column is where the durable, high-impact grade lives — and it is the least battle-tested part of the method." Honest status: the lens + miniature proofs exist (regime-blindness toy, scam arena, stylized-persona diagonal dominance), but the **high-stakes / no-oracle grade instrument on real money (C1 13F predict-the-principal + a real-money four-regime battery) is the unbuilt gap** between "good direction" and "solved." It is v0.5+, not a current capability — and the docs should say so.
 
 **Direction call (semi-verifiable, durable reference)**: stay in the **semi-verifiable** zone (environment computes outcome + a *real* reference) — it is the only zone that is both rigorous (judge-free) and unsaturated. Do **not** go fully unverifiable (LLM-judge eval forfeits the judge-free moat). And lead with the **durable-reference** slice (configured-principal / regime-property / predict-then-validate), not the generic-objective slice that saturates. See [`methodology.md`](methodology.md) § "The environment is the verifier = environment + reference."
+
+## Depth-first frontier from current tests
+
+The latest validation work changes how to read the candidate pool. The next build should be selected by the question it answers, not by the number of cases it adds.
+
+| Test result | Question it creates | Next depth probe |
+|---|---|---|
+| Frontier models clear clean rationality gates; TERMS deal-rate saturates. | Which regime turns a clean verifier into a discriminating signal? | Four-regime battery: EV vs Kelly vs CVaR vs configured-CRRA, reporting curves rather than single point cases. |
+| Persona-fit diagonal dominance survives, but single-seed model-vs-model drama does not. | What makes fidelity stable under stress rather than merely possible in a clean prompt? | Multi-seed predict-then-validate under arbitrary principals, degraded evidence, and confidence intervals. |
+| Regime-blindness appears as EV over-betting before Kelly correction. | Is the failure a one-off gamble artifact or a durable regime-recognition deficit? | Repeat across gamble families, compounding depths, ruin barriers, and configured-risk variants. |
+| Single-decision scam tests can null for frontier models even when long-horizon benchmarks show vulnerability. | Is belief manipulation mainly a long-horizon / degradation-pressure phenomenon? | Long-horizon adversarial belief-manipulation arena with a validity control that proves the attack surface fires. |
+| TERMS surplus discriminates but remains own-surplus gate-under-stress; own-surplus reward is also the alignment trap. | Can bargaining measure competence recovery without reviving deception/collusion? | D2 wrap with a configured-principal bargaining oracle plus deception/collusion-axis readout, not a generic-surplus rewrap. |
+| C1 filing-artifact probes show raw evidence can be solved; false confirmed metadata misleads; source labels/context alone do not fix it; an explicit validation process does. | Is the C1 failure metadata deference, missing validation procedure, synthetic false-registry artifact, or real source-provenance ambiguity? | Remove the confirmed-status crutch and/or use real corporate-action source rows; isolate whether the model trusts registry status, source type, row ratios, or validation instructions. |
+
+This table is the live roadmap. A candidate outside it can still enter, but it must first state the result-question it answers.
 
 ## Status quo (v0 / roadmap)
 
@@ -149,7 +167,7 @@ Organized by structural cluster. Each row: case, source, OracleDecomposable hint
 
 ## Top selection priority (recommended additions beyond v0)
 
-If we add cases after shipping v0 (C2 ProductProcurementGame + C8 SimplePricingGame), this is the recommended priority order for v0.5+ expansion (which also reintegrates the roadmap items: D3 VendorSelectionGame, D2 TERMS-Bench wrap, C1 persona-fit, A2 EconEvals pricing full wrap, agentic marketplace, NegotiationGame, PricingCompetitionGame):
+If a result opens a direction after shipping v0 (C2 ProductProcurementGame + C8 SimplePricingGame), this is the recommended priority order for v0.5+ expansion (which also reintegrates the roadmap items: D3 VendorSelectionGame, D2 TERMS-Bench wrap, C1 persona-fit, A2 EconEvals pricing full wrap, agentic marketplace, NegotiationGame, PricingCompetitionGame). Read this as a queue of depth questions, not a launch checklist: a lower-ranked case can move first if it resolves the sharper live ambiguity.
 
 | Rank | Code | Case | Justification |
 |---|---|---|---|
@@ -184,12 +202,13 @@ Strategy: borrow substrate from the open ones, cite-and-compute on the closed on
 
 ## Open questions for the candidate pool
 
-1. **Which v0.5 case do we wrap first** — A2 pricing (highest dollar-value, but EconEvals pricing's OracleDecomposable cleanliness needs validation) or A1 procurement (already cleanly OracleDecomposable, but lower revenue-narrative leverage)?
-2. **Do we batch all EconEvals wraps (A1+A2+A3) together** for a single "AERead wraps EconEvals" announcement, or stagger to build distinct momentum?
-3. **Calvano-style multi-round collusion (B1)** — do we need primary data (real oligopoly histories) or can we run synthetic + cite Calvano? Affects feasibility timing.
-4. **Vending-Bench (F12)** — wrap their runtime as-is, or run our own long-horizon eval? Affects whether we're in their citation graph or vice versa.
-5. **Forecasting cases (D8/D9/D10)** — these are calibration-heavy and natural for Axis 5; but do they belong in Layer 3 (real cases) or as standalone Axis 5 probe-set extensions? Borderline.
-6. **How far down the dollar gradient (into the no-oracle zone) do we commit for v0.5+?** The high-stakes / no-oracle grade instrument (C1 13F predict-the-principal; a real-money four-regime battery) is the durable, high-impact play but the least battle-tested — noisy oracle, real data not yet run. Open: build C1 on real 13F next, or first harden the four-regime battery on simulated real-money regimes (compounding books, ruin-constrained capital) where the reference is cleaner? (See the economic-stakes × oracle-status map above.)
+1. **Which live ambiguity is decision-blocking?** The priority is not "A2 vs A1 by case count"; it is the next depth probe with the clearest falsifier: C1 metadata-deference, four-regime replication, D2 configured-principal/deception readout, or long-horizon belief manipulation.
+2. **Which v0.5 case do we wrap first** — A2 pricing (highest dollar-value, but EconEvals pricing's OracleDecomposable cleanliness needs validation) or A1 procurement (already cleanly OracleDecomposable, but lower revenue-narrative leverage)? This should be decided by which wrap answers a current uncovered question, not by wrap convenience.
+3. **Do we batch all EconEvals wraps (A1+A2+A3) together** for a single "AERead wraps EconEvals" announcement, or stagger to build distinct diagnostic claims?
+4. **Calvano-style multi-round collusion (B1)** — do we need primary data (real oligopoly histories) or can we run synthetic + cite Calvano? Affects whether the result answers the D2/Q14 deception-axis question or just adds a collusion case.
+5. **Vending-Bench (F12)** — wrap their runtime as-is, or run our own long-horizon eval? Affects whether we can test the long-horizon belief-manipulation question, not just cite the published result.
+6. **Forecasting cases (D8/D9/D10)** — these are calibration-heavy and natural for Axis 5; but do they answer a Layer 3 uncovered direction, or are they better as standalone Axis 5 probe-set extensions?
+7. **How far down the dollar gradient (into the no-oracle zone) do we commit for v0.5+?** The high-stakes / no-oracle grade instrument (C1 13F predict-the-principal; a real-money four-regime battery) is the durable, high-impact play but the least battle-tested — noisy oracle, real data not yet run. Open: build C1 on real 13F next, or first harden the four-regime battery on simulated real-money regimes (compounding books, ruin-constrained capital) where the reference is cleaner? (See the economic-stakes × oracle-status map above.)
 
 ## Source-paper attribution
 

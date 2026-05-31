@@ -116,9 +116,12 @@ Five economic-agent benchmarks — [EconEvals](https://arxiv.org/abs/2503.18825)
 
 **Discipline:** the project has shifted emphasis twice (rationality → persona-fidelity → regime-appropriateness/alignment-shift). Following evidence is right, but it must **converge now** — pre-register, commit, stop hunting new headlines before the first sync. v0 stays standalone (2 games); the multi-agent / validation-layer work is explicitly v1+.
 
+**Depth rule for the candidate pool:** convert each result into the question it creates before adding another case. The live directions are narrow: four-regime replication (is regime-blindness robust?), C1 predict-the-principal on noisy real evidence (is the obstacle metadata deference, validation procedure, or inversion noise?), D2 configured-principal bargaining with deception/collusion readout (does process reward recover competence without reviving misbehavior?), and long-horizon belief manipulation (does scam susceptibility reappear only under degradation pressure?). Anything outside those directions needs to state the uncovered question it resolves.
+
 ## Open
 
 - Does the EV-liability/regime-blindness replicate across gamble families + a CVaR-barrier + a configured-CRRA regime (the full four-regime battery)?
 - Does the alignment-shift hold as a monotone within-family version effect (Opus 4.x, GPT-5.x) with CIs?
 - Does scam-susceptibility (a single-decision *null* for frontier here) reappear under a **long-horizon** arena — i.e. is it a stress phenomenon, as the Andon Vending-Bench long-run failures suggest?
+- In C1 filing/holding tasks, is the current failure actually **metadata deference**, absence of an explicit validation procedure, synthetic false-registry artifacts, or the deeper inversion problem in real 13F evidence?
 - Is the unified gate→grade framing stronger than a standalone steerability/safety paper for the frontier-lab audience? (Positioning trade-off.)

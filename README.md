@@ -22,7 +22,7 @@ AERead's pre-commercial deliverable is the methodology paper + reproducible v0 r
 - Pre-registered factorial hypothesis with per-domain explanatory-power estimates (60-75% discrete-action procurement → 50-70% continuous-action pricing → 25-50% long-horizon agents) + falsification criteria — [`docs/methodology_open_questions.md` § Q7](docs/methodology_open_questions.md#q7--how-much-of-the-per-model-task-gap-do-layers-1--2-explain-whats-the-residual)
 - Counterexample submission channel for the OracleDecomposable abstraction — [`docs/methodology.md` § How to engage](docs/methodology.md#how-to-engage-pre-commercial-final-goal)
 - OpenSpiel-compatible substrate with 10-hard-constraint contribution API (post-v0-paper follow-up paper, NOT v0.5) — [`docs/aeread_env_design.md`](docs/aeread_env_design.md)
-- Open candidate pool for new Layer 3 use cases on a value × testability matrix — [`docs/layer3_candidates.md`](docs/layer3_candidates.md)
+- Depth-first candidate map for Layer 3 use cases: value × testability, plus the uncovered questions current results create — [`docs/layer3_candidates.md`](docs/layer3_candidates.md)
 
 Engagement channel: contact details in [`docs/proposal.md` §15](docs/proposal.md).
 
@@ -37,7 +37,7 @@ Engagement channel: contact details in [`docs/proposal.md` §15](docs/proposal.m
 | [`docs/methodology_open_questions.md`](docs/methodology_open_questions.md) | Full bodies + tables for the 14 open methodological questions (Q1-Q14) — function misspecification / numeric scoring / qualitative scoring / generalization battery / RL mechanisms / training-signal contamination / Layer 1+2 residual hypothesis / OpenSpiel substrate / emergence / training-signal validation / gate-vs-grade / stress as a cross-cutting axis / adversarial co-evolution / training-signal emission (process-vs-outcome) |
 | [`docs/aeread_env_design.md`](docs/aeread_env_design.md) | Post-v0-paper substrate roadmap — forward-looking OpenSpiel-compatible substrate design for a separate follow-up paper (NOT v0.5) |
 | [`docs/prior_art_brief.md`](docs/prior_art_brief.md) | 3-page primer on the anchor benchmarks AERead integrates (TERMS-Bench / Andrews 2026 / EconEvals) — what each contributes + what AERead inherits + extends |
-| [`docs/layer3_candidates.md`](docs/layer3_candidates.md) | Open candidate pool of ~25 Layer 3 real-world economic decision use cases on a value × testability matrix (v0 + expansion roadmap) |
+| [`docs/layer3_candidates.md`](docs/layer3_candidates.md) | Depth-first Layer 3 candidate map: value × testability, economic-stakes × oracle-status, and result-driven uncovered directions for v0.5+ |
 | [`docs/reading_list.txt`](docs/reading_list.txt) | T1 / T2 / T3 prior-art reading list with [AXIS-N] anchor flags |
 | [`docs/papers/links.md`](docs/papers/links.md) | One-stop citation links — every cited paper mapped to a public URL or repo-hosted PDF |
 | [`docs/papers/_INDEX.md`](docs/papers/_INDEX.md) | Deep-dive synopses (~5-6 paragraphs each) for 12 supporting-literature papers — complements `reading_list.txt` (the priority guide) |
