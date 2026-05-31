@@ -36,6 +36,7 @@ TASKS = (
     "principal_holding_filing_artifact_metadata_partial",
     "principal_holding_filing_artifact_metadata_conflict",
     "principal_holding_filing_artifact_metadata_unmarked_conflict",
+    "principal_holding_filing_artifact_metadata_history_conflict",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -414,6 +415,7 @@ def _print_human(payload: dict[str, Any]) -> None:
             "principal_holding_filing_artifact_metadata_partial",
             "principal_holding_filing_artifact_metadata_conflict",
             "principal_holding_filing_artifact_metadata_unmarked_conflict",
+            "principal_holding_filing_artifact_metadata_history_conflict",
         }:
             print(
                 f"{task}: n={result['n_trials']} "

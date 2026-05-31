@@ -90,6 +90,13 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_UNMARKED_CONFLICT_SYSTEM = (
     "line only: FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_HISTORY_CONFLICT_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_metadata_history_conflict\n"
+    "Infer the dollar-material discretionary holding action from repeated public-filing "
+    "rows and a separate corporate-action registry. Return one final line only: "
+    "FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -721,6 +728,36 @@ ARTIFACT_METADATA_UNMARKED_CONFLICT_CASES = [
 ]
 
 
+ARTIFACT_METADATA_HISTORY_CONFLICT_CASES = [
+    FilingArtifactCase(
+        key="multi_artifact_history_conflicting_registry_close_runner_up",
+        real_case=(
+            "13F-style filing trace where issuer-level history repeats across filings "
+            "and the registry contains a wrong confirmed target-period split record"
+        ),
+        manager_cik="0000000001",
+        manager_name="NEUTRALIZED PUBLIC-FILING ARTIFACT HISTORY-CONFLICT REGISTRY TRACE",
+        source_url=(
+            "public SEC-style repeated issuer filing rows plus a neutralized "
+            "corporate-action registry with an unmarked confirmed conflicting record"
+        ),
+        target_accession="neutralized-2026q1-artifact-metadata-history-conflict",
+        rows=(
+            FilingTraceRow("2025q3", "artifact-history-2025q3", "sec_stress_a", 735000000, 1500000),
+            FilingTraceRow("2025q3", "artifact-history-2025q3", "sec_stress_b", 1180000000, 3000000),
+            FilingTraceRow("2025q3", "artifact-history-2025q3", "sec_stress_c", 850000000, 2100000),
+            FilingTraceRow("2025q3", "artifact-history-2025q3", "sec_stress_d", 880000000, 1800000),
+            FilingTraceRow("2025q3", "artifact-history-2025q3", "sec_stress_e", 19000000, 100000),
+            FilingTraceRow("2025q3", "artifact-history-2025q3", "sec_stress_f", 295000000, 1000000),
+            *ARTIFACT_METADATA_CONFLICT_CASES[0].rows,
+        ),
+        adjustment_factors=dict(ARTIFACT_METADATA_CONFLICT_CASES[0].adjustment_factors),
+        artifact_notes=dict(ARTIFACT_METADATA_CONFLICT_CASES[0].artifact_notes),
+        corporate_actions=ARTIFACT_METADATA_CONFLICT_CASES[0].corporate_actions,
+    ),
+]
+
+
 def run_principal_holding_filing_trace_game(
     agent: Agent,
     cases: list[FilingTraceCase] | None = None,
@@ -959,6 +996,22 @@ def run_principal_holding_filing_artifact_metadata_unmarked_conflict_game(
         cases=cases or ARTIFACT_METADATA_UNMARKED_CONFLICT_CASES,
         task="principal_holding_filing_artifact_metadata_unmarked_conflict",
         system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_UNMARKED_CONFLICT_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+        include_metadata=True,
+        include_conflict_warning=False,
+    )
+
+
+def run_principal_holding_filing_artifact_metadata_history_conflict_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_METADATA_HISTORY_CONFLICT_CASES,
+        task="principal_holding_filing_artifact_metadata_history_conflict",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_HISTORY_CONFLICT_SYSTEM,
         include_factor=False,
         include_notes=False,
         include_metadata=True,
