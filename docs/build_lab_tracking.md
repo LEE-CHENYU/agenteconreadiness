@@ -155,6 +155,7 @@ judge-free, and API-testable while staying OpenAI-only.
 | 115 | `review/115-filing-runner-up-depth` | targeted real-derived filing trace depth probe | Tiger Global SEC-derived trace adds a runner-up dollar-material diagnostic; one review-copy live `mini` run hit the second-best action, while build-lab reruns were stable-oracle, making reproducibility the next depth question |
 | 116 | `review/116-filing-artifact-depth` | filing-artifact depth probe | split-adjusted filing trace and natural-note variant separate discretionary action from raw corporate-action share movement; offline baselines fire, but live aliases solve both, making less-scaffolded artifact ambiguity the next depth target |
 | 117 | `review/117-filing-artifact-stress` | composite filing-artifact stress probe | combines multiple split artifacts, a close runner-up action, value drift, and percent salience; live `nano` becomes unstable while `mini` and `gpt-5.5` stay stable-oracle |
+| 118 | `review/118-stability-shortcut-mixture` | choice-level shortcut-mixture attribution for repeat probes | stability summaries now count all repeated choices that hit named non-oracle references, not only the modal choice, so oracle-modal unstable runs still surface artifact-blind/value-drift shortcut mixtures |
 
 ## Task result ledger
 
@@ -461,6 +462,10 @@ revealed-style inference.
 | PR117 filing-artifact stress keyed stability | `python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_stress --agents offline:oracle,offline:second_best --repeat 2 --case multi_artifact_close_runner_up --no-cache` | oracle is stable-oracle with modal `sec_stress_b`; second-best is stable-non-oracle with modal `sec_stress_c`, regret 0.0645161, and matched reference `second_best` |
 | PR117 full pytest | `python -m pytest` | 274 tests passed |
 | PR117 full all-task oracle | `python -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 89 current task runners execute; oracle path remains clean, including `principal_holding_filing_artifact_stress` with n=1, score regret 0, accuracy 1.00, and oracle margin 0.0645 |
+| PR118 focused stability-mixture tests | `python -m pytest tests/test_tasks.py -k 'stability or filing_artifact or filing_trace or principal_holding'` | 36 selected tests passed; repeat probes now preserve modal attribution while also counting non-modal artifact-blind and market-value shortcut hits across repeated choices |
+| PR118 stability-mixture display smoke | `python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_stress --agents offline:oracle,offline:artifact_blind,offline:market_value --repeat 2 --case multi_artifact_close_runner_up --no-cache` | stability sweep prints a `Choice reference mix` section; artifact-blind and market-value baselines each have non-oracle choice rate 1.00, attributed rate 1.00, and choice reference counts of 2 for their named shortcut |
+| PR118 full pytest | `python -m pytest` | 275 tests passed |
+| PR118 full all-task oracle | `python -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 89 current task runners execute; oracle path remains clean; PR118 changes reporting/attribution only and does not alter task oracles |
 | Whitespace check | `git diff --check` | passed with no output |
 | API key scan | `rg -n "sk-proj-[A-Za-z0-9_-]{20,}" .` | no tracked API key strings found |
 | Provider guardrail scan | `rg -n "anthropic|claude|openrouter|chat\\.completions|ChatCompletion|OPENROUTER|ANTHROPIC" aeread_lab tests docs pyproject.toml README.md` | only expected documentation/test guardrail matches; no non-OpenAI client path added |
@@ -1048,3 +1053,13 @@ build lab should not depend on `.playwright-mcp/` logs or the local
     non-oracle-modal on the artifact-blind split row. That narrows the next
     question to repeat reliability and shortcut-mixture attribution, not more
     clean artifact cases.
+94. PR 118 implements the attribution half of that question without adding a
+    new benchmark case. Existing modal reference labels are still the headline
+    readout, but stability summaries now also aggregate choice-level reference
+    hits across every repeat. This matters for PR 117-style results: an
+    oracle-modal run can still contain artifact-blind misses, and two fresh
+    non-oracle-modal runs can disagree on whether the modal shortcut is
+    artifact blindness or reported-value drift. The new choice mix reports
+    non-oracle choice rate, attributed non-oracle choice rate, multi-reference
+    case rate, and per-reference hit counts so the next live C1 drilldowns can
+    measure shortcut mixtures directly instead of inferring them by hand.

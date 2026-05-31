@@ -9,6 +9,7 @@ from aeread_lab.models import (
 )
 from aeread_lab.reporting import (
     comparison_table,
+    format_stability,
     format_stability_sweep,
     parse_rate,
     rank_rows,
@@ -327,6 +328,19 @@ class _WrongTradeAgent:
 
     def complete(self, system: str, user: str) -> str:
         return "FINAL_TRADE: t2"
+
+
+class _ArtifactStressMixtureAgent:
+    name = "offline:artifact_stress_mixture"
+
+    def __init__(self):
+        self.calls = 0
+
+    def complete(self, system: str, user: str) -> str:
+        sequence = ("sec_stress_b", "sec_stress_a", "sec_stress_f")
+        trade_id = sequence[self.calls % len(sequence)]
+        self.calls += 1
+        return f"FINAL_ISSUER: {trade_id}"
 
 
 class TaskSmokeTests(unittest.TestCase):
@@ -841,6 +855,39 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(artifact_blind_row["modal_choice"], "sec_artifact_a")
         self.assertEqual(artifact_blind_row["modal_reference_matches"], ["artifact_blind"])
 
+    def test_stability_probe_counts_non_modal_shortcut_mixture(self):
+        payload = run_stability_probe(
+            task="principal_holding_filing_artifact_stress",
+            agent=_ArtifactStressMixtureAgent(),
+            repeat_count=3,
+            case_keys=["multi_artifact_close_runner_up"],
+        )
+        row = payload["case_stability"][0]
+        self.assertEqual(row["status"], "unstable_oracle_modal")
+        self.assertEqual(row["modal_reference_matches"], [])
+        self.assertEqual(row["choice_counts"]["sec_stress_b"], 1)
+        self.assertEqual(row["choice_counts"]["sec_stress_a"], 1)
+        self.assertEqual(row["choice_counts"]["sec_stress_f"], 1)
+        self.assertEqual(row["reference_hit_counts"]["artifact_blind"], 1)
+        self.assertEqual(row["reference_hit_counts"]["market_value"], 1)
+        self.assertEqual(row["active_reference_matches"], ["artifact_blind", "market_value"])
+        self.assertAlmostEqual(row["reference_hit_rates"]["artifact_blind"], 1 / 3)
+        self.assertAlmostEqual(row["reference_hit_rates"]["market_value"], 1 / 3)
+        self.assertAlmostEqual(row["non_oracle_choice_rate"], 2 / 3)
+        self.assertEqual(row["attributed_non_oracle_choice_rate"], 1.0)
+        self.assertEqual(payload["modal_reference_counts"], {})
+        self.assertEqual(
+            payload["choice_reference_hit_counts"],
+            {"artifact_blind": 1, "market_value": 1},
+        )
+        self.assertAlmostEqual(payload["choice_reference_hit_rates"]["artifact_blind"], 1 / 3)
+        self.assertAlmostEqual(payload["non_oracle_choice_rate"], 2 / 3)
+        self.assertEqual(payload["attributed_non_oracle_choice_rate"], 1.0)
+        self.assertEqual(payload["multi_reference_case_rate"], 1.0)
+        output = format_stability(payload)
+        self.assertIn("choice_reference_hit_counts=artifact_blind:1, market_value:1", output)
+        self.assertIn("multi_reference_cases=1", output)
+
     def test_format_stability_sweep_includes_reference_counts(self):
         payload = run_stability_sweep(
             task="principal_holding_prediction_blind_notes",
@@ -853,6 +900,8 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertIn("offline:oracle", output)
         self.assertIn("offline:low_turno", output)
         self.assertIn("low_turnover:1", output)
+        self.assertIn("Choice reference mix", output)
+        self.assertIn("low_turnover:2", output)
         self.assertIn("Per-case stability drilldown", output)
         self.assertIn("pension_outflow_quality_sign", output)
         self.assertIn("stable_non_oracle", output)

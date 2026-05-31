@@ -414,7 +414,10 @@ available, and per-case modal choice. Case statuses distinguish
 whether the issue is sampling noise, persistent wrong behavior, or parsing. When
 trials expose named non-oracle references such as `mechanical_flow`,
 `low_turnover`, `max_return`, or `second_best`, the probe also reports which
-non-oracle reference the modal choice matches.
+non-oracle reference the modal choice matches. The probe also reports
+choice-level reference-hit counts across all repeated choices, so an
+oracle-modal run can still expose a mixture of artifact-blind, market-value,
+runner-up, or other shortcut hits in the non-modal samples.
 
 Use `--sweep --repeat N --no-cache` when the question is cross-model stability
 under the same repeated task. This runs the same stability probe for each agent
@@ -423,7 +426,10 @@ unstable rate, stable-oracle rate, non-oracle modal rate, and matched
 non-oracle references. The sweep also prints a per-case drilldown across
 agents, so a cross-model difference can be traced to the exact case, modal
 choice, oracle margin, and non-oracle reference matches instead of becoming a
-new case-count target.
+new case-count target. When repeated choices hit non-modal named shortcuts, the
+sweep prints a choice reference mix before the per-case drilldown; this is the
+right readout for questions like PR 117's `nano` result, where the model tier
+split is reproducible but the exact shortcut can alternate across fresh repeats.
 
 Example:
 

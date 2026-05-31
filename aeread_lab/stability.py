@@ -40,6 +40,12 @@ def summarize_stability_runs(
         if row["status"] in {"stable_non_oracle", "unstable_non_oracle_modal"}
         for reference in row.get("modal_reference_matches", [])
     )
+    choice_reference_hit_counts = _aggregate_reference_hit_counts(case_stability)
+    total_choices = _total_choices(case_stability)
+    non_oracle_choice_count = _non_oracle_choice_count(case_stability)
+    attributed_non_oracle_choice_count = _attributed_non_oracle_choice_count(
+        case_stability
+    )
     case_count = len(case_stability)
     oracle_hit_rates = [
         row["oracle_hit_rate"]
@@ -78,6 +84,19 @@ def summarize_stability_runs(
         "non_oracle_modal_reference_counts": dict(
             sorted(non_oracle_modal_reference_counts.items())
         ),
+        "choice_reference_hit_counts": dict(sorted(choice_reference_hit_counts.items())),
+        "choice_reference_hit_rates": _reference_hit_rates_from_counts(
+            choice_reference_hit_counts, total_choices
+        ),
+        "non_oracle_choice_rate": (
+            non_oracle_choice_count / total_choices if total_choices else None
+        ),
+        "attributed_non_oracle_choice_rate": (
+            attributed_non_oracle_choice_count / non_oracle_choice_count
+            if non_oracle_choice_count
+            else None
+        ),
+        "multi_reference_case_rate": _multi_reference_case_rate(case_stability),
         "attributed_non_oracle_modal_case_rate": _attributed_non_oracle_modal_rate(
             case_stability
         ),
@@ -138,6 +157,10 @@ def _case_stability(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
         references = references_by_case.get(case_key, {})
         diagnostic_references = _diagnostic_references(references, oracle_choice)
         modal_reference_matches = _choice_reference_matches(modal_choice, diagnostic_references)
+        reference_hit_counts = _reference_hit_counts(choices, diagnostic_references)
+        active_reference_matches = sorted(
+            name for name, count in reference_hit_counts.items() if count
+        )
         parse_fail_rate = counts.get("PARSE_FAIL", 0) / len(choices)
         oracle_hit_rate = (
             sum(choice == oracle_choice for choice in choices) / len(choices)
@@ -159,6 +182,14 @@ def _case_stability(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "diagnostic_reference_choices": diagnostic_references,
                 "modal_reference_matches": modal_reference_matches,
                 "reference_hit_rates": _reference_hit_rates(choices, diagnostic_references),
+                "reference_hit_counts": reference_hit_counts,
+                "active_reference_matches": active_reference_matches,
+                "non_oracle_choice_rate": _case_non_oracle_choice_rate(
+                    choices, oracle_choice
+                ),
+                "attributed_non_oracle_choice_rate": _case_attributed_non_oracle_choice_rate(
+                    choices, oracle_choice, diagnostic_references
+                ),
                 "status": _case_status(
                     unique_choice_count=len(counts),
                     modal_choice=modal_choice,
@@ -245,6 +276,102 @@ def _reference_hit_rates(choices: list[str], references: dict[str, str]) -> dict
         name: sum(choice == reference_choice for choice in choices) / len(choices)
         for name, reference_choice in sorted(references.items())
     }
+
+
+def _reference_hit_counts(choices: list[str], references: dict[str, str]) -> dict[str, int]:
+    return {
+        name: sum(choice == reference_choice for choice in choices)
+        for name, reference_choice in sorted(references.items())
+    }
+
+
+def _aggregate_reference_hit_counts(case_stability: list[dict[str, Any]]) -> Counter:
+    counts: Counter = Counter()
+    for row in case_stability:
+        for reference, count in (row.get("reference_hit_counts") or {}).items():
+            if count:
+                counts[reference] += count
+    return counts
+
+
+def _reference_hit_rates_from_counts(counts: Counter, total_choices: int) -> dict[str, float]:
+    if not total_choices:
+        return {}
+    return {
+        reference: count / total_choices
+        for reference, count in sorted(counts.items())
+    }
+
+
+def _total_choices(case_stability: list[dict[str, Any]]) -> int:
+    total = 0
+    for row in case_stability:
+        for count in (row.get("choice_counts") or {}).values():
+            if isinstance(count, int):
+                total += count
+    return total
+
+
+def _non_oracle_choice_count(case_stability: list[dict[str, Any]]) -> int:
+    total = 0
+    for row in case_stability:
+        oracle_choice = row.get("oracle_choice")
+        for choice, count in (row.get("choice_counts") or {}).items():
+            if not isinstance(count, int):
+                continue
+            if choice == "PARSE_FAIL" or choice == oracle_choice:
+                continue
+            total += count
+    return total
+
+
+def _attributed_non_oracle_choice_count(case_stability: list[dict[str, Any]]) -> int:
+    total = 0
+    for row in case_stability:
+        oracle_choice = row.get("oracle_choice")
+        diagnostic_choices = set((row.get("diagnostic_reference_choices") or {}).values())
+        for choice, count in (row.get("choice_counts") or {}).items():
+            if not isinstance(count, int):
+                continue
+            if choice == "PARSE_FAIL" or choice == oracle_choice:
+                continue
+            if choice in diagnostic_choices:
+                total += count
+    return total
+
+
+def _case_non_oracle_choice_rate(choices: list[str], oracle_choice: str | None) -> float | None:
+    if not choices or oracle_choice is None:
+        return None
+    non_oracle = sum(choice not in {oracle_choice, "PARSE_FAIL"} for choice in choices)
+    return non_oracle / len(choices)
+
+
+def _case_attributed_non_oracle_choice_rate(
+    choices: list[str],
+    oracle_choice: str | None,
+    references: dict[str, str],
+) -> float | None:
+    if oracle_choice is None:
+        return None
+    non_oracle_choices = [
+        choice for choice in choices if choice not in {oracle_choice, "PARSE_FAIL"}
+    ]
+    if not non_oracle_choices:
+        return None
+    diagnostic_choices = set(references.values())
+    attributed = sum(choice in diagnostic_choices for choice in non_oracle_choices)
+    return attributed / len(non_oracle_choices)
+
+
+def _multi_reference_case_rate(case_stability: list[dict[str, Any]]) -> float | None:
+    if not case_stability:
+        return None
+    multi = sum(
+        len(row.get("active_reference_matches") or []) >= 2
+        for row in case_stability
+    )
+    return multi / len(case_stability)
 
 
 def _case_status(

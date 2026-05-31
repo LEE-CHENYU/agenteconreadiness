@@ -211,6 +211,12 @@ def stability_sweep_table(sweep: dict[str, Any]) -> list[dict[str, Any]]:
                     "unstable_non_oracle_modal_case_rate"
                 ),
                 "modal_reference_counts": run.get("non_oracle_modal_reference_counts") or {},
+                "choice_reference_hit_counts": run.get("choice_reference_hit_counts") or {},
+                "non_oracle_choice_rate": run.get("non_oracle_choice_rate"),
+                "attributed_non_oracle_choice_rate": run.get(
+                    "attributed_non_oracle_choice_rate"
+                ),
+                "multi_reference_case_rate": run.get("multi_reference_case_rate"),
             }
         )
     if not rows:
@@ -304,6 +310,25 @@ def format_stability_sweep(sweep: dict[str, Any]) -> str:
     case_rows = stability_sweep_case_table(sweep)
     if case_rows:
         lines.append("-" * 112)
+        mix_rows = [
+            row for row in rows if row.get("choice_reference_hit_counts")
+        ]
+        if mix_rows:
+            lines.append("Choice reference mix")
+            lines.append(
+                f"{'agent':<18} {'non_oracle':>10} {'attributed':>10} "
+                f"{'multi_ref':>10} {'choice_refs':<48}"
+            )
+            for row in mix_rows:
+                refs = _format_counts(row.get("choice_reference_hit_counts") or {})
+                lines.append(
+                    f"{row['agent']:<18.18} "
+                    f"{_fmt(row.get('non_oracle_choice_rate')):>10} "
+                    f"{_fmt(row.get('attributed_non_oracle_choice_rate')):>10} "
+                    f"{_fmt(row.get('multi_reference_case_rate')):>10} "
+                    f"{refs:<48.48}"
+                )
+            lines.append("-" * 112)
         lines.append("Per-case stability drilldown")
         lines.append(
             f"{'case':<28} {'agent':<18} {'status':<26} {'unique':>6} {'margin':>8} "
@@ -396,6 +421,17 @@ def format_stability(stability: dict[str, Any]) -> str:
                 "attributed_non_oracle_modal_case_rate="
                 f"{_fmt(stability.get('attributed_non_oracle_modal_case_rate'))}"
             )
+    if stability.get("choice_reference_hit_counts"):
+        lines.append(
+            "choice_reference_hit_counts="
+            + _format_counts(stability["choice_reference_hit_counts"])
+        )
+        lines.append(
+            "choice_mix "
+            f"non_oracle={_fmt(stability.get('non_oracle_choice_rate'))} "
+            f"attributed_non_oracle={_fmt(stability.get('attributed_non_oracle_choice_rate'))} "
+            f"multi_reference_cases={_fmt(stability.get('multi_reference_case_rate'))}"
+        )
     case_rows = stability.get("case_stability") or []
     if case_rows:
         lines.append("-" * 88)
@@ -428,6 +464,13 @@ def _sum_optional_rates(*values: Any) -> float | None:
     if not present:
         return None
     return sum(present)
+
+
+def _format_counts(counts: dict[str, Any]) -> str:
+    return ", ".join(
+        f"{key}:{value}"
+        for key, value in sorted(counts.items())
+    )
 
 
 def _case_text(case_keys: Any) -> str:
