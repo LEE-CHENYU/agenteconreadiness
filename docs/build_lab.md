@@ -543,6 +543,11 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    discretionary action. This reopens a live C1 signal: `mini` and `gpt-5.5`
    solve the stress case, while `nano` is unstable across fresh repeats and its
    misses alternate between value-drift and artifact-blind readings rather than
-   the runner-up action.
+   the runner-up action. PR 118 adds choice-level shortcut-mixture attribution,
+   and the PR 119 repeat-9 drilldown uses it on the same stress case: `nano`
+   remains oracle-modal but makes 3/9 non-oracle choices, all attributed to
+   artifact-blind raw-share movement; `mini` and `gpt-5.5` remain stable-oracle.
+   That makes artifact blindness the persistent current C1 failure signal, with
+   reported-value drift demoted to a less persistent stochastic miss.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.
