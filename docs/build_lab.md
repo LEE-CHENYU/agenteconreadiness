@@ -32,6 +32,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `principal_holding_filing_trace_raw` | Raw-row real-derived C1 filing trace: remove the precomputed candidate-change table and require the same dollar-material share-action inference directly from neutralized SEC filing rows. | `python -m aeread_lab.cli --task principal_holding_filing_trace_raw --agent offline:oracle` |
 | `principal_holding_filing_artifact` | Filing-artifact C1 trace: adjust raw filing-row share changes for mechanical corporate actions before scoring the principal's discretionary dollar-material action. | `python -m aeread_lab.cli --task principal_holding_filing_artifact --agent offline:oracle` |
 | `principal_holding_filing_artifact_natural` | Natural-note filing-artifact C1 trace: remove the structured adjustment factor and require the same artifact adjustment from natural corporate-action notes. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_natural --agent offline:oracle` |
+| `principal_holding_filing_artifact_stress` | Composite filing-artifact C1 stress: combine multiple corporate-action artifacts, value drift, percentage salience, and a close runner-up discretionary action. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_stress --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -191,6 +192,10 @@ interpreting the economic metric.
 - `principal_holding_filing_artifact_natural`: same score, but the prompt omits
   the structured factor and provides only natural corporate-action notes, testing
   whether the adjustment survives less scaffolded filing evidence.
+- `principal_holding_filing_artifact_stress`: same score, but with multiple
+  natural-note corporate-action artifacts and a close second-best discretionary
+  action; this reports the same shortcut miss rates and oracle margin to
+  distinguish artifact-blind collapse from near-miss runner-up errors.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -527,6 +532,11 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    and `gpt-5.5` solve both structured and natural-note versions, so the next
    depth step should combine artifact adjustment with weaker notes, multiple
    simultaneous artifacts, or runner-up ambiguity rather than adding more clean
-   artifact examples.
+   artifact examples. PR 117 performs that combination: two split artifacts, a
+   value-drift distractor, percentage-change salience, and a close runner-up
+   discretionary action. This reopens a live C1 signal: `mini` and `gpt-5.5`
+   solve the stress case, while `nano` is unstable across fresh repeats and its
+   misses alternate between value-drift and artifact-blind readings rather than
+   the runner-up action.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.

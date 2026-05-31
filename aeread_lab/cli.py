@@ -28,6 +28,7 @@ TASKS = (
     "principal_holding_filing_trace_raw",
     "principal_holding_filing_artifact",
     "principal_holding_filing_artifact_natural",
+    "principal_holding_filing_artifact_stress",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -398,6 +399,7 @@ def _print_human(payload: dict[str, Any]) -> None:
         elif task in {
             "principal_holding_filing_artifact",
             "principal_holding_filing_artifact_natural",
+            "principal_holding_filing_artifact_stress",
         }:
             print(
                 f"{task}: n={result['n_trials']} "

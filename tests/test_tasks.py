@@ -179,6 +179,9 @@ from aeread_lab.tasks.principal_holding_filing_trace import (
     ARTIFACT_CASES as PRINCIPAL_HOLDING_FILING_ARTIFACT_CASES,
 )
 from aeread_lab.tasks.principal_holding_filing_trace import (
+    ARTIFACT_STRESS_CASES as PRINCIPAL_HOLDING_FILING_ARTIFACT_STRESS_CASES,
+)
+from aeread_lab.tasks.principal_holding_filing_trace import (
     DEFAULT_CASES as PRINCIPAL_HOLDING_FILING_TRACE_CASES,
 )
 from aeread_lab.tasks.principal_holding_filing_trace import (
@@ -441,6 +444,11 @@ class TaskSmokeTests(unittest.TestCase):
 
     def test_sample_limit_slices_principal_holding_filing_artifact_natural_cases(self):
         results = run_tasks("principal_holding_filing_artifact_natural", OfflineAgent("oracle"), sample_limit=1)
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
+    def test_sample_limit_slices_principal_holding_filing_artifact_stress_cases(self):
+        results = run_tasks("principal_holding_filing_artifact_stress", OfflineAgent("oracle"), sample_limit=1)
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_score_regret"], 1e-9)
 
@@ -717,6 +725,16 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertIn("4-for-1 share split", prompt)
         self.assertNotIn("adjustment_factor=", prompt)
 
+    def test_filing_artifact_stress_prompt_combines_artifacts_and_runner_up(self):
+        prompt = principal_holding_filing_artifact_prompt(
+            PRINCIPAL_HOLDING_FILING_ARTIFACT_STRESS_CASES[0],
+            include_factor=False,
+        )
+        self.assertIn("five-for-one split", prompt)
+        self.assertIn("three-for-one split", prompt)
+        self.assertIn("reduction is close to the largest adjusted action", prompt)
+        self.assertNotIn("adjustment_factor=", prompt)
+
     def test_filing_artifact_oracle_beats_artifact_blind_shortcuts(self):
         rows = comparison_table(
             run_sweep(
@@ -756,6 +774,26 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(by_agent["offline:market_value"]["value"], 0.9)
         self.assertGreater(by_agent["offline:second_best"]["value"], 0.1)
 
+    def test_filing_artifact_stress_oracle_beats_combined_shortcuts(self):
+        rows = comparison_table(
+            run_sweep(
+                task="principal_holding_filing_artifact_stress",
+                agent_specs=[
+                    "offline:oracle",
+                    "offline:artifact_blind",
+                    "offline:market_value",
+                    "offline:percent_change",
+                    "offline:second_best",
+                ],
+            )
+        )
+        by_agent = {row["agent"]: row for row in rows}
+        self.assertEqual(by_agent["offline:oracle"]["value"], 0.0)
+        self.assertGreater(by_agent["offline:artifact_blind"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:market_value"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:percent_change"]["value"], 0.7)
+        self.assertGreater(by_agent["offline:second_best"]["value"], 0.05)
+
     def test_filing_artifact_case_key_targets_adjusted_fixture(self):
         results = run_tasks(
             "principal_holding_filing_artifact",
@@ -771,6 +809,24 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(trial["second_best_trade"], "sec_artifact_c")
         self.assertAlmostEqual(trial["artifact_changes"]["sec_artifact_a"]["value"], 0.0)
         self.assertEqual(trial["chosen_trade"], "sec_artifact_b")
+
+    def test_filing_artifact_stress_case_key_targets_composite_fixture(self):
+        results = run_tasks(
+            "principal_holding_filing_artifact_stress",
+            OfflineAgent("oracle"),
+            case_keys=["multi_artifact_close_runner_up"],
+        )
+        self.assertEqual(results[0]["n_trials"], 1)
+        trial = results[0]["trials"][0]
+        self.assertEqual(trial["principal_trade"], "sec_stress_b")
+        self.assertEqual(trial["artifact_blind_trade"], "sec_stress_a")
+        self.assertEqual(trial["market_value_trade"], "sec_stress_f")
+        self.assertEqual(trial["percent_change_trade"], "sec_stress_e")
+        self.assertEqual(trial["second_best_trade"], "sec_stress_c")
+        self.assertAlmostEqual(trial["artifact_changes"]["sec_stress_a"]["value"], 0.0)
+        self.assertAlmostEqual(trial["artifact_changes"]["sec_stress_f"]["value"], 0.0)
+        self.assertLess(trial["oracle_margin"], 0.07)
+        self.assertEqual(trial["chosen_trade"], "sec_stress_b")
 
     def test_filing_artifact_stability_attribution_labels_artifact_blind(self):
         payload = run_stability_sweep(

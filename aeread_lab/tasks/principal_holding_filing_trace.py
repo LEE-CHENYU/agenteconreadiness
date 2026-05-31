@@ -32,6 +32,13 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_NATURAL_SYSTEM = (
     "natural corporate-action notes. Return one final line only: FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_STRESS_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_stress\n"
+    "Infer the dollar-material discretionary holding action from public-filing rows with "
+    "multiple corporate-action artifacts and close runner-up actions. Return one final "
+    "line only: FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -390,6 +397,57 @@ ARTIFACT_CASES = [
 ]
 
 
+ARTIFACT_STRESS_CASES = [
+    FilingArtifactCase(
+        key="multi_artifact_close_runner_up",
+        real_case=(
+            "13F-style filing trace where multiple split artifacts and a close "
+            "runner-up discretionary action compete with the adjusted oracle"
+        ),
+        manager_cik="0000000001",
+        manager_name="NEUTRALIZED PUBLIC-FILING ARTIFACT STRESS TRACE",
+        source_url="public SEC-style 13F information table rows plus neutralized natural corporate-action notes",
+        target_accession="neutralized-2026q1-artifact-stress",
+        rows=(
+            FilingTraceRow("2025q4", "artifact-stress-2025q4", "sec_stress_a", 750000000, 1500000),
+            FilingTraceRow("2026q1", "artifact-stress-2026q1", "sec_stress_a", 780000000, 7500000),
+            FilingTraceRow("2025q4", "artifact-stress-2025q4", "sec_stress_b", 1200000000, 3000000),
+            FilingTraceRow("2026q1", "artifact-stress-2026q1", "sec_stress_b", 620000000, 1450000),
+            FilingTraceRow("2025q4", "artifact-stress-2025q4", "sec_stress_c", 840000000, 2100000),
+            FilingTraceRow("2026q1", "artifact-stress-2026q1", "sec_stress_c", 280000000, 650000),
+            FilingTraceRow("2025q4", "artifact-stress-2025q4", "sec_stress_d", 900000000, 1800000),
+            FilingTraceRow("2026q1", "artifact-stress-2026q1", "sec_stress_d", 1500000000, 1800000),
+            FilingTraceRow("2025q4", "artifact-stress-2025q4", "sec_stress_e", 20000000, 100000),
+            FilingTraceRow("2026q1", "artifact-stress-2026q1", "sec_stress_e", 120000000, 800000),
+            FilingTraceRow("2025q4", "artifact-stress-2025q4", "sec_stress_f", 300000000, 1000000),
+            FilingTraceRow("2026q1", "artifact-stress-2026q1", "sec_stress_f", 930000000, 3000000),
+        ),
+        adjustment_factors={
+            "sec_stress_a": 5.0,
+            "sec_stress_b": 1.0,
+            "sec_stress_c": 1.0,
+            "sec_stress_d": 1.0,
+            "sec_stress_e": 1.0,
+            "sec_stress_f": 3.0,
+        },
+        artifact_notes={
+            "sec_stress_a": (
+                "quarter included a five-for-one split; Q1 reports post-event units, "
+                "so compare Q4 shares in the same post-event unit basis"
+            ),
+            "sec_stress_b": "no corporate-action adjustment noted",
+            "sec_stress_c": "no corporate-action adjustment noted; reduction is close to the largest adjusted action",
+            "sec_stress_d": "reported value moved sharply, but share count did not change",
+            "sec_stress_e": "small position with large relative share-count movement",
+            "sec_stress_f": (
+                "quarter included a three-for-one split; Q1 reports post-event units, "
+                "so compare Q4 shares in the same post-event unit basis"
+            ),
+        },
+    ),
+]
+
+
 def run_principal_holding_filing_trace_game(
     agent: Agent,
     cases: list[FilingTraceCase] | None = None,
@@ -505,6 +563,19 @@ def run_principal_holding_filing_artifact_natural_game(
         cases=cases,
         task="principal_holding_filing_artifact_natural",
         system=PRINCIPAL_HOLDING_FILING_ARTIFACT_NATURAL_SYSTEM,
+        include_factor=False,
+    )
+
+
+def run_principal_holding_filing_artifact_stress_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_STRESS_CASES,
+        task="principal_holding_filing_artifact_stress",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_STRESS_SYSTEM,
         include_factor=False,
     )
 
