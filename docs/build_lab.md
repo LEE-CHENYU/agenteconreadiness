@@ -503,13 +503,14 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    uncovered ambiguity between largest percentage reduction and largest
    dollar-material share action. PR 115 adds one targeted Tiger Global trace
    from the SEC search, not for breadth but because it turns the remaining
-   question into a measurable repeat-stability probe: `mini` sometimes chooses
-   the runner-up dollar-material action while `nano` and `gpt-5.5` are
-   stable-oracle. The uncovered questions are now narrower than "add more
-   cases": which real filing traces produce repeat instability under a clear
-   dollar-material objective; whether misses are runner-up action errors,
-   value-drift errors, or filing-artifact errors; and how noisy
-   predict-the-principal fidelity remains when the reference is a quarterly
-   public filing rather than a synthetic oracle?
+   question into a repeat-stability probe with a named runner-up reference: one
+   review-copy `mini` sweep produced a runner-up dollar-material choice, while
+   the build-lab repeat-3 and repeat-6 reruns were stable-oracle. The uncovered
+   questions are now narrower than "add more cases": which real filing traces
+   produce reproducible instability under a clear dollar-material objective;
+   whether misses are runner-up action errors, value-drift errors, or
+   filing-artifact errors; and how noisy predict-the-principal fidelity remains
+   when the reference is a quarterly public filing rather than a synthetic
+   oracle?
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.
