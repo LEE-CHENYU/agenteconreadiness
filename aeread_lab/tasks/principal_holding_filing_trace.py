@@ -63,6 +63,7 @@ class FilingTraceTrial:
     max_position_trade: str
     trend_trade: str
     percent_change_trade: str
+    second_best_trade: str
     chosen_trade: str | None
     principal_score: float
     chosen_score: float | None
@@ -181,6 +182,125 @@ DEFAULT_CASES = [
             ),
         ),
     ),
+    FilingTraceCase(
+        key="tiger_2026q1_megacap_rotation",
+        real_case=(
+            "Tiger Global 13F-HR trace where the dollar-material reduction "
+            "must be separated from a runner-up reduction and value drift"
+        ),
+        manager_cik="0001167483",
+        manager_name="TIGER GLOBAL MANAGEMENT LLC",
+        source_url="https://www.sec.gov/Archives/edgar/data/1167483/",
+        target_accession="0000919574-26-003362",
+        history=(
+            FilingTraceRow("2025q3", "0000919574-25-006931", "sec_tiger_a", 2584493826000, 10631402),
+            FilingTraceRow("2025q4", "0000919574-26-001143", "sec_tiger_a", 3327628826000, 10631402),
+            FilingTraceRow("2025q3", "0000919574-25-006931", "sec_tiger_b", 827539532000, 6209496),
+            FilingTraceRow("2025q4", "0000919574-26-001143", "sec_tiger_b", 898886641000, 6209496),
+            FilingTraceRow("2025q3", "0000919574-25-006931", "sec_tiger_c", 183283248000, 895200),
+            FilingTraceRow("2025q4", "0000919574-26-001143", "sec_tiger_c", 230057448000, 895200),
+            FilingTraceRow("2025q3", "0000919574-25-006931", "sec_tiger_d", 509970044000, 15837579),
+            FilingTraceRow("2025q4", "0000919574-26-001143", "sec_tiger_d", 619644640000, 26267259),
+            FilingTraceRow("2025q3", "0000919574-25-006931", "sec_tiger_e", 3393281056000, 6551368),
+            FilingTraceRow("2025q4", "0000919574-26-001143", "sec_tiger_e", 2649148004000, 5477747),
+            FilingTraceRow("2025q3", "0000919574-25-006931", "sec_tiger_f", 1074631725000, 4672515),
+            FilingTraceRow("2025q4", "0000919574-26-001143", "sec_tiger_f", 883600741000, 3843915),
+            FilingTraceRow("2025q3", "0000919574-25-006931", "sec_tiger_g", 1278694074000, 4578374),
+            FilingTraceRow("2025q4", "0000919574-26-001143", "sec_tiger_g", 1132134294000, 3725474),
+            FilingTraceRow("2025q3", "0000919574-25-006931", "sec_tiger_h", 1508630180000, 5839256),
+            FilingTraceRow("2025q4", "0000919574-26-001143", "sec_tiger_h", 1495024714000, 5839256),
+        ),
+        target_trades=(
+            FilingTraceTrade(
+                "hold_tiger_a",
+                "sec_tiger_a",
+                "2025q4",
+                "2026q1",
+                3327628826000,
+                3057165959000,
+                10631402,
+                10631402,
+                0,
+            ),
+            FilingTraceTrade(
+                "reduce_tiger_b",
+                "sec_tiger_b",
+                "2025q4",
+                "2026q1",
+                898886641000,
+                366943274000,
+                6209496,
+                3293334,
+                0,
+            ),
+            FilingTraceTrade(
+                "add_tiger_c",
+                "sec_tiger_c",
+                "2025q4",
+                "2026q1",
+                230057448000,
+                566311851000,
+                895200,
+                1656900,
+                0,
+            ),
+            FilingTraceTrade(
+                "add_tiger_d",
+                "sec_tiger_d",
+                "2025q4",
+                "2026q1",
+                619644640000,
+                653161284000,
+                26267259,
+                34595407,
+                10429680,
+            ),
+            FilingTraceTrade(
+                "reduce_tiger_e",
+                "sec_tiger_e",
+                "2025q4",
+                "2026q1",
+                2649148004000,
+                925425000000,
+                5477747,
+                2500000,
+                -1073621,
+            ),
+            FilingTraceTrade(
+                "reduce_tiger_f",
+                "sec_tiger_f",
+                "2025q4",
+                "2026q1",
+                883600741000,
+                336625000000,
+                3843915,
+                2500000,
+                -828600,
+            ),
+            FilingTraceTrade(
+                "add_tiger_g",
+                "sec_tiger_g",
+                "2025q4",
+                "2026q1",
+                1132134294000,
+                1880716758000,
+                3725474,
+                5565074,
+                -852900,
+            ),
+            FilingTraceTrade(
+                "reduce_tiger_h",
+                "sec_tiger_h",
+                "2025q4",
+                "2026q1",
+                1495024714000,
+                395000000000,
+                5839256,
+                2000000,
+                0,
+            ),
+        ),
+    ),
 ]
 
 
@@ -197,6 +317,7 @@ def run_principal_holding_filing_trace_game(
         max_position = max_position_trade(case)
         trend = trend_trade(case)
         percent_change = percent_change_trade(case)
+        second_best = second_best_action_trade(case)
         score_by_id = _normalized_action_scores(case)
         oracle_margin = _oracle_margin(score_by_id, principal)
         response = agent.complete(PRINCIPAL_HOLDING_FILING_TRACE_SYSTEM, _prompt(case))
@@ -212,6 +333,7 @@ def run_principal_holding_filing_trace_game(
                 max_position_trade=max_position,
                 trend_trade=trend,
                 percent_change_trade=percent_change,
+                second_best_trade=second_best,
                 chosen_trade=chosen,
                 principal_score=score_by_id[principal],
                 chosen_score=chosen_score,
@@ -238,6 +360,7 @@ def run_principal_holding_filing_trace_raw_game(
         max_position = _issuer_for_trade(case, max_position_trade(case))
         trend = _issuer_for_trade(case, trend_trade(case))
         percent_change = _issuer_for_trade(case, percent_change_trade(case))
+        second_best = _issuer_for_trade(case, second_best_action_trade(case))
         score_by_id = _normalized_issuer_action_scores(case)
         oracle_margin = _oracle_margin(score_by_id, principal)
         response = agent.complete(
@@ -256,6 +379,7 @@ def run_principal_holding_filing_trace_raw_game(
                 max_position_trade=max_position,
                 trend_trade=trend,
                 percent_change_trade=percent_change,
+                second_best_trade=second_best,
                 chosen_trade=chosen,
                 principal_score=score_by_id[principal],
                 chosen_score=chosen_score,
@@ -297,6 +421,13 @@ def percent_change_trade(case: FilingTraceCase) -> str:
     return max(case.target_trades, key=_share_change_fraction).trade_id
 
 
+def second_best_action_trade(case: FilingTraceCase) -> str:
+    ranked = sorted(case.target_trades, key=_action_value, reverse=True)
+    if not ranked:
+        raise ValueError("filing trace case has no target trades")
+    return ranked[1].trade_id if len(ranked) > 1 else ranked[0].trade_id
+
+
 def summarize_filing_trace_trials(
     agent_name: str,
     trials: list[FilingTraceTrial],
@@ -319,6 +450,9 @@ def summarize_filing_trace_trials(
     percent_change_missable = [
         trial for trial in trials if trial.percent_change_trade != trial.principal_trade
     ]
+    second_best_missable = [
+        trial for trial in trials if trial.second_best_trade != trial.principal_trade
+    ]
     return {
         "task": task,
         "agent": agent_name,
@@ -340,6 +474,10 @@ def summarize_filing_trace_trials(
         "percent_change_miss_rate": _reference_miss_rate(
             percent_change_missable,
             "percent_change_trade",
+        ),
+        "second_best_miss_rate": _reference_miss_rate(
+            second_best_missable,
+            "second_best_trade",
         ),
         "trials": [_trial_json(trial) for trial in trials],
     }

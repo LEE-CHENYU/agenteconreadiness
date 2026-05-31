@@ -565,15 +565,17 @@ class TaskSmokeTests(unittest.TestCase):
                     "offline:low_turnover",
                     "offline:max_position",
                     "offline:percent_change",
+                    "offline:second_best",
                 ],
             )
         )
         by_agent = {row["agent"]: row for row in rows}
         self.assertEqual(by_agent["offline:oracle"]["value"], 0.0)
-        self.assertGreater(by_agent["offline:market_value"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:market_value"]["value"], 0.7)
         self.assertGreater(by_agent["offline:low_turnover"]["value"], 0.9)
         self.assertGreater(by_agent["offline:max_position"]["value"], 0.9)
         self.assertGreater(by_agent["offline:percent_change"]["value"], 0.7)
+        self.assertGreater(by_agent["offline:second_best"]["value"], 0.3)
 
     def test_real_derived_filing_trace_case_key_targets_fixture(self):
         results = run_tasks(
@@ -587,6 +589,22 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(trial["principal_trade"], "reduce_chevron")
         self.assertEqual(trial["market_value_trade"], "price_drift_oxy")
         self.assertEqual(trial["percent_change_trade"], "reduce_constellation")
+        self.assertEqual(trial["second_best_trade"], "reduce_constellation")
+        self.assertEqual(results[0]["accuracy"], 1.0)
+
+    def test_real_derived_filing_trace_case_key_targets_tiger_depth_fixture(self):
+        results = run_tasks(
+            "principal_holding_filing_trace",
+            OfflineAgent("oracle"),
+            case_keys=["tiger_2026q1_megacap_rotation"],
+        )
+        self.assertEqual(results[0]["n_trials"], 1)
+        trial = results[0]["trials"][0]
+        self.assertEqual(trial["case"]["manager_cik"], "0001167483")
+        self.assertEqual(trial["principal_trade"], "reduce_tiger_e")
+        self.assertEqual(trial["market_value_trade"], "add_tiger_g")
+        self.assertEqual(trial["percent_change_trade"], "add_tiger_c")
+        self.assertEqual(trial["second_best_trade"], "reduce_tiger_h")
         self.assertEqual(results[0]["accuracy"], 1.0)
 
     def test_raw_real_derived_filing_trace_oracle_beats_shortcuts(self):
@@ -600,16 +618,18 @@ class TaskSmokeTests(unittest.TestCase):
                     "offline:max_position",
                     "offline:trend",
                     "offline:percent_change",
+                    "offline:second_best",
                 ],
             )
         )
         by_agent = {row["agent"]: row for row in rows}
         self.assertEqual(by_agent["offline:oracle"]["value"], 0.0)
-        self.assertGreater(by_agent["offline:market_value"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:market_value"]["value"], 0.7)
         self.assertGreater(by_agent["offline:low_turnover"]["value"], 0.9)
         self.assertGreater(by_agent["offline:max_position"]["value"], 0.9)
         self.assertGreater(by_agent["offline:trend"]["value"], 0.9)
         self.assertGreater(by_agent["offline:percent_change"]["value"], 0.7)
+        self.assertGreater(by_agent["offline:second_best"]["value"], 0.3)
 
     def test_raw_real_derived_filing_trace_removes_candidate_scaffold(self):
         prompt = principal_holding_filing_trace_raw_prompt(
@@ -631,8 +651,37 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertEqual(trial["principal_trade"], "sec_chevron")
         self.assertEqual(trial["market_value_trade"], "sec_oxy")
         self.assertEqual(trial["percent_change_trade"], "sec_constellation")
+        self.assertEqual(trial["second_best_trade"], "sec_constellation")
         self.assertEqual(trial["chosen_trade"], "sec_chevron")
         self.assertEqual(results[0]["accuracy"], 1.0)
+
+    def test_raw_real_derived_filing_trace_case_key_targets_tiger_depth_fixture(self):
+        results = run_tasks(
+            "principal_holding_filing_trace_raw",
+            OfflineAgent("oracle"),
+            case_keys=["tiger_2026q1_megacap_rotation"],
+        )
+        self.assertEqual(results[0]["n_trials"], 1)
+        trial = results[0]["trials"][0]
+        self.assertEqual(trial["principal_trade"], "sec_tiger_e")
+        self.assertEqual(trial["market_value_trade"], "sec_tiger_g")
+        self.assertEqual(trial["percent_change_trade"], "sec_tiger_c")
+        self.assertEqual(trial["second_best_trade"], "sec_tiger_h")
+        self.assertEqual(trial["chosen_trade"], "sec_tiger_e")
+        self.assertEqual(results[0]["accuracy"], 1.0)
+
+    def test_raw_filing_trace_second_best_stability_attribution(self):
+        payload = run_stability_sweep(
+            task="principal_holding_filing_trace_raw",
+            agent_specs=["offline:oracle", "offline:second_best"],
+            repeat_count=2,
+            case_keys=["tiger_2026q1_megacap_rotation"],
+        )
+        rows = stability_sweep_case_table(payload)
+        second_best_row = next(row for row in rows if row["agent"] == "offline:second_best")
+        self.assertEqual(second_best_row["status"], "stable_non_oracle")
+        self.assertEqual(second_best_row["modal_choice"], "sec_tiger_h")
+        self.assertEqual(second_best_row["modal_reference_matches"], ["second_best"])
 
     def test_format_stability_sweep_includes_reference_counts(self):
         payload = run_stability_sweep(

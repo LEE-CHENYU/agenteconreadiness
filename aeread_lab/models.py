@@ -418,6 +418,8 @@ class OfflineAgent:
                 target_trades,
                 key=lambda item: _filing_trace_share_change_fraction(target_trades[item]),
             )
+        elif self.policy in {"second_best", "runner_up", "near_miss"}:
+            trade_id = _second_best_filing_trace_id(target_trades)
         else:
             trade_id = max(
                 target_trades,
@@ -453,6 +455,8 @@ class OfflineAgent:
                 target_issuers,
                 key=lambda item: _filing_trace_share_change_fraction(target_issuers[item]),
             )
+        elif self.policy in {"second_best", "runner_up", "near_miss"}:
+            issuer_id = _second_best_filing_trace_id(target_issuers)
         else:
             issuer_id = max(
                 target_issuers,
@@ -4011,6 +4015,17 @@ def _filing_trace_share_change_fraction(trade: dict[str, float | str]) -> float:
     if prior_shares <= 0:
         return 0.0
     return abs(float(trade["next_shares"]) - prior_shares) / prior_shares
+
+
+def _second_best_filing_trace_id(trades: dict[str, dict[str, float | str]]) -> str:
+    ranked = sorted(
+        trades,
+        key=lambda item: _filing_trace_action_value(trades[item]),
+        reverse=True,
+    )
+    if not ranked:
+        raise ValueError("filing trace prompt has no candidate trades")
+    return ranked[1] if len(ranked) > 1 else ranked[0]
 
 
 def _extract_filing_trace_raw_changes(text: str) -> dict[str, dict[str, float | str]]:

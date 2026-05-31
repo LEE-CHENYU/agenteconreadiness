@@ -28,7 +28,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `principal_holding_prediction_noisy` | Noisy predict-the-principal holding-change task: separate discretionary 13F-style choices from mechanical fund-flow, index-rebalance, redemption, and tax-loss rows before predicting the next disclosed discretionary trade. | `python -m aeread_lab.cli --task principal_holding_prediction_noisy --agent offline:oracle` |
 | `principal_holding_prediction_notes` | Filing-note predict-the-principal task: infer which 13F-style rows reflect manager intent versus outside cash, benchmark, risk-ticket, or year-end bookkeeping artifacts without explicit event-type labels. | `python -m aeread_lab.cli --task principal_holding_prediction_notes --agent offline:oracle` |
 | `principal_holding_prediction_blind_notes` | Blind filing-note predict-the-principal task: neutralize account/profile/security labels and use generic raw notes to test whether C1 performance depends on label shortcuts rather than revealed-style inference. | `python -m aeread_lab.cli --task principal_holding_prediction_blind_notes --agent offline:oracle` |
-| `principal_holding_filing_trace` | Real-derived C1 filing trace: populate a neutralized predict-the-principal task from public SEC 13F-HR rows and test dollar-material share-driven action against market-value drift, low-turnover, max-position, previous-trend, and percent-change shortcuts. | `python -m aeread_lab.cli --task principal_holding_filing_trace --agent offline:oracle` |
+| `principal_holding_filing_trace` | Real-derived C1 filing trace: populate neutralized predict-the-principal tasks from public SEC 13F-HR rows and test dollar-material share-driven action against market-value drift, low-turnover, max-position, previous-trend, percent-change, and runner-up action shortcuts. | `python -m aeread_lab.cli --task principal_holding_filing_trace --agent offline:oracle` |
 | `principal_holding_filing_trace_raw` | Raw-row real-derived C1 filing trace: remove the precomputed candidate-change table and require the same dollar-material share-action inference directly from neutralized SEC filing rows. | `python -m aeread_lab.cli --task principal_holding_filing_trace_raw --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
@@ -176,7 +176,8 @@ interpreting the economic metric.
 - `principal_holding_filing_trace`: lower score regret to the dollar-material
   share-driven action in public SEC-derived filing rows is better; accuracy,
   market-value-drift, low-turnover, max-position, previous-trend,
-  percent-change miss rates, and oracle target margin are reported separately.
+  percent-change, second-best miss rates, and oracle target margin are reported
+  separately.
 - `principal_holding_filing_trace_raw`: lower score regret to the dollar-material
   share-driven issuer in public SEC-derived rows is better after removing the
   candidate-change scaffold; the same shortcut miss rates and oracle target
@@ -500,11 +501,15 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    period rows. The raw-row live result is stable-oracle once dollar materiality
    is stated explicitly, while the added `percent_change` baseline captures the
    uncovered ambiguity between largest percentage reduction and largest
-   dollar-material share action. The uncovered questions are now narrower than
-   "add more cases": which real filing traces are genuinely ambiguous enough to
-   test the flow/turnover shortcut; do smaller aliases confuse market-value
-   drift with share action when the filing evidence is less clean or less
-   scaffolded; and how noisy is predict-the-principal fidelity when the
-   reference is a quarterly public filing rather than a synthetic oracle?
+   dollar-material share action. PR 115 adds one targeted Tiger Global trace
+   from the SEC search, not for breadth but because it turns the remaining
+   question into a measurable repeat-stability probe: `mini` sometimes chooses
+   the runner-up dollar-material action while `nano` and `gpt-5.5` are
+   stable-oracle. The uncovered questions are now narrower than "add more
+   cases": which real filing traces produce repeat instability under a clear
+   dollar-material objective; whether misses are runner-up action errors,
+   value-drift errors, or filing-artifact errors; and how noisy
+   predict-the-principal fidelity remains when the reference is a quarterly
+   public filing rather than a synthetic oracle?
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.
