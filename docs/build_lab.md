@@ -55,7 +55,13 @@ collapse to metadata-trusting choices, so source labels alone are not enough.
 PR 130 adds richer natural source packets; this still does not replace the
 procedure and even makes `gpt-5.5` metadata-trusting-modal in repeat-6, so
 source context can increase deference to confirmed registry rows unless it is
-paired with a validation operation.
+paired with a validation operation. PR 131 removes that confirmed-status crutch
+from the false third-party row while keeping the same natural source-context
+surface, so the question becomes whether live aliases were trusting the
+`confirmed` status specifically or a broader status-blind registry story.
+Repeat-6 makes `nano`, `mini`, and `gpt-5.5` stable-oracle, so the PR 130
+regression is best read as confirmed-status deference rather than source
+context deference in general.
 
 ## What is implemented
 
@@ -89,6 +95,7 @@ paired with a validation operation.
 | `principal_holding_filing_artifact_metadata_validation_process` | Metadata-validation-process C1 control: keep the repeated-history wrong confirmed split, but add a generic row-ratio validation process without restoring the explicit conflict warning. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_validation_process --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_source_provenance` | Source-provenance C1 control: keep the repeated-history wrong confirmed split, but replace the validation process with registry source-reliability labels. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_provenance --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_source_context` | Source-context C1 control: keep the repeated-history wrong confirmed split, but replace the validation process with natural issuer/exchange and third-party source packets. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_context --agent offline:oracle` |
+| `principal_holding_filing_artifact_metadata_source_status_ablation` | Source-status-ablation C1 control: keep natural source packets but mark the false third-party split row unverified, testing whether the PR130 miss depended on the false row's confirmed status. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_status_ablation --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -297,6 +304,11 @@ interpreting the economic metric.
   packets instead of the validation process; this tests whether richer
   source-grounding helps or merely increases deference to confirmed registry
   metadata.
+- `principal_holding_filing_artifact_metadata_source_status_ablation`: same
+  repeated-history source-context surface, but the false third-party split row
+  is `unverified` instead of `confirmed`; this tests whether PR 130's live
+  metadata deference was a confirmed-status crutch or a more general
+  status-blind registry shortcut.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -712,6 +724,13 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    is negative but useful: context that still leaves the false row `confirmed`
    can amplify metadata deference. The next C1 move should remove the registry
    confirmation crutch or use real corporate-action source rows rather than
-   adding more prose around the same confirmed false record.
+   adding more prose around the same confirmed false record. PR 131 follows the
+   confirmation-crutch branch by marking the false third-party row `unverified`
+   while keeping the same natural source packets. Offline, the oracle,
+   source-reliability, and status-aware metadata baselines all solve, while the
+   status-blind metadata-naive baseline has full regret. Live repeat-3 and
+   repeat-6 make `nano`, `mini`, and `gpt-5.5` stable-oracle, so the persistent
+   PR 130 failure was the false row's `confirmed` status, not merely the
+   presence of natural source packets.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.

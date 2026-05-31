@@ -118,6 +118,13 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_CONTEXT_SYSTEM = (
     "line only: FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_STATUS_ABLATION_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_metadata_source_status_ablation\n"
+    "Infer the dollar-material discretionary holding action from repeated public-filing "
+    "rows, corporate-action source packets, and a registry where some rows are not "
+    "issuer-confirmed. Return one final line only: FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -204,6 +211,7 @@ class FilingArtifactTrial:
     percent_change_trade: str
     second_best_trade: str
     metadata_trusting_trade: str | None
+    metadata_status_blind_trade: str | None
     chosen_trade: str | None
     principal_score: float
     chosen_score: float | None
@@ -867,6 +875,52 @@ ARTIFACT_METADATA_SOURCE_CONTEXT_CASES = [
 ]
 
 
+ARTIFACT_METADATA_SOURCE_STATUS_ABLATION_CASES = [
+    FilingArtifactCase(
+        key="multi_artifact_source_status_ablation_conflicting_registry_close_runner_up",
+        real_case=(
+            "13F-style filing trace where repeated issuer history is paired with "
+            "natural source packets and a third-party split row that is not "
+            "issuer-confirmed"
+        ),
+        manager_cik="0000000001",
+        manager_name="NEUTRALIZED PUBLIC-FILING ARTIFACT SOURCE-STATUS ABLATION TRACE",
+        source_url=(
+            "public SEC-style repeated issuer filing rows plus neutralized corporate-action "
+            "registry rows, natural source packets, and a non-confirmed third-party row"
+        ),
+        target_accession="neutralized-2026q1-artifact-metadata-source-status-ablation",
+        rows=ARTIFACT_METADATA_SOURCE_PROVENANCE_CASES[0].rows,
+        adjustment_factors=dict(ARTIFACT_METADATA_SOURCE_PROVENANCE_CASES[0].adjustment_factors),
+        artifact_notes=dict(ARTIFACT_METADATA_SOURCE_PROVENANCE_CASES[0].artifact_notes),
+        corporate_actions=(
+            CorporateActionRegistryEntry(
+                "sec_stress_a",
+                "stock_split",
+                5.0,
+                "2026q1",
+                "issuer_exchange_notice",
+            ),
+            CorporateActionRegistryEntry(
+                "sec_stress_d",
+                "stock_split",
+                4.0,
+                "2026q1",
+                "third_party_backfill_feed",
+                status="unverified",
+            ),
+            CorporateActionRegistryEntry(
+                "sec_stress_f",
+                "stock_split",
+                3.0,
+                "2026q1",
+                "issuer_exchange_notice",
+            ),
+        ),
+    ),
+]
+
+
 def run_principal_holding_filing_trace_game(
     agent: Agent,
     cases: list[FilingTraceCase] | None = None,
@@ -1179,6 +1233,23 @@ def run_principal_holding_filing_artifact_metadata_source_context_game(
     )
 
 
+def run_principal_holding_filing_artifact_metadata_source_status_ablation_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_METADATA_SOURCE_STATUS_ABLATION_CASES,
+        task="principal_holding_filing_artifact_metadata_source_status_ablation",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_STATUS_ABLATION_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+        include_metadata=True,
+        include_conflict_warning=False,
+        include_source_context=True,
+    )
+
+
 def _run_principal_holding_filing_artifact_game(
     agent: Agent,
     *,
@@ -1203,6 +1274,9 @@ def _run_principal_holding_filing_artifact_game(
         second_best = artifact_second_best_issuer(case)
         metadata_trusting = (
             artifact_metadata_trusting_issuer(case) if include_metadata else None
+        )
+        metadata_status_blind = (
+            artifact_metadata_status_blind_issuer(case) if include_metadata else None
         )
         score_by_id = _normalized_artifact_scores(case)
         oracle_margin = _oracle_margin(score_by_id, principal)
@@ -1231,6 +1305,7 @@ def _run_principal_holding_filing_artifact_game(
                 percent_change_trade=percent_change,
                 second_best_trade=second_best,
                 metadata_trusting_trade=metadata_trusting,
+                metadata_status_blind_trade=metadata_status_blind,
                 chosen_trade=chosen,
                 principal_score=score_by_id[principal],
                 chosen_score=chosen_score,
@@ -1316,6 +1391,21 @@ def artifact_metadata_trusting_issuer(case: FilingArtifactCase) -> str | None:
         if entry.effective_period != target_period:
             continue
         if entry.status not in active_statuses:
+            continue
+        factors.setdefault(entry.issuer, entry.ratio)
+    if not factors:
+        return None
+    changes = _artifact_changes_with_factors(case, factors)
+    return max(changes, key=lambda issuer: changes[issuer]["value"])
+
+
+def artifact_metadata_status_blind_issuer(case: FilingArtifactCase) -> str | None:
+    factors: dict[str, float] = {}
+    target_period = _artifact_target_period(case)
+    for entry in _corporate_action_registry_entries(case):
+        if entry.action != "stock_split":
+            continue
+        if entry.effective_period != target_period:
             continue
         factors.setdefault(entry.issuer, entry.ratio)
     if not factors:
@@ -1412,6 +1502,12 @@ def summarize_filing_artifact_trials(
         if trial.metadata_trusting_trade is not None
         and trial.metadata_trusting_trade != trial.principal_trade
     ]
+    metadata_status_blind_missable = [
+        trial
+        for trial in trials
+        if trial.metadata_status_blind_trade is not None
+        and trial.metadata_status_blind_trade != trial.principal_trade
+    ]
     return {
         "task": task,
         "agent": agent_name,
@@ -1445,6 +1541,10 @@ def summarize_filing_artifact_trials(
         "metadata_trusting_miss_rate": _artifact_reference_miss_rate(
             metadata_trusting_missable,
             "metadata_trusting_trade",
+        ),
+        "metadata_status_blind_miss_rate": _artifact_reference_miss_rate(
+            metadata_status_blind_missable,
+            "metadata_status_blind_trade",
         ),
         "trials": [_artifact_trial_json(trial) for trial in trials],
     }

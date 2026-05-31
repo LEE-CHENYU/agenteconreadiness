@@ -40,6 +40,7 @@ TASKS = (
     "principal_holding_filing_artifact_metadata_validation_process",
     "principal_holding_filing_artifact_metadata_source_provenance",
     "principal_holding_filing_artifact_metadata_source_context",
+    "principal_holding_filing_artifact_metadata_source_status_ablation",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -422,6 +423,7 @@ def _print_human(payload: dict[str, Any]) -> None:
             "principal_holding_filing_artifact_metadata_validation_process",
             "principal_holding_filing_artifact_metadata_source_provenance",
             "principal_holding_filing_artifact_metadata_source_context",
+            "principal_holding_filing_artifact_metadata_source_status_ablation",
         }:
             print(
                 f"{task}: n={result['n_trials']} "
