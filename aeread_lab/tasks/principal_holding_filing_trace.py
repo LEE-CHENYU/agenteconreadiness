@@ -46,6 +46,14 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_IMPLICIT_SYSTEM = (
     "artifact notes. Return one final line only: FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_IMPLICIT_STABLE_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_implicit_stable\n"
+    "Infer the dollar-material discretionary holding action from public-filing rows where "
+    "split-like corporate-action artifacts must be inferred from internally consistent "
+    "row-ratio and value-stability evidence. Return one final line only: "
+    "FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -455,6 +463,33 @@ ARTIFACT_STRESS_CASES = [
 ]
 
 
+ARTIFACT_IMPLICIT_STABLE_CASES = [
+    FilingArtifactCase(
+        key="multi_artifact_value_stable_close_runner_up",
+        real_case=(
+            "13F-style filing trace where split-like row ratios are paired with "
+            "stable reported value, isolating implicit artifact inference from "
+            "reported-value drift"
+        ),
+        manager_cik="0000000001",
+        manager_name="NEUTRALIZED PUBLIC-FILING ARTIFACT VALUE-STABILITY TRACE",
+        source_url=(
+            "public SEC-style 13F information table rows with no artifact notes; "
+            "value-stability control for implicit split-like artifacts"
+        ),
+        target_accession="neutralized-2026q1-artifact-implicit-stable",
+        rows=tuple(
+            FilingTraceRow(row.period, row.accession, row.issuer, 315000000, row.shares)
+            if row.period == "2026q1" and row.issuer == "sec_stress_f"
+            else row
+            for row in ARTIFACT_STRESS_CASES[0].rows
+        ),
+        adjustment_factors=dict(ARTIFACT_STRESS_CASES[0].adjustment_factors),
+        artifact_notes=dict(ARTIFACT_STRESS_CASES[0].artifact_notes),
+    ),
+]
+
+
 def run_principal_holding_filing_trace_game(
     agent: Agent,
     cases: list[FilingTraceCase] | None = None,
@@ -599,6 +634,20 @@ def run_principal_holding_filing_artifact_implicit_game(
         cases=cases or ARTIFACT_STRESS_CASES,
         task="principal_holding_filing_artifact_implicit",
         system=PRINCIPAL_HOLDING_FILING_ARTIFACT_IMPLICIT_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+    )
+
+
+def run_principal_holding_filing_artifact_implicit_stable_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_IMPLICIT_STABLE_CASES,
+        task="principal_holding_filing_artifact_implicit_stable",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_IMPLICIT_STABLE_SYSTEM,
         include_factor=False,
         include_notes=False,
     )

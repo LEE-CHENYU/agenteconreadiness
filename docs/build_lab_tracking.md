@@ -44,9 +44,12 @@ Current uncovered directions from the tests:
 - C1 filing inference: implicit corporate-action adjustment is the active
   frontier. PR 119 showed repeated `nano` artifact-blind misses under natural
   notes; PR 120 shows that removing notes can also trigger `gpt-5.5`
-  reported-value misses. The questions are whether row-ratio evidence is too
-  weak, whether real corporate-action metadata restores stability, and whether
-  artifact blindness or reported-value drift is the durable shortcut.
+  reported-value misses. PR 121 controls that evidence channel by making the
+  implicit split-like rows value-stable, and live repeats stabilize both
+  `nano` and `gpt-5.5`. The current question is now whether real
+  corporate-action metadata restores stability under noisier filing traces, and
+  whether artifact blindness or reported-value drift is the durable shortcut
+  when row-ratio and value-stability evidence disagree.
 - Real-derived C1 runner-up ambiguity: the Tiger `mini` runner-up miss did not
   reproduce in build-lab repeats. The question is which real filing trace
   creates repeat-reliable runner-up confusion under a clear dollar-material
@@ -187,6 +190,7 @@ Current uncovered directions from the tests:
 | 118 | `review/118-stability-shortcut-mixture` | choice-level shortcut-mixture attribution for repeat probes | stability summaries now count all repeated choices that hit named non-oracle references, not only the modal choice, so oracle-modal unstable runs still surface artifact-blind/value-drift shortcut mixtures |
 | 119 | `review/119-artifact-stress-choice-mix` | live choice-mixture drilldown on the artifact-stress case | repeat-9 OpenAI sweep confirms `mini` and `gpt-5.5` are stable-oracle; `nano` is oracle-modal with 3/9 non-oracle choices, all attributed to artifact-blind raw-share movement |
 | 120 | `review/120-implicit-filing-artifact` | implicit artifact-inference C1 stress | removes the artifact-note section from the composite stress prompt; offline baselines preserve dynamic range, and live repeats turn the next question into which evidence channel makes implicit corporate-action adjustment stable |
+| 121 | `review/121-implicit-value-stability` | value-stable implicit artifact control | keeps the no-note split-like row-ratio probe but removes the conflicting reported-value jump from one artifact row; live repeats become stable-oracle, so PR120's top-alias miss is an evidence-channel conflict result rather than no-notes alone |
 
 ## Task result ledger
 
@@ -213,6 +217,7 @@ unless explicitly marked as historical/upstream.
 | `principal_holding_filing_artifact_natural` | filing-artifact C1 trace with natural corporate-action notes | same offline dynamic range as the structured artifact task; live repeat-3 on `nano`, `mini`, and `gpt-5.5` is stable-oracle | removes `adjustment_factor=` from the prompt and leaves the 4-for-1 split as natural note text. Current live aliases still solve, so this is a depth control rather than a tier separator; the next artifact probe needs weaker/noisier notes or artifact plus runner-up ambiguity |
 | `principal_holding_filing_artifact_stress` | composite filing-artifact C1 stress with multiple natural-note artifacts and a close runner-up | oracle score regret 0; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind and market-value baselines regret 1; oracle margin 0.0645161 | follows PR 116's limitation rather than adding clean cases. The live result separates aliases: `mini` and `gpt-5.5` solve, while `nano` is unstable across fresh repeats, with misses attributed to value-drift in one run and artifact-blind raw share movement in the drilldown |
 | `principal_holding_filing_artifact_implicit` | composite artifact C1 stress with no artifact-note section | oracle score regret 0; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind and market-value baselines regret 1; oracle margin 0.0645161 | uses the same composite stress fixture as PR 117 but removes the note channel, forcing split-like artifact inference from row patterns. This is a depth move on the PR 119 finding: the question is whether implicit artifact adjustment needs stronger row-ratio evidence, value-stability evidence, or real corporate-action context, not whether another annotated split case can be added |
+| `principal_holding_filing_artifact_implicit_stable` | no-note artifact C1 control with value-stable split-like rows | oracle score regret 0; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind and market-value baselines regret 1; oracle margin 0.0645161 | keeps the PR120 no-note row-ratio task but changes the split-like value-drift artifact into a value-stable row. Live repeat-3 across all aliases and repeat-6 on `nano`/`gpt-5.5` are stable-oracle, so the PR120 `gpt-5.5` market-value miss is best read as a conflict between row-ratio and reported-value channels |
 | `ambiguity` | maxmin/alpha-maxmin under Knightian ambiguity | oracle configured regret 0 across 5 cases; reference-prior regret 11.5796; pure-maxmin regret 2.32038; optimistic regret 14.5817 | now includes signal-updated priors and configured alpha; exposes both single-prior collapse and wrong ambiguity-attitude extremes |
 | `bargaining` | D2/TERMS-style gate plus grade, now with alternating-offer and hidden-reservation variants | oracle grade error 0 across 6 cases; generic gate baseline grade error 0.374225; round-blind alternating-offer miss 1.00; optimistic-budget hidden-reservation miss 1.00 | confirms "gate-only surplus extraction" is not grade fidelity and adds first protocol/reservation-depth stressors |
 | `belief_bargaining` | cue use, posterior bargaining, multi-turn opponent modeling, and strategic cheap-talk likelihoods | oracle surplus gap 0 across 9 prompts; prior baseline gap 13.6088; single-cue baseline gap 33.5649 with multi-turn miss 1.00; literal-claim baseline gap 60.1056; live `nano` strategic base gap 52.4859 but scaffold gap 0 | implements the bargaining-Bayes falsifier from source `7cb0ca8`: when posterior state is externalized, `nano` closes the strategic cheap-talk gap, isolating implicit sequential belief-state failure |
@@ -503,6 +508,12 @@ revealed-style inference.
 | PR120 implicit artifact shortcut sweep | `python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_implicit --agents offline:oracle,offline:artifact_blind,offline:market_value,offline:percent_change,offline:second_best --no-cache` | oracle rank 1; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind and market-value regret 1 |
 | PR120 full pytest | `python -m pytest` | 279 tests passed |
 | PR120 full all-task oracle | `python -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 90 current task runners execute; oracle path remains clean, including `principal_holding_filing_artifact_implicit` with `n=1`, score regret 0, accuracy 1.00, and oracle margin 0.0645 |
+| PR121 focused value-stable implicit-artifact tests | `python -m pytest tests/test_tasks.py -k 'filing_artifact or filing_trace or principal_holding'` | 36 selected tests passed; the value-stable no-note prompt omits artifact notes, preserves close-runner-up structure, and moves the market-value shortcut from the split-like artifact row to the pure value-drift row |
+| PR121 value-stable implicit shortcut sweep | `python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_implicit_stable --agents offline:oracle,offline:artifact_blind,offline:market_value,offline:percent_change,offline:second_best --no-cache` | oracle rank 1; second-best regret 0.0645161; percent-change regret 0.774194; artifact-blind and market-value regret 1 |
+| PR121 value-stable implicit live repeat | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_implicit_stable --agents openai:nano,openai:mini,openai:gpt-5.5 --repeat 3 --case multi_artifact_value_stable_close_runner_up --no-cache` | all three aliases are stable-oracle with parse floor 1.00, score regret 0, accuracy 1.00, and modal `sec_stress_b` |
+| PR121 value-stable implicit live follow-up | `AEREAD_OPENAI_MAX_OUTPUT_TOKENS=8192 python -m aeread_lab.cli --sweep --task principal_holding_filing_artifact_implicit_stable --agents openai:nano,openai:gpt-5.5 --repeat 6 --case multi_artifact_value_stable_close_runner_up --no-cache` | `nano` and `gpt-5.5` remain stable-oracle with parse floor 1.00, score regret 0, accuracy 1.00, and modal `sec_stress_b` |
+| PR121 full pytest | `python -m pytest` | 283 tests passed |
+| PR121 full all-task oracle | `python -m aeread_lab.cli --task all --agent offline:oracle --no-cache` | all 91 current task runners execute; oracle path remains clean, including `principal_holding_filing_artifact_implicit_stable` with `n=1`, score regret 0, accuracy 1.00, and oracle margin 0.0645 |
 | Whitespace check | `git diff --check` | passed with no output |
 | API key scan | `rg -n "sk-proj-[A-Za-z0-9_-]{20,}" .` | no tracked API key strings found |
 | Provider guardrail scan | `rg -n "anthropic|claude|openrouter|chat\\.completions|ChatCompletion|OPENROUTER|ANTHROPIC" aeread_lab tests docs pyproject.toml README.md` | only expected documentation/test guardrail matches; no non-OpenAI client path added |
@@ -1124,3 +1135,11 @@ build lab should not depend on `.playwright-mcp/` logs or the local
     ratio evidence, value-stability evidence, real corporate-action context, or
     longer filing history before they stop treating raw reported values as the
     principal's discretionary signal?
+97. PR 121 follows that evidence-channel question rather than adding breadth.
+    It keeps the no-note row-ratio setup and the close runner-up, but makes the
+    split-like artifact rows internally value-stable. That turns the PR 120
+    ambiguity into a controlled ablation. The live repeat-3 control is
+    stable-oracle for `nano`, `mini`, and `gpt-5.5`, and the repeat-6
+    `nano`/`gpt-5.5` follow-up also stays stable-oracle. The previous top-alias
+    miss is therefore not caused by missing artifact notes alone; it appears
+    when no-note row-ratio evidence conflicts with reported-value movement.

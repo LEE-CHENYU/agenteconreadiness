@@ -31,7 +31,10 @@ For the current C1 line, the live tests have narrowed the direction rather than
 expanded the case target. PR 119 made raw corporate-action artifact blindness
 the persistent `nano` signal under noisy natural notes. PR 120 removes the note
 channel and shows that no-note artifact inference can also trigger
-reported-value drift in `gpt-5.5`. The open question is therefore not "how many
+reported-value drift in `gpt-5.5`. PR 121 controls one evidence channel by
+keeping the same implicit split-like row ratios but making the affected reported
+values stable, so the result can distinguish artifact-inference weakness from a
+conflicting value-drift signal. The open question is therefore not "how many
 more filing cases can we add?" It is which evidence channel makes
 dollar-material principal-choice inference robust: row-ratio patterns, value
 stability, real corporate-action metadata, repeated filing history, or a
@@ -59,6 +62,7 @@ different shortcut attribution.
 | `principal_holding_filing_artifact_natural` | Natural-note filing-artifact C1 trace: remove the structured adjustment factor and require the same artifact adjustment from natural corporate-action notes. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_natural --agent offline:oracle` |
 | `principal_holding_filing_artifact_stress` | Composite filing-artifact C1 stress: combine multiple corporate-action artifacts, value drift, percentage salience, and a close runner-up discretionary action. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_stress --agent offline:oracle` |
 | `principal_holding_filing_artifact_implicit` | Implicit filing-artifact C1 stress: remove corporate-action notes and require split-like artifact inference from raw filing-row patterns before scoring the discretionary action. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_implicit --agent offline:oracle` |
+| `principal_holding_filing_artifact_implicit_stable` | Value-stable implicit filing-artifact C1 control: keep the no-note split-like row-ratio task but remove the conflicting reported-value jump from the artifact row. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_implicit_stable --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -226,6 +230,10 @@ interpreting the economic metric.
   corporate-action notes and asks for split-like artifact inference from raw
   filing-row patterns; this tests whether the artifact adjustment survives when
   the row pattern, not an explicit note, carries the artifact evidence.
+- `principal_holding_filing_artifact_implicit_stable`: same score and no-note
+  setup, but the split-like artifact rows also have value-stability evidence;
+  this tests whether PR 120's no-note misses come from implicit artifact
+  inference itself or from a conflicting reported-value channel.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -588,6 +596,13 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    inference, not more annotated split examples. Future C1 additions should be
    admitted only if they answer this question or one of the prior uncovered
    questions: reproducible runner-up ambiguity, durable value-drift salience,
-   raw artifact blindness, or real-filing inversion noise.
+   raw artifact blindness, or real-filing inversion noise. PR 121 answers the
+   first evidence-channel subquestion by making the implicit split-like artifact
+   rows value-stable while preserving the close runner-up and named shortcut
+   baselines. The live repeat-3 control is stable-oracle for all three aliases,
+   and the repeat-6 `nano`/`gpt-5.5` follow-up also stays stable-oracle. That
+   makes the PR 120 top-alias miss an evidence-channel conflict result: no notes
+   alone are not enough to break the top alias when clean row-ratio evidence is
+   paired with stable reported value.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.
