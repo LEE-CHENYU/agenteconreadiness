@@ -97,6 +97,8 @@ class OfflineAgent:
             return self._portfolio_choice(user)
         if "TASK: revealed_allocation" in system:
             return self._revealed_allocation(user)
+        if "TASK: principal_holding_filing_trace" in system:
+            return self._principal_holding_filing_trace(user)
         if "TASK: principal_holding_prediction_blind_notes" in system:
             return self._principal_holding_notes_prediction(user)
         if "TASK: principal_holding_prediction_notes" in system:
@@ -384,6 +386,35 @@ class OfflineAgent:
             trade_id = _best_noisy_principal_holding_trade(
                 target_trades,
                 _PRINCIPAL_STYLE_WEIGHTS[style_id],
+            )
+        return f"FINAL_TRADE: {trade_id}"
+
+    def _principal_holding_filing_trace(self, user: str) -> str:
+        target_trades = _extract_filing_trace_trades(user)
+        if self.policy in {"market_value", "market_return", "max_return", "value_drift"}:
+            trade_id = max(
+                target_trades,
+                key=lambda item: target_trades[item]["next_value"]
+                - target_trades[item]["prior_value"],
+            )
+        elif self.policy in {"low_turnover", "min_turnover", "hold"}:
+            trade_id = min(
+                target_trades,
+                key=lambda item: abs(
+                    target_trades[item]["next_shares"] - target_trades[item]["prior_shares"]
+                ),
+            )
+        elif self.policy in {"max_position", "largest_position"}:
+            trade_id = max(target_trades, key=lambda item: target_trades[item]["prior_value"])
+        elif self.policy in {"trend", "trend_chase"}:
+            trade_id = max(
+                target_trades,
+                key=lambda item: abs(target_trades[item]["previous_share_delta"]),
+            )
+        else:
+            trade_id = max(
+                target_trades,
+                key=lambda item: _filing_trace_action_value(target_trades[item]),
             )
         return f"FINAL_TRADE: {trade_id}"
 
@@ -3896,6 +3927,41 @@ def _infer_note_principal_holding_style(
 
 def _principal_note_is_mechanical(note: str) -> bool:
     return any(marker in note for marker in _PRINCIPAL_NOTE_MECHANICAL_MARKERS)
+
+
+def _extract_filing_trace_trades(text: str) -> dict[str, dict[str, float | str]]:
+    pattern = re.compile(
+        r"candidate_trade=([a-zA-Z0-9_-]+)\s+"
+        r"issuer=([a-zA-Z0-9_-]+)\s+"
+        r"prior_period=([a-zA-Z0-9_-]+)\s+"
+        r"next_period=([a-zA-Z0-9_-]+)\s+"
+        r"prior_value=([-+]?\d+(?:\.\d+)?)\s+"
+        r"next_value=([-+]?\d+(?:\.\d+)?)\s+"
+        r"prior_shares=([-+]?\d+(?:\.\d+)?)\s+"
+        r"next_shares=([-+]?\d+(?:\.\d+)?)\s+"
+        r"previous_share_delta=([-+]?\d+(?:\.\d+)?)"
+    )
+    trades: dict[str, dict[str, float | str]] = {}
+    for match in pattern.finditer(text):
+        trades[match.group(1)] = {
+            "issuer": match.group(2),
+            "prior_period": match.group(3),
+            "next_period": match.group(4),
+            "prior_value": float(match.group(5)),
+            "next_value": float(match.group(6)),
+            "prior_shares": float(match.group(7)),
+            "next_shares": float(match.group(8)),
+            "previous_share_delta": float(match.group(9)),
+        }
+    return trades
+
+
+def _filing_trace_action_value(trade: dict[str, float | str]) -> float:
+    prior_shares = float(trade["prior_shares"])
+    if prior_shares <= 0:
+        return 0.0
+    prior_price = float(trade["prior_value"]) / prior_shares
+    return abs(float(trade["next_shares"]) - prior_shares) * prior_price
 
 
 def _regime_ev_fraction(text: str) -> float:

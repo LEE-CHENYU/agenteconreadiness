@@ -28,6 +28,7 @@ proper scoring, bounds, and revealed-preference fit.
 | `principal_holding_prediction_noisy` | Noisy predict-the-principal holding-change task: separate discretionary 13F-style choices from mechanical fund-flow, index-rebalance, redemption, and tax-loss rows before predicting the next disclosed discretionary trade. | `python -m aeread_lab.cli --task principal_holding_prediction_noisy --agent offline:oracle` |
 | `principal_holding_prediction_notes` | Filing-note predict-the-principal task: infer which 13F-style rows reflect manager intent versus outside cash, benchmark, risk-ticket, or year-end bookkeeping artifacts without explicit event-type labels. | `python -m aeread_lab.cli --task principal_holding_prediction_notes --agent offline:oracle` |
 | `principal_holding_prediction_blind_notes` | Blind filing-note predict-the-principal task: neutralize account/profile/security labels and use generic raw notes to test whether C1 performance depends on label shortcuts rather than revealed-style inference. | `python -m aeread_lab.cli --task principal_holding_prediction_blind_notes --agent offline:oracle` |
+| `principal_holding_filing_trace` | Real-derived C1 filing trace: populate a neutralized predict-the-principal task from public SEC 13F-HR rows and test material share-driven action against market-value drift, low-turnover, max-position, and previous-trend shortcuts. | `python -m aeread_lab.cli --task principal_holding_filing_trace --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -171,6 +172,10 @@ interpreting the economic metric.
   discretionary principal-style next holding change is better after neutralizing
   account/profile/security labels; the same shortcut miss rates plus oracle
   target margin are reported separately.
+- `principal_holding_filing_trace`: lower score regret to the material
+  share-driven action in public SEC-derived filing rows is better; accuracy,
+  market-value-drift, low-turnover, max-position, previous-trend miss rates,
+  and oracle target margin are reported separately.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -479,12 +484,15 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
 3. Extend generator-verifier mass production beyond the current generated
    regime holdout and law-audit verifier: generate larger law families and
    cross-domain verifier tasks.
-4. Use the stability probe on C1 before adding more C1 variants. PR 105 showed
-   that `principal_holding_prediction_blind_notes` is sample-unstable for live
+4. Keep C1 depth-first. PR 105 showed that
+   `principal_holding_prediction_blind_notes` is sample-unstable for live
    `nano`; PRs 106-112 turn that into repeat reliability, target-margin,
    case-outcome attribution, baseline attribution, cross-agent sweeps, and
-   per-case sweep drilldowns with keyed case targeting. The remaining C1 depth
-   question is replacement with real 13F-style holdings-derived traces once a
-   clean data source is selected.
+   per-case sweep drilldowns with keyed case targeting. PR 113 starts the
+   real-derived path with one public SEC 13F-HR filing trace, so the uncovered
+   questions are now narrower than "add more cases": does the flow/turnover
+   shortcut survive actual filing rows; do smaller aliases confuse market-value
+   drift with share action; and how noisy is predict-the-principal fidelity when
+   the reference is a quarterly public filing rather than a synthetic oracle?
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.

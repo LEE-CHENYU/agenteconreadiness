@@ -549,6 +549,37 @@ class TaskSmokeTests(unittest.TestCase):
                 case_keys=["missing_case"],
             )
 
+    def test_real_derived_filing_trace_oracle_beats_shortcuts(self):
+        rows = comparison_table(
+            run_sweep(
+                task="principal_holding_filing_trace",
+                agent_specs=[
+                    "offline:oracle",
+                    "offline:market_value",
+                    "offline:low_turnover",
+                    "offline:max_position",
+                ],
+            )
+        )
+        by_agent = {row["agent"]: row for row in rows}
+        self.assertEqual(by_agent["offline:oracle"]["value"], 0.0)
+        self.assertGreater(by_agent["offline:market_value"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:low_turnover"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:max_position"]["value"], 0.9)
+
+    def test_real_derived_filing_trace_case_key_targets_fixture(self):
+        results = run_tasks(
+            "principal_holding_filing_trace",
+            OfflineAgent("oracle"),
+            case_keys=["brk_2026q1_energy_rebalance"],
+        )
+        self.assertEqual(results[0]["n_trials"], 1)
+        trial = results[0]["trials"][0]
+        self.assertEqual(trial["case"]["manager_cik"], "0001067983")
+        self.assertEqual(trial["principal_trade"], "reduce_chevron")
+        self.assertEqual(trial["market_value_trade"], "price_drift_oxy")
+        self.assertEqual(results[0]["accuracy"], 1.0)
+
     def test_format_stability_sweep_includes_reference_counts(self):
         payload = run_stability_sweep(
             task="principal_holding_prediction_blind_notes",
