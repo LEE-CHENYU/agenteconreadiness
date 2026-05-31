@@ -65,7 +65,13 @@ context deference in general. PR 132 removes status labels from every source
 context row: `gpt-5.5` stays stable-oracle, but `mini` and `nano` become
 metadata-trusting/status-blind-modal, so smaller aliases need an explicit
 negative status or validation process; natural source context alone is not yet
-a reliable substitute.
+a reliable substitute. PR 133 tests the last wording confound in PR 132: the
+generic metadata intro still said `confirmed` even when no row carried a status
+label, so PR 133 removes that confirmation wording while leaving the registry
+and source packets unchanged. Repeat-6 keeps `gpt-5.5` stable-oracle, while
+`mini` and `nano` remain metadata-trusting/status-blind-modal; the residual is
+therefore not a wording artifact. Smaller aliases need an explicit negative
+status, a validation process, or a stronger source-audit scaffold.
 
 ## What is implemented
 
@@ -101,6 +107,7 @@ a reliable substitute.
 | `principal_holding_filing_artifact_metadata_source_context` | Source-context C1 control: keep the repeated-history wrong confirmed split, but replace the validation process with natural issuer/exchange and third-party source packets. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_context --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_source_status_ablation` | Source-status-ablation C1 control: keep natural source packets but mark the false third-party split row unverified, testing whether the PR130 miss depended on the false row's confirmed status. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_status_ablation --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_source_status_neutral` | Source-status-neutral C1 control: keep natural source packets but remove all registry status labels, testing whether source context or row validation survives once `confirmed` is absent everywhere. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_status_neutral --agent offline:oracle` |
+| `principal_holding_filing_artifact_metadata_source_status_neutral_intro` | Source-status-neutral-intro C1 control: keep the status-neutral source packet task but remove the generic metadata-intro word `confirmed`, testing whether PR132's smaller-alias miss was a wording artifact. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_status_neutral_intro --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -319,6 +326,11 @@ interpreting the economic metric.
   omits a status label; this tests whether PR 131 solved because the false row
   was negatively marked or because removing `confirmed` from the false row lets
   source context / row evidence take over.
+- `principal_holding_filing_artifact_metadata_source_status_neutral_intro`: same
+  status-neutral source-context surface, but the generic metadata-intro text no
+  longer calls registry rows confirmed; this tests whether PR 132's residual
+  smaller-alias registry deference was caused by prompt wording rather than the
+  registry/source evidence itself.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate

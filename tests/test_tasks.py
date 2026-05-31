@@ -216,6 +216,9 @@ from aeread_lab.tasks.principal_holding_filing_trace import (
     ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_CASES as PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_CASES,
 )
 from aeread_lab.tasks.principal_holding_filing_trace import (
+    ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_INTRO_CASES as PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_INTRO_CASES,
+)
+from aeread_lab.tasks.principal_holding_filing_trace import (
     DEFAULT_CASES as PRINCIPAL_HOLDING_FILING_TRACE_CASES,
 )
 from aeread_lab.tasks.principal_holding_filing_trace import (
@@ -606,6 +609,15 @@ class TaskSmokeTests(unittest.TestCase):
     def test_sample_limit_slices_principal_holding_filing_artifact_metadata_source_status_neutral_cases(self):
         results = run_tasks(
             "principal_holding_filing_artifact_metadata_source_status_neutral",
+            OfflineAgent("oracle"),
+            sample_limit=1,
+        )
+        self.assertEqual(results[0]["n_trials"], 1)
+        self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
+    def test_sample_limit_slices_principal_holding_filing_artifact_metadata_source_status_neutral_intro_cases(self):
+        results = run_tasks(
+            "principal_holding_filing_artifact_metadata_source_status_neutral_intro",
             OfflineAgent("oracle"),
             sample_limit=1,
         )
@@ -1130,6 +1142,32 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("artifact_note", prompt)
         self.assertNotIn("adjustment_factor=", prompt)
 
+    def test_filing_artifact_metadata_source_status_neutral_intro_prompt_removes_confirmed_wording(self):
+        prompt = principal_holding_filing_artifact_prompt(
+            PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_INTRO_CASES[0],
+            include_factor=False,
+            include_notes=False,
+            include_metadata=True,
+            include_conflict_warning=False,
+            include_source_context=True,
+            include_status_neutral_metadata_intro=True,
+        )
+        self.assertIn("filing_row period=2025q3", prompt)
+        self.assertIn("Corporate action source packets:", prompt)
+        self.assertIn("source_packet issuer=sec_stress_a provenance=issuer_exchange_notice", prompt)
+        self.assertIn("source_packet issuer=sec_stress_d provenance=third_party_backfill_feed", prompt)
+        self.assertIn("target-period corporate-action registry records", prompt)
+        self.assertNotIn("target-period confirmed corporate-action registry records", prompt)
+        self.assertNotIn("confirmed", prompt)
+        self.assertNotIn("Validation process:", prompt)
+        self.assertNotIn("observed_ratio", prompt)
+        self.assertNotIn("Registry records may conflict with filing rows", prompt)
+        self.assertIn("Corporate action registry:", prompt)
+        self.assertIn("corporate_action issuer=sec_stress_d action=stock_split ratio=4-for-1", prompt)
+        self.assertNotIn("status=", prompt)
+        self.assertNotIn("artifact_note", prompt)
+        self.assertNotIn("adjustment_factor=", prompt)
+
     def test_filing_artifact_oracle_beats_artifact_blind_shortcuts(self):
         rows = comparison_table(
             run_sweep(
@@ -1461,6 +1499,34 @@ class TaskSmokeTests(unittest.TestCase):
         rows = comparison_table(
             run_sweep(
                 task="principal_holding_filing_artifact_metadata_source_status_neutral",
+                agent_specs=[
+                    "offline:oracle",
+                    "offline:source_reliability",
+                    "offline:metadata_source_trusting",
+                    "offline:metadata_trusting",
+                    "offline:metadata_naive",
+                    "offline:artifact_blind",
+                    "offline:market_value",
+                    "offline:percent_change",
+                    "offline:second_best",
+                ],
+            )
+        )
+        by_agent = {row["agent"]: row for row in rows}
+        self.assertEqual(by_agent["offline:oracle"]["value"], 0.0)
+        self.assertEqual(by_agent["offline:source_reliability"]["value"], 0.0)
+        self.assertEqual(by_agent["offline:metadata_source_trusting"]["value"], 0.0)
+        self.assertGreater(by_agent["offline:metadata_trusting"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:metadata_naive"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:artifact_blind"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:market_value"]["value"], 0.9)
+        self.assertGreater(by_agent["offline:percent_change"]["value"], 0.7)
+        self.assertGreater(by_agent["offline:second_best"]["value"], 0.05)
+
+    def test_filing_artifact_metadata_source_status_neutral_intro_keeps_offline_geometry(self):
+        rows = comparison_table(
+            run_sweep(
+                task="principal_holding_filing_artifact_metadata_source_status_neutral_intro",
                 agent_specs=[
                     "offline:oracle",
                     "offline:source_reliability",
@@ -1838,6 +1904,41 @@ class TaskSmokeTests(unittest.TestCase):
             "principal_holding_filing_artifact_metadata_source_status_neutral",
             OfflineAgent("metadata_trusting"),
             case_keys=["multi_artifact_source_status_neutral_conflicting_registry_close_runner_up"],
+        )
+        metadata_trusting_trial = metadata_trusting_results[0]["trials"][0]
+        self.assertEqual(metadata_trusting_trial["chosen_trade"], "sec_stress_d")
+
+    def test_filing_artifact_metadata_source_status_neutral_intro_case_key_removes_confirmed_wording(self):
+        results = run_tasks(
+            "principal_holding_filing_artifact_metadata_source_status_neutral_intro",
+            OfflineAgent("oracle"),
+            case_keys=["multi_artifact_source_status_neutral_intro_conflicting_registry_close_runner_up"],
+        )
+        self.assertEqual(results[0]["n_trials"], 1)
+        trial = results[0]["trials"][0]
+        self.assertEqual(trial["principal_trade"], "sec_stress_b")
+        self.assertEqual(trial["artifact_blind_trade"], "sec_stress_a")
+        self.assertEqual(trial["market_value_trade"], "sec_stress_f")
+        self.assertEqual(trial["percent_change_trade"], "sec_stress_e")
+        self.assertEqual(trial["second_best_trade"], "sec_stress_c")
+        self.assertEqual(trial["metadata_trusting_trade"], "sec_stress_d")
+        self.assertEqual(trial["metadata_status_blind_trade"], "sec_stress_d")
+        self.assertAlmostEqual(trial["artifact_changes"]["sec_stress_d"]["value"], 0.0)
+        self.assertLess(trial["oracle_margin"], 0.07)
+        self.assertEqual(trial["chosen_trade"], "sec_stress_b")
+
+        metadata_source_results = run_tasks(
+            "principal_holding_filing_artifact_metadata_source_status_neutral_intro",
+            OfflineAgent("metadata_source_trusting"),
+            case_keys=["multi_artifact_source_status_neutral_intro_conflicting_registry_close_runner_up"],
+        )
+        metadata_source_trial = metadata_source_results[0]["trials"][0]
+        self.assertEqual(metadata_source_trial["chosen_trade"], "sec_stress_b")
+
+        metadata_trusting_results = run_tasks(
+            "principal_holding_filing_artifact_metadata_source_status_neutral_intro",
+            OfflineAgent("metadata_trusting"),
+            case_keys=["multi_artifact_source_status_neutral_intro_conflicting_registry_close_runner_up"],
         )
         metadata_trusting_trial = metadata_trusting_results[0]["trials"][0]
         self.assertEqual(metadata_trusting_trial["chosen_trade"], "sec_stress_d")

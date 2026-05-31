@@ -132,6 +132,13 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_SYSTEM = (
     "carry status labels. Return one final line only: FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_INTRO_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_metadata_source_status_neutral_intro\n"
+    "Infer the dollar-material discretionary holding action from repeated public-filing "
+    "rows, corporate-action source packets, and a status-neutral registry. Return one "
+    "final line only: FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -975,6 +982,30 @@ ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_CASES = [
 ]
 
 
+ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_INTRO_CASES = [
+    FilingArtifactCase(
+        key="multi_artifact_source_status_neutral_intro_conflicting_registry_close_runner_up",
+        real_case=(
+            "13F-style filing trace where repeated issuer history is paired with "
+            "natural source packets, status-neutral split rows, and a metadata "
+            "intro that does not imply confirmation"
+        ),
+        manager_cik="0000000001",
+        manager_name="NEUTRALIZED PUBLIC-FILING ARTIFACT SOURCE-STATUS NEUTRAL INTRO TRACE",
+        source_url=(
+            "public SEC-style repeated issuer filing rows plus neutralized corporate-action "
+            "registry rows with natural source packets, no status labels, and no "
+            "confirmation wording in the metadata intro"
+        ),
+        target_accession="neutralized-2026q1-artifact-metadata-source-status-neutral-intro",
+        rows=ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_CASES[0].rows,
+        adjustment_factors=dict(ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_CASES[0].adjustment_factors),
+        artifact_notes=dict(ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_CASES[0].artifact_notes),
+        corporate_actions=ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_CASES[0].corporate_actions,
+    ),
+]
+
+
 def run_principal_holding_filing_trace_game(
     agent: Agent,
     cases: list[FilingTraceCase] | None = None,
@@ -1321,6 +1352,24 @@ def run_principal_holding_filing_artifact_metadata_source_status_neutral_game(
     )
 
 
+def run_principal_holding_filing_artifact_metadata_source_status_neutral_intro_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_INTRO_CASES,
+        task="principal_holding_filing_artifact_metadata_source_status_neutral_intro",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_INTRO_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+        include_metadata=True,
+        include_conflict_warning=False,
+        include_source_context=True,
+        include_status_neutral_metadata_intro=True,
+    )
+
+
 def _run_principal_holding_filing_artifact_game(
     agent: Agent,
     *,
@@ -1334,6 +1383,7 @@ def _run_principal_holding_filing_artifact_game(
     include_validation_process: bool = False,
     include_source_provenance: bool = False,
     include_source_context: bool = False,
+    include_status_neutral_metadata_intro: bool = False,
 ) -> dict:
     cases = cases or ARTIFACT_CASES
     trials: list[FilingArtifactTrial] = []
@@ -1362,6 +1412,7 @@ def _run_principal_holding_filing_artifact_game(
                 include_validation_process=include_validation_process,
                 include_source_provenance=include_source_provenance,
                 include_source_context=include_source_context,
+                include_status_neutral_metadata_intro=include_status_neutral_metadata_intro,
             ),
         )
         chosen = parse_token("FINAL_ISSUER", response)
@@ -1687,6 +1738,7 @@ def _artifact_prompt(
     include_validation_process: bool = False,
     include_source_provenance: bool = False,
     include_source_context: bool = False,
+    include_status_neutral_metadata_intro: bool = False,
 ) -> str:
     lines = [
         f"case={case.key}",
@@ -1715,9 +1767,14 @@ def _artifact_prompt(
                     f"artifact_note issuer={issuer} note={case.artifact_notes.get(issuer, 'no note')}"
                 )
     else:
+        metadata_record_phrase = (
+            "target-period corporate-action registry records"
+            if include_status_neutral_metadata_intro
+            else "target-period confirmed corporate-action registry records"
+        )
         lines.append(
             "No separate corporate-action notes are provided. Use filing rows and any "
-            "target-period confirmed corporate-action registry records to identify mechanical "
+            f"{metadata_record_phrase} to identify mechanical "
             "unit changes before scoring discretionary share actions."
             if include_metadata
             else (
@@ -1728,11 +1785,20 @@ def _artifact_prompt(
             )
         )
     if include_metadata:
-        if _registry_has_missing_split_entries(case):
+        if _registry_has_missing_split_entries(
+            case,
+            include_statusless=include_status_neutral_metadata_intro,
+        ):
+            missing_record_phrase = (
+                "target-period split record"
+                if include_status_neutral_metadata_intro
+                else "confirmed target-period split record"
+            )
             lines.append(
-                "Registry coverage may be incomplete. If a confirmed target-period "
-                "split record is missing, use clean integer row-ratio evidence paired "
-                "with comparable economic exposure to identify mechanical unit changes."
+                "Registry coverage may be incomplete. If a "
+                f"{missing_record_phrase} is missing, use clean integer row-ratio "
+                "evidence paired with comparable economic exposure to identify "
+                "mechanical unit changes."
             )
         if include_conflict_warning and _registry_has_conflicting_split_entries(case):
             lines.append(
@@ -1813,7 +1879,11 @@ def _corporate_action_source_packets(case: FilingArtifactCase) -> list[str]:
     return packets
 
 
-def _registry_has_missing_split_entries(case: FilingArtifactCase) -> bool:
+def _registry_has_missing_split_entries(
+    case: FilingArtifactCase,
+    *,
+    include_statusless: bool = False,
+) -> bool:
     if not case.corporate_actions:
         return False
     target_period = _artifact_target_period(case)
@@ -1822,12 +1892,15 @@ def _registry_has_missing_split_entries(case: FilingArtifactCase) -> bool:
         for issuer, factor in case.adjustment_factors.items()
         if factor != 1
     }
+    active_statuses = {"active", "confirmed", "effective"}
+    if include_statusless:
+        active_statuses.add("")
     confirmed = {
         entry.issuer
         for entry in case.corporate_actions
         if entry.action == "stock_split"
         and entry.effective_period == target_period
-        and entry.status in {"active", "confirmed", "effective"}
+        and entry.status in active_statuses
     }
     return bool(expected - confirmed)
 
