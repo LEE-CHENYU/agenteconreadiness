@@ -97,6 +97,13 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_HISTORY_CONFLICT_SYSTEM = (
     "FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_VALIDATION_PROCESS_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_metadata_validation_process\n"
+    "Infer the dollar-material discretionary holding action from repeated public-filing "
+    "rows and a separate corporate-action registry after checking registry ratios "
+    "against filing rows. Return one final line only: FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -758,6 +765,28 @@ ARTIFACT_METADATA_HISTORY_CONFLICT_CASES = [
 ]
 
 
+ARTIFACT_METADATA_VALIDATION_PROCESS_CASES = [
+    FilingArtifactCase(
+        key="multi_artifact_validation_process_conflicting_registry_close_runner_up",
+        real_case=(
+            "13F-style filing trace where repeated issuer history is paired with a "
+            "generic registry-validation process for target-period stock splits"
+        ),
+        manager_cik="0000000001",
+        manager_name="NEUTRALIZED PUBLIC-FILING ARTIFACT VALIDATION-PROCESS TRACE",
+        source_url=(
+            "public SEC-style repeated issuer filing rows plus a neutralized "
+            "corporate-action registry and a generic row-ratio validation process"
+        ),
+        target_accession="neutralized-2026q1-artifact-metadata-validation-process",
+        rows=ARTIFACT_METADATA_HISTORY_CONFLICT_CASES[0].rows,
+        adjustment_factors=dict(ARTIFACT_METADATA_HISTORY_CONFLICT_CASES[0].adjustment_factors),
+        artifact_notes=dict(ARTIFACT_METADATA_HISTORY_CONFLICT_CASES[0].artifact_notes),
+        corporate_actions=ARTIFACT_METADATA_HISTORY_CONFLICT_CASES[0].corporate_actions,
+    ),
+]
+
+
 def run_principal_holding_filing_trace_game(
     agent: Agent,
     cases: list[FilingTraceCase] | None = None,
@@ -1019,6 +1048,23 @@ def run_principal_holding_filing_artifact_metadata_history_conflict_game(
     )
 
 
+def run_principal_holding_filing_artifact_metadata_validation_process_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_METADATA_VALIDATION_PROCESS_CASES,
+        task="principal_holding_filing_artifact_metadata_validation_process",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_VALIDATION_PROCESS_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+        include_metadata=True,
+        include_conflict_warning=False,
+        include_validation_process=True,
+    )
+
+
 def _run_principal_holding_filing_artifact_game(
     agent: Agent,
     *,
@@ -1029,6 +1075,7 @@ def _run_principal_holding_filing_artifact_game(
     include_notes: bool,
     include_metadata: bool,
     include_conflict_warning: bool = True,
+    include_validation_process: bool = False,
 ) -> dict:
     cases = cases or ARTIFACT_CASES
     trials: list[FilingArtifactTrial] = []
@@ -1051,6 +1098,7 @@ def _run_principal_holding_filing_artifact_game(
                 include_notes=include_notes,
                 include_metadata=include_metadata,
                 include_conflict_warning=include_conflict_warning,
+                include_validation_process=include_validation_process,
             ),
         )
         chosen = parse_token("FINAL_ISSUER", response)
@@ -1347,6 +1395,7 @@ def _artifact_prompt(
     include_notes: bool = True,
     include_metadata: bool = False,
     include_conflict_warning: bool = True,
+    include_validation_process: bool = False,
 ) -> str:
     lines = [
         f"case={case.key}",
@@ -1399,6 +1448,13 @@ def _artifact_prompt(
                 "Registry records may conflict with filing rows. Validate confirmed "
                 "stock-split records against target-period row-ratio evidence before "
                 "applying them."
+            )
+        if include_validation_process:
+            lines.append(
+                "Validation process: for each target-period stock-split registry row, "
+                "compute observed_ratio=next_period_shares/prior_period_shares from "
+                "the filing rows. Apply the split only when observed_ratio approximately "
+                "matches the registry ratio before scoring discretionary share actions."
             )
         lines.append("Corporate action registry:")
         for entry in _corporate_action_registry_entries(case):

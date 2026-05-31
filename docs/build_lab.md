@@ -45,6 +45,11 @@ stability, metadata completeness, explicit metadata-validation cues, real
 repeated filing history, external metadata provenance, or a different shortcut
 attribution. PR 127 adds repeated issuer histories without restoring the warning;
 the smaller-alias failure persists, so synthetic history alone is not the fix.
+PR 128 adds only a generic row-ratio validation process, still without the
+explicit conflict warning, and the smaller aliases become stable-oracle in
+repeat-6. The open question is now whether real source provenance or natural
+corporate-action context can induce that same validation without handing the
+agent a procedural scaffold.
 
 ## What is implemented
 
@@ -75,6 +80,7 @@ the smaller-alias failure persists, so synthetic history alone is not the fix.
 | `principal_holding_filing_artifact_metadata_conflict` | Conflicting corporate-action metadata C1 control: keep the correct split records but add a wrong confirmed split that must be rejected by checking row-ratio evidence. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_conflict --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_unmarked_conflict` | Unmarked conflicting-metadata C1 control: keep the wrong confirmed split but remove the explicit prompt warning that registry rows may conflict. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_unmarked_conflict --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_history_conflict` | Repeated-history conflicting-metadata C1 control: add an earlier issuer-level filing period while keeping the wrong confirmed split unmarked. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_history_conflict --agent offline:oracle` |
+| `principal_holding_filing_artifact_metadata_validation_process` | Metadata-validation-process C1 control: keep the repeated-history wrong confirmed split, but add a generic row-ratio validation process without restoring the explicit conflict warning. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_validation_process --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -270,6 +276,10 @@ interpreting the economic metric.
   wrong confirmed registry row, but with an additional prior filing period for
   every issuer; this tests whether repeated issuer history is enough to surface
   the metadata-validation requirement without another prompt cue.
+- `principal_holding_filing_artifact_metadata_validation_process`: same
+  repeated-history wrong confirmed registry row, but with a generic row-ratio
+  validation process; this tests whether the residual smaller-alias failure is
+  process-cue sensitivity rather than missing row evidence.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -671,8 +681,11 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    stable-oracle. PR 127 adds repeated issuer histories without restoring the
    warning. `nano` and `mini` remain metadata-trusting-modal in repeat-6, while
    `gpt-5.5` stays stable-oracle. The new question is depth, not breadth:
-   synthetic history is not enough; the next useful C1 move is either real
-   corporate-action metadata provenance or a process-level validation cue, not
-   another clean annotated history.
+   synthetic history is not enough. PR 128 adds the process-level validation cue
+   and stabilizes `nano`, `mini`, and `gpt-5.5` in repeat-6, so the failure was
+   not absent evidence; it was whether the model knew to validate metadata
+   against row ratios. The next useful C1 move is source provenance or real
+   corporate-action context without the procedural scaffold, not another clean
+   annotated history.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.
