@@ -222,6 +222,15 @@ from aeread_lab.tasks.principal_holding_filing_trace import (
     ARTIFACT_METADATA_SOURCE_AUDIT_CASES as PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_AUDIT_CASES,
 )
 from aeread_lab.tasks.principal_holding_filing_trace import (
+    ARTIFACT_METADATA_SOURCE_AUDIT_BACKFILL_ONLY_CASES as PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_AUDIT_BACKFILL_ONLY_CASES,
+)
+from aeread_lab.tasks.principal_holding_filing_trace import (
+    ARTIFACT_METADATA_SOURCE_AUDIT_PRIMARY_ONLY_CASES as PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_AUDIT_PRIMARY_ONLY_CASES,
+)
+from aeread_lab.tasks.principal_holding_filing_trace import (
+    ARTIFACT_METADATA_SOURCE_AUDIT_RATIO_ONLY_CASES as PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_AUDIT_RATIO_ONLY_CASES,
+)
+from aeread_lab.tasks.principal_holding_filing_trace import (
     DEFAULT_CASES as PRINCIPAL_HOLDING_FILING_TRACE_CASES,
 )
 from aeread_lab.tasks.principal_holding_filing_trace import (
@@ -635,6 +644,17 @@ class TaskSmokeTests(unittest.TestCase):
         )
         self.assertEqual(results[0]["n_trials"], 1)
         self.assertLess(results[0]["mean_score_regret"], 1e-9)
+
+    def test_sample_limit_slices_principal_holding_filing_artifact_metadata_source_audit_ablation_cases(self):
+        for task in (
+            "principal_holding_filing_artifact_metadata_source_audit_primary_only",
+            "principal_holding_filing_artifact_metadata_source_audit_backfill_only",
+            "principal_holding_filing_artifact_metadata_source_audit_ratio_only",
+        ):
+            with self.subTest(task=task):
+                results = run_tasks(task, OfflineAgent("oracle"), sample_limit=1)
+                self.assertEqual(results[0]["n_trials"], 1)
+                self.assertLess(results[0]["mean_score_regret"], 1e-9)
 
     def test_stability_probe_reports_stable_oracle(self):
         payload = run_stability_probe(
@@ -1212,6 +1232,69 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertNotIn("artifact_note", prompt)
         self.assertNotIn("adjustment_factor=", prompt)
 
+    def test_filing_artifact_metadata_source_audit_component_prompts_split_protocol(self):
+        primary_prompt = principal_holding_filing_artifact_prompt(
+            PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_AUDIT_PRIMARY_ONLY_CASES[0],
+            include_factor=False,
+            include_notes=False,
+            include_metadata=True,
+            include_conflict_warning=False,
+            include_source_context=True,
+            include_status_neutral_metadata_intro=True,
+            source_audit_protocol="primary_only",
+        )
+        self.assertIn("Source audit protocol:", primary_prompt)
+        self.assertIn("primary corporate-action evidence", primary_prompt)
+        self.assertNotIn("third_party_backfill_feed rows without", primary_prompt)
+        self.assertNotIn("reconcile the claimed split ratio", primary_prompt)
+        self.assertNotIn("compare each claimed stock-split ratio", primary_prompt)
+
+        backfill_prompt = principal_holding_filing_artifact_prompt(
+            PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_AUDIT_BACKFILL_ONLY_CASES[0],
+            include_factor=False,
+            include_notes=False,
+            include_metadata=True,
+            include_conflict_warning=False,
+            include_source_context=True,
+            include_status_neutral_metadata_intro=True,
+            source_audit_protocol="backfill_only",
+        )
+        self.assertIn("Source audit protocol:", backfill_prompt)
+        self.assertIn("third_party_backfill_feed rows without issuer notice", backfill_prompt)
+        self.assertIn("lower-reliability corporate-action metadata", backfill_prompt)
+        self.assertNotIn("primary corporate-action evidence", backfill_prompt)
+        self.assertNotIn("reconcile the claimed split ratio", backfill_prompt)
+        self.assertNotIn("compare each claimed stock-split ratio", backfill_prompt)
+
+        ratio_prompt = principal_holding_filing_artifact_prompt(
+            PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_AUDIT_RATIO_ONLY_CASES[0],
+            include_factor=False,
+            include_notes=False,
+            include_metadata=True,
+            include_conflict_warning=False,
+            include_source_context=True,
+            include_status_neutral_metadata_intro=True,
+            source_audit_protocol="ratio_only",
+        )
+        self.assertIn("Source audit protocol:", ratio_prompt)
+        self.assertIn("compare each claimed stock-split ratio", ratio_prompt)
+        self.assertIn("filing-row share-count ratios", ratio_prompt)
+        self.assertNotIn("primary corporate-action evidence", ratio_prompt)
+        self.assertNotIn("third_party_backfill_feed rows without", ratio_prompt)
+
+        for prompt in (primary_prompt, backfill_prompt, ratio_prompt):
+            self.assertIn("Corporate action source packets:", prompt)
+            self.assertIn("target-period corporate-action registry records", prompt)
+            self.assertNotIn("target-period confirmed corporate-action registry records", prompt)
+            self.assertNotIn("confirmed", prompt)
+            self.assertNotIn("Validation process:", prompt)
+            self.assertNotIn("observed_ratio", prompt)
+            self.assertNotIn("Registry records may conflict with filing rows", prompt)
+            self.assertIn("corporate_action issuer=sec_stress_d action=stock_split ratio=4-for-1", prompt)
+            self.assertNotIn("status=", prompt)
+            self.assertNotIn("artifact_note", prompt)
+            self.assertNotIn("adjustment_factor=", prompt)
+
     def test_filing_artifact_oracle_beats_artifact_blind_shortcuts(self):
         rows = comparison_table(
             run_sweep(
@@ -1622,6 +1705,40 @@ class TaskSmokeTests(unittest.TestCase):
         self.assertGreater(by_agent["offline:market_value"]["value"], 0.9)
         self.assertGreater(by_agent["offline:percent_change"]["value"], 0.7)
         self.assertGreater(by_agent["offline:second_best"]["value"], 0.05)
+
+    def test_filing_artifact_metadata_source_audit_ablations_keep_offline_geometry(self):
+        for task in (
+            "principal_holding_filing_artifact_metadata_source_audit_primary_only",
+            "principal_holding_filing_artifact_metadata_source_audit_backfill_only",
+            "principal_holding_filing_artifact_metadata_source_audit_ratio_only",
+        ):
+            with self.subTest(task=task):
+                rows = comparison_table(
+                    run_sweep(
+                        task=task,
+                        agent_specs=[
+                            "offline:oracle",
+                            "offline:source_reliability",
+                            "offline:metadata_source_trusting",
+                            "offline:metadata_trusting",
+                            "offline:metadata_naive",
+                            "offline:artifact_blind",
+                            "offline:market_value",
+                            "offline:percent_change",
+                            "offline:second_best",
+                        ],
+                    )
+                )
+                by_agent = {row["agent"]: row for row in rows}
+                self.assertEqual(by_agent["offline:oracle"]["value"], 0.0)
+                self.assertEqual(by_agent["offline:source_reliability"]["value"], 0.0)
+                self.assertEqual(by_agent["offline:metadata_source_trusting"]["value"], 0.0)
+                self.assertGreater(by_agent["offline:metadata_trusting"]["value"], 0.9)
+                self.assertGreater(by_agent["offline:metadata_naive"]["value"], 0.9)
+                self.assertGreater(by_agent["offline:artifact_blind"]["value"], 0.9)
+                self.assertGreater(by_agent["offline:market_value"]["value"], 0.9)
+                self.assertGreater(by_agent["offline:percent_change"]["value"], 0.7)
+                self.assertGreater(by_agent["offline:second_best"]["value"], 0.05)
 
     def test_filing_artifact_case_key_targets_adjusted_fixture(self):
         results = run_tasks(
@@ -2049,6 +2166,50 @@ class TaskSmokeTests(unittest.TestCase):
         )
         metadata_trusting_trial = metadata_trusting_results[0]["trials"][0]
         self.assertEqual(metadata_trusting_trial["chosen_trade"], "sec_stress_d")
+
+    def test_filing_artifact_metadata_source_audit_ablation_case_keys_share_target(self):
+        task_cases = {
+            "principal_holding_filing_artifact_metadata_source_audit_primary_only": (
+                "multi_artifact_source_audit_primary_only_conflicting_registry_close_runner_up"
+            ),
+            "principal_holding_filing_artifact_metadata_source_audit_backfill_only": (
+                "multi_artifact_source_audit_backfill_only_conflicting_registry_close_runner_up"
+            ),
+            "principal_holding_filing_artifact_metadata_source_audit_ratio_only": (
+                "multi_artifact_source_audit_ratio_only_conflicting_registry_close_runner_up"
+            ),
+        }
+        for task, case_key in task_cases.items():
+            with self.subTest(task=task):
+                results = run_tasks(task, OfflineAgent("oracle"), case_keys=[case_key])
+                self.assertEqual(results[0]["n_trials"], 1)
+                trial = results[0]["trials"][0]
+                self.assertEqual(trial["principal_trade"], "sec_stress_b")
+                self.assertEqual(trial["artifact_blind_trade"], "sec_stress_a")
+                self.assertEqual(trial["market_value_trade"], "sec_stress_f")
+                self.assertEqual(trial["percent_change_trade"], "sec_stress_e")
+                self.assertEqual(trial["second_best_trade"], "sec_stress_c")
+                self.assertEqual(trial["metadata_trusting_trade"], "sec_stress_d")
+                self.assertEqual(trial["metadata_status_blind_trade"], "sec_stress_d")
+                self.assertAlmostEqual(trial["artifact_changes"]["sec_stress_d"]["value"], 0.0)
+                self.assertLess(trial["oracle_margin"], 0.07)
+                self.assertEqual(trial["chosen_trade"], "sec_stress_b")
+
+                metadata_source_results = run_tasks(
+                    task,
+                    OfflineAgent("metadata_source_trusting"),
+                    case_keys=[case_key],
+                )
+                metadata_source_trial = metadata_source_results[0]["trials"][0]
+                self.assertEqual(metadata_source_trial["chosen_trade"], "sec_stress_b")
+
+                metadata_trusting_results = run_tasks(
+                    task,
+                    OfflineAgent("metadata_trusting"),
+                    case_keys=[case_key],
+                )
+                metadata_trusting_trial = metadata_trusting_results[0]["trials"][0]
+                self.assertEqual(metadata_trusting_trial["chosen_trade"], "sec_stress_d")
 
     def test_filing_artifact_stability_attribution_labels_artifact_blind(self):
         payload = run_stability_sweep(

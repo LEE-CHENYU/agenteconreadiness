@@ -146,6 +146,27 @@ PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_AUDIT_SYSTEM = (
     "corporate-action source audit. Return one final line only: FINAL_ISSUER: <issuer_id>."
 )
 
+PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_AUDIT_PRIMARY_ONLY_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_metadata_source_audit_primary_only\n"
+    "Infer the dollar-material discretionary holding action from repeated public-filing "
+    "rows, corporate-action source packets, and a status-neutral registry using only "
+    "a primary-source audit cue. Return one final line only: FINAL_ISSUER: <issuer_id>."
+)
+
+PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_AUDIT_BACKFILL_ONLY_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_metadata_source_audit_backfill_only\n"
+    "Infer the dollar-material discretionary holding action from repeated public-filing "
+    "rows, corporate-action source packets, and a status-neutral registry using only "
+    "a third-party backfill audit cue. Return one final line only: FINAL_ISSUER: <issuer_id>."
+)
+
+PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_AUDIT_RATIO_ONLY_SYSTEM = (
+    "TASK: principal_holding_filing_artifact_metadata_source_audit_ratio_only\n"
+    "Infer the dollar-material discretionary holding action from repeated public-filing "
+    "rows, corporate-action source packets, and a status-neutral registry using only "
+    "a row-ratio reconciliation audit cue. Return one final line only: FINAL_ISSUER: <issuer_id>."
+)
+
 
 @dataclass(frozen=True)
 class FilingTraceRow:
@@ -1037,6 +1058,68 @@ ARTIFACT_METADATA_SOURCE_AUDIT_CASES = [
 ]
 
 
+def _source_audit_component_case(
+    *,
+    key: str,
+    real_case_detail: str,
+    manager_suffix: str,
+    source_url_detail: str,
+    target_suffix: str,
+) -> FilingArtifactCase:
+    base = ARTIFACT_METADATA_SOURCE_STATUS_NEUTRAL_CASES[0]
+    return FilingArtifactCase(
+        key=key,
+        real_case=(
+            "13F-style filing trace where repeated issuer history is paired with "
+            f"natural source packets, status-neutral split rows, and {real_case_detail}"
+        ),
+        manager_cik="0000000001",
+        manager_name=f"NEUTRALIZED PUBLIC-FILING ARTIFACT {manager_suffix} TRACE",
+        source_url=(
+            "public SEC-style repeated issuer filing rows plus neutralized corporate-action "
+            f"registry rows with natural source packets, no status labels, and {source_url_detail}"
+        ),
+        target_accession=f"neutralized-2026q1-artifact-metadata-source-audit-{target_suffix}",
+        rows=base.rows,
+        adjustment_factors=dict(base.adjustment_factors),
+        artifact_notes=dict(base.artifact_notes),
+        corporate_actions=base.corporate_actions,
+    )
+
+
+ARTIFACT_METADATA_SOURCE_AUDIT_PRIMARY_ONLY_CASES = [
+    _source_audit_component_case(
+        key="multi_artifact_source_audit_primary_only_conflicting_registry_close_runner_up",
+        real_case_detail="only the primary-source recognition component of the source audit",
+        manager_suffix="SOURCE-AUDIT PRIMARY-ONLY",
+        source_url_detail="a primary-source-only audit cue",
+        target_suffix="primary-only",
+    ),
+]
+
+
+ARTIFACT_METADATA_SOURCE_AUDIT_BACKFILL_ONLY_CASES = [
+    _source_audit_component_case(
+        key="multi_artifact_source_audit_backfill_only_conflicting_registry_close_runner_up",
+        real_case_detail="only the third-party backfill skepticism component of the source audit",
+        manager_suffix="SOURCE-AUDIT BACKFILL-ONLY",
+        source_url_detail="a third-party-backfill-only audit cue",
+        target_suffix="backfill-only",
+    ),
+]
+
+
+ARTIFACT_METADATA_SOURCE_AUDIT_RATIO_ONLY_CASES = [
+    _source_audit_component_case(
+        key="multi_artifact_source_audit_ratio_only_conflicting_registry_close_runner_up",
+        real_case_detail="only the row-ratio reconciliation component of the source audit",
+        manager_suffix="SOURCE-AUDIT RATIO-ONLY",
+        source_url_detail="a row-ratio-only audit cue",
+        target_suffix="ratio-only",
+    ),
+]
+
+
 def run_principal_holding_filing_trace_game(
     agent: Agent,
     cases: list[FilingTraceCase] | None = None,
@@ -1420,6 +1503,63 @@ def run_principal_holding_filing_artifact_metadata_source_audit_game(
     )
 
 
+def run_principal_holding_filing_artifact_metadata_source_audit_primary_only_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_METADATA_SOURCE_AUDIT_PRIMARY_ONLY_CASES,
+        task="principal_holding_filing_artifact_metadata_source_audit_primary_only",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_AUDIT_PRIMARY_ONLY_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+        include_metadata=True,
+        include_conflict_warning=False,
+        include_source_context=True,
+        include_status_neutral_metadata_intro=True,
+        source_audit_protocol="primary_only",
+    )
+
+
+def run_principal_holding_filing_artifact_metadata_source_audit_backfill_only_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_METADATA_SOURCE_AUDIT_BACKFILL_ONLY_CASES,
+        task="principal_holding_filing_artifact_metadata_source_audit_backfill_only",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_AUDIT_BACKFILL_ONLY_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+        include_metadata=True,
+        include_conflict_warning=False,
+        include_source_context=True,
+        include_status_neutral_metadata_intro=True,
+        source_audit_protocol="backfill_only",
+    )
+
+
+def run_principal_holding_filing_artifact_metadata_source_audit_ratio_only_game(
+    agent: Agent,
+    cases: list[FilingArtifactCase] | None = None,
+) -> dict:
+    return _run_principal_holding_filing_artifact_game(
+        agent,
+        cases=cases or ARTIFACT_METADATA_SOURCE_AUDIT_RATIO_ONLY_CASES,
+        task="principal_holding_filing_artifact_metadata_source_audit_ratio_only",
+        system=PRINCIPAL_HOLDING_FILING_ARTIFACT_METADATA_SOURCE_AUDIT_RATIO_ONLY_SYSTEM,
+        include_factor=False,
+        include_notes=False,
+        include_metadata=True,
+        include_conflict_warning=False,
+        include_source_context=True,
+        include_status_neutral_metadata_intro=True,
+        source_audit_protocol="ratio_only",
+    )
+
+
 def _run_principal_holding_filing_artifact_game(
     agent: Agent,
     *,
@@ -1435,6 +1575,7 @@ def _run_principal_holding_filing_artifact_game(
     include_source_context: bool = False,
     include_status_neutral_metadata_intro: bool = False,
     include_source_audit: bool = False,
+    source_audit_protocol: str | None = None,
 ) -> dict:
     cases = cases or ARTIFACT_CASES
     trials: list[FilingArtifactTrial] = []
@@ -1465,6 +1606,7 @@ def _run_principal_holding_filing_artifact_game(
                 include_source_context=include_source_context,
                 include_status_neutral_metadata_intro=include_status_neutral_metadata_intro,
                 include_source_audit=include_source_audit,
+                source_audit_protocol=source_audit_protocol,
             ),
         )
         chosen = parse_token("FINAL_ISSUER", response)
@@ -1792,6 +1934,7 @@ def _artifact_prompt(
     include_source_context: bool = False,
     include_status_neutral_metadata_intro: bool = False,
     include_source_audit: bool = False,
+    source_audit_protocol: str | None = None,
 ) -> str:
     lines = [
         f"case={case.key}",
@@ -1875,16 +2018,8 @@ def _artifact_prompt(
         if include_source_context:
             lines.append("Corporate action source packets:")
             lines.extend(_corporate_action_source_packets(case))
-        if include_source_audit:
-            lines.append(
-                "Source audit protocol: issuer_exchange_notice packets with attached "
-                "transfer-agent and exchange records are primary corporate-action "
-                "evidence. For third_party_backfill_feed rows without issuer notice, "
-                "exchange bulletin, or transfer-agent attachment, reconcile the claimed "
-                "split ratio against filing-row share-count ratios before applying the "
-                "registry adjustment; if filing rows do not support the claimed ratio, "
-                "do not use that row as a mechanical unit change."
-            )
+        if include_source_audit or source_audit_protocol:
+            lines.append(_source_audit_protocol_text(source_audit_protocol or "full"))
         lines.append("Corporate action registry:")
         for entry in _corporate_action_registry_entries(case):
             line = (
@@ -1901,6 +2036,36 @@ def _artifact_prompt(
         "Return the issuer id with the largest adjusted dollar-material discretionary share action."
     )
     return "\n".join(lines)
+
+
+def _source_audit_protocol_text(protocol: str) -> str:
+    if protocol == "primary_only":
+        return (
+            "Source audit protocol: issuer_exchange_notice packets with attached "
+            "transfer-agent and exchange records are primary corporate-action evidence."
+        )
+    if protocol == "backfill_only":
+        return (
+            "Source audit protocol: third_party_backfill_feed rows without issuer notice, "
+            "exchange bulletin, or transfer-agent attachment are lower-reliability "
+            "corporate-action metadata requiring extra caution before use."
+        )
+    if protocol == "ratio_only":
+        return (
+            "Source audit protocol: compare each claimed stock-split ratio against "
+            "filing-row share-count ratios before applying a registry adjustment."
+        )
+    if protocol == "full":
+        return (
+            "Source audit protocol: issuer_exchange_notice packets with attached "
+            "transfer-agent and exchange records are primary corporate-action "
+            "evidence. For third_party_backfill_feed rows without issuer notice, "
+            "exchange bulletin, or transfer-agent attachment, reconcile the claimed "
+            "split ratio against filing-row share-count ratios before applying the "
+            "registry adjustment; if filing rows do not support the claimed ratio, "
+            "do not use that row as a mechanical unit change."
+        )
+    raise ValueError(f"unknown source audit protocol: {protocol}")
 
 
 def _corporate_action_registry_entries(

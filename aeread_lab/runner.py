@@ -71,6 +71,9 @@ TASK_ORDER = (
     "principal_holding_filing_artifact_metadata_source_status_neutral",
     "principal_holding_filing_artifact_metadata_source_status_neutral_intro",
     "principal_holding_filing_artifact_metadata_source_audit",
+    "principal_holding_filing_artifact_metadata_source_audit_primary_only",
+    "principal_holding_filing_artifact_metadata_source_audit_backfill_only",
+    "principal_holding_filing_artifact_metadata_source_audit_ratio_only",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -252,6 +255,18 @@ _CASE_TASKS = {
     "principal_holding_filing_artifact_metadata_source_audit": (
         principal_holding_filing_trace_task.run_principal_holding_filing_artifact_metadata_source_audit_game,
         principal_holding_filing_trace_task.ARTIFACT_METADATA_SOURCE_AUDIT_CASES,
+    ),
+    "principal_holding_filing_artifact_metadata_source_audit_primary_only": (
+        principal_holding_filing_trace_task.run_principal_holding_filing_artifact_metadata_source_audit_primary_only_game,
+        principal_holding_filing_trace_task.ARTIFACT_METADATA_SOURCE_AUDIT_PRIMARY_ONLY_CASES,
+    ),
+    "principal_holding_filing_artifact_metadata_source_audit_backfill_only": (
+        principal_holding_filing_trace_task.run_principal_holding_filing_artifact_metadata_source_audit_backfill_only_game,
+        principal_holding_filing_trace_task.ARTIFACT_METADATA_SOURCE_AUDIT_BACKFILL_ONLY_CASES,
+    ),
+    "principal_holding_filing_artifact_metadata_source_audit_ratio_only": (
+        principal_holding_filing_trace_task.run_principal_holding_filing_artifact_metadata_source_audit_ratio_only_game,
+        principal_holding_filing_trace_task.ARTIFACT_METADATA_SOURCE_AUDIT_RATIO_ONLY_CASES,
     ),
     "ambiguity": (ambiguity_task.run_ambiguity_game, ambiguity_task.DEFAULT_CASES),
     "bargaining": (bargaining_task.run_bargaining_game, bargaining_task.DEFAULT_CASES),

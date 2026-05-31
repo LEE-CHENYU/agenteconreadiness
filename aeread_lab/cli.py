@@ -44,6 +44,9 @@ TASKS = (
     "principal_holding_filing_artifact_metadata_source_status_neutral",
     "principal_holding_filing_artifact_metadata_source_status_neutral_intro",
     "principal_holding_filing_artifact_metadata_source_audit",
+    "principal_holding_filing_artifact_metadata_source_audit_primary_only",
+    "principal_holding_filing_artifact_metadata_source_audit_backfill_only",
+    "principal_holding_filing_artifact_metadata_source_audit_ratio_only",
     "ambiguity",
     "bargaining",
     "belief_bargaining",
@@ -430,6 +433,9 @@ def _print_human(payload: dict[str, Any]) -> None:
             "principal_holding_filing_artifact_metadata_source_status_neutral",
             "principal_holding_filing_artifact_metadata_source_status_neutral_intro",
             "principal_holding_filing_artifact_metadata_source_audit",
+            "principal_holding_filing_artifact_metadata_source_audit_primary_only",
+            "principal_holding_filing_artifact_metadata_source_audit_backfill_only",
+            "principal_holding_filing_artifact_metadata_source_audit_ratio_only",
         }:
             print(
                 f"{task}: n={result['n_trials']} "

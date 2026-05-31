@@ -81,6 +81,14 @@ connects source provenance to row-ratio reconciliation, not another filing
 fixture. The next questions are which sub-operation carries the gain, whether
 real corporate-action source rows induce the same cross-check, and whether
 real 13F inversion noise reopens the failure under less synthetic evidence.
+PR 135 ablates those sub-operations on the same evidence surface. Primary-source
+recognition alone partially rescues `nano` but still leaves one
+metadata-trusting/status-blind miss in repeat-6; backfill skepticism alone is
+weaker and leaves `mini` metadata-trusting/status-blind-modal; a light row-ratio
+cue rescues `mini` and `gpt-5.5` but not `nano`. The full PR 134 audit remains
+the only tested source-audit surface that makes all aliases stable-oracle, so
+the next depth target is a less synthetic full audit on real corporate-action
+source rows, not more variants of the same single component.
 
 ## What is implemented
 
@@ -118,6 +126,9 @@ real 13F inversion noise reopens the failure under less synthetic evidence.
 | `principal_holding_filing_artifact_metadata_source_status_neutral` | Source-status-neutral C1 control: keep natural source packets but remove all registry status labels, testing whether source context or row validation survives once `confirmed` is absent everywhere. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_status_neutral --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_source_status_neutral_intro` | Source-status-neutral-intro C1 control: keep the status-neutral source packet task but remove the generic metadata-intro word `confirmed`, testing whether PR132's smaller-alias miss was a wording artifact. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_status_neutral_intro --agent offline:oracle` |
 | `principal_holding_filing_artifact_metadata_source_audit` | Source-audit C1 control: keep status-neutral source packets but add a realistic audit protocol that treats issuer/exchange/transfer-agent attachments as primary evidence and reconciles unbacked third-party split claims against filing-row ratios. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_audit --agent offline:oracle` |
+| `principal_holding_filing_artifact_metadata_source_audit_primary_only` | Source-audit ablation: keep the PR134 status-neutral source packets but include only the primary-source recognition component. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_audit_primary_only --agent offline:oracle` |
+| `principal_holding_filing_artifact_metadata_source_audit_backfill_only` | Source-audit ablation: keep the PR134 status-neutral source packets but include only the third-party backfill skepticism component. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_audit_backfill_only --agent offline:oracle` |
+| `principal_holding_filing_artifact_metadata_source_audit_ratio_only` | Source-audit ablation: keep the PR134 status-neutral source packets but include only the row-ratio reconciliation component. | `python -m aeread_lab.cli --task principal_holding_filing_artifact_metadata_source_audit_ratio_only --agent offline:oracle` |
 | `ambiguity` | Knightian uncertainty task: maxmin and alpha-maxmin choice across plausible priors, with optional signal updates instead of collapsing to one reference prior. | `python -m aeread_lab.cli --task ambiguity --agent offline:oracle` |
 | `bargaining` | D2/TERMS-style gate+grade wrapper: generic seller surplus extraction vs configured-principal surplus sharing across take-it-or-leave-it, alternating-offer, and hidden-reservation cases. | `python -m aeread_lab.cli --task bargaining --agent offline:oracle` |
 | `belief_bargaining` | TERMS-style cue use and belief calibration: update buyer WTP beliefs from one-shot cues, multi-turn signal sequences, and strategic cheap-talk likelihoods before pricing; paired scaffold prompts externalize posterior state. | `python -m aeread_lab.cli --task belief_bargaining --agent offline:oracle` |
@@ -341,6 +352,16 @@ interpreting the economic metric.
   longer calls registry rows confirmed; this tests whether PR 132's residual
   smaller-alias registry deference was caused by prompt wording rather than the
   registry/source evidence itself.
+- `principal_holding_filing_artifact_metadata_source_audit`: same
+  status-neutral source-context surface, but with the full source-audit protocol
+  connecting primary-source attachments, third-party backfill limits, and
+  row-ratio reconciliation.
+- `principal_holding_filing_artifact_metadata_source_audit_primary_only`,
+  `principal_holding_filing_artifact_metadata_source_audit_backfill_only`, and
+  `principal_holding_filing_artifact_metadata_source_audit_ratio_only`: same
+  status-neutral source-context surface, but each keeps only one component of
+  the PR 134 audit. These test which operation carries the recovery rather than
+  adding more cases.
 - `ambiguity`: lower configured ambiguity regret is better; reference-prior,
   pure-maxmin, and optimistic miss rates are reported separately.
 - `bargaining`: lower configured-principal grade error is better; generic gate
@@ -773,6 +794,12 @@ a mechanical oracle, a no-API baseline, then a thin OpenAI run path.
    Repeat-6 makes all three aliases stable-oracle. The next C1 question is
    which audit sub-operation is doing the work, and whether real
    corporate-action source rows or real 13F inversion noise preserve the same
-   source-to-row cross-check without a synthetic protocol sentence.
+   source-to-row cross-check without a synthetic protocol sentence. PR 135
+   ablates the audit into primary-only, backfill-only, and ratio-only cues on
+   the same case. The answer is component-sensitive: primary-only is enough for
+   stable `mini`/`gpt-5.5` and oracle-modal `nano`, backfill-only is not enough
+   for smaller aliases, and ratio-only rescues `mini`/`gpt-5.5` but leaves
+   `nano` metadata-trusting/status-blind modal. The full audit is therefore not
+   reducible to a single tested component for the smallest alias.
 5. Run full or stress-targeted live OpenAI probes where new stress cases parse
    cleanly but show only small separation.
