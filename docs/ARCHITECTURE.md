@@ -16,6 +16,10 @@ hunting. Conceptual framing lives in the canonical
 | **2 — identification** | *Which* utility, within a class? + which class? | [`aeread_lab/core/identify.py`](../aeread_lab/core/identify.py) — fit + model selection + ID audit | [`aeread_lab/tasks/identification.py`](../aeread_lab/tasks/identification.py) | `tests/test_identify.py` (15) | [`audit/layer2_identification_audit.md`](audit/layer2_identification_audit.md) |
 | **3 — grade** (predictive validity / fidelity) | Does the identified utility match the *configured/revealed principal* + predict held-out? | (not built — uses revealed-preference fit) | `tasks/regime.py`, `tasks/bargaining.py`, `tasks/principal_holding_*`, … | `tests/test_regime.py`, `tests/test_tasks.py` | — |
 
+Cross-layer headline results (all three layers' live + synthetic numbers, each
+traceable to file:function + test + repro command) are pulled into one place in
+[`audit/results_summary.md`](audit/results_summary.md).
+
 Cross-cutting: **stress** (the gate-as-cliff-under-load) is a wrapper dimension,
 not a layer — `tasks/stress_degradation_*` / `stability.py`. The **5-axis failure
 taxonomy** (information / consistency / calibration / computational / meta-cognitive)
