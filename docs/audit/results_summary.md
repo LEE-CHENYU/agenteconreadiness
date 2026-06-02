@@ -8,7 +8,9 @@ audit report + section it lives in, (b) the file + function that produces it, (c
 test that pins it, (d) a one-line reproduce command, (e) the commit. This is the
 cross-layer companion to [`ARCHITECTURE.md`](../ARCHITECTURE.md) (which maps layers→code)
 and the three per-layer reports it summarizes — those reports remain authoritative;
-this is the index, not a replacement.
+this is the index, not a replacement. For the full per-test list (all 400 tests in
+plain English + the validation logic per layer), see
+[`test_inventory.md`](test_inventory.md).
 
 **Model aliases** (used throughout): `nano` = gpt-5.4-nano, `mini` = gpt-5.4-mini,
 `gpt-5.5`. **Live-result substrate:** the `.aeread-cache/responses/` cache (790

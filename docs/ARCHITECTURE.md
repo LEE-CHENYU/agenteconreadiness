@@ -18,7 +18,9 @@ hunting. Conceptual framing lives in the canonical
 
 Cross-layer headline results (all three layers' live + synthetic numbers, each
 traceable to file:function + test + repro command) are pulled into one place in
-[`audit/results_summary.md`](audit/results_summary.md).
+[`audit/results_summary.md`](audit/results_summary.md). The full per-test list —
+every one of the 400 tests in plain English, with the validation logic for what
+each layer proves — is in [`audit/test_inventory.md`](audit/test_inventory.md).
 
 Cross-cutting: **stress** (the gate-as-cliff-under-load) is a wrapper dimension,
 not a layer — `tasks/stress_degradation_*` / `stability.py`. The **5-axis failure
