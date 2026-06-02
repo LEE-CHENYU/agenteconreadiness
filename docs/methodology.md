@@ -103,6 +103,30 @@ Two consequences for scoring:
 
 **Falsification (pre-registered).** The "gate is a floor" position is falsified if, under the multi-class robustness battery, frontier models systematically separate on gate-layer axioms (one frontier model failing GARP / Bayes-optimal inference where another passes, beyond arithmetic noise). The "grade is the discriminator" position is falsified if frontier models do *not* separate on persona-fidelity under multi-seed evaluation with a per-persona fidelity metric that penalizes both under- and over-steering (so separation cannot be claimed from over-correction alone). Both are testable before the methodology paper circulates.
 
+## Why these dimensions are useful: the two-level filter
+
+(Working position; engagement invited.) The three sections above — the gate→grade reading, no-oracle evaluation (below), and the generator–verifier method (below) — are the **components of one selection principle**: the test a candidate dimension (and its per-decision signal) must pass to earn a place in the benchmark. Naming it makes the "why these dimensions" choice a **derivation, not a list**, and is what lets the emphasis shifts during validation read as *convergence under a fixed filter* rather than redirection. A dimension is **useful** iff it clears two levels.
+
+**Level 1 — necessity (is it worth measuring at all?): decision-changing × oracle-unavailable.** A frontier model's score on it would change a real deployment decision, **and** no closed-form oracle already answers it. The product is the cut:
+- *oracle-available ⇒ saturated ⇒ useless as a discriminator* — a computable oracle is retrieved-and-computed from problem structure, so every frontier model passes (the gate-as-floor finding above).
+- *no decision turns on it ⇒ a quality metric, not a readiness verdict* — every dimension must name the deployment decision it changes (the four-regime map's real-deployment-case mapping is this discipline operationalized).
+
+Oracle-availability is the **durability variable**: a signal stays discriminating as models scale only if its answer is a *deployment-context property* (compounding? hard barrier? whose γ? what horizon?), not a closed form (the retrieval-resistance half-life above). This is *why* the gate is the floor and the grade is the headline — the filter cutting, named.
+
+**Level 2 — credibility (is the measurement trustworthy?).** The signal must be:
+- **valid** — tracks the construct, not an artifact (multi-seed CIs are the discipline; a preliminary single-seed "collapse" was downgraded by its own rigorous version);
+- **non-gameable** — the model's *strongest instinct hurts* (persona-fidelity weaponizes the retrieve-the-rational-answer reflex into the failure mode; this is the structural reason it is robust where gate-side rationality-compliance is gameable);
+- **decomposable** — isolates one mechanism → actionable (the Eq. 4 inference-vs-control split, not a bundled scalar);
+- **ground-truth-accessible** — there is a substitutable truth to score against (the no-oracle ladder below: reality ex-post, structure, local oracles, reference/bounds, revealed preference).
+
+The fourth test caps a signal's usefulness: a construct whose ground truth you cannot reach (predict-the-*market* under efficient markets) yields scoring noise regardless of how much the construct matters — which is why the durable instrument predicts the *principal*, not the market.
+
+**What the deployment-readiness framing adds.** A quality benchmark can stop at Level 2 — quality is assumed worth measuring. A *deployment-readiness* verdict forces the two links a quality rubric does not need: **external validity** (name the decision the score changes) and **non-gameability under contamination** (the strongest instinct hurts). Those two are where generic benchmarks saturate or get gamed; the surviving axes are selected for them.
+
+**What makes the usefulness citable rather than asserted.** For each surviving dimension the evidence that would show it is *not* useful (saturated / artifact / gameable) is pre-registered, and it survived (the falsification criteria in the gate→grade section; the multi-seed corrections). The citable object is a falsifiable theory of *which* dimensions matter, not a curated list.
+
+**Open:** the filter *predicts* which axes survive — so it is itself falsifiable. The cross-axis correlation matrix (Q7) and the multi-seed factorial are the tests: a dimension called "useful" that turns out saturated, artifactual, or gameable under the pre-registered battery is one the filter must drop, and we publish the drop. Challenge a placement.
+
 ## Layer 3 design discipline: predict-then-validate
 
 Every Layer 3 use case follows the same protocol:
