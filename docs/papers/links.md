@@ -74,6 +74,16 @@ One-stop lookup for every paper cited in this repo's docs. Every entry has eithe
 | lm-evaluation-harness (EleutherAI) — LLM eval framework | https://github.com/EleutherAI/lm-evaluation-harness | Adoption channel; AERead-env ships a harness adapter from v0.5 |
 | Gymnasium (Farama) — RL environment API | https://github.com/Farama-Foundation/Gymnasium | Bridge adapter for RL practitioner adoption |
 
+## Exploitation / strategic-randomization (zero-sum channel)
+
+Cited in [`exploitation_zero_sum.md`](../exploitation_zero_sum.md).
+
+| Paper | Public link | Local PDF |
+|---|---|---|
+| GTBench 2024 — strategic-reasoning game-theoretic LLM leaderboard | https://arxiv.org/abs/2402.12348 | — |
+| Base Models Beat Aligned Models at Randomness and Creativity (2025) | https://arxiv.org/abs/2505.00047 | — |
+| Playing games with LLMs: randomness and strategy (2025) | https://arxiv.org/abs/2503.02582 | — |
+
 ## Convention
 
 - **Always provide a public URL** when one exists (arxiv, DOI, publisher, preprint server)
