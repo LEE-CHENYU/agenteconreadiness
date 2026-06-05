@@ -76,7 +76,7 @@ One-stop lookup for every paper cited in this repo's docs. Every entry has eithe
 
 ## Exploitation / strategic-randomization (zero-sum channel)
 
-Cited in [`exploitation_zero_sum.md`](../exploitation_zero_sum.md).
+Cited in [`exploitation_channel.md`](../exploitation_channel.md).
 
 | Paper | Public link | Local PDF |
 |---|---|---|
