@@ -20,6 +20,12 @@ This page is a v0 reference index for the docs cited in design discussions.
 - **Source — `channel.py`:**
   [`aeread_lab/exploitation/channel.py`](https://github.com/LEE-CHENYU/agenteconreadiness/blob/main/aeread_lab/exploitation/channel.py)
 
+## Reference pages
+
+Short explainers for terms and works cited in design discussions — **[ref/](ref/)**
+(MDP, imperfect recall, best-response/exploitability, Nash equilibrium, Kuhn poker,
+TERMS-Bench, Vending-Bench, current test results).
+
 ## Broader methodology
 
 - [Methodology overview](methodology.html)
