@@ -22,18 +22,21 @@ This page is a v0 reference index for the docs cited in design discussions.
 
 ## Wiki
 
-Short explainers for terms and works cited in design discussions — **[wiki/](wiki/)**
-(MDP, imperfect recall, best-response/exploitability, Nash equilibrium, Kuhn poker,
-TERMS-Bench, Vending-Bench, current test results).
+Short explainers for the design logic, terms, and works behind the channel — **[wiki/](wiki/)**:
 
-## Broader methodology
-
-- [Methodology overview](methodology.html)
-- [Prior-art brief](prior_art_brief.html)
-- [Open questions](methodology_open_questions.html)
-- [AERead environment design](aeread_env_design.html)
-- [Architecture](ARCHITECTURE.html)
+- **Research design** — [design logic](wiki/research-design.html),
+  [comparability & output format (scalar vs vector)](wiki/comparability-output-format.html),
+  [games by solvability](wiki/games-by-solvability.html),
+  [RLVR](wiki/rlvr.html)
+- **Concepts** — [MDP](wiki/mdp.html), [imperfect recall](wiki/imperfect-recall.html),
+  [best response & exploitability](wiki/best-response-exploitability.html),
+  [Nash equilibrium](wiki/nash-equilibrium.html), [RPS](wiki/rps.html), [Kuhn poker](wiki/kuhn-poker.html)
+- **External** — [TERMS-Bench](wiki/terms-bench.html), [Vending-Bench](wiki/vending-bench.html)
+- **Results** — [PCA experiment](wiki/pca-experiment.html),
+  [test results](wiki/exploitability-test-results.html)
 
 ---
+
+**Maintained by** [LEE-CHENYU](https://github.com/LEE-CHENYU) (Chenyu Li). **Contributors:** Yuecheng Fang, Zihao Li.
 
 Repository: [github.com/LEE-CHENYU/agenteconreadiness](https://github.com/LEE-CHENYU/agenteconreadiness)
