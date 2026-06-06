@@ -9,6 +9,7 @@ discussions. Each page leads with a one-paragraph summary, then cites only the r
 - [Games categorized by solvability](games-by-solvability.html)
 - [RLVR — verifiable reward & training signal](rlvr.html)
 - [Contributing cases — open submission, gate & payoff scaffolds](contributing-cases.html)
+- [Contamination resistance (by design)](contamination-resistance.html)
 
 ## Concepts
 - [Markov Decision Process (MDP) — and non-MDP](mdp.html)

@@ -48,6 +48,31 @@ Future agents must handle *all* environments, and competence **transfers** acros
 as math reasoning transfers across domains). A single cross-game leaderboard therefore measures — and could
 train — transferable decision-making, which per-task models can't express.
 
+## Scope & necessity (why not pass-rate; why a benchmark, not just envs)
+
+**Why not just pass-rate (Terminal-Bench / SWE-bench)?** Same family (verifiable, oracle-scored), but
+different on three axes: **average vs worst-case**, **capability vs coherence**, **binary vs magnitude**.
+Pass-rate is the right tool — and more legible — for non-adversarial tasks with a clean success criterion;
+most "general reasoning" lives there. Exploitability earns its added complexity in exactly one regime:
+**adversarial/strategic deployment + answer-free decisions + the loss magnitude matters.** The failure it
+catches that a fixed-set pass-rate structurally cannot: **high capability + incoherence** — a model that
+passes 95% of a fixed pricing set yet is money-pumped by a counterparty who optimizes against it. So the claim
+is scoped to *worst-case extractable value for economic agents under strategic pressure*, not "general
+reasoning."
+
+**Why a benchmark, not just per-case environments?** Training *is* per-case — for a single deployed agent you
+train its env and skip the benchmark. The benchmark does a different job: (1) **generalization** — a held-out
+split across diverse cases tests whether coherence *transfers* or you merely memorized N envs (train on A,
+score on unseen B); (2) it is the **anti-Goodhart catcher** for per-case training (which *will* overfit its
+envs); (3) **coverage** — the [PCA](pca-experiment.html) axes *define* what "general coherence" means; (4) a
+frozen **shared yardstick**. Per-case train + per-case eval proves only memorization; the benchmark is the
+held-out test that separates a generally-coherent model from N memorized skills.
+
+**Falsifier.** All of this is worth it **iff coherence generalizes** — iff a transferable general factor
+exists, not N independent skills. The [PCA](pca-experiment.html) PC1 (43% general "broadly exploitable vs
+robust" factor) is early evidence it does; **if a held-out run showed zero transfer, the premise — and the
+benchmark — would collapse to "just ship the envs."**
+
 ## The two-step plan
 
 1. **Aggregation / commensuration** — make results comparable across games (the novel, unfilled part). See the

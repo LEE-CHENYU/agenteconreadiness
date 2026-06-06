@@ -27,6 +27,26 @@ two oracles, and only one is RL-able:
 So the channel stays a clean verifiable signal: the [solver](games-by-solvability.html) can be RL, but the
 reward definition is a fixed computable oracle.
 
+## Using exploitability as a training signal
+
+If you train against it, the distinctions matter:
+
+- **Aggregate = eval, per-decision = gradient.** Never backprop the suite-level magnitude `G(m)` — it's too
+  sparse for credit assignment (like training on final test accuracy). Feed the **decomposed per-decision**
+  exploitability gap and *watch* the aggregate fall. This is why decomposability matters: a non-decomposable
+  blob ([Vending-Bench](vending-bench.html)) is un-trainable; a per-step decomposition is. As a reward it also
+  beats pass/fail — a continuous money-metric regret is a **denser** gradient than a binary outcome.
+- **Fixed-adversary Goodhart → use self-play.** Against a fixed solver, the model learns to beat *that solver*,
+  not to become coherent (gpt-5.5 counter-exploited the fixed 1st-order adversary). A **co-adapting / no-regret
+  adversary** has theory behind it — CFR average-regret → 0 ⇒ ε-[Nash](nash-equilibrium.html) ⇒ genuinely
+  unexploitable.
+- **Degenerate hedge → multi-objective.** Minimizing exploitability *alone* has a trivial optimum: be
+  non-committal (uniform-random, refuse to price) — unexploitable and useless. Because coherence and capability
+  are [separate axes](pca-experiment.html), the target is **`maximize capability − λ·exploitability`**, not
+  exploitability alone.
+- **Held-out Goodhart test.** Train on cases A; if held-out cases B don't improve, you gamed A — the same
+  generalization split the benchmark exists for.
+
 **Relevant part of our docs / code.** The two-oracles distinction:
 [`exploitation_foundations.md` → "The two oracles"](../exploitation_foundations.html); the repo's `aeread_lab/`
 includes an `rlvr` channel built on this verifiable-reward principle.

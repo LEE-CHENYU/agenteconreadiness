@@ -21,7 +21,10 @@ levels are solved exactly vs. lower-bounded.
 ## The acceptance gate (3 layers)
 
 **1. Oracle gate** (eligibility): computable `A`; best-response tractable at its [level](mdp.html) (L0–L2
-exact; L3 only as an explicitly-labelled lower bound); a closed/regular game family.
+exact; L3 only as an explicitly-labelled lower bound); a closed/regular game family; **parameterizable with a
+per-instance oracle** (so the scored set can be regenerated — see
+[contamination resistance](contamination-resistance.html)), with the solution genuinely varying with the
+parameters.
 
 **2. Automated CI** (rejects the obvious failures with no reviewer): scorer + golden tests pass; a **baseline
 run proves discrimination** — the equilibrium/oracle strategy scores ≈ 0 (the floor) *and* a naive baseline
