@@ -1,8 +1,8 @@
 # TERMS-Bench (the "Susan Athey" paper)
 
-**Summary.** TERMS-Bench (Zhang, Zhang, Pappu, El, Blanchet, **Athey**, Liu, Zou — Stanford Engineering +
-Economics + GSB, May 2026; senior-advised by **Susan Athey**, Jose Blanchet, James Zou, with early feedback
-from Alvin Roth) is a **bilateral-negotiation outcome benchmark**. Its methodological contribution is a
+**Summary.** TERMS-Bench (Erica Zhang, Fangzhao Zhang, Pappu, El, Blanchet, **Athey**, Liu, Zou — Stanford
+Engineering + Economics + GSB, 2026) is a **bilateral-negotiation outcome benchmark**. **Susan Athey** is among
+the co-authors (with Jose Blanchet and James Zou). Its methodological contribution is a
 **decomposition of the surplus gap** into three sources — `U(π★) − U(π_base) = Δ_inf + Δ_unc + Δ_ctrl`
 (information gap + uncertainty gap + control gap). This is the paper referred to in the sync as the "Susan
 Athey paper": a *decomposable but single-setting* methodology.
@@ -20,6 +20,6 @@ on a formalization of when an OracleDecomposable task admits it): [`methodology.
 **External references.** [arXiv 2605.13909](https://arxiv.org/abs/2605.13909) ·
 [live leaderboard: terms-bench.github.io](https://terms-bench.github.io).
 
-> Note on identification: "苏珊AC / 苏圣恩" in the audio = **Susan Athey**, senior advisor on TERMS-Bench. If the
+> Note on identification: "苏珊AC / 苏圣恩" in the audio = **Susan Athey**, a co-author of TERMS-Bench. If the
 > intended reference was instead Athey's structural demand-estimation line (Ruiz–Athey–Blei, *SHOPPER*), say so
 > and I'll add that page.
