@@ -37,6 +37,6 @@ Short explainers for the design logic, terms, and works behind the channel — *
 
 ---
 
-**Maintained by** [LEE-CHENYU](https://github.com/LEE-CHENYU) (Chenyu Li). **Contributors:** Yuchen Fang, Zihao Li.
+**Contributors:** Yuchen Fang, Zihao Li. (Maintainer: [LEE-CHENYU](https://github.com/LEE-CHENYU) / Chenyu Li — see footer.)
 
 Repository: [github.com/LEE-CHENYU/agenteconreadiness](https://github.com/LEE-CHENYU/agenteconreadiness)
