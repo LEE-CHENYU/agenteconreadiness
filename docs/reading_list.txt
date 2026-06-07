@@ -665,6 +665,31 @@ PATH C — Everyone (60-min general orientation before first sync):
 
 
 ==============================================================================
+ADJACENT 2026: MULTI-AGENT COORDINATION & SELF-UNDERMINING
+(post-v0; context for the adaptive/exploitation channel — see
+ wiki/self-undermining-dynamic-evaluation)
+==============================================================================
+[T2] Solipsistic Superintelligence is Unlikely to be Cooperative
+     (Trivedi, Jaques, Cross, Vezhnevets, Leibo — DeepMind, 2026)
+     — arxiv 2606.03237 (https://arxiv.org/abs/2606.03237)
+     — MDP->Markov-game self-undermining + dynamic evaluation (D_pi, mu) with
+       adaptive counterparties = the theoretical home of our adaptive channel.
+[T2] Economy of Minds: Emerging Multi-Agent Intelligence with Economic
+     Interactions (Qi et al., Harvard/MIT/Kempner; Kakade, Du senior, 2026)
+     — arxiv 2606.02859 (https://arxiv.org/abs/2606.02859)
+     — Hayekian market; bucket-brigade ~ Shapley credit (Thm 4); O(E^-1/2)
+       regret vs omniscient coordinator (Thm 3). Aggregation/credit prior art.
+[T3] More Capable, Less Cooperative? When LLMs Fail At Zero-Cost Collaboration
+     (Yadav et al., 2026)
+     — arxiv 2604.07821 (https://arxiv.org/abs/2604.07821)
+     — capability != cooperation (o3 16.9% vs o3-mini 50.4%); external evidence
+       for the capability<->coherence dissociation.
+[T3] Algorithmic collusion by LLMs (Fish et al. 2026, arxiv 2404.00806);
+     Strategic collusion / market division (Lin et al. 2025, arxiv 2410.00031)
+     — deployed economic-coherence failures = the worst-case extraction we measure.
+
+
+==============================================================================
 NOTES ON SOURCES
 ==============================================================================
 - All arxiv links: https://arxiv.org/abs/<id>  or  https://arxiv.org/pdf/<id>

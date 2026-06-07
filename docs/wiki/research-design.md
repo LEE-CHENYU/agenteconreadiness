@@ -73,6 +73,14 @@ exists, not N independent skills. The [PCA](pca-experiment.html) PC1 (43% genera
 robust" factor) is early evidence it does; **if a held-out run showed zero transfer, the premise — and the
 benchmark — would collapse to "just ship the envs."**
 
+**Convergent external framing.** A 2026 frontier-lab line independently reaches this frame:
+[Solipsistic SI (Trivedi et al.)](https://arxiv.org/abs/2606.03237) formalizes the MDP→Markov-game
+**self-undermining property** and prescribes a **dynamic evaluation `(D_π, μ)` with adaptive counterparties** —
+the adaptive channel's exact instrument — while noting a "single `D_π` realization is a demonstration, not a
+measurement instrument" (the why-a-benchmark point). [More Capable, Less Cooperative?](https://arxiv.org/abs/2604.07821)
+is external evidence for the capability↔coherence dissociation. See
+[self-undermining & dynamic evaluation](self-undermining-dynamic-evaluation.html).
+
 ## The two-step plan
 
 1. **Aggregation / commensuration** — make results comparable across games (the novel, unfilled part). See the

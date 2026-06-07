@@ -10,6 +10,7 @@ discussions. Each page leads with a one-paragraph summary, then cites only the r
 - [RLVR — verifiable reward & training signal](rlvr.html)
 - [Contributing cases — open submission, gate & payoff scaffolds](contributing-cases.html)
 - [Contamination resistance (by design)](contamination-resistance.html)
+- [Self-undermining & dynamic evaluation (2026 multi-agent literature)](self-undermining-dynamic-evaluation.html)
 
 ## Concepts
 - [Markov Decision Process (MDP) — and non-MDP](mdp.html)

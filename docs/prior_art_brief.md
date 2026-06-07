@@ -147,4 +147,17 @@ The "reading these papers in sequence is reading a request for AERead" thesis in
 
 ---
 
+---
+
+## Adjacent 2026 literature: multi-agent coordination & self-undermining
+
+Beyond the three anchor benchmarks, a 2026 cluster on multi-agent LLM coordination converges on AERead's frame and is worth tracking (full synthesis: [`wiki/self-undermining-dynamic-evaluation`](https://lee-chenyu.github.io/agenteconreadiness/wiki/self-undermining-dynamic-evaluation)):
+
+- **Solipsistic Superintelligence is Unlikely to be Cooperative** (Trivedi, Jaques, Cross, Vezhnevets, Leibo — DeepMind) — [arxiv 2606.03237](https://arxiv.org/abs/2606.03237). Formalizes MDP→Markov-game **endogenous non-stationarity** + the **self-undermining property**, and prescribes **dynamic evaluation `(D_π, μ)` with adaptive counterparties** — the theoretical home of AERead's adaptive/exploitation channel (the strongest concurrent lab-citation hook). Its recursion-depth and "single-realization-is-not-an-instrument" caveats map onto AERead's open questions.
+- **Economy of Minds** (Qi et al., Harvard/MIT/Kempner; Kakade, Du senior) — [arxiv 2606.02859](https://arxiv.org/abs/2606.02859). Hayekian market; **bucket-brigade ≈ Shapley credit** (Thm 4) and `O(E^{-1/2})` **regret** vs an omniscient coordinator (Thm 3) — prior art for AERead's aggregation/credit layer and a multi-agent extension. Honest caveat: the market does **not** provably prevent profitable cartels.
+- **More Capable, Less Cooperative?** (Yadav et al.) — [arxiv 2604.07821](https://arxiv.org/abs/2604.07821). o3 16.9% vs o3-mini 50.4% on zero-cost collaboration — external evidence for the **capability↔coherence dissociation** (AERead's PCA / why-not-pass-rate).
+- *In the wild*: LLM pricing-agent **collusion** ([Fish 2026](https://arxiv.org/abs/2404.00806)) and **market division** ([Lin 2025](https://arxiv.org/abs/2410.00031)) — deployed instances of the worst-case extraction AERead measures.
+
+---
+
 **Next read**: see [`methodology.md`](methodology.md) for AERead's framework + [`reading_list.txt`](reading_list.txt) for tiered priority. The 7 papers in the diagnostic-and-correction literature cluster (Chen / Wen / Hagendorff / Zhu-Griffiths / Chadwick / Betz-Richardson / Qiu) are covered in [`reading_list.txt`](reading_list.txt) T1 and in [`proposal.md`](proposal.md) §3.
