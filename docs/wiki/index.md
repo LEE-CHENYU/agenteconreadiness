@@ -6,6 +6,7 @@ discussions. Each page leads with a one-paragraph summary, then cites only the r
 ## Research design
 - [Research design logic](research-design.html) — the why: the aggregation gap, exploitability, why it's a game
 - [Comparability & output format (scalar vs vector)](comparability-output-format.html)
+- [Aggregation, gauge & game coverage (methodology synthesis)](aggregation-gauge-coverage.html)
 - [Games categorized by solvability](games-by-solvability.html)
 - [RLVR — verifiable reward & training signal](rlvr.html)
 - [Contributing cases — open submission, gate & payoff scaffolds](contributing-cases.html)
