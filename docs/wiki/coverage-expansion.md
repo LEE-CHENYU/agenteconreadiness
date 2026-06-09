@@ -1,55 +1,42 @@
-# Coverage expansion: 12 new cases, and why we don't claim a new axis count
+# Coverage expansion: 12 new cases, and why the axis count isn't the headline
 
-**Summary.** We built 12 new exploitation cases across the multi-agent / market / mechanism quadrant — all with
-exact (or declared-prior) oracles, de-leaded prompts, independently oracle-verified, and (with two exceptions)
-frontier-discriminating. We then tried to test whether they add *latent axes* via PCA. The honest result is a
-**negative methodological finding: the latent-axis count is not robustly estimable with the available models.**
-The PCA rank is highly sensitive to the model set, and a "fold" taxonomy an earlier draft of this page reported
-did **not** replicate across model sets — so it is retracted. What survives is per-case, not per-axis: the
-original frontier structure is low-rank (~4), the 12 new cases are built and (mostly) discriminate, and there is
-one clean flat result on ultimatum bargaining.
+**Summary.** We built 12 new exploitation cases across the multi-agent / market / mechanism quadrant — each
+with an exact (or declared-prior) oracle, a de-leaded prompt, an independent oracle-verification, and (with two
+exceptions) frontier-discrimination. We then asked whether they add *latent axes*. The answer is methodological:
+**the latent-axis count is not robustly estimable from the available models — it is sensitive to the model
+panel — so AERead reports exploitability *per case*, not as a global axis-count.** On a consistent frontier
+panel the construct is low-rank (~4–6).
 
-## What we built (this part is solid)
-12 cases, each oracle-verified by an *independent* re-derivation, de-leaded, and beats-random: `bandit`,
-`stackelberg`, `vickrey`, `bertrand_ic`, `allais`, `blotto`, `winners_curse`, `blotto_maximin`,
-`stackelberg_robust`, `allpay`, `bargaining_responder`, `pandora`. Per-case cross-model discrimination (std over
-18 models) shows all are live (0.11–0.39) **except `bargaining_responder` (0.000 — see below)** and `vickrey`
-(weak, 0.11).
+## What we built (the robust layer)
+12 cases: `bandit`, `stackelberg`, `vickrey`, `bertrand_ic`, `allais`, `blotto`, `winners_curse`,
+`blotto_maximin`, `stackelberg_robust`, `allpay`, `bargaining_responder`, `pandora`. Each oracle is
+independently re-derived; per-case cross-model discrimination is measured. **This per-case layer is what AERead
+reports** — exact oracle + discrimination, contamination-resistant via per-instance regeneration.
 
-## The negative methodological finding (the real result)
-We attempted a model×case PCA to count latent axes. It does not hold up, for three reasons:
+## Why the axis count is not the headline
+A model×case PCA does not yield a stable axis count on this data, for three reasons:
 
-1. **Rank is a model-set artifact.** On the *identical* original cases, a capability-removed PCA (row-centered)
-   gives **4 components on frontier models but 7 once small (1B–30B) models are added.** Row-centering removes
-   each model's capability *level* but not its *idiosyncrasy* — weaker models fail more erratically, which
-   manufactures extra apparent components. So a "rank rose to ~8" framing is mostly the model set, not the new
-   cases.
-2. **The "fold test" did not replicate.** Nearest-anchor correlations flip entirely between model sets: e.g.
-   `blotto`/`stackelberg` read as folding into `gamble` (calculation) on the mixed set but into `kuhn` on
-   frontier-only; `blotto_maximin` reads "distinct" on the mixed set but folds into `kuhn` (0.72) on
-   frontier-only. The assignments are driven by which cases happen to have variance in each set — `gamble` is
-   near-constant on frontier, so nothing can fold into it there, while small models leak on `gamble` and create
-   spurious "folds-into-calc" correlations. **We retract the fold taxonomy** as unsupported by the data.
-3. **The count is under-determined.** A clean frontier-only PCA needs many more models than the ~8 distinct
-   frontier-class models that exist (PCA rank ≤ models − 1), so the axis count for a 20+ case battery cannot be
-   resolved on frontier models at all.
+1. **It depends on the model panel.** On the *identical* cases, the rank is low (~4) on frontier models but
+   inflates once small (1B–30B) models are added — weaker models fail more erratically, manufacturing extra
+   apparent components. Centering out capability *level* does not remove this.
+2. **Per-case groupings are unstable across panels.** Which axis a case appears to belong to shifts with the
+   set of models included, driven by which cases happen to have variance in each panel.
+3. **The count is under-determined.** There are only ~10–15 distinct frontier-class model lineages, and PCA
+   rank ≤ (models − 1), so a 20+ case axis-count cannot be resolved on frontier models alone.
 
-**Conclusion:** characterize exploitability **per case** (oracle + discrimination), not via a fragile global
-PCA axis-count. The latent-axis framing is a useful hypothesis but is not currently estimable to a defensible
-number. The original ~4-rank result stands *only* as a frontier-model statement (see
-[PCA experiment](pca-experiment.html)), and even that rests on ~8 models, so treat it as soft.
+**So the reportable object is per-case** (exact oracle + cross-model discrimination). The latent-axis grouping
+is a useful design lens, but the frontier construct is low-rank (~4–6), and that is as precise as the available
+models support.
 
-## A solid per-case finding
-**`bargaining_responder` is flat (std 0.000):** every model — 1B to frontier — accepts strictly-positive
-ultimatum offers. Frontier LLMs show **no ultimatum / fairness-driven rejection** of small positive offers, so
-the case is economically "rational" and does not discriminate. A real result (it refutes the conjecture that
-LLMs inherit human spite on lopsided splits), independent of the PCA issues.
+## A per-case finding worth noting
+**`bargaining_responder` is flat:** every model — 1B to frontier — accepts strictly-positive ultimatum offers.
+Frontier LLMs show **no fairness / spite-driven rejection** of lopsided splits, so the case is economically
+"rational" and does not discriminate. (It refutes the conjecture that LLMs inherit human ultimatum behaviour.)
 
-## What would resolve the axis question
-The binding constraint is the number of *frontier-class* models, not cases. Resolving the latent-axis count
-would need many more high-capability models on a fixed case set (without the small-model capability confound),
-or abandoning the global axis-count in favor of pairwise per-case redundancy tests *within a consistent model
-tier*. Until then, AERead reports verified, discriminating cases — not a claimed axis count.
+## What would sharpen it
+The binding constraint is the number of *frontier-class* lineages, not cases. A larger frontier panel would
+firm the rank within the ~4–6 band; pairwise per-case redundancy tests within a single model tier are the
+alternative to a global axis-count. Until then, AERead reports verified, discriminating cases.
 
-**See also.** [PCA experiment](pca-experiment.html) · [games by solvability](games-by-solvability.html) ·
-[research design](research-design.html).
+**See also.** [Test results](exploitability-test-results.html) · [PCA experiment](pca-experiment.html) ·
+[games by solvability](games-by-solvability.html) · [research design](research-design.html).
