@@ -31,6 +31,7 @@ discussions. Each page leads with a one-paragraph summary, then cites only the r
 - [PCA experiment (latent axes of exploitability)](pca-experiment.html)
 - [Exploitability test results (current)](exploitability-test-results.html)
 - [Opus version drift 4.5→4.8 (a decomposition case study)](opus-version-drift.html)
+- [Coverage expansion — which game types open a new axis (the fold test)](coverage-expansion.html)
 
 ---
 Back to [site index](../).
