@@ -1,68 +1,55 @@
-# Coverage expansion: which game types open a new exploitability axis
+# Coverage expansion: 12 new cases, and why we don't claim a new axis count
 
-**Summary.** The exploitability construct looked like it plateaued at ~4 latent axes. We tested whether that
-was a real ceiling or a *sampling artifact* of generating cases only from the single-agent + zero-sum quadrant.
-We built **12 new cases** across the multi-agent / market / mechanism quadrant and ran an 18-model
-capability-controlled PCA. The plateau was a sampling artifact — rank rises to **~7–8**, with **four new
-axis-groupings**. The sharpest result is a *method* finding: **the same game opens a new axis or folds into
-"calculation" depending on whether its exploit route is worst-case-strategic or just hard arithmetic** — the
-worst-case forms of Blotto and Stackelberg separate cleanly, while their full-information (compute-the-optimum)
-forms fold into the calculation axis.
+**Summary.** We built 12 new exploitation cases across the multi-agent / market / mechanism quadrant — all with
+exact (or declared-prior) oracles, de-leaded prompts, independently oracle-verified, and (with two exceptions)
+frontier-discriminating. We then tried to test whether they add *latent axes* via PCA. The honest result is a
+**negative methodological finding: the latent-axis count is not robustly estimable with the available models.**
+The PCA rank is highly sensitive to the model set, and a "fold" taxonomy an earlier draft of this page reported
+did **not** replicate across model sets — so it is retracted. What survives is per-case, not per-axis: the
+original frontier structure is low-rank (~4), the 12 new cases are built and (mostly) discriminate, and there is
+one clean flat result on ultimatum bargaining.
 
-## Method
-- **12 new cases** (each with an exact or declared-prior oracle, de-leaded prompt, beats-random, and an
-  *independent* adversarial oracle re-derivation): `bandit, stackelberg, vickrey, bertrand_ic, allais, blotto,
-  winners_curse`, the worst-case variants `blotto_maximin, stackelberg_robust`, and `allpay,
-  bargaining_responder, pandora`.
-- **Eval:** 18 models (1B → frontier) × 27 cases (`sprint/expand_eval.py` + `sprint/expand_run.py`).
-- **Capability confound + fix.** Spanning 1B→frontier makes the top PCA component a *capability* factor
-  (small models leak everywhere, frontier robust everywhere) that lumps all cases into one cluster. Fix =
-  **remove each model's mean before PCA (row-center)**, then a focused PCA on the 4 axis-anchors + the new
-  cases. (The raw PCA's "PC1 = 53%" is this capability factor, not construct structure — don't read axes off it.)
+## What we built (this part is solid)
+12 cases, each oracle-verified by an *independent* re-derivation, de-leaded, and beats-random: `bandit`,
+`stackelberg`, `vickrey`, `bertrand_ic`, `allais`, `blotto`, `winners_curse`, `blotto_maximin`,
+`stackelberg_robust`, `allpay`, `bargaining_responder`, `pandora`. Per-case cross-model discrimination (std over
+18 models) shows all are live (0.11–0.39) **except `bargaining_responder` (0.000 — see below)** and `vickrey`
+(weak, 0.11).
 
-## Verdict — rank 4 → ~7–8; the sampling-artifact hypothesis holds
-The 4 original axes persist (`rps` randomization, `kuhn` strategic/extensive-form, `gamble` calculation,
-`intertemporal` time). Four **new no-anchor groupings** emerge from the capability-removed clustering:
+## The negative methodological finding (the real result)
+We attempted a model×case PCA to count latent axes. It does not hold up, for three reasons:
 
-| new axis | members | what it measures |
-|---|---|---|
-| **worst-case adversarial defense** | `blotto_maximin`, `stackelberg_robust` | committing/allocating against a best-responder (worst-case / robust over hidden types) |
-| **dynamic / mechanism** | `bandit`, `vickrey` | sequential-learning value + dominant-strategy truthfulness |
-| **adverse selection** | `winners_curse` | conditioning on winning |
-| **reservation search** | `pandora` | option-value stopping with recall |
+1. **Rank is a model-set artifact.** On the *identical* original cases, a capability-removed PCA (row-centered)
+   gives **4 components on frontier models but 7 once small (1B–30B) models are added.** Row-centering removes
+   each model's capability *level* but not its *idiosyncrasy* — weaker models fail more erratically, which
+   manufactures extra apparent components. So a "rank rose to ~8" framing is mostly the model set, not the new
+   cases.
+2. **The "fold test" did not replicate.** Nearest-anchor correlations flip entirely between model sets: e.g.
+   `blotto`/`stackelberg` read as folding into `gamble` (calculation) on the mixed set but into `kuhn` on
+   frontier-only; `blotto_maximin` reads "distinct" on the mixed set but folds into `kuhn` (0.72) on
+   frontier-only. The assignments are driven by which cases happen to have variance in each set — `gamble` is
+   near-constant on frontier, so nothing can fold into it there, while small models leak on `gamble` and create
+   spurious "folds-into-calc" correlations. **We retract the fold taxonomy** as unsupported by the data.
+3. **The count is under-determined.** A clean frontier-only PCA needs many more models than the ~8 distinct
+   frontier-class models that exist (PCA rank ≤ models − 1), so the axis count for a 20+ case battery cannot be
+   resolved on frontier models at all.
 
-## The fold test (the headline method finding)
-Nearest-anchor correlation (capability-removed) splits the 12 cleanly:
+**Conclusion:** characterize exploitability **per case** (oracle + discrimination), not via a fragile global
+PCA axis-count. The latent-axis framing is a useful hypothesis but is not currently estimable to a defensible
+number. The original ~4-rank result stands *only* as a frontier-model statement (see
+[PCA experiment](pca-experiment.html)), and even that rests on ~8 models, so treat it as soft.
 
-| folds into **calculation** (`gamble`) | opens / attaches to a **new** axis |
-|---|---|
-| `blotto` (full-info best-response) 0.70 | `blotto_maximin` (worst-case) — **distinct** (max anchor 0.23) |
-| `stackelberg` (full-info LP) 0.61 | `stackelberg_robust` (worst-case) — distinct from `gamble` |
-| `bertrand_ic` 0.65 · `allpay` 0.68 | `bandit`, `winners_curse`, `pandora` — distinct |
+## A solid per-case finding
+**`bargaining_responder` is flat (std 0.000):** every model — 1B to frontier — accepts strictly-positive
+ultimatum offers. Frontier LLMs show **no ultimatum / fairness-driven rejection** of small positive offers, so
+the case is economically "rational" and does not discriminate. A real result (it refutes the conjecture that
+LLMs inherit human spite on lopsided splits), independent of the PCA issues.
 
-**Same game, opposite outcome.** Full-info Blotto/Stackelberg are "compute the optimum given everything" → they
-correlate with the calculation axis (0.70 / 0.61). Their *worst-case* forms (commit against a best-responder;
-commit robustly across hidden follower types) **separate into their own axis**. The dimension a case opens is
-determined by its **exploit route** (worst-case strategy vs arithmetic), **not its topic**: `allpay` and
-`bertrand_ic` fold despite "strategic" topics, because their cheapest exploit is computational. This is the
-operational test for whether a candidate case adds a dimension or just re-tests `gamble`.
-
-## Two case-level findings
-- **`bargaining_responder` is flat** (std = 0.000): *every* model accepts strictly-positive offers — **no
-  ultimatum / fairness-driven rejection**. Frontier LLMs are economically rational on ultimatum acceptance, so
-  the case does not discriminate. A real finding (it refutes the conjecture that LLMs inherit human spite on
-  small offers), not a build defect — it just isn't a benchmark *separator*.
-- **`allais` folds toward randomization/coherence** (rps 0.65) — a within-subject coherence test, not a new
-  dimension. Consistent with its design (charge only the common-ratio ranking flip).
-
-## Caveats
-- **12 of 31 models errored** (OpenRouter throttling under 6-way concurrency) → 18 usable. Still rows > cols
-  for the focused 16-case PCA (better-powered than the prior 13-model run), but the dropped set skews the
-  remaining model mix. A clean frontier-weighted re-run without throttling would firm the exact rank count.
-- **Cluster boundaries (t = 0.55):** `{blotto_maximin, stackelberg_robust}` and `{winners_curse}` are robustly
-  distinct (low anchor correlation); `{bandit, vickrey}` is a softer grouping (`vickrey` 0.54-rps / 0.51-gamble
-  — borderline).
-- Treat the axis claim as falsifiable: the fold test is the check, and it was applied per-case here.
+## What would resolve the axis question
+The binding constraint is the number of *frontier-class* models, not cases. Resolving the latent-axis count
+would need many more high-capability models on a fixed case set (without the small-model capability confound),
+or abandoning the global axis-count in favor of pairwise per-case redundancy tests *within a consistent model
+tier*. Until then, AERead reports verified, discriminating cases — not a claimed axis count.
 
 **See also.** [PCA experiment](pca-experiment.html) · [games by solvability](games-by-solvability.html) ·
-[Opus version drift](opus-version-drift.html) · [research design](research-design.html).
+[research design](research-design.html).
