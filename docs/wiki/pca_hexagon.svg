@@ -1,35 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 420" width="480" font-family="sans-serif" role="img" aria-label="Frontier-only PCA hexagon: PC1 40%, PC2 36%, PC3 14%, then near-zero; construct is ~2-3 effective dimensions">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 420" width="480" font-family="sans-serif" role="img" aria-label="External-RNG current-frontier PCA: PC1 44%, PC2 38%, PC3 17% — 3 roughly-independent axes (eq-computation, strategic, time)">
 <rect x="0" y="0" width="480" height="420" fill="#ffffff"/>
 <polygon points="240.0,157.3 277.0,178.7 277.0,221.3 240.0,242.7 203.0,221.3 203.0,178.7" fill="none" stroke="#d5d5d5" stroke-width="1"/>
-<text x="243" y="160.3" font-size="8.5" fill="#aaa">14%</text>
+<text x="243" y="160.3" font-size="8.5" fill="#aaa">15%</text>
 <polygon points="240.0,114.7 313.9,157.3 313.9,242.7 240.0,285.3 166.1,242.7 166.1,157.3" fill="none" stroke="#d5d5d5" stroke-width="1"/>
-<text x="243" y="117.7" font-size="8.5" fill="#aaa">28%</text>
+<text x="243" y="117.7" font-size="8.5" fill="#aaa">30%</text>
 <polygon points="240.0,72.0 350.9,136.0 350.9,264.0 240.0,328.0 129.1,264.0 129.1,136.0" fill="none" stroke="#d5d5d5" stroke-width="1"/>
-<text x="243" y="75.0" font-size="8.5" fill="#aaa">42%</text>
+<text x="243" y="75.0" font-size="8.5" fill="#aaa">45%</text>
 <line x1="240" y1="200" x2="240.0" y2="72.0" stroke="#e2e2e2" stroke-width="1"/>
-<text x="240.0" y="49.0" font-size="12" font-weight="700" fill="#222" text-anchor="middle">PC1 &#183; 40%</text>
-<text x="240.0" y="61.0" font-size="8.5" fill="#888" text-anchor="middle">~cross_modality</text>
+<text x="240.0" y="49.0" font-size="12" font-weight="700" fill="#222" text-anchor="middle">PC1 &#183; 44%</text>
+<text x="240.0" y="61.0" font-size="8.5" fill="#888" text-anchor="middle">time ↔ strategic</text>
 <line x1="240" y1="200" x2="350.9" y2="136.0" stroke="#e2e2e2" stroke-width="1"/>
-<text x="368.2" y="123.0" font-size="12" font-weight="700" fill="#222" text-anchor="start">PC2 &#183; 36%</text>
-<text x="368.2" y="135.0" font-size="8.5" fill="#888" text-anchor="start">~allais</text>
+<text x="368.2" y="123.0" font-size="12" font-weight="700" fill="#222" text-anchor="start">PC2 &#183; 38%</text>
+<text x="368.2" y="135.0" font-size="8.5" fill="#888" text-anchor="start">eq-comp + kuhn</text>
 <line x1="240" y1="200" x2="350.9" y2="264.0" stroke="#e2e2e2" stroke-width="1"/>
-<text x="368.2" y="285.0" font-size="12" font-weight="700" fill="#222" text-anchor="start">PC3 &#183; 14%</text>
-<text x="368.2" y="297.0" font-size="8.5" fill="#888" text-anchor="start">~calib_book</text>
+<text x="368.2" y="285.0" font-size="12" font-weight="700" fill="#222" text-anchor="start">PC3 &#183; 17%</text>
+<text x="368.2" y="297.0" font-size="8.5" fill="#888" text-anchor="start">mix</text>
 <line x1="240" y1="200" x2="240.0" y2="328.0" stroke="#e2e2e2" stroke-width="1"/>
-<text x="240.0" y="359.0" font-size="12" font-weight="700" fill="#222" text-anchor="middle">PC4 &#183; 5%</text>
-<text x="240.0" y="371.0" font-size="8.5" fill="#888" text-anchor="middle">~gamble</text>
+<text x="240.0" y="359.0" font-size="12" font-weight="700" fill="#222" text-anchor="middle">PC4 &#183; 0%</text>
+<text x="240.0" y="371.0" font-size="8.5" fill="#888" text-anchor="middle">—</text>
 <line x1="240" y1="200" x2="129.1" y2="264.0" stroke="#e2e2e2" stroke-width="1"/>
-<text x="111.8" y="285.0" font-size="12" font-weight="700" fill="#222" text-anchor="end">PC5 &#183; 4%</text>
-<text x="111.8" y="297.0" font-size="8.5" fill="#888" text-anchor="end">~pandora</text>
+<text x="111.8" y="285.0" font-size="12" font-weight="700" fill="#222" text-anchor="end">PC5 &#183; 0%</text>
+<text x="111.8" y="297.0" font-size="8.5" fill="#888" text-anchor="end">—</text>
 <line x1="240" y1="200" x2="129.1" y2="136.0" stroke="#e2e2e2" stroke-width="1"/>
 <text x="111.8" y="123.0" font-size="12" font-weight="700" fill="#222" text-anchor="end">PC6 &#183; 0%</text>
-<text x="111.8" y="135.0" font-size="8.5" fill="#888" text-anchor="end">~ellsberg</text>
-<polygon points="240.0,77.3 335.4,144.9 276.7,221.2 240.0,216.4 228.7,206.5 240.0,200.0" fill="#2c7fb8" fill-opacity="0.18" stroke="#2c7fb8" stroke-width="2.6"/>
-<circle cx="240.0" cy="77.3" r="3" fill="#2c7fb8"/>
-<circle cx="335.4" cy="144.9" r="3" fill="#2c7fb8"/>
-<circle cx="276.7" cy="221.2" r="3" fill="#2c7fb8"/>
-<circle cx="240.0" cy="216.4" r="3" fill="#2c7fb8"/>
-<circle cx="228.7" cy="206.5" r="3" fill="#2c7fb8"/>
+<text x="111.8" y="135.0" font-size="8.5" fill="#888" text-anchor="end">—</text>
+<polygon points="240.0,74.8 333.6,146.0 281.9,224.2 240.0,200.0 240.0,200.0 240.0,200.0" fill="#2c7fb8" fill-opacity="0.18" stroke="#2c7fb8" stroke-width="2.6"/>
+<circle cx="240.0" cy="74.8" r="3" fill="#2c7fb8"/>
+<circle cx="333.6" cy="146.0" r="3" fill="#2c7fb8"/>
+<circle cx="281.9" cy="224.2" r="3" fill="#2c7fb8"/>
 <circle cx="240.0" cy="200.0" r="3" fill="#2c7fb8"/>
-<text x="240" y="204" font-size="9.5" fill="#2c7fb8" text-anchor="middle" font-weight="700">~2-3 eff.</text>
+<circle cx="240.0" cy="200.0" r="3" fill="#2c7fb8"/>
+<circle cx="240.0" cy="200.0" r="3" fill="#2c7fb8"/>
+<text x="240" y="204" font-size="9" fill="#2c7fb8" text-anchor="middle" font-weight="700">3 indep. axes</text>
 </svg>

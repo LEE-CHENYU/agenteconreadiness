@@ -22,26 +22,28 @@ The exactness comes from *where the channel lives* on the solvability ladder ([g
 
 ## Leaderboard
 
-**Summary.** Eight frontier-class models, ranked by their mean exploitability across the **six discriminating axes** — the cases that actually separate frontier models (**lower = better**). Ranking on this subset rather than a mean over all 27 cases keeps the ordering (it is identical for the six full-coverage models) while letting the two newest models, measured on exactly these axes, slot in directly.
+**Summary.** Eight frontier-class models, ranked by mean exploitability across the **five fair discriminating axes** (**lower = better**). "Fair" means the randomization axis uses the **external-RNG** measure: the model only *states a distribution* and a real RNG realizes the moves, so we never penalize it for being unable to self-randomize (an architecturally-fixable deficit — see Finding 2). Under external RNG, plain `rps` is **0.000 for every model** (uniform is the equilibrium, trivially known), so it carries no information and is dropped; the randomization family is represented by **eq-computation** = weighted-RPS distribution exploitability (a sampler can't fix stating the *wrong* mixture). The mean blends full-sampled cells with the two † lighter-sampled models, so positions #2 and #5 are provisional pending a full re-run.
 
-| # | model | mean ↓ | `rps` | `kuhn` | `wrps` | `intertemporal` | `cross-mod` | `allais` |
-|---|---|---|---|---|---|---|---|---|
-| 1 | claude-sonnet-4.6 | **0.103** | 0.213 | 0.111 | 0.246 | 0.048 | 0.000 | 0.000 |
-| 2 | grok-4.3 | 0.118 | 0.374 | 0.111 | 0.222 | 0.000 | 0.000 | 0.000 |
-| 3 | **gpt-5.5** † | 0.122 | 0.226 | **0.278** | 0.226 | 0.000 | 0.000 | 0.000 |
-| 4 | claude-opus-4.8 | 0.158 | 0.326 | **0.278** | 0.318 | 0.024 | 0.000 | 0.000 |
-| 5 | claude-opus-4.5 | 0.241 | 0.347 | 0.111 | 0.342 | 0.645 | 0.000 | 0.000 |
-| 6 | **gemini-3.5-flash** † | 0.309 | 0.742 | **0.278** | 0.573 | 0.264 | 0.000 | 0.000 |
-| 7 | gpt-5.1 | 0.359 | 0.607 | 0.444 | 0.449 | 0.026 | 0.000 | 0.625 |
-| 8 | gemini-2.5-flash | 0.472 | 0.684 | 0.111 | 0.564 | 0.720 | 0.750 | 0.000 |
+| # | model | mean ↓ | `eq-comp` | `kuhn` | `intertemporal` | `cross-mod` | `allais` |
+|---|---|---|---|---|---|---|---|
+| 1 | grok-4.3 | **0.022** | 0.000 | 0.111 | 0.000 | 0.000 | 0.000 |
+| 2 | **gpt-5.5** † | 0.056 | 0.000 | **0.278** | 0.000 | 0.000 | 0.000 |
+| 3 | claude-sonnet-4.6 | 0.058 | 0.131 | 0.111 | 0.048 | 0.000 | 0.000 |
+| 4 | claude-opus-4.8 | 0.088 | 0.139 | **0.278** | 0.024 | 0.000 | 0.000 |
+| 5 | **gemini-3.5-flash** † | 0.136 | 0.140 | **0.278** | 0.264 | 0.000 | 0.000 |
+| 6 | claude-opus-4.5 | 0.170 | 0.093 | 0.111 | 0.645 | 0.000 | 0.000 |
+| 7 | gpt-5.1 | 0.245 | 0.129 | 0.444 | 0.026 | 0.000 | 0.625 |
+| 8 | gemini-2.5-flash | 0.332 | 0.077 | 0.111 | 0.720 | 0.750 | 0.000 |
 
-*† gpt-5.5 and gemini-3.5-flash were measured on these six axes with lighter sampling (N=32, K=1, 4 seeds vs the stored matrix's 48 / 3 / 8), so small values carry more noise. The two universal-ceiling cases (`ellsberg`, `cyclic7`) and the saturated-floor cases are excluded from the mean — they are ~equal for every frontier model and do not move the ranking.*
+*`eq-comp` is the external-RNG distribution exploitability on weighted-RPS (best of 2 paraphrases, mean of three weightings), measured for all 8 models. † gpt-5.5 and gemini-3.5-flash had `kuhn`/`intertemporal` measured with lighter sampling (N=32, K=1, 4 seeds). The two universal-ceiling cases (`ellsberg`, `cyclic7`) and the saturated-floor cases are excluded — they are ~equal for every frontier model and don't move the ranking.*
+
+**The fair measure re-ranks the board.** Dropping the (fixable) entropy penalty and scoring only *stated* mixtures, **grok-4.3 and gpt-5.5 lead** — they are the only two models that actually **compute the skewed weighted-RPS equilibrium** (eq-comp 0.000), where opus-4.8/sonnet-4.6/gemini-3.5-flash default toward uniform (≈ 0.13–0.14). On the old "LLM-as-RNG" measure gpt-5.5 looked mid-pack on randomization; fairly measured it is at the top. *(Provisional: gpt-5.5 and gemini-3.5-flash use the lighter † sampling and eq-comp is best-of-2-paraphrases × 3 weightings, so the exact rank order among the leaders is soft — the robust signal is the qualitative split: two models compute the skewed equilibrium, the rest default to uniform.)*
 
 **Cross-lab convergence on one exact failure.** The three newest-generation models — **claude-opus-4.8, gpt-5.5, and gemini-3.5-flash — all land at exactly `kuhn = 0.2778 = 5/18`**, the precise exploitability of "value-bet K + bluff J *pure*." Older models sit at 0.111 (never bluff) or, for gpt-5.1, 0.444. So three labs' newest models independently learned to bluff but play it *deterministic* — the exact failure of Finding 1 (below) — making it a **cross-lab phenomenon, not an Opus quirk**.
 
 ### Compare models — exploitability radar
 
-Toggle models to overlay their exploitability profile across the six discriminating axes (raw values, lower = better — a smaller polygon is better). Defaults to the three newest models that share the Kuhn failure.
+Toggle models to overlay their exploitability profile across the five fair axes (randomization shown as the **external-RNG eq-computation** measure, `rps` dropped; raw values, lower = better — a smaller polygon is better). Defaults to the two generational pairs (gpt-5.1 → gpt-5.5, gemini-2.5-flash → gemini-3.5-flash) so you can see the newest models collapse the polygon.
 
 <div id="aer-controls" style="text-align:center;margin:.6em 0"></div>
 <div id="aer-svg" align="center"></div>
@@ -52,13 +54,15 @@ Toggle models to overlay their exploitability profile across the six discriminat
 
 ### The shape of the construct (PCA)
 
-A PCA of the **frontier-only** panel — the 6 full-coverage models × 27 cases, with **no imputation and no weaker models**. Each spoke is a principal component; spoke length is the share of variance it explains.
+A PCA of the **current frontier** — the latest model per lineage (opus-4.8, sonnet-4.6, opus-4.5, grok-4.3, gpt-5.5, gemini-3.5-flash) on the **fair external-RNG axes**. Superseded versions (gemini-2.5-flash, gpt-5.1) are excluded: their stale single-case spikes were distorting the components. Each spoke is a principal component; spoke length is the share of variance it explains.
 
 <p align="center">
-<img src="pca_hexagon.svg" alt="Frontier-only PCA hexagon: PC1 40%, PC2 36%, PC3 14%, then near-zero — the construct is ~2-3 effective dimensions" width="480" style="max-width:100%;height:auto">
+<img src="pca_hexagon.svg" alt="Current-frontier external-RNG PCA: PC1 44%, PC2 38%, PC3 17% — ~3 roughly-independent residual axes (eq-computation, strategic, time); under-powered, 6 models, see caption" width="480" style="max-width:100%;height:auto">
 </p>
 
-*PC1–PC2 carry **76%** of the variance (PC1 40%, PC2 36%, PC3 14%) and the 90% cut falls at **PC3** — the frontier construct is **low-rank (~2–3 effective dimensions)**, collapsing to near-zero by PC4. Honest caveat: with only 6 frontier models the top components are largely **single-model idiosyncrasies** (PC1 ≈ one model's `cross_modality` spike, PC2 ≈ one model's `allais` spike), not robust shared axes — which is exactly why a stable latent-axis count is **not resolvable** at the frontier, and why AERead reports exploitability **per case**. A broader 12-model panel that mean-imputes weaker models inflates this to ~4–6 components, but that inflation is the **capability confound** (weak models failing cases erratically), not real dimensionality.*
+*Stripping the fixable entropy deficit (`rps`) and the now-**solved** axes (`cross_modality` and `allais` are flat at the current frontier) leaves exactly **three roughly-independent residual failure modes**, and the PCA confirms they do not collapse into each other: **PC1 44%, PC2 38%, PC3 17%**, with the 90% cut only at **PC3**.*
+
+***What each component is:*** *PC1 contrasts **time-consistency** (`intertemporal` — the opus-4.5 spike) against **strategic / eq-computation** skill; PC2 bundles **equilibrium-computation + Kuhn strategy** (the two computation-flavored failures — grok-4.3 best on both, opus-4.8 / gemini-3.5-flash worst); PC3 is a small residual mix. Unlike the stale-model panel (where the top components were single-model spikes), each of these orders **several** models and maps to an interpretable capability. Honest caveat: 6 models over 3 varying axes is under-powered, so the precise split is soft — which is why AERead still reports exploitability **per case**.*
 
 ---
 
@@ -94,7 +98,7 @@ The deficit does **not** improve monotonically with scale. Observed self-narrati
 | `wrps_b` | (4, 2, 1) | (1/7, 4/7, 2/7) | P-heavy |
 | `wrps_c` | (1, 1, 6) | (3/4, 1/8, 1/8) | skewed |
 
-Here the scaling story *inverts*: frontier models tend to default to uniform (entropy-correct, computation-wrong) and are out-performed by 7–24B open models that actually solve for the skewed equilibrium. **Why it matters:** the deficit everyone attributes to "LLMs are bad at randomness" is two distinct things — universally-absent entropy (architecturally fixable with an RNG) and equilibrium computation (a genuine capability axis where frontier-vs-open is *not* monotone in scale). The `wrps_sweep` `[DISCRIMINATES]` / `[collapses]` tag (cross-model std > 0.05) is the exact test. Per-model rankings trace to the [exploitability test results](exploitability-test-results.html); see also [Rock-Paper-Scissors](rps.html). **Pre-registered falsifier:** the architectural fix should take *any* model on a uniform-equilibrium game to within finite-sample noise of the RNG floor — failure to do so refutes "the deficit is purely entropy." **Open:** does the frontier-defaults-to-uniform pattern on weighted-RPS persist as open-model scale increases, or close above some threshold?
+Here the picture *separates the two deficits cleanly*. Measured external-RNG (the model states a distribution), **plain `rps` is 0.000 for all 8 models** — the entropy deficit is entirely fixable and vanishes. The residual is pure **equilibrium computation**, and it is *not* monotone in capability: only **grok-4.3 and gpt-5.5 actually solve the skewed weighted-RPS equilibrium** (eq-comp 0.000), while **opus-4.8 (0.14), sonnet-4.6 (0.13), gemini-3.5-flash (0.14), opus-4.5 (0.09), gpt-5.1 (0.13), and even old gemini-2.5-flash (0.08) default toward uniform** (entropy-correct, computation-wrong). **Why it matters:** the deficit everyone attributes to "LLMs are bad at randomness" is two distinct things — universally-absent entropy (architecturally fixable with an RNG, so AERead's leaderboard scores it *0* once an external sampler is assumed) and equilibrium computation (a genuine capability axis where the lab ordering is non-obvious — two labs solve it, the rest don't). This is why the leaderboard above uses the external-RNG eq-computation value, not the self-narration sequence. See also [Rock-Paper-Scissors](rps.html). **Pre-registered falsifier:** the architectural fix should take *any* model on a uniform-equilibrium game to within finite-sample noise of the RNG floor — failure to do so refutes "the entropy part is purely fixable."
 
 ### 3. Coherence / framing-invariance — solved at the frontier
 
@@ -112,7 +116,7 @@ Here the scaling story *inverts*: frontier models tend to default to uniform (en
 
 The 12 most recently added cases — `bandit, vickrey, winners_curse, allpay, bertrand_ic, stackelberg, stackelberg_robust, blotto, blotto_maximin, bargaining_responder, pandora, allais` — each carry an exact closed-form oracle (backward-induction DP over Beta belief states for `bandit`; second-price dominant strategy for `vickrey`; grim-trigger present-value comparison for `bertrand_ic`; Strong-Stackelberg LP for `stackelberg`; Weitzman reservation-value for `pandora`; common-ratio flip for `allais`). See [coverage expansion](coverage-expansion.html).
 
-**The frontier construct is low-rank (~2–3)** — the [PCA hexagon above](#the-shape-of-the-construct-pca) is the picture. On the frontier-only panel (6 full-coverage models, no imputation), PC1–PC2 carry **76%** of the variance and the 90% cut falls at **PC3**. With only ~6 frontier-class lineages the top components are dominated by single-model idiosyncrasies, so a stable latent-axis *count* is not resolvable — which is the methodological reason AERead reports exploitability **per case**, not as a global axis number. (Adding the partial/weak panel models with mean-imputation inflates the apparent rank to ~4–6, but that is the **capability confound**, not real dimensionality; a separate broader run is on the [PCA experiment](pca-experiment.html) page.)
+**The frontier construct is ~3 roughly-independent axes** — the [PCA hexagon above](#the-shape-of-the-construct-pca) is the picture. On the current frontier with the *fair* (external-RNG) axes, **equilibrium-computation, strategic (Kuhn), and time-consistency** are the residual separators and they do **not** collapse into one another (PC1 44%, PC2 38%, PC3 17%; 90% only at PC3). `rps` (entropy) is fixable and drops out; `cross_modality` and `allais` are *solved* at the current frontier. With only ~6 frontier-class lineages the count is still soft and under-powered — which is the methodological reason AERead reports exploitability **per case**, not as a global axis number. (Including superseded versions or mean-imputing weaker models re-inflates the apparent rank, but that is the **staleness/capability confound**, not real dimensionality; a separate broader run is on the [PCA experiment](pca-experiment.html) page.)
 
 **Cases that separate frontier models** (high cross-model std on the realized matrix):
 
@@ -125,7 +129,7 @@ The 12 most recently added cases — `bandit, vickrey, winners_curse, allpay, be
 | `allais` | 0.069 | 0.196 | time-and-risk consistency |
 | `wrps` | 0.365 | 0.130 | equilibrium computation |
 
-The Kuhn separator *is* the Opus drift signal (4.8 = 0.278 vs 4.5 = 0.111 in the matrix). Several new cases clear the discrimination bar on the realized panel (`blotto_maximin` std 0.186, `allpay` 0.151, `blotto` 0.142, `bandit` 0.108, `bertrand_ic` 0.098); `pandora` (0.061) and `stackelberg` (0.065) sit just below the bar as range-coverage cases.
+The Kuhn separator *is* the Opus drift signal (4.8 = 0.278 vs 4.5 = 0.111 in the matrix). Several new cases clear the discrimination bar on the realized panel (`blotto_maximin` std 0.186, `allpay` 0.151, `blotto` 0.142, `bandit` 0.108, `bertrand_ic` 0.098); `pandora` (0.061) and `stackelberg` (0.065) sit just below the bar as range-coverage cases. (Note: this table is the **raw self-narration** matrix — `rps`'s separation here is the *entropy* deficit, which the leaderboard above scores fairly via external-RNG. So `rps` separates models on the raw measure but not on the fair one, where it is 0 for all.)
 
 **Two kinds of saturation, kept distinct** (methodologically load-bearing):
 
