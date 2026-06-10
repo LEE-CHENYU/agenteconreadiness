@@ -7,6 +7,21 @@ the co-authors (with Jose Blanchet and James Zou). Its methodological contributi
 (information gap + uncertainty gap + control gap). This is the paper referred to in the sync as the "Susan
 Athey paper": a *decomposable but single-setting* methodology.
 
+**Empirical conclusion of the decomposition (13 LLM agents).** The headline is that **deal rate is
+non-diagnostic**: *"frontier models saturate deal rate yet diverge in surplus extraction, cue use,
+belief calibration, and compliance."* The decomposition localizes that divergence to **control, not
+information** — the dominant share of lost surplus is the **control gap** (`Δ_ctrl`): agents
+underperform the Bayes-optimal counterpart *even when handed the correct posterior or the counterpart's
+type outright*, so the bottleneck is acting well on good beliefs, not forming them. (Honest caveat the
+paper flags: against the *discretized* oracle a full-reveal agent can exceed it in places — a negative
+`Δ_ctrl` — so the exact magnitudes carry a discretization/gauge caveat; the robust claim is directional.)
+Two corroborating findings: **informative cues *reduce* surplus for every agent** (`α_cue < 0` — warm
+cues trigger over-concession, pressure cues brittleness), and **online belief error is flat-or-rising
+across the 10 rounds** (updating does not improve with interaction). AERead generalizes the
+*decomposition* while reading the *result* as evidence that the live frontier separator is strategic
+action against an opponent — the same axis as the [results-page](results.html) competition direction.
+See [arXiv 2605.13909](https://arxiv.org/abs/2605.13909) (full-text HTML for the per-gap results).
+
 **As used in the 2026-06-05 sync.** It anchors the central design contrast. TERMS-Bench is **decomposable**
 (it tells you *which* step failed) but is essentially **one setting** (bargaining); [Vending-Bench](vending-bench.html)
 is the opposite (aggregated dollar value, **not** decomposable). AERead's targeted novelty is the missing
