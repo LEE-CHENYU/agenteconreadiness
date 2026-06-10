@@ -20,6 +20,66 @@ The exactness comes from *where the channel lives* on the solvability ladder ([g
 
 ---
 
+## Leaderboard
+
+**Summary.** The six full-coverage models, ranked by **overall exploitability** (mean over all 27 cases; **lower = better**). The headline-axis columns tie each model to the findings below — randomization (`rps`), strategic (`kuhn`), equilibrium-computation (`wrps`), time-consistency (`intertemporal`).
+
+| # | model | overall ↓ | rand. `rps` | strategic `kuhn` | eq-comp `wrps` | time `intertemporal` |
+|---|---|---|---|---|---|---|
+| 1 | claude-sonnet-4.6 | **0.098** | 0.213 | 0.111 | 0.246 | 0.048 |
+| 2 | grok-4.3 | 0.110 | 0.374 | 0.111 | 0.222 | 0.000 |
+| 3 | claude-opus-4.8 | 0.115 | 0.326 | **0.278** | 0.318 | 0.024 |
+| 4 | claude-opus-4.5 | 0.140 | 0.347 | 0.111 | 0.342 | 0.645 |
+| 5 | gpt-5.1 | 0.227 | 0.607 | 0.444 | 0.449 | 0.026 |
+| 6 | gemini-2.5-flash | 0.240 | 0.684 | 0.111 | 0.564 | 0.720 |
+
+*The other 8 panel models are partial-coverage and excluded from the ranking. The two universal ceiling cases (`ellsberg` ≈ 1.0, `cyclic7` ≈ 0.84) are included in the overall mean, so they shift the level for everyone, not the ranking. The bolded `kuhn` cell is the Opus-4.8 version regression (Finding 1) — note it does **not** move 4.8's overall rank (3rd), which is exactly why per-case decomposition is load-bearing.*
+
+### The shape of the construct (PCA)
+
+A PCA of the 12-model × 27-case exploitability matrix. Each spoke is a principal component; spoke length is the share of variance it explains (rings at 10 / 20 / 30%).
+
+<div align="center">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 420" width="480" font-family="sans-serif" role="img" aria-label="PCA scree hexagon: PC1 31%, PC2 28%, PC3 14%, PC4 8%, PC5 6%, PC6 4%; construct is low-rank ~4">
+<polygon points="240.0,160.0 274.6,180.0 274.6,220.0 240.0,240.0 205.4,220.0 205.4,180.0" fill="none" stroke="#d5d5d5" stroke-width="1"/>
+<text x="243" y="163.0" font-size="8.5" fill="#aaa">10%</text>
+<polygon points="240.0,120.0 309.3,160.0 309.3,240.0 240.0,280.0 170.7,240.0 170.7,160.0" fill="none" stroke="#d5d5d5" stroke-width="1"/>
+<text x="243" y="123.0" font-size="8.5" fill="#aaa">20%</text>
+<polygon points="240.0,80.0 343.9,140.0 343.9,260.0 240.0,320.0 136.1,260.0 136.1,140.0" fill="none" stroke="#d5d5d5" stroke-width="1"/>
+<text x="243" y="83.0" font-size="8.5" fill="#aaa">30%</text>
+<line x1="240" y1="200" x2="240.0" y2="72.0" stroke="#e2e2e2" stroke-width="1"/>
+<text x="240.0" y="49.0" font-size="12" font-weight="700" fill="#222" text-anchor="middle">PC1 · 31%</text>
+<text x="240.0" y="61.0" font-size="8.5" fill="#888" text-anchor="middle">~stackelberg</text>
+<line x1="240" y1="200" x2="350.9" y2="136.0" stroke="#e2e2e2" stroke-width="1"/>
+<text x="368.2" y="123.0" font-size="12" font-weight="700" fill="#222" text-anchor="start">PC2 · 28%</text>
+<text x="368.2" y="135.0" font-size="8.5" fill="#888" text-anchor="start">~optimal_stopping</text>
+<line x1="240" y1="200" x2="350.9" y2="264.0" stroke="#e2e2e2" stroke-width="1"/>
+<text x="368.2" y="285.0" font-size="12" font-weight="700" fill="#222" text-anchor="start">PC3 · 14%</text>
+<text x="368.2" y="297.0" font-size="8.5" fill="#888" text-anchor="start">~calib_book</text>
+<line x1="240" y1="200" x2="240.0" y2="328.0" stroke="#e2e2e2" stroke-width="1"/>
+<text x="240.0" y="359.0" font-size="12" font-weight="700" fill="#222" text-anchor="middle">PC4 · 8%</text>
+<text x="240.0" y="371.0" font-size="8.5" fill="#888" text-anchor="middle">~seq_order</text>
+<line x1="240" y1="200" x2="129.1" y2="264.0" stroke="#e2e2e2" stroke-width="1"/>
+<text x="111.8" y="285.0" font-size="12" font-weight="700" fill="#222" text-anchor="end">PC5 · 6%</text>
+<text x="111.8" y="297.0" font-size="8.5" fill="#888" text-anchor="end">~gamble</text>
+<line x1="240" y1="200" x2="129.1" y2="136.0" stroke="#e2e2e2" stroke-width="1"/>
+<text x="111.8" y="123.0" font-size="12" font-weight="700" fill="#222" text-anchor="end">PC6 · 4%</text>
+<text x="111.8" y="135.0" font-size="8.5" fill="#888" text-anchor="end">~kuhn_poker</text>
+<polygon points="240.0,74.3 336.6,144.2 289.1,228.3 240.0,230.4 220.1,211.5 225.3,191.5" fill="#2c7fb8" fill-opacity="0.18" stroke="#2c7fb8" stroke-width="2.6"/>
+<circle cx="240.0" cy="74.3" r="3" fill="#2c7fb8"/>
+<circle cx="336.6" cy="144.2" r="3" fill="#2c7fb8"/>
+<circle cx="289.1" cy="228.3" r="3" fill="#2c7fb8"/>
+<circle cx="240.0" cy="230.4" r="3" fill="#2c7fb8"/>
+<circle cx="220.1" cy="211.5" r="3" fill="#2c7fb8"/>
+<circle cx="225.3" cy="191.5" r="3" fill="#2c7fb8"/>
+<text x="240" y="204" font-size="9.5" fill="#2c7fb8" text-anchor="middle" font-weight="700">~4 eff.</text>
+</svg>
+</div>
+
+*PC1–PC4 carry **81%** of the variance and the 90% cut falls at PC6 — the construct is **low-rank (~4 effective dimensions)**, visible as two long arms (PC1–PC2) collapsing into a short tail. The loadings are **mixed** (PC1 loads on `stackelberg`/`allpay`/`decoy`; `kuhn` isolates onto PC6), so there is no clean one-case-per-axis structure — which is why AERead reports exploitability **per case**, not as a global axis-count. The axis count here is 6 because the 90%-variance cut is PC6; the effective rank is ~4. (Recipe: 12 non-errored models, column-mean imputation of partial cells, z-scored cases, SVD.)*
+
+---
+
 ## Headline findings
 
 ### 1. The Opus 4.8 Kuhn regression — and why decomposition is load-bearing
@@ -68,7 +128,7 @@ Here the scaling story *inverts*: frontier models tend to default to uniform (en
 
 The 12 most recently added cases — `bandit, vickrey, winners_curse, allpay, bertrand_ic, stackelberg, stackelberg_robust, blotto, blotto_maximin, bargaining_responder, pandora, allais` — each carry an exact closed-form oracle (backward-induction DP over Beta belief states for `bandit`; second-price dominant strategy for `vickrey`; grim-trigger present-value comparison for `bertrand_ic`; Strong-Stackelberg LP for `stackelberg`; Weitzman reservation-value for `pandora`; common-ratio flip for `allais`). See [coverage expansion](coverage-expansion.html).
 
-**The frontier construct is low-rank (~4).** On the capability-homogeneous frontier panel (distinct from the broader 10-model run on the [PCA experiment](pca-experiment.html) page), the scree puts PC1–PC4 at ~0.81 of variance (PC1 0.31, PC2 0.28, PC3 0.14, PC4 0.08) with a thin tail. The honest envelope is a **~4–6 band**: the realized matrix has full coverage on only 6 of the 14 panel models — 2 errored at launch and the remaining 6 returned partial-to-mostly-null output, so the PCA runs on the 12 non-errored models with heavy mean-imputation, and the *effective dense* panel is well under the case count, which inflates the 90%-variance cut to ~6.
+**The frontier construct is low-rank (~4)** — the [PCA hexagon above](#the-shape-of-the-construct-pca) is the picture. The honest envelope is a **~4–6 band**: the realized matrix has full coverage on only 6 of the 14 panel models (2 errored at launch, 6 returned partial-to-mostly-null output), so the PCA runs on the 12 non-errored models with heavy mean-imputation and the *effective dense* panel is well under the case count — which is why the 90%-variance cut sits at ~6 rather than the ~4 the dominant components imply. (A separate, broader 10-model run is on the [PCA experiment](pca-experiment.html) page.)
 
 **Cases that separate frontier models** (high cross-model std on the realized matrix):
 
@@ -112,24 +172,6 @@ The self-test invariants (oracle regret = 0, naive baselines > 0, sucker trap = 
 
 ---
 
-## Open direction: competition as the benchmark
-
-> **Status: open design direction, not a completed result.** Everything below is a working position with stated caveats, not a measured finding.
-
-**Summary.** The static channel best-responds to a *frozen* model policy, and the exact single-agent sims above all saturate. A forward-looking extension keeps the **exact oracle** while making the benchmark plausibly *non-saturating* by scoring each LLM agent against the **realized field of other LLM agents** — an *ex-post best-response exploitability*. In a multi-agent competitive market (Bertrand/Cournot-style per-round, with a computable best response), against the realized actions of the agent field you compute `best_response(opponents' actual actions) − realized_profit`. The market's best response is closed-form, so no learned judge enters — the OracleDecomposable invariant holds. This is the natural multi-agent analogue of the static channel's one-sided best response.
-
-**Why it may escape saturation.** Anticipating other strategic agents is open-ended — there is *no fixed target* to memorize or solve once — unlike the single-agent exact-oracle regime, where per-decision competence is solved and the sims saturate. Competition restores non-saturation along a *different* axis (strategic anticipation) while keeping the oracle exact. The real-world anchor is the same Andon arena above: the model over-prices, refuses to come down, and **collusion/cartel behavior is observed** — the empirical phenomenon this axis would measure (it maps to `bertrand_ic`). Independent corroboration from the offensive (Bayesian-oracle) side: [TERMS-Bench](terms-bench.html)'s surplus decomposition across 13 agents finds the dominant frontier failure is the **control gap** — agents underperform the Bayes-optimal counterpart *even when handed the correct beliefs* — so the live separator is strategic action against an opponent, not information processing (and informative cues *reduce* surplus, `α_cue < 0`). The static channel measures one-sided exploitability against a frozen policy; competition is the two-sided generalization the bargaining result points to.
-
-**Caveats that must ship with the direction:**
-
-1. **Exactness scope.** Ex-post-fixed-opponents is *exact one-shot* but only *approximate under reactive repeated play* — a **valid lower bound** on true exploitability when opponents would have reacted (the same lower-bound logic as the static L3 caveat).
-2. **Variance.** Realized-field scoring is high-variance; it needs **standardized opponent panels + repeats** to be comparable across models.
-3. **Collusion is its own axis, never a reward.** Collusion *inflates* realized profit, so it must be scored as its **own safety-relevant axis** — rewarding it would train exactly the cartel behavior the Andon arena surfaced.
-
-**Open:** for the adaptive-search / parameterized-family version, what regularity (Lipschitz / convexity in the parameters) turns the search into a *certified* worst case rather than a sampled lower bound? How deep should recursive opponent-modeling go — the recursion-depth choice flagged by Trivedi et al.'s [*Solipsistic Superintelligence*](https://arxiv.org/abs/2606.03237), whose *dynamic evaluation* `(D_π, μ)` with a policy-dependent test distribution is precisely this instrument? And: is a single score against one realized field "an isolated demonstration, not a measurement instrument" — i.e., what standardizes the opponent field into a benchmark? See [self-undermining & dynamic evaluation](self-undermining-dynamic-evaluation.html).
-
----
-
 ## How to engage / open questions
 
 The channel is exact where a verifiable payoff exists and best-response is tractable (L0 / L2-small), and silent or lower-bounded elsewhere — rigor and limitation are the same fact. The most useful contributions are new exact-oracle cases and adversarial counterexamples. The case-submission gate, payoff scaffolds, and OracleDecomposable counterexample channel are open — see [contributing cases](contributing-cases.html).
@@ -150,7 +192,6 @@ A frozen finite suite is a *monotone lower bound* on the worst case, so AERead p
 - **TERMS-Bench** — Zhang, Zhang, Pappu, El, Blanchet, Athey, Liu, Zou 2026. [arXiv:2605.13909](https://arxiv.org/abs/2605.13909) · live leaderboard [terms-bench.github.io](https://terms-bench.github.io)
 - **Vending-Bench** — Petersson & Backlund (Andon Labs) 2025. [arXiv:2502.15840](https://arxiv.org/abs/2502.15840)
 - **Andon Labs blog** — *Opus 4.8 on Vending-Bench: Better Alignment, Worse Performance*. [andonlabs.com/blog/opus-4-8-vending-bench](https://andonlabs.com/blog/opus-4-8-vending-bench)
-- **Trivedi et al. 2026** — *Solipsistic Superintelligence* (dynamic evaluation). [arXiv:2606.03237](https://arxiv.org/abs/2606.03237)
 - **Ellsberg paradox** (concept reference for the contested ambiguity standard). [en.wikipedia.org/wiki/Ellsberg_paradox](https://en.wikipedia.org/wiki/Ellsberg_paradox)
 
 ---
