@@ -1,6 +1,6 @@
 # AERead — results so far
 
-AERead asks a deployment question — *is this agent ready to act in the economy without bleeding value to an adversary?* — and answers it through a single, exact channel: **exploitability**. Fix a model's revealed strategy in a decision problem with a hand-specified, closed-form oracle; the exploitability is the surplus an *optimal* adversary extracts by best-responding to it. **Lower is better; 0 means perfectly coherent — no optimal opponent (RL, another LLM, or human) can take anything.** Four results cut across the sections below: (1) the most strategically *informed* Opus version regressed on Kuhn poker — exploitability jumped from a flat 0.11 across 4.5/4.6/4.7 to **0.28** at 4.8 — and a scalar average hides it while a per-game decomposition localizes it to a single decision node; (2) the deepest, most universal failure is that LLMs cannot self-randomize, an *architectural* deficit that a strategy/realization split fixes outright, leaving a residual that is equilibrium *computation*, not entropy; (3) framing-invariance and most per-decision competence are *solved* at the frontier; and (4) exact single-agent store-sims all **saturate** — a falsifiable boundary showing that long-horizon agentic coherence is structurally incompatible with an exact decomposable oracle.
+AERead asks a deployment question — *is this agent ready to act in the economy without bleeding value to an adversary?* — and answers it through a single, exact channel: **exploitability**. Fix a model's revealed strategy in a decision problem with a hand-specified, closed-form oracle; the exploitability is the surplus an *optimal* adversary extracts by best-responding to it. **Lower is better; 0 means perfectly coherent — no optimal opponent (RL, another LLM, or human) can take anything.** Four results cut across the sections below: (1) the most strategically *informed* Opus version regressed on Kuhn poker — exploitability jumped from a flat 0.11 across 4.5/4.6/4.7 to **0.28** at 4.8, and the newest GPT-5.5 and Gemini-3.5-flash land on the *identical* sub-optimal play (a cross-lab pattern) — a scalar average hides it while a per-game decomposition localizes it to a single decision node; (2) the deepest, most universal failure is that LLMs cannot self-randomize, an *architectural* deficit that a strategy/realization split fixes outright, leaving a residual that is equilibrium *computation*, not entropy; (3) framing-invariance and most per-decision competence are *solved* at the frontier; and (4) exact single-agent store-sims all **saturate** — a falsifiable boundary showing that long-horizon agentic coherence is structurally incompatible with an exact decomposable oracle.
 
 ---
 
@@ -22,28 +22,43 @@ The exactness comes from *where the channel lives* on the solvability ladder ([g
 
 ## Leaderboard
 
-**Summary.** The six full-coverage models, ranked by **overall exploitability** (mean over all 27 cases; **lower = better**). The headline-axis columns tie each model to the findings below — randomization (`rps`), strategic (`kuhn`), equilibrium-computation (`wrps`), time-consistency (`intertemporal`).
+**Summary.** Eight frontier-class models, ranked by their mean exploitability across the **six discriminating axes** — the cases that actually separate frontier models (**lower = better**). Ranking on this subset rather than a mean over all 27 cases keeps the ordering (it is identical for the six full-coverage models) while letting the two newest models, measured on exactly these axes, slot in directly.
 
-| # | model | overall ↓ | rand. `rps` | strategic `kuhn` | eq-comp `wrps` | time `intertemporal` |
-|---|---|---|---|---|---|---|
-| 1 | claude-sonnet-4.6 | **0.098** | 0.213 | 0.111 | 0.246 | 0.048 |
-| 2 | grok-4.3 | 0.110 | 0.374 | 0.111 | 0.222 | 0.000 |
-| 3 | claude-opus-4.8 | 0.115 | 0.326 | **0.278** | 0.318 | 0.024 |
-| 4 | claude-opus-4.5 | 0.140 | 0.347 | 0.111 | 0.342 | 0.645 |
-| 5 | gpt-5.1 | 0.227 | 0.607 | 0.444 | 0.449 | 0.026 |
-| 6 | gemini-2.5-flash | 0.240 | 0.684 | 0.111 | 0.564 | 0.720 |
+| # | model | mean ↓ | `rps` | `kuhn` | `wrps` | `intertemporal` | `cross-mod` | `allais` |
+|---|---|---|---|---|---|---|---|---|
+| 1 | claude-sonnet-4.6 | **0.103** | 0.213 | 0.111 | 0.246 | 0.048 | 0.000 | 0.000 |
+| 2 | grok-4.3 | 0.118 | 0.374 | 0.111 | 0.222 | 0.000 | 0.000 | 0.000 |
+| 3 | **gpt-5.5** † | 0.122 | 0.226 | **0.278** | 0.226 | 0.000 | 0.000 | 0.000 |
+| 4 | claude-opus-4.8 | 0.158 | 0.326 | **0.278** | 0.318 | 0.024 | 0.000 | 0.000 |
+| 5 | claude-opus-4.5 | 0.241 | 0.347 | 0.111 | 0.342 | 0.645 | 0.000 | 0.000 |
+| 6 | **gemini-3.5-flash** † | 0.309 | 0.742 | **0.278** | 0.573 | 0.264 | 0.000 | 0.000 |
+| 7 | gpt-5.1 | 0.359 | 0.607 | 0.444 | 0.449 | 0.026 | 0.000 | 0.625 |
+| 8 | gemini-2.5-flash | 0.472 | 0.684 | 0.111 | 0.564 | 0.720 | 0.750 | 0.000 |
 
-*The other 8 panel models are partial-coverage and excluded from the ranking. The two universal ceiling cases (`ellsberg` ≈ 1.0, `cyclic7` ≈ 0.84) are included in the overall mean, so they shift the level for everyone, not the ranking. The bolded `kuhn` cell is the Opus-4.8 version regression (Finding 1) — note it does **not** move 4.8's overall rank (3rd), which is exactly why per-case decomposition is load-bearing.*
+*† gpt-5.5 and gemini-3.5-flash were measured on these six axes with lighter sampling (N=32, K=1, 4 seeds vs the stored matrix's 48 / 3 / 8), so small values carry more noise. The two universal-ceiling cases (`ellsberg`, `cyclic7`) and the saturated-floor cases are excluded from the mean — they are ~equal for every frontier model and do not move the ranking.*
+
+**Cross-lab convergence on one exact failure.** The three newest-generation models — **claude-opus-4.8, gpt-5.5, and gemini-3.5-flash — all land at exactly `kuhn = 0.2778 = 5/18`**, the precise exploitability of "value-bet K + bluff J *pure*." Older models sit at 0.111 (never bluff) or, for gpt-5.1, 0.444. So three labs' newest models independently learned to bluff but play it *deterministic* — the exact failure of Finding 1 (below) — making it a **cross-lab phenomenon, not an Opus quirk**.
+
+### Compare models — exploitability radar
+
+Toggle models to overlay their exploitability profile across the six discriminating axes (raw values, lower = better — a smaller polygon is better). Defaults to the three newest models that share the Kuhn failure.
+
+<div id="aer-controls" style="text-align:center;margin:.6em 0"></div>
+<div id="aer-svg" align="center"></div>
+<div id="aer-readout" style="max-width:600px;margin:.3em auto;text-align:center"></div>
+<script src="radar.js"></script>
+
+*(Interactive on the site; if your viewer strips JavaScript, the same numbers are in the leaderboard table above.)*
 
 ### The shape of the construct (PCA)
 
-A PCA of the 12-model × 27-case exploitability matrix. Each spoke is a principal component; spoke length is the share of variance it explains (rings at 10 / 20 / 30%).
+A PCA of the **frontier-only** panel — the 6 full-coverage models × 27 cases, with **no imputation and no weaker models**. Each spoke is a principal component; spoke length is the share of variance it explains.
 
 <p align="center">
-<img src="pca_hexagon.svg" alt="PCA scree hexagon: PC1 31%, PC2 28%, PC3 14%, PC4 8%, PC5 6%, PC6 4% — the construct is low-rank, ~4 effective dimensions" width="480" style="max-width:100%;height:auto">
+<img src="pca_hexagon.svg" alt="Frontier-only PCA hexagon: PC1 40%, PC2 36%, PC3 14%, then near-zero — the construct is ~2-3 effective dimensions" width="480" style="max-width:100%;height:auto">
 </p>
 
-*PC1–PC4 carry **81%** of the variance and the 90% cut falls at PC6 — the construct is **low-rank (~4 effective dimensions)**, visible as two long arms (PC1–PC2) collapsing into a short tail. The loadings are **mixed** (PC1 loads on `stackelberg`/`allpay`/`decoy`; `kuhn` isolates onto PC6), so there is no clean one-case-per-axis structure — which is why AERead reports exploitability **per case**, not as a global axis-count. The axis count here is 6 because the 90%-variance cut is PC6; the effective rank is ~4. (Recipe: 12 non-errored models, column-mean imputation of partial cells, z-scored cases, SVD.)*
+*PC1–PC2 carry **76%** of the variance (PC1 40%, PC2 36%, PC3 14%) and the 90% cut falls at **PC3** — the frontier construct is **low-rank (~2–3 effective dimensions)**, collapsing to near-zero by PC4. Honest caveat: with only 6 frontier models the top components are largely **single-model idiosyncrasies** (PC1 ≈ one model's `cross_modality` spike, PC2 ≈ one model's `allais` spike), not robust shared axes — which is exactly why a stable latent-axis count is **not resolvable** at the frontier, and why AERead reports exploitability **per case**. A broader 12-model panel that mean-imputes weaker models inflates this to ~4–6 components, but that inflation is the **capability confound** (weak models failing cases erratically), not real dimensionality.*
 
 ---
 
@@ -60,6 +75,8 @@ A PCA of the 12-model × 27-case exploitability matrix. Each spoke is a principa
 The mechanism, recovered from the elicited pure strategies: 4.7 value-bets K and never bluffs (`e = 0.11`); 4.8 value-bets K *and bluffs J with probability 1* (`e = 0.28`). Bluffing the worst hand is right — but only at equilibrium frequency `q ≈ ⅓`, a *mixed* action. A temperature-0 policy cannot emit `q = ⅓`, so 4.8 overshoots to `q = 1`; the optimal opponent then best-responds by calling with Q and K, lifting P2's best-response value to **⅓** (vs **⅙** against 4.7). The entire 0.11 → 0.28 gap attributes to **one information set — the open-J decision — worth exactly +1/6**, verified by exact enumeration of all six deals against live best-response code. The most strategically *informed* version is the most exploitable here *through* its sophistication, not despite it.
 
 **Why decomposition matters, in two senses.** *Across games:* the 8-dimension scalar mean is 4.5 = 0.29, 4.6 = 0.19, 4.7 = 0.21, **4.8 = 0.23** — by the scalar, 4.8 looks better than 4.5 and mid-pack, because an unrelated intertemporal improvement (a 4.6-era fix) nets against the Kuhn regression and washes it out. *Within the game:* per-information-set counterfactual regrets (CFR) sum-bound total exploitability and are *exact* here because only the post-bet subtree changed. (Caveat, stated honestly: in a general extensive-form game per-node attribution is a *bound*, not always a clean independent sum — exact additivity holds here only because one node changed.) **Why it matters:** aggregation can net a real regression against an unrelated improvement and report "no change"; per-case + per-node decomposition is what surfaces it. See [Opus version drift](opus-version-drift.html) and [Kuhn poker](kuhn-poker.html).
+
+**Now cross-lab.** The same exact value — `0.2778 = 5/18` — also shows up in **gpt-5.5** and **gemini-3.5-flash** (the newest GPT and Gemini), while their predecessors did not (gpt-5.1 = 0.444; older Geminis = 0.111). Three labs' latest models independently converged on the identical pure-bluff strategy, so "learns to bluff but plays it deterministic" is a property of the **current frontier, not one lab** — see the cross-lab note under the leaderboard above.
 
 ### 2. The randomization deficit — architectural, with an architectural fix
 
@@ -95,7 +112,7 @@ Here the scaling story *inverts*: frontier models tend to default to uniform (en
 
 The 12 most recently added cases — `bandit, vickrey, winners_curse, allpay, bertrand_ic, stackelberg, stackelberg_robust, blotto, blotto_maximin, bargaining_responder, pandora, allais` — each carry an exact closed-form oracle (backward-induction DP over Beta belief states for `bandit`; second-price dominant strategy for `vickrey`; grim-trigger present-value comparison for `bertrand_ic`; Strong-Stackelberg LP for `stackelberg`; Weitzman reservation-value for `pandora`; common-ratio flip for `allais`). See [coverage expansion](coverage-expansion.html).
 
-**The frontier construct is low-rank (~4)** — the [PCA hexagon above](#the-shape-of-the-construct-pca) is the picture. The honest envelope is a **~4–6 band**: the realized matrix has full coverage on only 6 of the 14 panel models (2 errored at launch, 6 returned partial-to-mostly-null output), so the PCA runs on the 12 non-errored models with heavy mean-imputation and the *effective dense* panel is well under the case count — which is why the 90%-variance cut sits at ~6 rather than the ~4 the dominant components imply. (A separate, broader 10-model run is on the [PCA experiment](pca-experiment.html) page.)
+**The frontier construct is low-rank (~2–3)** — the [PCA hexagon above](#the-shape-of-the-construct-pca) is the picture. On the frontier-only panel (6 full-coverage models, no imputation), PC1–PC2 carry **76%** of the variance and the 90% cut falls at **PC3**. With only ~6 frontier-class lineages the top components are dominated by single-model idiosyncrasies, so a stable latent-axis *count* is not resolvable — which is the methodological reason AERead reports exploitability **per case**, not as a global axis number. (Adding the partial/weak panel models with mean-imputation inflates the apparent rank to ~4–6, but that is the **capability confound**, not real dimensionality; a separate broader run is on the [PCA experiment](pca-experiment.html) page.)
 
 **Cases that separate frontier models** (high cross-model std on the realized matrix):
 
@@ -136,21 +153,6 @@ The self-test invariants (oracle regret = 0, naive baselines > 0, sucker trap = 
 **Why this is a citable result, not a null.** It is pre-registered and *could have come out the other way* — the hypothesis "exact-oracle single-agent store sims will discriminate frontier models" was testable, and three independent sims with three independent oracles all saturated. It maps a boundary of the exact-oracle methodology: *which* failures are inside it (per-decision calculation, clean-state judgment) and *which* are structurally outside it (long-context coherence), with a mechanical reason. **Pre-registered falsifier:** the claim is refuted by either (i) an exact, decomposable oracle that scores a single unbroken long-context run *without* re-presenting clean state each turn — one that preserves the degradation while staying exactly scorable; or (ii) a frontier model that *fails* one of these clean-state per-decision sims (non-trivial regret / non-zero trap against the recorded oracle). Neither has appeared; either would update the claim.
 
 **External corroboration of the failure this boundary explains.** Andon Labs' *[Opus 4.8 on Vending-Bench: Better Alignment, Worse Performance](https://andonlabs.com/blog/opus-4-8-vending-bench)* reports that on the unbroken run the model "hits the context limit," "compacts more often," and "can't remember things" — the exact long-context degradation our clean-state sims structurally cannot reproduce — and in the competitive arena over-prices and refuses to come down even when sales stop, mapping to AERead's `bertrand_ic` axis. (This is the later blog run; the original [Vending-Bench paper](https://arxiv.org/abs/2502.15840)'s top model was Claude 3.5 Sonnet.)
-
----
-
-## How to engage / open questions
-
-The channel is exact where a verifiable payoff exists and best-response is tractable (L0 / L2-small), and silent or lower-bounded elsewhere — rigor and limitation are the same fact. The most useful contributions are new exact-oracle cases and adversarial counterexamples. The case-submission gate, payoff scaffolds, and OracleDecomposable counterexample channel are open — see [contributing cases](contributing-cases.html).
-
-Falsifiable open questions (engagement invited):
-
-- **Does abstract exploitability predict realized adversarial deployment loss?** This is the key external-validity assumption, and it is *not yet validated*: the channel measures the surplus an *optimal* adversary could extract under an exact oracle; whether that predicts dollar loss against *realized* adversaries (RL agents, other LLMs, humans) in deployment is an empirical claim to be tested, not asserted. **Open:** propose a deployment where realized adversarial loss can be measured against the channel's prediction.
-- **Is the randomization deficit purely entropy?** Pre-registered: the strategy/realization split should take any model on a uniform-equilibrium game to within finite-sample noise of the RNG floor. Any model that emits a *raw* sequence (no external RNG) and reaches that floor on `eps_cond` would refute "LLMs cannot self-randomize, universally."
-- **Does the weighted-RPS frontier-defaults-to-uniform pattern close with open-model scale?** The `wrps_sweep` `[DISCRIMINATES]` / `[collapses]` tag is the exact test.
-- **Is the store-sim boundary real?** Exhibit either an exact decomposable oracle that preserves long-context degradation while staying scorable, or a frontier model that fails one of the clean-state per-decision sims — either would update the boundary claim.
-
-A frozen finite suite is a *monotone lower bound* on the worst case, so AERead pre-registers the threat model and certifies over closed/regular families rather than a frozen list — with this falsifier: if a frozen library's worst-case extraction keeps climbing materially with every added exploiter and never plateaus, only the per-suite *ranking* should be reported, not absolute exploitability.
 
 ---
 
