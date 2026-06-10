@@ -7,6 +7,11 @@ when the model is perfectly coherent.
 
 This page is a v0 reference index for the docs cited in design discussions.
 
+**New:** [**AERead — results so far**](wiki/results.html) is a single comprehensive read of
+the findings to date — the Opus 4.8 Kuhn regression, the randomization deficit and its
+architectural fix, the coverage/PCA construct, the exact-oracle store-sim boundary, and the
+open competition direction.
+
 ## Exploitation channel
 
 - **[Channel writeup — `exploitation_channel.md`](exploitation_channel.html)**
@@ -32,7 +37,8 @@ Short explainers for the design logic, terms, and works behind the channel — *
   [best response & exploitability](wiki/best-response-exploitability.html),
   [Nash equilibrium](wiki/nash-equilibrium.html), [RPS](wiki/rps.html), [Kuhn poker](wiki/kuhn-poker.html)
 - **External** — [TERMS-Bench](wiki/terms-bench.html), [Vending-Bench](wiki/vending-bench.html)
-- **Results** — [PCA experiment](wiki/pca-experiment.html),
+- **Results** — [results so far (overview)](wiki/results.html),
+  [PCA experiment](wiki/pca-experiment.html),
   [test results](wiki/exploitability-test-results.html)
 
 ---
